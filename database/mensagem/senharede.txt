@@ -1,0 +1,14 @@
+teste senharede
+
+
+{{num_pregao}}
+{{ano_pregao}}
+{{nup}}
+{{objeto}}
+{{uasg}}
+{{orgao_responsavel}}
+{{sigla_om}}
+{{setor_responsavel}}
+{{coordenador_planejamento}}
+{{etapa}}
+{{pregoeiro}}

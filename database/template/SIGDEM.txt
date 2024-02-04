@@ -1,0 +1,22 @@
+No campo “Assunto” do SIGDEM, deverá constar:
+PE {num_pregao}/{ano_pregao} – {tipo_documento}
+
+No campo “Sinopse” do SIGDEM, deverá constar:
+{tipo_documento} referente ao Pregão Eletrônico nº {num_pregao}/{ano_pregao}, para {objeto}
+Processo Administrativo NUP: {nup}
+
+No campo “Observações” do SIGDEM, deverá constar:
+Setor Demandante: {setor_responsavel}
+Coordenador da Equipe de Planejamento: {coordenador_planejamento}
+
+Trâmite:
+Setor Demandante > 01.7.3 > SEC01.7 > 01.7 > 01.7.3 > SEC01.7.3
+
+Para conhecimento:
+01.7.02; 01.7.3.2; 01.7.3.3 e cadeia hierarquica do Setor Demandante
+
+Meio de Tramitação:
+Segue Eletronicamente
+
+Temporalidade:
+004

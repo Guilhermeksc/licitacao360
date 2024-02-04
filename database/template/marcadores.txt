@@ -1,0 +1,31 @@
+marcadores        
+"autorização_para_abertura_": [],
+        "dfd_inicio_": [],
+        "dfd_fim_": [],
+        "etp_inicio_": [],
+        "etp_fim_": [],
+        "mr_inicio_": [],
+        "mr_fim_": [],
+        "dec_adeq_orc_": [],
+        "port_plan_inicio_": [],
+        "port_plan_fim_": [],
+        "tr_inicio_": [],
+        "tr_fim_": [],
+        "edital_inicio_": [],
+        "edital_fim_": [],
+
+
+subrotulo_dados = [
+    ("Autorização para Abertura de Licitação", 5, 'aut'),
+    ("Declaração de Adequação Orçamentária", 6, 'dec_orc'),
+    ("Documento de Formalização de Demanda (DFD)", 7, 'dfd'),
+    ("Portaria de Equipe de Planejamento", 8, 'port'),
+    ("Estudo Técnico Preliminar (ETP)", 9, 'etp'),
+    ("Matriz de Riscos", 10, 'matriz'),
+    ("Intenção de Registro de Preços (IRP)", 11, 'irp'),        
+    ("Termo de Referência", 12, 'tr'),
+    ("Edital", 13, 'edital'),
+    ("CP CJACM", 14, 'cp_cjacm'),
+    ("Despacho CJACM", 15, 'despacho_cjacm'),
+    ("Atesto de Conformidade do Processo", 16, 'conformidade'),
+]
