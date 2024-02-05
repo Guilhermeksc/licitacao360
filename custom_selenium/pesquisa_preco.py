@@ -149,7 +149,7 @@ class PesquisaPrecos(QDialog):
                 EC.visibility_of_element_located((By.XPATH, "//*[@id='termo-pesquisa']"))
             )
             campo_pesquisa.clear()  # Limpa qualquer texto existente no campo
-            campo_pesquisa.send_keys("12/2024")  # Envia o texto "8/2024" para o campo
+            campo_pesquisa.send_keys("30/2024")  # Envia o texto "30/2024" para o campo
 
             try:
                 # Esperar até que a lupa esteja visível e clicável
@@ -168,7 +168,7 @@ class PesquisaPrecos(QDialog):
             except ElementClickInterceptedException as e:
                 print(f"Erro ao tentar clicar na lupa de pesquisa: {e}")
 
-            clicar_no_botao_editar(self.driver, "12/2024")
+            clicar_no_botao_editar(self.driver, "30/2024")
 
             print("Aguardando o desaparecimento do spinner...")
             esperar_invisibilidade_elemento(self.driver, "div#spinner")

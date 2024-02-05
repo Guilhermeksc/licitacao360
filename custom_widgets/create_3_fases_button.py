@@ -1,5 +1,5 @@
 # create_3_fases_button.py
-#teste git
+
 import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QMimeData, QDateTime, QDate

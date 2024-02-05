@@ -30,11 +30,6 @@ class JSONDialog(QDialog):
         self.generate_table_button.clicked.connect(self.generate_excel_table)
         self.layout.addWidget(self.generate_table_button)
 
-        # Botão para confirmar a entrada
-        self.ok_button = QPushButton("OK", self)
-        self.ok_button.clicked.connect(self.accept)
-        self.layout.addWidget(self.ok_button)
-
         self.setWindowTitle("Converter arquivo JSON para tabela")
 
     def load_json(self):
@@ -42,9 +37,10 @@ class JSONDialog(QDialog):
         if file_name:
             with open(file_name, 'r', encoding='utf-8') as file:
                 self.json_data = json.load(file)
+                self.dataframe = pd.DataFrame(self.json_data)  # Converta os dados JSON para um DataFrame
                 self.update_table_view()
-            print("Arquivo JSON carregado com sucesso!")
-
+                print("Arquivo JSON carregado com sucesso!")
+        
     def update_table_view(self):
         self.model.clear()  # Limpa o modelo existente
         for item in self.json_data:
@@ -77,24 +73,67 @@ class JSONDialog(QDialog):
 
         # Ajustar a coluna 'caracteristicas': remover '#' e o último '|'
         df['caracteristicas'] = df['caracteristicas'].str.replace('#', '').str.rstrip('|')
-        # Extrair 'nomeUnidadeMedida' de 'unidade_fornecimento'
-        df['unidade_fornecimento'] = df['unidade_fornecimento'].apply(lambda x: x['nomeUnidadeMedida'])
 
-        # Adicionar colunas vazias
-        df['valor_unitario'] = ''
-        df['quantidade_estimada'] = ''
-        df['valor_total_do_item'] = ''
+        # Mapeamento de conversão de unidade
+        conversao_unidade = {
+            'G': 'Grama',
+            'ML': 'Mililitro',
+            'M': 'Metro',
+            'KG': 'Quilograma',
+            'UN': 'Unidade',
+            'L': 'Litro'
+        }
 
-        # Reordenar as colunas e remover a coluna 'tipo'
-        colunas_desejadas = ['item_num', 'catalogo', 'descricao_tr', 'descricao_detalhada', 'caracteristicas', 'unidade_fornecimento', 'valor_unitario', 'quantidade_estimada', 'valor_total_do_item']
-        df = df[colunas_desejadas]
+        # Função para conversão de unidades
+        def converter_unidade(unidade):
+            unidade = unidade['nomeUnidadeMedida']
+            for abrev, completo in conversao_unidade.items():
+                if unidade.endswith(f" {abrev}"):
+                    return unidade.replace(abrev, completo)
+            return unidade
 
-        # Gerar um nome de arquivo único usando um timestamp
+        # Aplicar a conversão de unidade
+        df['unidade_fornecimento'] = df['unidade_fornecimento'].apply(converter_unidade)
+
+        # Inserir valores fictícios para 'valor_unitario' e 'quantidade_estimada'
+        df['valor_unitario'] = 0  # Insira os valores reais aqui
+        df['quantidade_estimada'] = 0  # Insira os valores reais aqui
+        df['valor_total_do_item'] = df['valor_unitario'] * df['quantidade_estimada']
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         nome_arquivo = f"tabela_conversao_{timestamp}.xlsx"
 
-        # Salvar DataFrame como arquivo Excel
-        df.to_excel(nome_arquivo, index=False)
+        # Reordenar as colunas
+        colunas_desejadas = ['item_num', 'catalogo', 'descricao_tr', 'descricao_detalhada', 'caracteristicas', 'unidade_fornecimento', 'valor_unitario', 'quantidade_estimada']
+        df = df[colunas_desejadas]
+
+        # Calcula 'valor_total_do_item' aqui, antes de salvar no Excel
+        df['valor_total_do_item'] = df['valor_unitario'] * df['quantidade_estimada']
+
+        # Salvar DataFrame como arquivo Excel com formatação
+        with pd.ExcelWriter(nome_arquivo, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Obter o objeto workbook e worksheet do xlsxwriter
+            workbook = writer.book
+            worksheet = writer.sheets['Sheet1']
+
+            # Definir o formato de moeda
+            currency_format = workbook.add_format({'num_format': 'R$ #,##0.00'})
+
+            # Definir o tamanho das colunas
+            worksheet.set_column('A:A', 8)  # item_num
+            worksheet.set_column('B:B', 8)  # catalogo
+            worksheet.set_column('C:C', 20)  # descricao_tr
+            worksheet.set_column('D:D', 10)  # descricao_detalhada
+            worksheet.set_column('E:E', 10)  # caracteristicas
+            worksheet.set_column('F:F', 25)  # unidade_fornecimento
+            worksheet.set_column('G:G', 15, currency_format)  # valor_unitario
+            worksheet.set_column('H:H', 15)  # quantidade_estimada
+            worksheet.set_column('I:I', 20, currency_format)  # valor_total_do_item
+
+            # Agora, iterar sobre as linhas para adicionar a fórmula de multiplicação
+            for row_num in range(2, len(df) + 2):  # Começando de 2 porque o Excel começa do 1 e há o cabeçalho
+                worksheet.write_formula(f'I{row_num}', f'=G{row_num}*H{row_num}')
 
         # Abrir o arquivo Excel
         try:

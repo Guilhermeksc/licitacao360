@@ -163,8 +163,10 @@ class SeleniumAutomacao(QWidget):
 
     def mostrar_dialogo_json(self):
         dialogo = JSONDialog(self)
-        if dialogo.exec() == QDialog.DialogCode.Accepted:
+        if dialogo.exec() == QDialog.DialogCode.Accepted and hasattr(dialogo, 'dataframe'):
             self.dataframe = dialogo.dataframe  # Atualiza o DataFrame
+        else:
+            print("Arquivo JSON não carregado ou diálogo fechado antes do carregamento.")
 
     def esperar_e_clicar(self, selector, by=By.CSS_SELECTOR, timeout=20):
         elemento = self.esperar_elemento_clicavel(selector, by, timeout)
