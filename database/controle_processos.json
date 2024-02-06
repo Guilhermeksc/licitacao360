@@ -18,8 +18,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "01-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 2,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 4,
                 "comentario": "",
                 "sequencial": 2
             }
@@ -37,8 +37,8 @@
             {
                 "etapa": "Edital",
                 "data_inicial": "01-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 2,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 4,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -80,8 +80,8 @@
             {
                 "etapa": "Recomendações AGU",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 4
             }
@@ -99,8 +99,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -118,8 +118,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -673,8 +673,8 @@
             {
                 "etapa": "Devolvido por Nota",
                 "data_inicial": "01-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 2,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 4,
                 "comentario": "",
                 "sequencial": 3
             }
@@ -692,8 +692,8 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -711,8 +711,8 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -730,8 +730,8 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -749,8 +749,8 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -796,8 +796,8 @@
             {
                 "etapa": "Homologado",
                 "data_inicial": "02-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 1,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 3,
                 "comentario": "",
                 "sequencial": 2
             }
@@ -815,8 +815,8 @@
             {
                 "etapa": "Em recurso",
                 "data_inicial": "02-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 1,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 3,
                 "comentario": "teste",
                 "sequencial": 1
             }
@@ -834,8 +834,8 @@
             {
                 "etapa": "Setor Responsável",
                 "data_inicial": "02-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 1,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 3,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -853,8 +853,8 @@
             {
                 "etapa": "Setor Responsável",
                 "data_inicial": "02-02-2024",
-                "data_final": "03-02-2024",
-                "dias_na_etapa": 1,
+                "data_final": "05-02-2024",
+                "dias_na_etapa": 3,
                 "comentario": "",
                 "sequencial": 1
             }

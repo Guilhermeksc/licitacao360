@@ -178,11 +178,8 @@ class IRPDialog(QDialog):
         aguardar_mudanca_janela(self.driver)
 
         esperar_e_clicar(self.driver, MARKER_SELECTOR) # Clicar em Gerenciador e Participante
-        # Tentativa de clicar no botão CONFIRM_BUTTON_SELECTOR
-        button = self.driver.find_element(By.CSS_SELECTOR, CONFIRM_BUTTON_SELECTOR)
-        self.driver.execute_script("arguments[0].click();", button)
-        time.sleep(0.5)
-        
+        esperar_e_clicar(self.driver, CONFIRM_BUTTON_SELECTOR)
+
         hover_sobre_elemento(self.driver, HOVER_ELEMENT_SELECTOR) # Abrir menu dinâmico IRP
         esperar_e_clicar(self.driver, MENU_OPTION_SELECTOR) # Opção abrir irp existente
         esperar_e_clicar(self.driver, SPECIFIC_ELEMENT_SELECTOR)
@@ -242,47 +239,44 @@ class IRPDialog(QDialog):
         QMessageBox.information(self, "Inserção Concluída", f"{itens_inseridos} itens inseridos com sucesso.")
 
     def selecionar_unidade(self, unidade_nome):
-        unit_map = {
-            'G': 'Grama',
-            'ML': 'Mililitro',
-            'M': 'Metro',
-            'KG': 'Quilograma',
-            'UN': 'Unidade',
-            'L': 'Litro'
-        }
+        possiveis_nomes = [unidade_nome,
+                        re.sub(r'(\d+)\s*G\b', r'\1 Grama', unidade_nome),
+                        re.sub(r'(\d+)\s*ML\b', r'\1 Mililitro', unidade_nome),
+                        re.sub(r'(\d+)\s*M\b', r'\1 Metro', unidade_nome),
+                        re.sub(r'(\d+)\s*KG\b', r'\1 Quilograma', unidade_nome),
+                        re.sub(r'(\d+)\s*UN\b', r'\1 Metro', unidade_nome),
+                        unidade_nome + " Grama",
+                        unidade_nome + " Mililitro",
+                        unidade_nome + " Metro",
+                        unidade_nome + " Quilograma",
+                        unidade_nome + " Unidade",
+                        "Unidade" if unidade_nome.lower() == "unidade" else unidade_nome]
 
-        # Defina o XPath do dropdown aqui
-        xpath_dropdown = "/html/body/app-root/div/main/app-busca/app-detalhe-material-siasgnet-lote/div/div[2]/div[1]/div[2]/select"
-        
-        # Logue as opções disponíveis no dropdown
-        self.log_dropdown_options(xpath_dropdown)
-        time.sleep(0.3)
-        # Espere até que as opções estejam carregadas no dropdown
-        self.wait_for_options_to_load(xpath_dropdown)
-
-        # Try direct match first
-        if self.try_select_unit(unidade_nome):
-            return
-
-        # Try replacing known abbreviations
-        for abbrev, full_form in unit_map.items():
-            replaced_name = unidade_nome.replace(abbrev, full_form)
-            if self.try_select_unit(replaced_name):
+        for nome in possiveis_nomes:
+            try:
+                time.sleep(0.1)  # Pequena pausa
+                dropdown = WebDriverWait(self.driver, 20).until(
+                    EC.visibility_of_element_located((By.XPATH, "/html/body/app-root/div/main/app-busca/app-detalhe-material-siasgnet-lote/div/div[2]/div[1]/div[2]/select"))
+                )
+                time.sleep(0.2)  # Pequena pausa
+                Select(dropdown).select_by_visible_text(nome)
+                print(f"Opção '{nome}' selecionada no dropdown.")
                 return
+            except Exception as e:
+                print(f"Erro ao tentar selecionar '{nome}' no dropdown:", str(e))
+
+        try:
+            # Se nenhuma opção funcionou, tenta encontrar um elemento que contenha o texto
+            all_options = dropdown.find_elements_by_tag_name('option')
+            for option in all_options:
+                if unidade_nome.lower() in option.text.lower():
+                    option.click()
+                    print(f"Opção contendo '{unidade_nome}' selecionada no dropdown.")
+                    return
+        except Exception as e:
+            print(f"Erro ao tentar encontrar uma opção contendo '{unidade_nome}':", str(e))
 
         print(f"Nenhuma opção válida encontrada para '{unidade_nome}'.")
-
-    def try_select_unit(self, unit_name):
-        try:
-            dropdown = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.XPATH, "/html/body/app-root/div/main/app-busca/app-detalhe-material-siasgnet-lote/div/div[2]/div[1]/div[2]/select"))
-            )
-            Select(dropdown).select_by_visible_text(unit_name)
-            print(f"Opção '{unit_name}' selecionada no dropdown.")
-            return True
-        except Exception as e:
-            print(f"Erro ao tentar selecionar '{unit_name}' no dropdown:", str(e))
-            return False
 
     def clicar_botao_ok_popup(self):
         # Aguardar a abertura do pop-up e mudar o foco para ele
@@ -297,28 +291,3 @@ class IRPDialog(QDialog):
             print("Botão 'OK' clicado no pop-up.")
         except Exception as e:
             print(f"Erro ao clicar no botão 'OK' do pop-up: {e}")
-
-    def log_dropdown_options(self, xpath_dropdown):
-        try:
-            # Localize o dropdown pelo seu XPath
-            dropdown = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.XPATH, xpath_dropdown))
-            )
-            # Crie um objeto Select a partir do elemento dropdown
-            select = Select(dropdown)
-            # Extraia todas as opções do dropdown
-            options = select.options
-            # Log dos valores (texto visível) de todas as opções
-            for option in options:
-                print("Opção disponível no dropdown:", option.text)
-        except Exception as e:
-            print("Erro ao tentar logar opções do dropdown:", str(e))
-
-    def wait_for_options_to_load(self, xpath_dropdown, timeout=20):
-        try:
-            WebDriverWait(self.driver, timeout).until(
-                lambda driver: Select(driver.find_element(By.XPATH, xpath_dropdown)).options
-            )
-            print("Opções carregadas no dropdown.")
-        except TimeoutException:
-            print("Timeout esperando opções serem carregadas no dropdown.")

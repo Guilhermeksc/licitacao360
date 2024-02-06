@@ -59,7 +59,6 @@ LV_FINAL_DIR = DATABASE_DIR / "Nova pasta"
 LV_BASE_DIR = DATABASE_DIR / "Nova pasta"
 
 WEBDRIVER_DIR = DATABASE_DIR / "selenium"
-WEBDRIVER_EDGE_PATH = WEBDRIVER_DIR / "msedgedriver.exe"
 WEBDRIVER_FIREFOX_PATH = WEBDRIVER_DIR / "geckodriver.exe"
 CONTROLE_PREGOEIROS_DIR = DATABASE_DIR / "controle_pregoeiros.xlsx"
 
@@ -78,6 +77,7 @@ IMAGE_PATH = DATABASE_DIR / "image"
 MENSAGEM_DIR = DATABASE_DIR / "mensagem"
 ITEM_SELECIONADO_PATH = DATABASE_DIR / "item_selecionado.csv"
 CONTRATOS_PATH = DATABASE_DIR / "Contratos.csv"
+ADICIONAIS_PATH = DATABASE_DIR / "Dados_Adicionais.csv"
 
 BG_IMAGEM_PATH = IMAGE_PATH / "bg1.png"
 CONTROLE_PROCESSOS_DIR = DATABASE_DIR / "controle_processos.xlsx"
