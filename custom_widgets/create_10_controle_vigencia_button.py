@@ -80,9 +80,16 @@ def ler_dados_contratos():
 
 def ler_dados_adicionais():
     if ADICIONAIS_PATH.exists():
-        return pd.read_csv(ADICIONAIS_PATH)
+        df = pd.read_csv(ADICIONAIS_PATH)
+        # Assegurar que as colunas 'Ref.' e 'Setor' existam, caso contrário, adicionar
+        if 'Processo' not in df.columns:
+            df['Processo'] = ''  # Pode definir um valor padrão diferente se necessário
+        if 'Setor' not in df.columns:
+            df['Setor'] = ''  # Pode definir um valor padrão diferente se necessário
+        return df
     else:
-        return pd.DataFrame(columns=['Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Natureza', 'Portaria', 'Gestor', 'Fiscal'])
+        # Incluir as novas colunas ao criar o DataFrame vazio
+        return pd.DataFrame(columns=['Número do instrumento', 'Processo', 'Objeto', 'OM', 'Setor', 'Tipo', 'Natureza', 'Portaria', 'Gestor', 'Fiscal'])
 
 def formatar_numero_instrumento(numero):
     partes = numero.split('/')
@@ -112,10 +119,22 @@ class ContratosWidget(QWidget):
         label_controle_vigencia.setStyleSheet(get_transparent_title_style())
         self.layout.addWidget(label_controle_vigencia)
 
+        # Checkbox para selecionar todos
+        self.selectAllCheckbox = QCheckBox()
+        self.selectAllLabel = QLabel("Selecionar Todos")
+        self.selectAllLayout = QHBoxLayout()
+        self.selectAllLayout.addWidget(self.selectAllLabel)
+        self.selectAllLayout.addWidget(self.selectAllCheckbox)
+        self.layout.addLayout(self.selectAllLayout)
+        
         # Configura o QTreeView e carrega os dados
         self.tree_view = QTreeView(self)
         self.layout.addWidget(self.tree_view)
+        
+        self.selectAllCheckbox.stateChanged.connect(self.selectAllChanged)
         self.carregarDados()
+
+        self.tree_view.clicked.connect(self.toggleCheckbox)
 
         # Layout para os botões
         self.buttons_layout = QHBoxLayout()
@@ -152,10 +171,34 @@ class ContratosWidget(QWidget):
         self.mensagem_cobranca_btn.clicked.connect(self.exibirDetalhesContrato)
 
         # Defina os cabeçalhos das colunas aqui para uso no modelo e na visualização
-        self.colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
+        self.colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Processo', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
         # Defina colunas adicionais para uso interno, que não serão exibidas no QTreeView
         self.colunas_internas = ['Vig. Início', 'Vig. Fim', 'Valor Formatado']
 
+    def toggleCheckbox(self, index):
+        if not index.isValid():
+            return  # Se o índice não for válido, apenas retorne
+        
+        model = self.tree_view.model()
+        item = model.item(index.row(), 0)  # 0 é o índice da coluna dos checkboxes
+        
+        if item is not None and item.isCheckable():
+            # Alternar o estado do checkbox
+            if item.checkState() == Qt.CheckState.Checked:
+                item.setCheckState(Qt.CheckState.Unchecked)
+            else:
+                item.setCheckState(Qt.CheckState.Checked)
+
+    def selectAllChanged(self):
+        state = self.selectAllCheckbox.checkState()
+        model = self.tree_view.model()
+        for row in range(model.rowCount()):
+            item = model.item(row, 0)  # A primeira coluna onde o checkbox está localizado
+            if item:  # Verificar se o item não é None
+                item.setCheckState(state)
+            else:
+                print(f"Item não encontrado na linha {row}, coluna 0")
+            
     def gerarTermoSubrogacao(self):
         try:
             # Aqui você coloca o código para gerar o termo de subrogação
@@ -233,20 +276,20 @@ class ContratosWidget(QWidget):
         # Valor formatado do contrato
         dados_mesclados['Valor Formatado'] = dados_mesclados['Número do instrumento'].apply(formatar_numero_instrumento)
 
-        # Filtra as linhas onde 'Dias p. Vencer' é negativo
-        dados_mesclados = dados_mesclados[dados_mesclados['Dias p. Vencer'] >= 0]
-
-        # Formata a coluna 'Dias p. Vencer' para ordenação
-        dados_mesclados['Dias p. Vencer'] = dados_mesclados['Dias p. Vencer'].apply(lambda x: f'{x:04d}')
+        # Formata a coluna 'Dias p. Vencer' para ordenação, lidando corretamente com valores negativos
+        def formatar_dias_p_vencer(valor):
+            sinal = '-' if valor < 0 else ''
+            return f"{sinal}{abs(valor):04d}"
+        dados_mesclados['Dias p. Vencer'] = dados_mesclados['Dias p. Vencer'].apply(formatar_dias_p_vencer)
 
         # Ordena os dados por 'Dias p. Vencer'
         dados_mesclados = dados_mesclados.sort_values(by='Dias p. Vencer')
 
         # Cabeçalhos das colunas (sem incluir 'Vig. Início' e 'Vig. Fim' para exibição)
-        colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
+        self.colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Processo', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
 
-        # Configura o modelo personalizado
-        self.model = CustomTableModel(dados_mesclados, colunas)
+        # Configura o modelo personalizado com as colunas atualizadas
+        self.model = CustomTableModel(dados_mesclados, self.colunas)
         self.tree_view.setModel(self.model)
         self.tree_view.setSortingEnabled(True)
 
@@ -262,13 +305,18 @@ class ContratosWidget(QWidget):
         index = index or self.tree_view.currentIndex()
         if index.isValid():
             numero_instrumento = self.model.item(index.row(), self.colunas.index('Número do instrumento')).text()
+            print("Número do instrumento selecionado:", numero_instrumento)  # Diagnóstico
+       
             adicionais_df = ler_dados_adicionais()
-            registro_atual = adicionais_df.loc[adicionais_df['Número do instrumento'] == numero_instrumento]
-
-            # Obter os dados de 'Vig. Início', 'Vig. Fim' e 'Valor Formatado'
+            resultado_adicional = adicionais_df.loc[adicionais_df['Número do instrumento'] == numero_instrumento]
+            
             dados_mesclados = mesclar_dados_contratos()
             linha_atual = dados_mesclados[dados_mesclados['Número do instrumento'] == numero_instrumento]
-
+            
+            # Diagnóstico: Imprimir os dataframes filtrados
+            print("Dados Mesclados para o instrumento selecionado:", linha_atual)
+            print("Dados Adicionais para o instrumento selecionado:", resultado_adicional)
+        
             if not linha_atual.empty:
                 print("Linha atual:", linha_atual)  # Diagnóstico
                 vig_inicio = linha_atual.iloc[0]['Vig. Início']
@@ -278,20 +326,23 @@ class ContratosWidget(QWidget):
                 vig_inicio = ''
                 vig_fim = ''
                 valor_formatado = ''
-
-            if registro_atual.empty:
+            
+            # Use resultado_adicional para criar registro_atual
+            if not resultado_adicional.empty:
+                registro_atual = resultado_adicional.iloc[0].to_dict()
+                registro_atual['Vig. Início'] = vig_inicio
+                registro_atual['Vig. Fim'] = vig_fim
+                registro_atual['Valor Formatado'] = valor_formatado  # Inclua 'Valor Formatado' aqui
+            else:
                 registro_atual = {
                     'Número do instrumento': numero_instrumento,
                     'Vig. Início': vig_inicio,
                     'Vig. Fim': vig_fim,
-                    'Valor Formatado': valor_formatado, 
+                    'Valor Formatado': valor_formatado,
                     'OM': '', 'Tipo': '', 'Portaria': '', 'Gestor': '', 'Fiscal': ''
                 }
-            else:
-                registro_atual = registro_atual.iloc[0].to_dict()
-                registro_atual['Vig. Início'] = vig_inicio
-                registro_atual['Vig. Fim'] = vig_fim
-                registro_atual['Valor Formatado'] = valor_formatado  # Inclua 'Valor Formatado' aqui
+
+            print("Registro Atual antes de abrir o diálogo:", registro_atual)  # Diagnóstico
 
             dialog = AtualizarDadosContratos(registro_atual)
             result = dialog.exec()
@@ -319,8 +370,12 @@ class CustomTableModel(QStandardItemModel):
         self.setupModel()
 
     def setupModel(self):
-        self.setHorizontalHeaderLabels(self.colunas)
+        self.setHorizontalHeaderLabels([''] + self.colunas)
         for i, row in self.dados.iterrows():
+            checkbox_item = QStandardItem()
+            checkbox_item.setCheckable(True)
+            self.setItem(i, 0, checkbox_item) 
+
             for j, col in enumerate(self.colunas):
                 item = QStandardItem(str(row[col]))
 
@@ -337,13 +392,14 @@ class CustomTableModel(QStandardItemModel):
                     # Cor branca para as demais colunas
                     item.setForeground(QBrush(QColor(Qt.GlobalColor.white)))
 
-                self.setItem(i, j, item)
+                self.setItem(i, j + 1, item) 
 
 class AtualizarDadosContratos(QDialog):
     def __init__(self, registro_atual, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Atualizar Dados do Contrato")
+        self.setWindowTitle("Atualizar Dados do Contrato/Ata")
         self.registro_atual = registro_atual
+        print("Registro Atual no início do diálogo:", self.registro_atual)  # Diagnóstico
         self.setupUI()
     
     def setupUI(self):
