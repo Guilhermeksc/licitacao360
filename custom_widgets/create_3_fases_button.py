@@ -97,9 +97,6 @@ class CustomListWidget(QListWidget):
             # Reordenar os itens na lista
             self.sortListItems()
 
-
-
-
     def sortListItems(self):
         items = [self.item(i).text() for i in range(self.count())]
 
@@ -455,7 +452,6 @@ class ProcessosWidget(QWidget):
         if processo_info:
             return {"processo": chave_processo, "dados": processo_info}
         return None
-
 
 class DialogoIRP(QDialog):
     def __init__(self, parent=None):

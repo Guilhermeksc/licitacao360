@@ -392,7 +392,7 @@ class CustomTableModel(QStandardItemModel):
                     # Cor branca para as demais colunas
                     item.setForeground(QBrush(QColor(Qt.GlobalColor.white)))
 
-                self.setItem(i, j + 1, item) 
+                self.setItem(i, j, item) 
 
 class AtualizarDadosContratos(QDialog):
     def __init__(self, registro_atual, parent=None):

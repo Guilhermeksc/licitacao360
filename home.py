@@ -23,13 +23,26 @@ from custom_widgets.create_12_msg_button import HallResponsaveis
 from custom_widgets.create_13_registro_fornec_button import RegistroFornecedor
 from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
+from controle_contratos.controle_de_contratos import ControleContratosWidget
 
 class MainWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
         self.setup_ui()
         self.open_initial_page()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F10:
+            self.toggle_menu_visibility()
+        else:
+            super().keyPressEvent(event)
+    
+    def toggle_menu_visibility(self):
+        menu_widget = self.centralWidget().layout().itemAt(0).widget()  # Assuming menu is the first widget in the layout
+        if menu_widget.isHidden():
+            menu_widget.show()
+        else:
+            menu_widget.hide()
 
     def setup_ui(self):
         self.setWindowTitle("Sistema de Gestão de Licitações")
@@ -75,7 +88,7 @@ class MainWindow(QMainWindow):
             (" Fases do Processo", ICONS_DIR / "x.png"), 
             (" Informações do Processo", ICONS_DIR / "x.png"), 
             (" Documentos Licitação", ICONS_DIR / "x.png"), 
-            (" Dispensa Eletrônica", ICONS_DIR / "x.png"), 
+            (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Check-list", ICONS_DIR / "x.png"), 
             (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"), 
@@ -163,6 +176,7 @@ class MainWindow(QMainWindow):
         self.inicio_widget.fasesProcessoClicked.connect(lambda: self.change_content("Fases do Processo"))
         self.inicio_widget.infoProcessoClicked.connect(lambda: self.change_content("Informações do Processo"))
         self.inicio_widget.documentosLicitacaoClicked.connect(lambda: self.change_content("Documentos Licitação"))
+        self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Contratos"))
         self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Vigência"))
         self.inicio_widget.checklistClicked.connect(lambda: self.change_content("Check-list"))
         self.inicio_widget.escalacaoPregoeirosClicked.connect(lambda: self.change_content("Escalação de Pregoeiros"))
@@ -177,6 +191,7 @@ class MainWindow(QMainWindow):
             "Fases do Processo": self.setup_fases_do_processo,
             "Informações do Processo": self.setup_informacoes_do_processo,
             "Documentos Licitação": self.setup_documentos_licitacao,
+            "Controle de Contratos": self.setup_controle_contratos,
             "Controle de Vigência": self.setup_controle_vigencia,
             "Check-list": self.setup_checklist,
             "Atas e Contratos": self.setup_atas_contratos,
@@ -206,6 +221,7 @@ class MainWindow(QMainWindow):
                 "Planejamento": self.setup_planejamento,
                 "Informações do Processo": self.setup_informacoes_do_processo,
                 "Documentos Licitação": self.setup_documentos_licitacao,
+                "Controle de Contratos": self.setup_controle_contratos,
                 "Controle de Vigência": self.setup_controle_vigencia,
                 "Check-list": self.setup_checklist,
                 "Atas e Contratos": self.setup_atas_contratos,
@@ -219,6 +235,11 @@ class MainWindow(QMainWindow):
             action = button_actions.get(button.text().strip())
             if action:
                 action()
+
+    def setup_controle_contratos(self):
+        self.clear_content_area()
+        self.contratos_widget = ControleContratosWidget(self)
+        self.content_layout.addWidget(self.contratos_widget)
 
     def setup_fases_do_processo(self):
         self.clear_content_area()

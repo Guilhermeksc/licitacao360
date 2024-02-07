@@ -18,8 +18,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "01-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 5,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 2
             }
@@ -37,13 +37,61 @@
             {
                 "etapa": "Edital",
                 "data_inicial": "01-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 5,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
+            },
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "andressa verificou inconsistencia",
+                "sequencial": 4
+            },
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "inconsistencia sanada",
+                "sequencial": 5
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 6
+            },
+            {
+                "etapa": "CJACM",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 7
             }
         ],
-        "etapa_atual": "Planejamento"
+        "etapa_atual": "CJACM"
     },
     "PE 3/2024": {
         "nup": "62055.010878/2023-70",
@@ -80,8 +128,8 @@
             {
                 "etapa": "Recomendações AGU",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 4
             }
@@ -99,8 +147,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -118,8 +166,8 @@
             {
                 "etapa": "CJACM",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -673,8 +721,8 @@
             {
                 "etapa": "Devolvido por Nota",
                 "data_inicial": "01-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 5,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 6,
                 "comentario": "",
                 "sequencial": 3
             }
@@ -692,13 +740,21 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Em recurso",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
             }
         ],
-        "etapa_atual": "Planejamento"
+        "etapa_atual": "Em recurso"
     },
     "PE 7/2023": {
         "nup": "62055.002424/2023-25",
@@ -711,13 +767,21 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Em recurso",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
             }
         ],
-        "etapa_atual": "Planejamento"
+        "etapa_atual": "Em recurso"
     },
     "PE 10/2023": {
         "nup": "62055.002426/2023-14",
@@ -730,13 +794,21 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Em recurso",
+                "data_inicial": "07-02-2024",
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
             }
         ],
-        "etapa_atual": "Planejamento"
+        "etapa_atual": "Em recurso"
     },
     "PE 13/2023": {
         "nup": "62055.002436/2023-50",
@@ -749,8 +821,8 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 7,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 8,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -796,8 +868,8 @@
             {
                 "etapa": "Homologado",
                 "data_inicial": "02-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 5,
                 "comentario": "",
                 "sequencial": 2
             }
@@ -823,8 +895,8 @@
             {
                 "etapa": "Homologado",
                 "data_inicial": "06-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 0,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 1,
                 "comentario": "",
                 "sequencial": 2
             }
@@ -842,8 +914,8 @@
             {
                 "etapa": "Setor Responsável",
                 "data_inicial": "02-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 5,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -861,8 +933,8 @@
             {
                 "etapa": "Setor Responsável",
                 "data_inicial": "02-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 4,
+                "data_final": "07-02-2024",
+                "dias_na_etapa": 5,
                 "comentario": "",
                 "sequencial": 1
             }
