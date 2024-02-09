@@ -1,3 +1,5 @@
+#painel_contratos.py
+
 import sys
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
@@ -57,6 +59,10 @@ class ContratosWidget(QWidget):
         # Adiciona uma barra de rolagem vertical
         self.tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
+        # Configura a política de tamanho do widget para expandir horizontalmente
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.tree_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
 class CustomTableModel(QStandardItemModel):
     def __init__(self, dados, colunas, colunas_internas=None, parent=None):
         super(CustomTableModel, self).__init__(parent)
@@ -66,31 +72,36 @@ class CustomTableModel(QStandardItemModel):
         self.setupModel()
 
     def setupModel(self):
-        self.setHorizontalHeaderLabels(self.colunas)
+        self.setHorizontalHeaderLabels([''] + self.colunas)  # Adiciona um cabeçalho vazio para a coluna do checkbox
         for i, row in self.dados.iterrows():
-            # Add a checkbox item
+            # Adiciona um item de checkbox na primeira coluna
             checkbox_item = QStandardItem()
             checkbox_item.setCheckable(True)
             checkbox_item.setEditable(False)
-            self.setItem(i, 0, checkbox_item)
+            self.setItem(i, 0, checkbox_item)  # Coloca o checkbox na primeira coluna
             
-            # Now start populating from the second column onwards
-            for j, col in enumerate(self.colunas[1:] + self.colunas_internas):  # Adjust the index by adding 1
-                item = QStandardItem(str(row[col]) if col in row and pd.notnull(row[col]) else "")
-                item.setEditable(False)  # Assuming you don't want the items to be editable
-                self.setItem(i, j + 1, item)  # Adjust the index by adding 1 since the first column is for checkbox
+            # Adiciona os dados nas colunas seguintes
+            for j, col in enumerate(self.colunas):
+                if col in ['CNPJ', 'Fornecedor']:  # Se for a coluna 'CNPJ' ou 'Fornecedor', usa os dados processados
+                    item = QStandardItem(str(row[col]))
+                else:
+                    item = QStandardItem(str(row[col]) if col in row and pd.notnull(row[col]) else "")
+                item.setEditable(False)  # Assume que você não quer que os itens sejam editáveis
+                self.setItem(i, j + 1, item)  # Ajusta o índice adicionando 1 por causa da coluna do checkbox
 
 def load_data(csv_path):
     data = pd.read_csv(csv_path)
     for index, row in data.iterrows():
-        fornecedor = row['Fornecedor']
+        fornecedor = row['Fornecedor']  # Supondo que 'Fornecedor' é uma coluna existente e contém os dados de CNPJ
         match = re.search(r'/\d{4}-\d{2}', fornecedor)
         if match:
             posicao_hifen = match.end()
-            row['CNPJ'] = fornecedor[:posicao_hifen].strip()
-            row['Fornecedor'] = fornecedor[posicao_hifen + 1:].lstrip(" -")
+            # Atualiza os valores de 'CNPJ' e 'Fornecedor' diretamente no DataFrame
+            data.at[index, 'CNPJ'] = fornecedor[:posicao_hifen].strip()
+            data.at[index, 'Fornecedor'] = fornecedor[posicao_hifen + 1:].lstrip(" -")
         else:
-            row['CNPJ'] = ""
-            row['Fornecedor'] = ""
+            # Define valores padrão para 'CNPJ' e 'Fornecedor' caso o padrão não seja encontrado
+            data.at[index, 'CNPJ'] = ""
+            data.at[index, 'Fornecedor'] = fornecedor  # Pode optar por deixar o fornecedor inalterado ou ajustar conforme necessário
     return data
 

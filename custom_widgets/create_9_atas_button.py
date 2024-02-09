@@ -770,7 +770,7 @@ class SicafDialog(QDialog):
 
         # Botão de Informação
         info_icon_path = str(ICONS_DIR / 'info.png')
-        tooltip_image_path = str(IMAGE_PATH / 'sicaf_info.png')
+        tooltip_image_path = str(IMAGE_PATH / 'sicaf_info_small.png')
 
         # Redimensionar o ícone
         icon_size = QSize(32, 32)  # Substitua 32, 32 pelo tamanho desejado

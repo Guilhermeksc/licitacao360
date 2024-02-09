@@ -42,6 +42,14 @@ class JSONDialog(QDialog):
         if file_name:
             with open(file_name, 'r', encoding='utf-8') as file:
                 self.json_data = json.load(file)
+
+                # Aplicar a conversão das unidades de medida aqui
+                for item in self.json_data:
+                    if 'unidade' in item and 'nomeUnidadeMedida' in item['unidade']:
+                        # Aqui você precisa ajustar para que corresponda à estrutura exata dos seus dados
+                        unidade_convertida = self.convert_unidade_medida(item['unidade']['nomeUnidadeMedida'])
+                        item['unidade']['nomeUnidadeMedida'] = unidade_convertida  # Atualizar o item com a unidade convertida
+
                 self.update_table_view()
             print("Arquivo JSON carregado com sucesso!")
 
@@ -79,6 +87,7 @@ class JSONDialog(QDialog):
         df['caracteristicas'] = df['caracteristicas'].str.replace('#', '').str.rstrip('|')
         # Extrair 'nomeUnidadeMedida' de 'unidade_fornecimento'
         df['unidade_fornecimento'] = df['unidade_fornecimento'].apply(lambda x: x['nomeUnidadeMedida'])
+        df['unidade_fornecimento'] = df['unidade_fornecimento'].apply(self.convert_unidade_medida)
 
         # Adicionar colunas vazias
         df['valor_unitario'] = ''
@@ -93,14 +102,54 @@ class JSONDialog(QDialog):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         nome_arquivo = f"tabela_conversao_{timestamp}.xlsx"
 
-        # Salvar DataFrame como arquivo Excel
-        df.to_excel(nome_arquivo, index=False)
+        # Preparar o ExcelWriter com o engine xlsxwriter
+        writer = pd.ExcelWriter(nome_arquivo, engine='xlsxwriter')
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+        # Ajustar o tamanho das colunas
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # Ajuste das larguras de coluna
+        # Aproximação: 1 unidade de largura no Excel equivale aproximadamente a 6 pixels.
+        # Portanto, para 60px, usamos 10 como valor aproximado, e para 20px, usamos cerca de 3.3.
+        worksheet.set_column('C:C', 25)  # Para 'descricao_tr', supondo que seja a coluna B
+        worksheet.set_column('F:F', 25)  # Para 'unidade_fornecimento', supondo que seja a coluna F
+        # Ajustar todas as outras colunas para 20px (aprox. 3.3 de largura no Excel)
+        worksheet.set_column('A:B', 10)
+        worksheet.set_column('D:E', 20)
+        worksheet.set_column('G:Z', 10)  # Ajusta as colunas até a Z, ajuste conforme necessário
+
+        # Salvar o arquivo Excel
+        writer.close()
 
         # Abrir o arquivo Excel
         try:
             os.startfile(nome_arquivo)
         except Exception as e:
             print(f"Não foi possível abrir o arquivo: {e}")
+
+    def convert_unidade_medida(self, unidade):
+
+        # Dicionário de mapeamento das abreviações para os nomes completos
+        mapeamento = {
+            'G': 'Grama',
+            'UN': 'Unidade',
+            'FL': 'Folha',
+            'ML': 'Mililitro'
+        }
+        
+        # Dividir o valor em quantidade e unidade
+        partes = unidade.split()
+        if len(partes) > 1:  # Verifica se há unidade para converter
+            quantidade, unidade_abrev = partes[:-1], partes[-1]
+            # Converter a unidade, se estiver no dicionário de mapeamento
+            unidade_completa = mapeamento.get(unidade_abrev, unidade_abrev)
+            # Reconstruir a string com a unidade convertida
+            return ' '.join(quantidade + [unidade_completa])
+        else:
+            return unidade  # Retorna o valor original se não houver unidade para converter
+
 
 class AlteracaoIRPDialog(QDialog):
     def __init__(self, parent=None):

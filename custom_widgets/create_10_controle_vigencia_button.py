@@ -74,22 +74,18 @@ def formatar_mensagem_contrato(numero_contrato, cnpj, nome_empresa, prazo_limite
 # Ler o arquivo CSV
 def ler_dados_contratos():
     if Path(CONTRATOS_PATH).exists():
-        return pd.read_csv(CONTRATOS_PATH)
+        return pd.read_csv(CONTRATOS_PATH, usecols=lambda column: column not in ['Processo', 'Setor'])
     else:
-        return pd.DataFrame()  
+        return pd.DataFrame()
 
 def ler_dados_adicionais():
     if ADICIONAIS_PATH.exists():
         df = pd.read_csv(ADICIONAIS_PATH)
-        # Assegurar que as colunas 'Ref.' e 'Setor' existam, caso contrário, adicionar
-        if 'Processo' not in df.columns:
-            df['Processo'] = ''  # Pode definir um valor padrão diferente se necessário
-        if 'Setor' not in df.columns:
-            df['Setor'] = ''  # Pode definir um valor padrão diferente se necessário
+
         return df
     else:
         # Incluir as novas colunas ao criar o DataFrame vazio
-        return pd.DataFrame(columns=['Número do instrumento', 'Processo', 'Objeto', 'OM', 'Setor', 'Tipo', 'Natureza', 'Portaria', 'Gestor', 'Fiscal'])
+        return pd.DataFrame(columns=['Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Natureza', 'Portaria', 'Gestor', 'Fiscal'])
 
 def formatar_numero_instrumento(numero):
     partes = numero.split('/')
@@ -171,7 +167,7 @@ class ContratosWidget(QWidget):
         self.mensagem_cobranca_btn.clicked.connect(self.exibirDetalhesContrato)
 
         # Defina os cabeçalhos das colunas aqui para uso no modelo e na visualização
-        self.colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Processo', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
+        self.colunas = ['Número do instrumento', 'Fornecedor', 'Dias p. Vencer', 'Valor Global', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Gestor', 'Fiscal']
         # Defina colunas adicionais para uso interno, que não serão exibidas no QTreeView
         self.colunas_internas = ['Vig. Início', 'Vig. Fim', 'Valor Formatado']
 
@@ -344,7 +340,7 @@ class ContratosWidget(QWidget):
 
             print("Registro Atual antes de abrir o diálogo:", registro_atual)  # Diagnóstico
 
-            dialog = AtualizarDadosContratos(registro_atual)
+            dialog = AtualizarDadosContratos(registro_atual, dados_mesclados)  # Passe dados_mesclados aqui
             result = dialog.exec()
 
             if result == QDialog.DialogCode.Accepted:
@@ -366,8 +362,9 @@ class CustomTableModel(QStandardItemModel):
     def __init__(self, dados, colunas, parent=None):
         super(CustomTableModel, self).__init__(parent)
         self.dados = dados
-        self.colunas = colunas
+        self.colunas = [col for col in colunas if col not in ['Processo', 'Setor']]
         self.setupModel()
+
 
     def setupModel(self):
         self.setHorizontalHeaderLabels([''] + self.colunas)
@@ -392,38 +389,49 @@ class CustomTableModel(QStandardItemModel):
                     # Cor branca para as demais colunas
                     item.setForeground(QBrush(QColor(Qt.GlobalColor.white)))
 
-                self.setItem(i, j, item) 
+                self.setItem(i, j + 1, item) 
 
 class AtualizarDadosContratos(QDialog):
-    def __init__(self, registro_atual, parent=None):
+    def __init__(self, registro_atual, dados_mesclados, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Atualizar Dados do Contrato/Ata")
         self.registro_atual = registro_atual
-        print("Registro Atual no início do diálogo:", self.registro_atual)  # Diagnóstico
+        self.dados_mesclados = dados_mesclados  # Adicione uma referência aos dados mesclados
         self.setupUI()
     
     def setupUI(self):
         layout = QVBoxLayout(self)
 
-        # Adiciona labels e campos de texto somente leitura para 'Vig. Início' e 'Vig. Fim'
-        self.inicioVigenciaLabel = QLabel(f"Início da Vigência: {self.registro_atual.get('Vig. Início', '')}")
-        self.fimVigenciaLabel = QLabel(f"Final da Vigência: {self.registro_atual.get('Vig. Fim', '')}")
+        # Encontre os dados mesclados correspondentes ao registro atual
+        numero_instrumento = self.registro_atual['Número do instrumento']
+        contrato_atual = self.dados_mesclados[self.dados_mesclados['Número do instrumento'] == numero_instrumento]
+        
+        if contrato_atual.empty:
+            # Se não houver dados correspondentes, use valores vazios
+            contrato_atual = pd.DataFrame({'Vig. Início': '', 'Vig. Fim': '', 'Valor Formatado': '', 'Objeto': ''}, index=[0])
+        else:
+            # Se houver dados correspondentes, pegue a primeira linha
+            contrato_atual = contrato_atual.iloc[0]
+
+        # Adiciona labels para 'Vig. Início' e 'Vig. Fim'
+        self.inicioVigenciaLabel = QLabel(f"Início da Vigência: {contrato_atual.get('Vig. Início', '')}")
+        self.fimVigenciaLabel = QLabel(f"Final da Vigência: {contrato_atual.get('Vig. Fim', '')}")
         layout.addWidget(self.inicioVigenciaLabel)
         layout.addWidget(self.fimVigenciaLabel)
 
         # Adiciona campo para 'Número do Contrato/Ata' (Valor Formatado)
         self.valorFormatadoField = QLineEdit(self)
-        valorFormatado = self.registro_atual.get('Valor Formatado', '')
-        print("Valor Formatado ao preencher o campo:", valorFormatado)  # Diagnóstico
-        self.valorFormatadoField.setText(valorFormatado)
+        valor_formatado = contrato_atual.get('Valor Formatado', '').iloc[0]  # Obtenha o valor correto da Series
+        self.valorFormatadoField.setText(str(valor_formatado))
         layout.addWidget(QLabel('Número do Contrato/Ata:'))
         layout.addWidget(self.valorFormatadoField)
 
         # Adiciona campo para 'Objeto'
         self.objetoField = QLineEdit(self)
-        self.objetoField.setText(str(self.registro_atual.get('Objeto', '')))
+        self.objetoField.setText(str(contrato_atual.get('Objeto', '').iloc[0]))  # Obtenha o valor correto da Series
         layout.addWidget(QLabel('Objeto:'))
         layout.addWidget(self.objetoField)
+
 
         # Carregar valores para o ComboBox 'OM'
         self.omComboBox = QComboBox(self)
