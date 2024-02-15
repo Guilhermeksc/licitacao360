@@ -432,7 +432,6 @@ class AtualizarDadosContratos(QDialog):
         layout.addWidget(QLabel('Objeto:'))
         layout.addWidget(self.objetoField)
 
-
         # Carregar valores para o ComboBox 'OM'
         self.omComboBox = QComboBox(self)
         tabela_uasg_df = pd.read_excel(TABELA_UASG_DIR)

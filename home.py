@@ -25,12 +25,39 @@ from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.controle_de_contratos import ControleContratosWidget
 
+# Configuração inicial do QSettings
+QCoreApplication.setOrganizationName("MinhaOrganizacao")
+QCoreApplication.setApplicationName("MeuApp")
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setup_ui()
         self.open_initial_page()
 
+    def setup_ui(self):
+        self.configure_window()
+        self.setup_central_widget()
+
+        # Configurar a imagem de fundo
+        self.background_label = QLabel(self.central_widget)
+        self.background_label.setGeometry(0, 0, self.width(), self.height())
+        self.background_label.setScaledContents(True)
+
+        self.update_background()
+        self.setup_menu()
+        self.setup_content_area()
+
+        self.active_button = None
+
+    def configure_window(self):
+        self.setWindowTitle("Sistema de Gestão de Licitações")
+        self.resize(1500, 750)
+
+    def setup_central_widget(self):
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F10:
             self.toggle_menu_visibility()
@@ -43,24 +70,6 @@ class MainWindow(QMainWindow):
             menu_widget.show()
         else:
             menu_widget.hide()
-
-    def setup_ui(self):
-        self.setWindowTitle("Sistema de Gestão de Licitações")
-        self.resize(1500, 750)
-
-        self.central_widget = QWidget(self)
-        self.setCentralWidget(self.central_widget)
-
-        # Configurar a imagem de fundo
-        self.background_label = QLabel(self.central_widget)
-        self.background_label.setGeometry(0, 0, self.width(), self.height())
-        self.background_label.setScaledContents(True)
-
-        self.update_background()
-        self.setup_menu()
-        self.setup_content_area()
-
-        self.active_button = None
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

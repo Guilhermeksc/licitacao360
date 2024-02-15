@@ -76,8 +76,7 @@ TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 IMAGE_PATH = DATABASE_DIR / "image"
 MENSAGEM_DIR = DATABASE_DIR / "mensagem"
 ITEM_SELECIONADO_PATH = DATABASE_DIR / "item_selecionado.csv"
-CONTRATOS_PATH = DATABASE_DIR / "Contratos.csv"
-ADICIONAIS_PATH = DATABASE_DIR / "Dados_Adicionais.csv"
+
 
 BG_IMAGEM_PATH = IMAGE_PATH / "bg1.png"
 CONTROLE_PROCESSOS_DIR = DATABASE_DIR / "controle_processos.xlsx"
@@ -92,6 +91,14 @@ URL_SAPIENS = 'https://sapiens.agu.gov.br/login'
 PROCESSOS_JSON_PATH = DATABASE_DIR / "controle_processos.json"
 TEMPLATE_PREGOEIRO = TEMPLATE_DIR / "template_cp_pregoeiro.docx"
 ICONS_EDIT_DIR = ICONS_DIR  / "edit.gif"
+
+#Diretórios do módulo Controle de Contratos
+CONTRATOS_PATH = DATABASE_DIR / "Contratos.csv"
+ADICIONAIS_PATH = DATABASE_DIR / "Dados_Adicionais.csv"
+CONTROLE_CONTRATOS_DIR = BASE_DIR / "controle_contratos"
+DATABASE_CONTRATOS = CONTROLE_CONTRATOS_DIR / "data_contratos"
+SETORES_OM = DATABASE_CONTRATOS / "setores_om.xlsx"
+CP_CONTRATOS_DIR = CONTROLE_CONTRATOS_DIR / "comunicacao_padronizada"
 
 def get_relatorio_path():
     global RELATORIO_PATH
