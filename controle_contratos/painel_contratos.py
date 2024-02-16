@@ -24,11 +24,39 @@ class CheckboxManager:
                 item.setCheckState(checkState)
 
 class ContratosWidget(QWidget):
+    dadosContratosSalvos = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUI()
-        self.colunas = ['Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Gestor', 'Fiscal', 'Natureza Continuada']
+        self.colunas = ['Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Gestor', 'Gestor Substituto', 'Fiscal', 'Fiscal Substituto', 'Natureza Continuada']
         self.loadAndConfigureModel()
+        self.model.itemChanged.connect(self.onItemChanged)
+        self.dadosContratosSalvos.connect(self.atualizarModeloDeDados)
+
+    def abrirDialogoDeAtualizacao(self):
+        dialogo = AtualizarDadosContratos(self)
+        dialogo.dadosSalvos.connect(self.atualizacaoAposSalvar)
+        dialogo.exec()
+
+    def atualizacaoAposSalvar(self):
+        # Chama o método que atualiza a visualização.
+        # Certifique-se de que este método faz o que é necessário para atualizar a tabela e reaplicar o filtro.
+        self.onSearchTextChanged(self.searchField.text())
+
+    def onItemChanged(self, item):
+        if item.column() == 1:  # Verifica se a mudança ocorreu na coluna dos checkboxes
+            row = item.row()
+            check_state = item.checkState() == Qt.CheckState.Checked
+            print(f"Checkbox na linha {row} alterado para {'selecionado' if check_state else 'não selecionado'}")
+            # Atualiza o DataFrame
+            self.model.merged_data.at[row, 'Selecionado'] = check_state
+
+    def atualizarModeloDeDados(self):
+        self.contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+        self.model = CustomTableModel(self.contratos_data, self.colunas, ICONS_DIR)        
+        self.proxyModel.setSourceModel(self.model)
+        self.onSearchTextChanged(self.searchField.text())
 
     def setupUI(self):
         self.layout = QVBoxLayout(self)
@@ -53,17 +81,35 @@ class ContratosWidget(QWidget):
         """)
         self.table_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        # Configura a altura fixa das linhas e a política de redimensionamento do cabeçalho vertical
         altura_fixa = 20
         self.table_view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self.table_view.verticalHeader().setDefaultSectionSize(altura_fixa)
         self.table_view.verticalHeader().hide()
         self.table_view.clicked.connect(self.onTableViewClicked)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        # self.table_view.setSelectionMode(QTableView.SelectionMode.MultiSelection)33
         self.table_view.doubleClicked.connect(self.abrirDialogoEditarInformacoesAdicionais)
 
         QTimer.singleShot(1, self.ajustarLarguraColunas)
+
+        # Habilitar a ordenação
+        self.table_view.setSortingEnabled(True)
+        self.table_view.horizontalHeader().sectionClicked.connect(self.onHeaderClicked)
+
+    def onHeaderClicked(self, logicalIndex):
+        print("Antes da reordenação:")
+        for i in range(self.model.rowCount()):
+            item = self.model.item(i, 1)  # Assumindo que os checkboxes estejam na coluna 1
+            if item:
+                print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
+        
+        sortOrder = self.table_view.horizontalHeader().sortIndicatorOrder()
+        self.proxyModel.sort(logicalIndex, sortOrder)
+        
+        print("Depois da reordenação:")
+        for i in range(self.model.rowCount()):
+            item = self.model.item(i, 1)
+            if item:
+                print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
 
     def setupButtons(self):
         buttons_info = [
@@ -84,39 +130,56 @@ class ContratosWidget(QWidget):
         self.layout.addLayout(self.buttons_layout)
 
     def loadAndConfigureModel(self):
-        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH)
+        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+
         # Certifique-se de que contratos_data é o DataFrame ou estrutura de dados esperada por MultiColumnFilterProxyModel
-        colunas = ['Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Gestor', 'Fiscal', 'Natureza Continuada']
+        colunas = ['Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Gestor', 'Gestor Substituto', 'Fiscal', 'Fiscal Substituto', 'Natureza Continuada']
         self.model = CustomTableModel(contratos_data, colunas, ICONS_DIR)
         self.proxyModel = MultiColumnFilterProxyModel(contratos_data)  # Passando contratos_data
         self.proxyModel.setSourceModel(self.model)
         self.table_view.setModel(self.proxyModel)
         self.checkboxManager = CheckboxManager(self.model)
         self.searchField.textChanged.connect(self.onSearchTextChanged)
-        
+
     def gerarTabelaExcel(self):
         filteredData = getFilteredData(self.proxyModel)
         colunas = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
-        saveFilteredDataToExcel(filteredData, colunas)
+        # Caminho completo do arquivo Excel gerado
+        arquivo_excel = RELATORIO_PATH / "filtered_data.xlsx"
+        saveFilteredDataToExcel(filteredData, colunas, filePath=arquivo_excel)
+        # Verifica se o arquivo foi salvo com sucesso
+        if arquivo_excel.exists():
+            print("Arquivo Excel gerado com sucesso em:", arquivo_excel)
+            # Abrir o arquivo gerado
+            try:
+                os.startfile(str(arquivo_excel))  # Para Windows
+            except AttributeError:
+                import subprocess
+                subprocess.Popen(['xdg-open', str(arquivo_excel)])  # Para sistemas Linux
+        else:
+            print("Erro ao gerar o arquivo Excel.")
 
     def onSearchTextChanged(self, text):
         # Agora 'colunas' está definido, então podemos usá-lo sem causar AttributeError
-        fornecedorIndex = self.colunas.index('Fornecedor') if 'Fornecedor' in self.colunas else -1
+        fornecedorIndex = self.colunas.index('Fornecedor Formatado') if 'Fornecedor Formatado' in self.colunas else -1
         if fornecedorIndex != -1:
             self.proxyModel.setFilterKeyColumn(fornecedorIndex)
             self.proxyModel.setFilterRegularExpression(QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption))
         else:
-            print("Coluna 'Fornecedor' não encontrada nas colunas definidas.")
+            print("Coluna 'Fornecedor Formatado' não encontrada nas colunas definidas.")
 
     def onTableViewClicked(self, index):
         if index.isValid():
-            checkboxIndex = self.model.index(index.row(), 1)  # Coluna dos checkboxes
+            # Se estiver usando um proxy model, mapeia o índice para o modelo fonte
+            sourceIndex = self.proxyModel.mapToSource(index) if hasattr(self.table_view.model(), 'mapToSource') else index
+            checkboxIndex = self.model.index(sourceIndex.row(), 1)  # Ajuste para a coluna correta do checkbox
+            
             item = self.model.itemFromIndex(checkboxIndex)
             if item and item.isCheckable():
-                # Alternar o estado do checkbox
                 newState = not item.checkState() == Qt.CheckState.Checked
-                # Usar setData para atualizar o estado do checkbox
-                self.model.setData(checkboxIndex, Qt.CheckState.Checked if newState else Qt.CheckState.Unchecked, Qt.ItemDataRole.CheckStateRole)
+                item.setCheckState(Qt.CheckState.Checked if newState else Qt.CheckState.Unchecked)
+                self.model.merged_data.at[sourceIndex.row(), 'Selecionado'] = newState
+                print(f"Estado do checkbox na linha {sourceIndex.row()} atualizado para {'selecionado' if newState else 'não selecionado'}")
 
     def onSelectionChanged(self, selected, deselected):
         selected_rows = self.table_view.selectionModel().selectedRows()
@@ -137,7 +200,7 @@ class ContratosWidget(QWidget):
             QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
 
     def atualizarDadosTableView(self):
-        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH)  # Recarrega os dados
+        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)  # Recarrega os dados
         self.model = CustomTableModel(contratos_data, self.colunas, ICONS_DIR)  # Cria um novo modelo com os dados atualizados
         self.table_view.setModel(self.model)  # Atualiza o modelo do QTreeView
         self.ajustarLarguraColunas()  # Ajusta a largura das colunas, se necessário
@@ -323,7 +386,6 @@ def numero_para_extenso(numero):
         extenso = extenso.replace('um', 'uno')
     # Converte para maiúsculas
     return extenso.upper()
-
 
 class MSGAlertaPrazo(QDialog):
     def __init__(self, detalhes, parent=None):

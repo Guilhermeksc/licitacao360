@@ -1,1 +1,116 @@
-Número do instrumento,Objeto,OM,Tipo,Portaria,Gestor,Fiscal,Vig. Início,Vig. Fim,Valor Formatado,Natureza Continuada,Processo,NUP,Setor,CP,MSG,CNPJ,Fornecedor Formatado,Dias
+Número do instrumento,Objeto,OM,Tipo,Portaria,Gestor,Gestor Substituto,Fiscal,Fiscal Substituto,Vig. Fim Formatado,Valor Formatado,Natureza Continuada,Processo,NUP,Setor,CP,MSG,CNPJ,Fornecedor Formatado,Dias
+01532/2017,Fornecimento de Energia,Com7ºDN,Contrato,TEste,Teste,nan,Teste,nan,nan,87000/17-1532/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00001/2023,Resíduos Sólidos,Com7ºDN,Contrato,x,x,nan,x,nan,nan,87000/23-001/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+01531/2017,Fornecimento de Energia,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/17-1531/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00100/2023,Embarcações,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-100/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00105/2023,Embarcações ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-105/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00005/2021,Central Telefônica,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-005/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00102/2023,Embarcações ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-102/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00106/2023,Embarcações ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-106/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00039/2023,Dedetização,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-039/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00008/2022,Manutenção de Cozinha,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/22-008/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00038/2023,Desentupidora,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-038/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00044/2020,Passagens,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/20-044/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00046/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-046/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00009/2022,Serviço de Jardinagem,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/22-009/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00062/2021,Passagens,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-062/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00043/2023,Material de Expediente ,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-043/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00044/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-044/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00045/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-045/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00035/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-035/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00041/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-041/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00040/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-040/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00031/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-031/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00034/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-034/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00036/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-036/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00032/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-032/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00042/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-042/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00033/2019,Leiloeiro Oficial,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/19-033/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00048/2023,Peças de Elevadores,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-048/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00037/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-037/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00063/2023,Laticínios,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-063/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00061/2023,Laticínios,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-061/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00064/2023,Laticínios ,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-064/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00062/2023,Laticínios,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-062/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00070/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-070/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00069/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-069/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00068/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-068/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00066/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-066/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00067/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-067/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00065/2023,Hortifrutigranjeiros,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-065/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00080/2021,Assistência Social ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-080/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00032/2022,Gestão de Frota,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/22-032/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00086/2021,Serviços de Engenharia ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-086/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00085/2021,Serviços de Engenharia,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-085/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00084/2021,Serviços de Engenharia ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-084/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00109/2021,Serviços de Limpeza,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-109/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00073/2023,Resíduos Sólidos,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-073/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00072/2023,Resíduos Sólidos,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-072/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00120/2021,Assistência Social,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-120/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00135/2021,Assistência Social,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-135/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00081/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-081/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00082/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-082/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00074/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-074/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00076/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-076/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00077/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-077/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00083/2023,Manutenção Frigorífica ,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-083/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00079/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-079/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00078/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-078/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00075/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-075/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00086/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-086/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00085/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-085/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00084/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-084/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00080/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-080/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00087/2023,Licença de Software,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-087/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00140/2021,Assistência Social,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-140/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00091/2023,Contêineres Frigoríficos ,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-091/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00099/2023,Materiais de Tecnologia,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-099/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00098/2023,Materiais de Tecnologia,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-098/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00082/2020,Montagem de Palanques,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/20-082/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00080/2020,Montagem de Palanques,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/20-080/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00071/2023,Transporte de Bagagem,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-071/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00058/2019,Cessão de Uso,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/19-058/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00059/2019,Cessão de Uso,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/19-059/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00057/2019,Cessão de Uso,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/19-057/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00156/2021,Assistência Social,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-156/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00115/2023,Seguro Total,Com7ºDN,Contrato,nan,andressa,nan,nan,nan,nan,87000/23-115/00,Sim,PE 05/2024,62500,Divisão de Manutenção e Reparo de PNR,nan,nan,33.065.699/0001-27,SEGUROS SURA S.A.,0307
+00003/2024,Panificados,Com7ºDN,Contrato,52-250,andressa,vicenti,siqueira,millioli,nan,87000/24-003/00,Sim,PE 05/2024,62500.2255/2023-15,Divisão de Manutenção e Reparo de PNR,30-15,r151414z,18.768.894/0001-20,COMERCIAL MINAS BRASILIA LTDA,0344
+00099/2022,Reprografia,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/22-099/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00007/2022,Reprografia,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/22-007/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00100/2018,D.O.U,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/18-100/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00101/2023,Embarcações,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-101/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00104/2023,Embarcações,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-104/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00033/2023,Material de Expediente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-033/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00019/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-019/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00051/2023,Material Permanente,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-051/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00057/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-057/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00056/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-056/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00055/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-055/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00054/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-054/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00053/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-053/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00052/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-052/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00049/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-049/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00022/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-022/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00050/2023,Material Permanente,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-050/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00088/2023,Serviço Móvel,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-088/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00154/2021,TV por assinatura,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/21-154/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00121/2023,Locação de Móvel,Com7ºDN,Contrato,nan,andressa,nan,nan,nan,nan,87000/23-121/00,Sim,PE 04/2024,62500.02002/2023-55,Divisão de Serviços Gerais,nan,nan,72.063.654/0002-56,ABRIGO DO MARINHEIRO,0299
+00120/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-120/00,Não,PE /2024,62550,Divisão de Manutenção e Reparo de PNR,nan,nan,18.768.894/0001-20,COMERCIAL MINAS BRASILIA LTDA,0301
+00116/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-116/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00108/2023,Elevadores,Com7ºDN,Contrato,nan,nan,nan,nan,nan,nan,87000/23-108/00,Sim,nan,nan,nan,nan,nan,nan,nan,nan
+00096/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-096/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00095/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-095/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00094/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-094/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00093/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-093/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00092/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-092/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00090/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-090/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00089/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-089/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00110/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-110/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00112/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-112/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00111/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-111/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00109/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-109/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00119/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-119/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00118/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-118/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00117/2023,Gêneros Frigoríficados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-117/00,Não,PE 10/2024,62515,Divisão de Manutenção e Reparo de PNR,nan,nan,50.379.716/0001-10,RPR REPRESENTACAO DE PRODUTOS,0306
+00113/2023,Gêneros Frigorificados,Com7ºDN,Ata,nan,nan,nan,nan,nan,nan,87000/23-113/00,Não,nan,nan,nan,nan,nan,nan,nan,nan
+00122/2023,Eventos Protocolares,Com7ºDN,Contrato,nan,andressa,nan,nan,nan,nan,87000/23-122/00,Sim,TJIL 05/2023,62500.000/2035-23,Divisão de Patrimônio Imobiliário,nan,nan,14.911.164/0001-85,AMV FESTAS & EVENTOS LTDA,0344

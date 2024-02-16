@@ -47,6 +47,3 @@ class ControleContratosWidget(QWidget):
         
         # Adiciona a QScrollArea ao layout principal do widget
         self.layout.addWidget(scroll_area)
-                
-        # Instancia ContratosWidget
-        # self.contratos_widget = ContratosWidget()

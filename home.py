@@ -25,10 +25,6 @@ from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.controle_de_contratos import ControleContratosWidget
 
-# Configuração inicial do QSettings
-QCoreApplication.setOrganizationName("MinhaOrganizacao")
-QCoreApplication.setApplicationName("MeuApp")
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
