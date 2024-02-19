@@ -23,7 +23,7 @@ from custom_widgets.create_12_msg_button import HallResponsaveis
 from custom_widgets.create_13_registro_fornec_button import RegistroFornecedor
 from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
-from controle_contratos.controle_de_contratos import ControleContratosWidget
+from controle_contratos.painel_contratos import ControleContratosWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):

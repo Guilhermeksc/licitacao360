@@ -12,26 +12,86 @@ import os
 colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
-    'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada']
+    'Vig. Fim', 'Valor Formatado', 'Portaria', 'Gestor', 'Gestor Substituto', 
+    'Fiscal', 'Fiscal Substituto', 'Natureza Continuada']
 
 colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
 
 colunas_adicionais = [
-    'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
+    'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Gestor', 'Gestor Substituto',
+    'Fiscal', 'Fiscal Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
     'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias']
 
-colunas_gestor_fiscal = [
-    'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
+class ControleContratosWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)  # Layout principal do widget
+        self.inicializarUI()
+
+    def inicializarUI(self):
+        # Instancia ContratosWidget
+        self.contratos_widget = ContratosWidget(colunas=colunas)
+        self.layout.addWidget(self.contratos_widget)
+
+    def criar_widgets_processos(self):
+        # Cria o container_frame com cor de fundo preta
+        container_frame = QFrame()
+        container_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        container_frame.setPalette(QPalette(QColor(240, 240, 240)))  
+
+        # Define o tamanho mínimo para o container_frame
+        container_frame.setMinimumSize(600, 600)
+
+        # Cria um QGridLayout para o container_frame
+        self.blocks_layout = QGridLayout(container_frame)
+        self.blocks_layout.setSpacing(5)  # Define o espaçamento entre os widgets
+        self.blocks_layout.setContentsMargins(5, 0, 5, 0)  # Remove as margens internas
+        
+        # Cria uma QScrollArea e define suas propriedades para o container_frame
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(container_frame)
+        
+        # Adiciona a QScrollArea ao layout principal do widget
+        self.layout.addWidget(scroll_area)
+
+class CheckboxManager:
+    def __init__(self, model):
+        self.model = model
+
+    def toggleAllCheckboxes(self, checked):
+        checkState = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        for row in range(self.model.rowCount()):
+            item = self.model.item(row, 1)
+            if item.isCheckable():
+                item.setCheckState(checkState)
+
+class SearchManager:
+    def __init__(self, proxyModel, searchField):
+        self.proxyModel = proxyModel
+        self.searchField = searchField
+        self.searchField.textChanged.connect(self.applySearchFilter)
+
+    def applySearchFilter(self):
+        searchText = self.searchField.text()
+        self.proxyModel.setFilterRegularExpression(searchText)
+
+    def filterAcceptsRow(self, sourceRow, sourceParent):
+        regex = QRegularExpression(self.searchField.text(), QRegularExpression.CaseInsensitiveOption)
+        model = self.proxyModel.sourceModel()
+        columns = range(model.columnCount())
+        for column in columns:
+            index = model.index(sourceRow, column, sourceParent)
+            data = model.data(index)
+            if regex.match(data).hasMatch():
+                return True
+        return False
 
 class ContratosWidget(QWidget):
     def __init__(self, colunas, parent=None):
         super().__init__(parent)
-        self.colunas = colunas
-        # Inicializa merged_data com dados carregados ou DataFrame vazio
-        self.merged_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+        self.colunas = colunas 
         self.setupUI()
         self.loadAndConfigureModel()
         self.model.itemChanged.connect(self.onItemChanged)
@@ -72,16 +132,14 @@ class ContratosWidget(QWidget):
 
     def setupButtons(self):
         buttons_info = [
-            ("Gerar Tabela", self.abrirGerarTabelas),
+            ("Gerar Tabela", None),
             ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
             ("Termo de Subrogação", None),
             ("Termo de Encerramento", None),
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
             ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
-            ("Configurações", self.abrirDialogoConfiguracoes),
-            ("Importar Tabela Gestores", self.abrirDialogoImportacao)
-        ]
+            ("Configurações", self.abrirDialogoConfiguracoes)]
         self.buttons_layout = QHBoxLayout()
         for text, func in buttons_info:
             btn = QPushButton(text, self)
@@ -90,86 +148,9 @@ class ContratosWidget(QWidget):
             self.buttons_layout.addWidget(btn)
         self.layout.addLayout(self.buttons_layout)
 
-    def abrirDialogoImportacao(self):
-        dialogo = QFileDialog(self)
-        dialogo.setFileMode(QFileDialog.FileMode.ExistingFile)
-        dialogo.setNameFilter("Tabelas (*.xlsx *.csv)")
-        if dialogo.exec():
-            arquivo_selecionado = dialogo.selectedFiles()[0]
-            self.importarDadosGestoresFiscais(arquivo_selecionado)
-
-    def importarDadosGestoresFiscais(self, caminho_arquivo):
-        try:
-            # Ler o arquivo selecionado e criar um DataFrame
-            if caminho_arquivo.endswith('.csv'):
-                df = pd.read_csv(caminho_arquivo)
-            elif caminho_arquivo.endswith('.xlsx'):
-                df = pd.read_excel(caminho_arquivo)
-            else:
-                raise ValueError("Formato de arquivo não suportado.")
-            
-            # Renomear a coluna conforme especificado
-            df.rename(columns={'Número': 'Valor Formatado'}, inplace=True)
-            
-            # Converter todas as colunas para o tipo 'object'
-            df = df.astype(str)
-
-            # Imprimir os nomes das colunas e seus tipos após a conversão
-            print("Colunas df de caminho_arquivo após a conversão:")
-            print(df.dtypes)
-
-            # Sincronizar com o arquivo ADICIONAIS_PATH
-            self.sincronizarComAdicionais(df)
-
-            QMessageBox.information(self, "Sucesso", "Dados importados e sincronizados com sucesso.")
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao importar dados: {e}")
-            print(f"Erro ao importar dados: {e}")
-
-
-    def sincronizarComAdicionais(self, df_novos_dados):
-        # Carregar dados existentes
-        adicionais_df = pd.read_csv(ADICIONAIS_PATH)
-        adicionais_df = adicionais_df.astype(str)
-        print("Colunas adicionais_df de ADICIONAIS_PATH:")
-        print(adicionais_df.dtypes)
-        # Colunas de interesse para sincronização
-        colunas_gestor_fiscal = [
-            'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto',
-            'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto'
-        ]
-
-        # Assegurar que 'Valor Formatado' esteja presente e seja a chave para sincronização
-        if 'Valor Formatado' in df_novos_dados.columns and 'Valor Formatado' in adicionais_df.columns:
-            # Iterar sobre cada linha dos novos dados
-            for index, row in df_novos_dados.iterrows():
-                valor_formatado = row['Valor Formatado']
-                
-                # Encontrar a correspondência em adicionais_df baseado em 'Valor Formatado'
-                if valor_formatado in adicionais_df['Valor Formatado'].values:
-                    idx = adicionais_df.index[adicionais_df['Valor Formatado'] == valor_formatado].tolist()[0]
-                    
-                    # Atualizar as colunas de interesse em adicionais_df com os valores de df_novos_dados
-                    for coluna in colunas_gestor_fiscal:
-                        if coluna in df_novos_dados.columns:
-                            adicionais_df.at[idx, coluna] = row[coluna]
-
-        # Salvar os dados sincronizados de volta ao ADICIONAIS_PATH
-        adicionais_df.to_csv(ADICIONAIS_PATH, index=False)
-
-        # Atualizar a visualização, se necessário
-        self.atualizarModeloDeDados()
-
-        # Ajustar as larguras das colunas conforme necessário
-        self.ajustarLarguraColunas()
-
-    def abrirGerarTabelas(self):
-        dialog = GerarTabelas(self.model, self)
-        dialog.exec()
-
     def atualizarModeloDeDados(self):
         # Recarrega os dados e atualiza o modelo
-        self.contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+        self.contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
         self.model = CustomTableModel(self.contratos_data, colunas, ICONS_DIR)
         self.proxyModel.setSourceModel(self.model)
         self.table_view.setModel(self.proxyModel)
@@ -211,7 +192,7 @@ class ContratosWidget(QWidget):
                 print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
 
     def loadAndConfigureModel(self):
-        contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
         self.model = CustomTableModel(contratos_data, colunas, ICONS_DIR)
         self.proxyModel = MultiColumnFilterProxyModel(contratos_data)  # Passando contratos_data
         self.proxyModel.setSourceModel(self.model)
@@ -258,36 +239,35 @@ class ContratosWidget(QWidget):
                 dialogo.exec()
         else:
             QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
-        
-    def atualizarLinhaEspecifica(self, dados_atualizados, indice_visual):
-        coluna_mapeamento = {'Número do instrumento': 'Comprasnet'}  # Defina o mapeamento aqui conforme necessário
-        if hasattr(self, 'proxyModel'):
-            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_visual, 0)).row()
-        else:
-            indice_linha_source = indice_visual
 
+    def atualizarLinhaEspecifica(self, dados_atualizados, indice_linha):
+        # Certifique-se de que o modelo é acessível e o índice da linha é válido
+        if not hasattr(self, 'model') or not (0 <= indice_linha < self.model.rowCount()):
+            print("Modelo não definido ou índice de linha inválido.")
+            return
+
+        # Itera sobre os dados atualizados e atualiza o modelo
         for chave, valor in dados_atualizados.items():
-            # Aplica o mapeamento para encontrar o nome correto da coluna
-            coluna_mapeada = coluna_mapeamento.get(chave, chave)
-            if coluna_mapeada in self.colunas:
-                coluna_index = self.colunas.index(coluna_mapeada) + 2   # Assumindo que não há mais desalinhamento
-                try:
-                    item = self.model.item(indice_linha_source, coluna_index)
-                    if item:
-                        item.setText(str(valor))
-                        # Notifica a mudança para atualizar a view
-                        self.model.dataChanged.emit(self.model.index(indice_linha_source, coluna_index), self.model.index(indice_linha_source, coluna_index))
-                except Exception as e:
-                    print(f"Erro ao atualizar coluna '{chave}': {e}")
+            # Encontrar o índice da coluna baseado no nome da chave
+            coluna = self.colunas.index(chave) if chave in self.colunas else None
+            if coluna is not None:
+                # Ajuste o índice da coluna considerando os itens de checkbox e ícones, se aplicável
+                coluna_ajustada = coluna + 2  # Ajusta baseado na inclusão de colunas extras como checkboxes ou ícones
+                item = self.model.item(indice_linha, coluna_ajustada)
+                if item:
+                    item.setText(str(valor))
+                else:
+                    # Se o item não existir, cria um novo QStandardItem e o adiciona ao modelo
+                    novo_item = QStandardItem(str(valor))
+                    self.model.setItem(indice_linha, coluna_ajustada, novo_item)
             else:
-                print(f"Coluna '{chave}' não encontrada nas colunas definidas.")
-        
-        # Força a atualização do filtro no proxyModel, se necessário
-        if hasattr(self, 'proxyModel'):
-            self.proxyModel.invalidateFilter()
+                print(f"Coluna '{chave}' não encontrada.")
+
+        # Sinaliza a atualização da linha para o QTableView
+        self.model.dataChanged.emit(self.model.index(indice_linha, 0), self.model.index(indice_linha, self.model.columnCount() - 1))
 
     def atualizarDadosTableView(self):
-        contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
+        contratos_data = load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
         self.model = CustomTableModel(contratos_data, colunas, ICONS_DIR)
         self.table_view.setModel(self.model)
         self.ajustarLarguraColunas()  
@@ -509,74 +489,6 @@ class MultiColumnFilterProxyModel(QSortFilterProxyModel):
     def getDataFrame(self):
         return self.merged_data
 
-class DataProcessor:
-    @staticmethod
-    def processar_fornecedor(fornecedor):
-        match = re.search(r'(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2})|(\d{3}\.\d{3}\.\d{3}-\d{2})', fornecedor)
-        if match:
-            identificacao = match.group()
-            nome_fornecedor = fornecedor[match.end():].lstrip(" -")
-            return pd.Series([identificacao, nome_fornecedor], index=['CNPJ', 'Fornecedor Formatado'])
-        return pd.Series(["", fornecedor], index=['CNPJ', 'Fornecedor Formatado'])
-
-    @staticmethod
-    def ler_adicionais(adicionais_path, colunas_necessarias):
-        if Path(adicionais_path).exists():
-            adicionais_data = pd.read_csv(adicionais_path, dtype=str)
-            adicionais_data = adicionais_data.astype(str)  # Assegura tipo object para todas as colunas
-            adicionais_data = adicionais_data.reindex(columns=colunas_necessarias, fill_value="")
-        else:
-            adicionais_data = pd.DataFrame(columns=colunas_necessarias).astype(str)
-        return adicionais_data
-
-    @staticmethod
-    def calcular_dias_para_vencer(data_fim):
-        data_fim = pd.to_datetime(data_fim, format='%d/%m/%Y', errors='coerce')
-        diferenca = (data_fim - pd.Timestamp.now()).days
-        return diferenca
-
-    @staticmethod
-    def formatar_dias_p_vencer(valor):
-        sinal = '-' if valor < 0 else ''
-        return f"{sinal}{abs(valor):04d}"
-
-    @staticmethod
-    def formatar_numero_instrumento(numero):
-        if pd.isna(numero) or numero == "":
-            return ""
-        numero = str(numero)
-        partes = numero.split('/')
-        numero_instrumento = partes[0].lstrip('0')
-        dois_ultimos_digitos = partes[1][-2:]
-        numero_formatado = f"87000/{dois_ultimos_digitos}-{numero_instrumento.zfill(3)}/00"
-        return numero_formatado
-    
-    @staticmethod
-    def load_data(contratos_path, adicionais_path, colunas_contratos, colunas_adicionais):
-        contratos_data = pd.read_csv(contratos_path, dtype=str)
-        adicionais_data = DataProcessor.ler_adicionais(adicionais_path, colunas_adicionais)
-
-        resultado_processamento = contratos_data['Fornecedor'].apply(DataProcessor.processar_fornecedor).apply(pd.Series)
-        resultado_processamento.rename(columns={0: 'CNPJ', 1: 'Fornecedor Formatado'}, inplace=True)
-        contratos_data = pd.concat([contratos_data, resultado_processamento], axis=1)
-
-        merged_data = pd.merge(contratos_data, adicionais_data, on='Número do instrumento', how='left')
-        
-        colunas_para_manter = ['CNPJ_x', 'Fornecedor Formatado_x']
-        colunas_renomeadas = {coluna: coluna.rstrip('_x') for coluna in colunas_para_manter}
-        merged_data.rename(columns=colunas_renomeadas, inplace=True)
-
-        colunas_merged_final = colunas_contratos + [coluna for coluna in colunas_adicionais if coluna != 'Número do instrumento']
-        merged_data = merged_data[[coluna for coluna in colunas_merged_final if coluna in merged_data.columns]]
-
-        if 'Vig. Fim' in merged_data.columns:
-            merged_data['Dias'] = merged_data['Vig. Fim'].apply(DataProcessor.calcular_dias_para_vencer).apply(DataProcessor.formatar_dias_p_vencer)
-
-        adicionais_data.to_csv(adicionais_path, index=False)
-        merged_data['Selecionado'] = False
-
-        return merged_data
-
 class CheckableItem(QStandardItem):
     def __init__(self, text="", checkState=Qt.CheckState.Unchecked):
         super().__init__(text)
@@ -591,10 +503,6 @@ class CustomTableModel(QStandardItemModel):
         self.icons_dir = icons_dir
         self.colunas = colunas
         self.setupModel()
-
-    def setDataFrame(self, new_data):
-        self.merged_data = new_data
-        self.layoutChanged.emit()
 
     def setupModel(self):
         self.setHorizontalHeaderLabels(['', ''] + self.colunas)
@@ -652,7 +560,7 @@ class CustomTableModel(QStandardItemModel):
         return self.merged_data.iloc[row].to_dict()
     
     def getDataFrame(self):
-        return self.merged_data
+        return self.merged_data()
     
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         if role == Qt.ItemDataRole.CheckStateRole and index.column() == 1:
@@ -667,68 +575,81 @@ class CustomTableModel(QStandardItemModel):
                 self.dataChanged.emit(index, index, [role])
                 return True
         return False
-    
-class ControleContratosWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.layout = QVBoxLayout(self)  # Layout principal do widget
-        self.inicializarUI()
 
-    def inicializarUI(self):
-        # Instancia ContratosWidget
-        self.contratos_widget = ContratosWidget(colunas=colunas)
-        self.layout.addWidget(self.contratos_widget)
+def processar_fornecedor(fornecedor):
+    match = re.search(r'(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2})|(\d{3}\.\d{3}\.\d{3}-\d{2})', fornecedor)
+    if match:
+        identificacao = match.group()
+        nome_fornecedor = fornecedor[match.end():].lstrip(" -")
+        return pd.Series([identificacao, nome_fornecedor], index=['CNPJ', 'Fornecedor Formatado'])
+    return pd.Series(["", fornecedor], index=['CNPJ', 'Fornecedor Formatado'])
 
-    def criar_widgets_processos(self):
-        # Cria o container_frame com cor de fundo preta
-        container_frame = QFrame()
-        container_frame.setFrameShape(QFrame.Shape.StyledPanel)
-        container_frame.setPalette(QPalette(QColor(240, 240, 240)))  
+# Função para tratar a leitura de adicionais_path
+def ler_adicionais(adicionais_path, colunas_necessarias):
+    if Path(adicionais_path).exists():
+        adicionais_data = pd.read_csv(adicionais_path, dtype=str)
+        adicionais_data = adicionais_data.astype(str)  # Assegura tipo object para todas as colunas
+        adicionais_data = adicionais_data.reindex(columns=colunas_necessarias, fill_value="")
+    else:
+        adicionais_data = pd.DataFrame(columns=colunas_necessarias).astype(str)
+    return adicionais_data
 
-        # Define o tamanho mínimo para o container_frame
-        container_frame.setMinimumSize(600, 600)
+def calcular_dias_para_vencer(data_fim):
+    # Converte a string para datetime no formato esperado
+    data_fim = pd.to_datetime(data_fim, format='%d/%m/%Y', errors='coerce')
+    # Calcula a diferença em dias diretamente, sem usar .dt.days em um Timedelta
+    diferenca = (data_fim - pd.Timestamp.now()).days
+    return diferenca
 
-        # Cria um QGridLayout para o container_frame
-        self.blocks_layout = QGridLayout(container_frame)
-        self.blocks_layout.setSpacing(5)  # Define o espaçamento entre os widgets
-        self.blocks_layout.setContentsMargins(5, 0, 5, 0)  # Remove as margens internas
-        
-        # Cria uma QScrollArea e define suas propriedades para o container_frame
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(container_frame)
-        
-        # Adiciona a QScrollArea ao layout principal do widget
-        self.layout.addWidget(scroll_area)
+def formatar_dias_p_vencer(valor):
+    sinal = '-' if valor < 0 else ''
+    return f"{sinal}{abs(valor):04d}"
 
-class CheckboxManager:
-    def __init__(self, model):
-        self.model = model
+def formatar_numero_instrumento(numero):
+    if pd.isna(numero) or numero == "":
+        return ""
+    numero = str(numero)
+    partes = numero.split('/')
+    numero_instrumento = partes[0].lstrip('0')  # Remove zeros à esquerda
+    dois_ultimos_digitos = partes[1][-2:]  # Pega os dois últimos dígitos de partes[1]
+    numero_formatado = f"87000/{dois_ultimos_digitos}-{numero_instrumento.zfill(3)}/00"
+    return numero_formatado
 
-    def toggleAllCheckboxes(self, checked):
-        checkState = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
-        for row in range(self.model.rowCount()):
-            item = self.model.item(row, 1)
-            if item.isCheckable():
-                item.setCheckState(checkState)
+def load_data(contratos_path, adicionais_path, colunas_contratos, colunas_adicionais):
+    contratos_data = pd.read_csv(contratos_path, dtype=str)
+    # print("Contratos data:")
+    # print(contratos_data.dtypes)
+    # print(contratos_data.columns)
+    # Carrega os dados adicionais
+    adicionais_data = ler_adicionais(adicionais_path, colunas_adicionais)
+    # # print("Adicionais data inicial:")
+    # # print(adicionais_data.dtypes)
 
-class SearchManager:
-    def __init__(self, proxyModel, searchField):
-        self.proxyModel = proxyModel
-        self.searchField = searchField
-        self.searchField.textChanged.connect(self.applySearchFilter)
+    # print("adicionais_data.columns:")
+    # print(adicionais_data.columns)
 
-    def applySearchFilter(self):
-        searchText = self.searchField.text()
-        self.proxyModel.setFilterRegularExpression(searchText)
+    # Aplicação da função processar_fornecedor para cada entrada na coluna 'Fornecedor'
+    resultado_processamento = contratos_data['Fornecedor'].apply(processar_fornecedor).apply(pd.Series)
+    resultado_processamento.rename(columns={0: 'CNPJ', 1: 'Fornecedor Formatado'}, inplace=True)
+    contratos_data = pd.concat([contratos_data, resultado_processamento], axis=1)
 
-    def filterAcceptsRow(self, sourceRow, sourceParent):
-        regex = QRegularExpression(self.searchField.text(), QRegularExpression.CaseInsensitiveOption)
-        model = self.proxyModel.sourceModel()
-        columns = range(model.columnCount())
-        for column in columns:
-            index = model.index(sourceRow, column, sourceParent)
-            data = model.data(index)
-            if regex.match(data).hasMatch():
-                return True
-        return False
+    # Mesclando contratos_data com adicionais_data
+    merged_data = pd.merge(contratos_data, adicionais_data, on='Número do instrumento', how='left')
+
+    # Removendo potenciais colunas duplicadas após o merge
+    # colunas_para_manter = ['CNPJ_x', 'Fornecedor Formatado_x']
+    # colunas_renomeadas = {coluna: coluna.rstrip('_x') for coluna in colunas_para_manter}
+    # merged_data.rename(columns=colunas_renomeadas, inplace=True)
+
+    # Selecionando colunas específicas para o resultado final, removendo colunas duplicadas
+    colunas_merged_final = colunas_contratos + [coluna for coluna in colunas_adicionais if coluna != 'Número do instrumento']
+    merged_data = merged_data[[coluna for coluna in colunas_merged_final if coluna in merged_data.columns]]
+
+    # Atualizando a coluna 'Dias'
+    if 'Vig. Fim' in merged_data.columns:
+        merged_data['Dias'] = merged_data['Vig. Fim'].apply(calcular_dias_para_vencer).apply(formatar_dias_p_vencer)
+  
+    adicionais_data.to_csv(adicionais_path, index=False)
+    merged_data['Selecionado'] = False
+
+    return merged_data 

@@ -9,7 +9,7 @@ from pathlib import Path
 from diretorios import *
 
 class AtualizarDadosContratos(QDialog):
-    dadosContratosSalvos = pyqtSignal()
+    dadosContratosSalvos = pyqtSignal(dict, int)
 
     def __init__(self, contrato_atual, table_view, parent=None):
         super().__init__(parent)
@@ -43,7 +43,7 @@ class AtualizarDadosContratos(QDialog):
         self.leftLayout.addWidget(QLabel(f"ID Comprasnet Contratos: {self.contrato_atual.get('Comprasnet', '')}"))
         self.leftLayout.addWidget(QLabel(f"Início da Vigência: {self.contrato_atual.get('Vig. Início', '')}"))
         self.leftLayout.addWidget(QLabel(f"Final da Vigência: {self.contrato_atual.get('Vig. Fim', '')}"))
-        self.leftLayout.addWidget(QLabel(f"Fornecedor: {self.contrato_atual.get('Fornecedor', '')}"))
+        self.leftLayout.addWidget(QLabel(f"Fornecedor: {self.contrato_atual.get('Fornecedor Formatado', '')}"))
         self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('CNPJ', '')}"))
         self.leftLayout.addWidget(QLabel(f"Valor Global: {self.contrato_atual.get('Valor Global', '')}"))
 
@@ -210,15 +210,28 @@ class AtualizarDadosContratos(QDialog):
         centerContainer = QWidget()
         rightContainer = QWidget()
 
+        # Define um nome de objeto único para cada contêiner
+        leftContainer.setObjectName("leftContainer")
+        centerContainer.setObjectName("centerContainer")
+        rightContainer.setObjectName("rightContainer")
+
         # Define os layouts para os contêineres
         leftContainer.setLayout(self.leftLayout)
         centerContainer.setLayout(self.centerLayout)
         rightContainer.setLayout(self.rightLayout)
 
+        # Aplica a folha de estilo para adicionar bordas somente aos contêineres externos usando os nomes de objeto
+        estiloBorda = """
+        QWidget#leftContainer, QWidget#centerContainer, QWidget#rightContainer {
+            border: 1px solid rgb(173, 173, 173);
+        }
+        """
+        self.setStyleSheet(estiloBorda)  # Aplica a folha de estilo ao nível do diálogo ou widget pai
+
         # Define o tamanho preferido para os contêineres
-        leftContainer.setFixedSize(250, 370)
-        centerContainer.setFixedSize(250, 370)
-        rightContainer.setFixedSize(250, 370)
+        leftContainer.setFixedSize(250, 340)
+        centerContainer.setFixedSize(250, 340)
+        rightContainer.setFixedSize(250, 340)
 
         # Adiciona os contêineres ao layout horizontal
         self.leftCenterRightLayout.addWidget(leftContainer)
@@ -272,7 +285,7 @@ class AtualizarDadosContratos(QDialog):
     def getUpdatedData(self):
         # Retorna o dicionário 'contrato_atual' com as atualizações aplicadas
         return self.contrato_atual
-
+            
     def salvar(self):
         print("Dados do contrato atual antes das alterações:", self.contrato_atual)
 
@@ -294,6 +307,7 @@ class AtualizarDadosContratos(QDialog):
             'Processo': valor_processo_formatado,
             'NUP': self.nupLineEdit.text().strip(),
             'Valor Formatado': self.numeroContratoAtaEdit.text().strip(),
+            'Objeto': self.objetoLineEdit.text().strip(),
             'OM': self.omComboBox.currentText().strip(),
             'Setor': self.setorResponsavelComboBox.currentText().strip(),
             'CP': self.CPLineEdit.text().strip(),
@@ -302,34 +316,30 @@ class AtualizarDadosContratos(QDialog):
             'Gestor': self.gestorEdit.text().strip(),
             'Gestor Substituto': self.gestorSubstitutoEdit.text().strip(),
             'Fiscal': self.fiscalEdit.text().strip(),
-            'Fiscal Substituto': self.fiscalSubstitutoEdit.text().strip()
+            'Fiscal Substituto': self.fiscalSubstitutoEdit.text().strip(),
+            'Tipo': tipo_selecionado,
+            'Natureza Continuada': natureza_continuada_selecionada,
+            'Número do instrumento': self.contrato_atual['Comprasnet']
         }
-
-        self.contrato_atual.update(campos_adicionais)
-        self.contrato_atual['Tipo'] = tipo_selecionado
-        self.contrato_atual['Natureza Continuada'] = natureza_continuada_selecionada
 
         try:
             df_adicionais = pd.read_csv(ADICIONAIS_PATH, dtype='object')
-            # Converte todas as colunas para object para evitar conversões automáticas
             df_adicionais = df_adicionais.astype('object')
 
-            # Verifica e cria novas colunas se necessário
-            for campo in campos_adicionais.keys():
-                if campo not in df_adicionais.columns:
-                    df_adicionais[campo] = pd.NA
-
-            indice = df_adicionais.index[df_adicionais['Número do instrumento'] == self.contrato_atual['Comprasnet']].tolist()
+            # Verifica se o registro já existe
+            indice = df_adicionais.index[df_adicionais['Número do instrumento'] == campos_adicionais['Número do instrumento']].tolist()
             if indice:
                 indice = indice[0]
-                for campo, valor in self.contrato_atual.items():
-                    df_adicionais.at[indice, campo] = str(valor)  # Converte todos os valores para string
-
-                df_adicionais.to_csv(ADICIONAIS_PATH, index=False, encoding='utf-8')
-                QMessageBox.information(self, "Sucesso", "Dados do contrato atualizados com sucesso.")
-                self.dadosContratosSalvos.emit()
-                self.accept()  # Fecha a janela após salvar com sucessou
+                for campo, valor in campos_adicionais.items():
+                    df_adicionais.at[indice, campo] = str(valor)
             else:
-                QMessageBox.warning(self, "Aviso", "Registro correspondente não encontrado.")
+                # Adiciona uma nova linha com os dados do contrato atual se não encontrar um registro correspondente
+                novo_registro = pd.DataFrame([campos_adicionais], columns=df_adicionais.columns)
+                df_adicionais = pd.concat([df_adicionais, novo_registro], ignore_index=True, sort=False).fillna(pd.NA)
+
+            df_adicionais.to_csv(ADICIONAIS_PATH, index=False, encoding='utf-8')
+            QMessageBox.information(self, "Sucesso", "Dados do contrato atualizados com sucesso.")
+            self.dadosContratosSalvos.emit(campos_adicionais, self.indice_linha)
+            self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar os dados do contrato: {e}")
