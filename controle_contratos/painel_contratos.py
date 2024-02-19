@@ -382,11 +382,10 @@ class ContratosWidget(QWidget):
                     f" empresa <span style='color: blue;'>{dados['empresa']}</span> | valor global <span style='color: blue;'>{dados['valor_global']}</span> | "
                     f" dias para vencer <span style='color: blue;'>{dados['dias_para_vencer']}</span> | objeto <span style='color: blue;'>{dados['objeto']}</span> | "
                     f" om <span style='color: blue;'>{dados['om']}</span> | setor <span style='color: blue;'>{dados['setor']}</span> | "
-                    f" cp <span style='color: blue;'>{dados['cp']}</span> | msg <span style='color: blue;'>{dados['msg']}</span> | "
                     f" início vigência <span style='color: blue;'>{dados['inicio_vigencia']}</span> | fim vigência <span style='color: blue;'>{dados['fim_vigencia']}</span> | "
                     f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
                     f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
-                    f"Prazo limite para renovação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+                    f"Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
                     )
         texto += "</p>BT"
         return texto

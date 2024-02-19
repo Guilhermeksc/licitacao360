@@ -12,6 +12,9 @@ from diretorios import *
 colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
     'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
 
+colunas = [
+    'Valor Formatado', 'Objeto', 'OM', 'Setor', 'Fornecedor Formatado', 'Valor Global', 'Vig. Fim', 'Dias']
+
 class GerarTabelas(QDialog):
     def __init__(self, model, parent=None):
         super().__init__(parent)
@@ -34,6 +37,11 @@ class GerarTabelas(QDialog):
 
         # Adicionar botões ao layout
         layout.addWidget(btnTabelaGestores)
+       
+        # Adicionar botão "Planilha Completa"
+        btnPlanilhaCompleta = QPushButton("Planilha Completa", self)
+        btnPlanilhaCompleta.clicked.connect(self.gerarPlanilhaCompleta)
+        layout.addWidget(btnPlanilhaCompleta)
 
         # Adicionar botão "Importar Tabela Gestores"
         btnImportarTabelaGestores = QPushButton("Importar Tabela Gestores", self)
@@ -110,34 +118,41 @@ class GerarTabelas(QDialog):
         else:
             newColumns = columns
         return filteredData, newColumns
-        
-    # def gerarTabelaGestores(self):
-    #     selectedOM = self.omComboBox.currentText()  # OM selecionada pelo usuário
-
-    #     # Função de filtro (mantém-se inalterada)
-    #     def filterFunc(row, column, data):
-    #         columnName = self.model.headerData(column, Qt.Orientation.Horizontal)
-    #         if columnName == 'OM' and data != selectedOM:
-    #             return False
-    #         if columnName == 'Dias':
-    #             try:
-    #                 if int(data) <= 0:
-    #                     return False
-    #             except ValueError:
-    #                 pass
-    #         return True
-
-    #     dados = []  # Suponha que isto será preenchido com os dados do seu modelo
-    #     colunas = self.model.headerData()  # Suponha que isto retorne os nomes das colunas
-    #     df = pd.DataFrame(dados, columns=colunas)
-
-    #     # Filtrar o DataFrame para conter apenas as linhas com a OM selecionada
-    #     filteredData = df[df['OM'] == selectedOM]
-
-    #     # Agora, você tem um DataFrame filtrado que pode ser procea salvar osssado e salvo
-    #     # Suponha que você tenha uma função saveFilteredDataToExcel par dados filtrados
-    #     self.saveFilteredDataToExcel(filteredData, "Gestores_Fiscais.xlsx")
     
+    def gerarPlanilhaCompleta(self):
+        df = self.convertModelToDataFrame()
+        
+        # Converter coluna "Dias" para inteiros, removendo os zeros à esquerda
+        df['Dias'] = pd.to_numeric(df['Dias'], errors='coerce').fillna(0).astype(int)
+        
+        # Filtrar os dados para Contratos e Ata, e ordenar por 'Dias'
+        df_contratos = df[df['Tipo'] == 'Contrato'][colunas].sort_values(by='Dias')
+        df_ata = df[df['Tipo'] == 'Ata'][colunas].sort_values(by='Dias')
+
+        # Caminho para salvar o arquivo
+        filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
+
+        with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
+            # Salvar cada DataFrame em uma aba diferente
+            for name, df in [('Contratos', df_contratos), ('Ata', df_ata)]:
+                # Adicionar um contador sequencial como nova coluna antes de 'Valor Formatado'
+                df.insert(0, 'Nº', range(1, len(df) + 1))
+                
+                df.to_excel(writer, sheet_name=name, index=False, startrow=1)
+                worksheet = writer.sheets[name]
+                
+                # Mesclar células para o título da planilha
+                titulo = "Controle de Contratos" if name == 'Contratos' else "Controle de Atas"
+                worksheet.merge_range('A1:I1', titulo, writer.book.add_format({'align': 'center', 'bold': True}))
+                
+                # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
+                col_widths = [5, 20, 30, 10, 50, 30, 20, 30, 30]
+                for i, width in enumerate(col_widths):
+                    worksheet.set_column(i, i, width)
+
+        QMessageBox.information(self, "Sucesso", f"Planilha Completa gerada com sucesso!\nLocal: {filepath}")
+        self.abrirArquivoExcel(filepath)
+
     def convertModelToDataFrame(self):
         # Supondo que temos um modelo CustomTableModel baseado em QStandardItemModel ou similar
         colunas = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
@@ -223,3 +238,14 @@ class GerarTabelas(QDialog):
                 worksheet.set_column(i, i, width)
 
         QMessageBox.information(self, "Sucesso", f"Tabela '{filename}' gerada com sucesso!\nLocal: {filepath}")
+        # Abrir o arquivo Excel automaticamente após a criação
+        self.abrirArquivoExcel(filepath)
+
+    def abrirArquivoExcel(self, filepath):
+        try:
+            if os.name == 'nt':  # Para Windows
+                os.startfile(filepath)
+            elif os.name == 'posix':  # Para macOS e Linux
+                subprocess.run(['open' if sys.platform == 'darwin' else 'xdg-open', filepath], check=True)
+        except Exception as e:
+            QMessageBox.warning(self, "Erro ao abrir arquivo", f"Não foi possível abrir o arquivo automaticamente.\nErro: {e}")
