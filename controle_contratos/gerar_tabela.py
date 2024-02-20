@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt
 import pandas as pd
 import os
 from diretorios import *
+from datetime import datetime
 
 colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
     'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
@@ -118,7 +119,22 @@ class GerarTabelas(QDialog):
         else:
             newColumns = columns
         return filteredData, newColumns
-    
+
+    def ajustarColunas(self, df, aba):
+        # Renomeia as colunas com base na aba atual
+        renomear_colunas = {
+            'Setor': 'Setor Demandante',
+            'Fornecedor Formatado': 'Contratado'
+        }
+        df.rename(columns=renomear_colunas, inplace=True)
+
+        if aba == 'Contratos':
+            df.rename(columns={'Valor Formatado': 'Contrato'}, inplace=True)
+        elif aba == 'Ata':
+            df.rename(columns={'Valor Formatado': 'Ata'}, inplace=True)
+
+        return df
+
     def gerarPlanilhaCompleta(self):
         df = self.convertModelToDataFrame()
         
@@ -135,18 +151,55 @@ class GerarTabelas(QDialog):
         with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
             # Salvar cada DataFrame em uma aba diferente
             for name, df in [('Contratos', df_contratos), ('Ata', df_ata)]:
-                # Adicionar um contador sequencial como nova coluna antes de 'Valor Formatado'
+                # Ajustar as colunas com base na aba
+                df = self.ajustarColunas(df.copy(), name)
+
                 df.insert(0, 'Nº', range(1, len(df) + 1))
                 
-                df.to_excel(writer, sheet_name=name, index=False, startrow=1)
+                # Escreve os dados no Excel iniciando na linha 4, colocando o cabeçalho na linha 3
+                df.to_excel(writer, sheet_name=name, index=False, startrow=2)
                 worksheet = writer.sheets[name]
                 
-                # Mesclar células para o título da planilha
+                # Formatos para as células
+                header_format = writer.book.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'border': 1
+                })
+                cell_format = writer.book.add_format({'border': 1})
+                title_format = writer.book.add_format({
+                    'align': 'center', 
+                    'bold': True, 
+                    'valign': 'vcenter', 
+                    'font_size': 14
+                })
+                date_format = writer.book.add_format({
+                    'align': 'right', 
+                    'italic': True, 
+                    'font_size': 10
+                })
+
+                # Aplicar o formato aos cabeçalhos das colunas
+                for col_num, value in enumerate(df.columns):
+                    worksheet.write(2, col_num, value, header_format)
+
+                # Aplicar bordas a todas as células de dados
+                for row_num in range(3, len(df) + 3):
+                    for col_num in range(len(df.columns)):
+                        worksheet.write(row_num, col_num, df.iloc[row_num-3, col_num], cell_format)
+                
+                # Mesclar células para o título da planilha na primeira linha e escrever o título
                 titulo = "Controle de Contratos" if name == 'Contratos' else "Controle de Atas"
-                worksheet.merge_range('A1:I1', titulo, writer.book.add_format({'align': 'center', 'bold': True}))
+                worksheet.merge_range('A1:I1', titulo, title_format)
+
+                # Obter a data atual e formatá-la como string
+                data_atual = datetime.now().strftime("%d/%m/%Y")
+                # Mesclar células para a linha de data de atualização na segunda linha e escrever a data
+                worksheet.merge_range('A2:I2', f"Atualizado em: {data_atual}", date_format)
                 
                 # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
-                col_widths = [5, 20, 30, 10, 50, 30, 20, 30, 30]
+                col_widths = [3, 15, 21, 9, 30, 30, 15, 10, 4]
                 for i, width in enumerate(col_widths):
                     worksheet.set_column(i, i, width)
 
@@ -154,7 +207,6 @@ class GerarTabelas(QDialog):
         self.abrirArquivoExcel(filepath)
 
     def convertModelToDataFrame(self):
-        # Supondo que temos um modelo CustomTableModel baseado em QStandardItemModel ou similar
         colunas = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
         dados = []
         for row in range(self.model.rowCount()):
@@ -166,6 +218,10 @@ class GerarTabelas(QDialog):
             dados.append(rowData)
         
         df = pd.DataFrame(dados, columns=colunas)
+        # Substituir '' e 'nan' por '-' antes de retornar o DataFrame
+        df.replace(to_replace=["", "nan"], value="-", inplace=True)
+        # Substituir NaN por '-' para cobrir todos os casos
+        df.fillna("-", inplace=True)
         return df
 
     def gerarTabelaGestores(self):

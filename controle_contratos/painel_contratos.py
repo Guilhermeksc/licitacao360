@@ -70,25 +70,66 @@ class ContratosWidget(QWidget):
         self.table_view.setSortingEnabled(True)
         self.table_view.horizontalHeader().sectionClicked.connect(self.onHeaderClicked)
 
+    # def setupButtons(self):
+    #     buttons_info = [
+    #         ("Gerar Tabela", self.abrirGerarTabelas),
+    #         ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
+    #         ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
+    #         ("Termo de Encerramento", None),
+    #         ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
+    #         ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
+    #         ("Configurações", self.abrirDialogoConfiguracoes),
+    #         ("Importar Tabela Gestores", self.abrirDialogoImportacao)
+    #     ]
+    #     self.buttons_layout = QHBoxLayout()
+    #     for text, func in buttons_info:
+    #         btn = QPushButton(text, self)
+    #         if func:  # Verifica se uma função foi fornecida
+    #             btn.clicked.connect(func)
+    #         self.buttons_layout.addWidget(btn)
+    #     self.layout.addLayout(self.buttons_layout)
+
     def setupButtons(self):
+        # Adiciona os botões existentes
+        self.buttons_layout = QHBoxLayout()
         buttons_info = [
             ("Gerar Tabela", self.abrirGerarTabelas),
             ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
-            ("Termo de Subrogação", None),
             ("Termo de Encerramento", None),
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
             ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
-            ("Configurações", self.abrirDialogoConfiguracoes),
+            # ("Configurações", self.abrirDialogoConfiguracoes),
             ("Importar Tabela Gestores", self.abrirDialogoImportacao)
         ]
-        self.buttons_layout = QHBoxLayout()
         for text, func in buttons_info:
             btn = QPushButton(text, self)
             if func:  # Verifica se uma função foi fornecida
                 btn.clicked.connect(func)
             self.buttons_layout.addWidget(btn)
+        
+        # Adiciona o ComboBox para seleção de filtro
+        self.filtroDiasComboBox = QComboBox(self)
+        self.filtroDiasComboBox.addItem("Filtrar Dias", None)  # Opção padrão
+        self.filtroDiasComboBox.addItem("Filtrar < 180 Dias", 180)
+        self.filtroDiasComboBox.addItem("Filtrar < 120 Dias", 120)
+        self.filtroDiasComboBox.addItem("Filtrar < 60 Dias", 60)
+        self.filtroDiasComboBox.addItem("Remover Filtro", -1)  # Usaremos -1 como indicador para remover o filtro
+        
+        # Conecta o sinal de mudança do ComboBox ao método de filtragem
+        self.filtroDiasComboBox.currentIndexChanged.connect(self.aplicarFiltroDias)
+        
+        self.buttons_layout.addWidget(self.filtroDiasComboBox)
         self.layout.addLayout(self.buttons_layout)
+
+    def aplicarFiltroDias(self, index):
+        # Obtém o valor associado à opção selecionada
+        dias_limite = self.filtroDiasComboBox.itemData(index)
+        
+        if dias_limite is None or dias_limite == -1:
+            self.proxyModel.setDiasLimite(None)  # Remove o filtro
+        else:
+            self.proxyModel.setDiasLimite(dias_limite) 
 
     def abrirDialogoImportacao(self):
         dialogo = QFileDialog(self)
