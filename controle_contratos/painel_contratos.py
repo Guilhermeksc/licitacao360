@@ -108,18 +108,18 @@ class ContratosWidget(QWidget):
                 btn.clicked.connect(func)
             self.buttons_layout.addWidget(btn)
         
-        # Adiciona o ComboBox para seleção de filtro
-        self.filtroDiasComboBox = QComboBox(self)
-        self.filtroDiasComboBox.addItem("Filtrar Dias", None)  # Opção padrão
-        self.filtroDiasComboBox.addItem("Filtrar < 180 Dias", 180)
-        self.filtroDiasComboBox.addItem("Filtrar < 120 Dias", 120)
-        self.filtroDiasComboBox.addItem("Filtrar < 60 Dias", 60)
-        self.filtroDiasComboBox.addItem("Remover Filtro", -1)  # Usaremos -1 como indicador para remover o filtro
+        # # Adiciona o ComboBox para seleção de filtro
+        # self.filtroDiasComboBox = QComboBox(self)
+        # self.filtroDiasComboBox.addItem("Filtrar Dias", None)  # Opção padrão
+        # self.filtroDiasComboBox.addItem("Filtrar < 180 Dias", 180)
+        # self.filtroDiasComboBox.addItem("Filtrar < 120 Dias", 120)
+        # self.filtroDiasComboBox.addItem("Filtrar < 60 Dias", 60)
+        # self.filtroDiasComboBox.addItem("Remover Filtro", -1)  # Usaremos -1 como indicador para remover o filtro
         
-        # Conecta o sinal de mudança do ComboBox ao método de filtragem
-        self.filtroDiasComboBox.currentIndexChanged.connect(self.aplicarFiltroDias)
+        # # Conecta o sinal de mudança do ComboBox ao método de filtragem
+        # self.filtroDiasComboBox.currentIndexChanged.connect(self.aplicarFiltroDias)
         
-        self.buttons_layout.addWidget(self.filtroDiasComboBox)
+        # self.buttons_layout.addWidget(self.filtroDiasComboBox)
         self.layout.addLayout(self.buttons_layout)
 
     def aplicarFiltroDias(self, index):
