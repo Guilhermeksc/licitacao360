@@ -120,7 +120,10 @@ class PesquisaPrecos(QDialog):
         if pesquisa_precos_dialog.exec() == QDialog.DialogCode.Accepted:
             self.table_data = pesquisa_precos_dialog.table_data
             if self.table_data is not None:
+                # Atualiza uma variável de instância com o valor obtido do diálogo
+                self.numero_pesquisa = pesquisa_precos_dialog.numero_pesquisa
                 self.abrir_comprasnet_pesquisa_precos()
+
             else:
                 print("Dados da tabela não carregados.")
         else:
@@ -178,7 +181,6 @@ class PesquisaPrecos(QDialog):
             campo_pesquisa = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.XPATH, "//*[@id='termo-pesquisa']"))
             )
-            campo_pesquisa.clear()  # Limpa qualquer texto existente no campo
             campo_pesquisa.send_keys(self.numero_pesquisa)
 
             try:
