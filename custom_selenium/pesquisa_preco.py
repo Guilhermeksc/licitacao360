@@ -32,6 +32,22 @@ class PesquisaPrecos(QDialog):
         self.load_table_button.clicked.connect(self.load_table)
         self.layout.addWidget(self.load_table_button)
 
+        # Adicionando QLineEdit para número da pesquisa de preços
+        self.numero_pesquisa_edit = QLineEdit(self)
+        self.numero_pesquisa_edit.setPlaceholderText("Informe o número da pesquisa de preços")
+        self.layout.addWidget(self.numero_pesquisa_edit)
+
+        # Número de pesquisa que vai está vazio quando o programa iniciar
+        self.numero_pesquisa = ""
+
+        # Adicionando botão de confirmação
+        self.confirmar_button = QPushButton("Confirmar Número de Pesquisa", self)
+        self.confirmar_button.clicked.connect(self.confirmar_numero_pesquisa)
+        self.layout.addWidget(self.confirmar_button)
+
+        # Ganchos de desencadeadores
+        self.numero_pesquisa_edit.textChanged.connect(self.atualiza_numero_pesquisa)
+
         # Modelo e TableView para exibir dados
         self.model = QStandardItemModel(self)  
         self.tableView = QTableView(self)
@@ -48,6 +64,21 @@ class PesquisaPrecos(QDialog):
         self.setWindowTitle("Carregue a tabela para pesquisa de preços")
         self.settings_file = 'settings_comprasnet.json'  # Caminho para o arquivo de configurações
         self.load_credentials_from_json()
+
+    def atualiza_numero_pesquisa(self):
+        self.numero_pesquisa = self.numero_pesquisa_edit.text().strip()
+        print(f"atualiza_numero_pesquisa: Número de pesquisa de preços atualizado: {self.numero_pesquisa}")
+
+    def confirmar_numero_pesquisa(self):
+        # Forçar a atualização baseada no valor atual do QLineEdit, para diagnóstico
+        temp_numero_pesquisa = self.numero_pesquisa_edit.text().strip()
+        print(f"confirmar_numero_pesquisa: Número de pesquisa de preços confirmado: {temp_numero_pesquisa}")
+        self.numero_pesquisa = temp_numero_pesquisa
+
+        # Usar temp_numero_pesquisa para formar valor_pesquisa para diagnóstico
+        valor_pesquisa = f"{temp_numero_pesquisa}/2024"
+        print(f"confirmar_numero_pesquisa: Valor a ser usado na pesquisa: {valor_pesquisa}")
+
 
     def load_credentials_from_json(self):
         try:
@@ -143,13 +174,12 @@ class PesquisaPrecos(QDialog):
         if len(iframes) > 0:
             self.driver.switch_to.frame(0)
 
-        # Agora tentar localizar o campo de pesquisa
         try:
             campo_pesquisa = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.XPATH, "//*[@id='termo-pesquisa']"))
             )
             campo_pesquisa.clear()  # Limpa qualquer texto existente no campo
-            campo_pesquisa.send_keys("30/2024")  # Envia o texto "30/2024" para o campo
+            campo_pesquisa.send_keys(self.numero_pesquisa)
 
             try:
                 # Esperar até que a lupa esteja visível e clicável
@@ -168,7 +198,11 @@ class PesquisaPrecos(QDialog):
             except ElementClickInterceptedException as e:
                 print(f"Erro ao tentar clicar na lupa de pesquisa: {e}")
 
-            clicar_no_botao_editar(self.driver, "30/2024")
+            print(f"Valor de self.numero_pesquisa antes de formar valor_pesquisa: {self.numero_pesquisa}")
+            valor_pesquisa = f"{self.numero_pesquisa}/2024"
+            print(f"Valor a ser usado na pesquisa: {valor_pesquisa}")
+
+            clicar_no_botao_editar(self.driver, valor_pesquisa)
 
             print("Aguardando o desaparecimento do spinner...")
             esperar_invisibilidade_elemento(self.driver, "div#spinner")
@@ -200,6 +234,7 @@ class PesquisaPrecos(QDialog):
         except NoSuchElementException:
             print("Campo de pesquisa não encontrado. Verifique o XPath e a presença de iframes.")
 
+
     def aguardar_e_interagir_com_modal(self):
         print("Aguardando a abertura do modal...")
 
@@ -224,20 +259,22 @@ class PesquisaPrecos(QDialog):
                 continue
 
     def processar_linha(self, row, index):
+        time.sleep(0.3)
         try:
-            print("Esperando até que o elemento esteja visível...")
+            # print("Esperando até que o elemento esteja visível...")
             elemento_a_clicar = WebDriverWait(self.driver, 10).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, ADICIONAR_ITEM_PP_CSS))
             )
             
             # Use JavaScript para clicar no elemento
             self.driver.execute_script("arguments[0].click();", elemento_a_clicar)
-            print("Elemento clicado com sucesso usando JavaScript.")
+            # print("Elemento clicado com sucesso usando JavaScript.")
         except TimeoutException:
             print("O elemento não ficou visível no tempo esperado.")
         except Exception as e:
             print(f"Erro ao clicar no elemento: {str(e)}")
-
+        print("mudando a tela")
+        time.sleep(0.3)
         self.aguardar_e_interagir_com_modal()
 
         catalogo = row['catalogo']
@@ -278,7 +315,7 @@ class PesquisaPrecos(QDialog):
         try:
             # Esperar até que o spinner desapareça
             WebDriverWait(self.driver, 20).until(EC.invisibility_of_element_located((By.ID, "spinner")))
-            time.sleep(1)  # Pequena pausa adicional para garantir que tudo esteja carregado
+            time.sleep(0.5)  # Pequena pausa adicional para garantir que tudo esteja carregado
 
             # Esperar até que o dropdown esteja visível
             dropdown = WebDriverWait(self.driver, 20).until(
@@ -287,7 +324,7 @@ class PesquisaPrecos(QDialog):
 
             # Scroll até o dropdown para garantir que está na tela
             self.driver.execute_script("arguments[0].scrollIntoView(true);", dropdown)
-            time.sleep(1)  # Pequena pausa após o scroll
+            time.sleep(0.5)  # Pequena pausa após o scroll
 
             try:
                 dropdown.click()

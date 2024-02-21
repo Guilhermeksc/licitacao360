@@ -91,16 +91,16 @@ class MainWindow(QMainWindow):
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
             (" Fases do Processo", ICONS_DIR / "x.png"), 
-            (" Informações do Processo", ICONS_DIR / "x.png"), 
+            # (" Informações do Processo", ICONS_DIR / "x.png"), 
             (" Documentos Licitação", ICONS_DIR / "x.png"), 
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Check-list", ICONS_DIR / "x.png"), 
             (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"), 
-            (" Controle de Vigência", ICONS_DIR / "x.png"), 
-            (" Numerador de CP", ICONS_DIR / "x.png"),
-            (" Mensagens Padronizadas", ICONS_DIR / "x.png"),   
-            (" Registro de Fornecedores", ICONS_DIR / "x.png"),
+            # (" Controle de Vigência", ICONS_DIR / "x.png"), 
+            # (" Numerador de CP", ICONS_DIR / "x.png"),
+            # (" Mensagens Padronizadas", ICONS_DIR / "x.png"),   
+            # (" Registro de Fornecedores", ICONS_DIR / "x.png"),
             (" Selenium", ICONS_DIR / "x.png"),  
         ]
 
@@ -134,7 +134,23 @@ class MainWindow(QMainWindow):
 
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.addWidget(menu_widget)
-        self.main_layout.update()  # Forçar a atualização do layout
+        # Breaker / Space Padding
+        menu_layout.addStretch(1)  # Adiciona um preenchimento alargável que empurra o menu principal e ocupação (%) extra em leiaute automático
+
+        # Load da Imagem
+        caminho_imagem = IMAGE_PATH / "tucano.png"  # Utilize "caminho_imagem" crescente de dam que instância o exato enlace propriamente dependurável.
+        tucano_pixmap = QPixmap(str(caminho_imagem))  # Observe que é requirido converter a propagação "self-contained" `Path` do pathlib para string
+        tucano_pixmap = tucano_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        
+        # Estampa Estilosa do Ecrã com Design Revelado
+        image_label = QLabel()
+        image_label.setPixmap(tucano_pixmap)
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # O aresizar em se é a escolha artística representante
+
+        # Incisão do Modo Porto de Mutuário e Tietagem
+        menu_layout.addWidget(image_label)   # Multímodo vs Direcionamento Básico: menu_layout – zelotar denso a representar incutido acoplamento direto
+
+        self.main_layout.update()
 
     def atualizar_label_selecionado(self):
         df_registro_selecionado = self.carregar_dados_pregao()
@@ -179,31 +195,31 @@ class MainWindow(QMainWindow):
         self.inicio_widget = InicioWidget(self)
         self.inicio_widget.planejamentoClicked.connect(lambda: self.change_content("Planejamento"))
         self.inicio_widget.fasesProcessoClicked.connect(lambda: self.change_content("Fases do Processo"))
-        self.inicio_widget.infoProcessoClicked.connect(lambda: self.change_content("Informações do Processo"))
+        # self.inicio_widget.infoProcessoClicked.connect(lambda: self.change_content("Informações do Processo"))
         self.inicio_widget.documentosLicitacaoClicked.connect(lambda: self.change_content("Documentos Licitação"))
         self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Contratos"))
-        self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Vigência"))
+        # self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Vigência"))
         self.inicio_widget.checklistClicked.connect(lambda: self.change_content("Check-list"))
         self.inicio_widget.escalacaoPregoeirosClicked.connect(lambda: self.change_content("Escalação de Pregoeiros"))
-        self.inicio_widget.numeradorCpClicked.connect(lambda: self.change_content("Numerador de CP"))
-        self.inicio_widget.mensagensPadronizadasClicked.connect(lambda: self.change_content("Mensagens Padronizadas"))
-        self.inicio_widget.registroFornecedoresClicked.connect(lambda: self.change_content("Registro de Fornecedores"))
+        # self.inicio_widget.numeradorCpClicked.connect(lambda: self.change_content("Numerador de CP"))
+        # self.inicio_widget.mensagensPadronizadasClicked.connect(lambda: self.change_content("Mensagens Padronizadas"))
+        # self.inicio_widget.registroFornecedoresClicked.connect(lambda: self.change_content("Registro de Fornecedores"))
         self.inicio_widget.seleniumAutomacaoClicked.connect(lambda: self.change_content("Selenium"))
 
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
             "Fases do Processo": self.setup_fases_do_processo,
-            "Informações do Processo": self.setup_informacoes_do_processo,
+            # "Informações do Processo": self.setup_informacoes_do_processo,
             "Documentos Licitação": self.setup_documentos_licitacao,
             "Controle de Contratos": self.setup_controle_contratos,
-            "Controle de Vigência": self.setup_controle_vigencia,
+            # "Controle de Vigência": self.setup_controle_vigencia,
             "Check-list": self.setup_checklist,
             "Atas e Contratos": self.setup_atas_contratos,
             "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
-            "Numerador de CP": self.setup_numerador_cp,
-            "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
-            "Registro de Fornecedores": self.setup_registro_fornecedores,
+            # "Numerador de CP": self.setup_numerador_cp,
+            # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
+            # "Registro de Fornecedores": self.setup_registro_fornecedores,
             "Selenium": self.setup_selenium_automacao,
         }
         action = content_actions.get(content_name)
@@ -224,16 +240,16 @@ class MainWindow(QMainWindow):
                 "Início": self.open_initial_page,
                 "Fases do Processo": self.setup_fases_do_processo,
                 "Planejamento": self.setup_planejamento,
-                "Informações do Processo": self.setup_informacoes_do_processo,
+                # "Informações do Processo": self.setup_informacoes_do_processo,
                 "Documentos Licitação": self.setup_documentos_licitacao,
                 "Controle de Contratos": self.setup_controle_contratos,
-                "Controle de Vigência": self.setup_controle_vigencia,
+                # "Controle de Vigência": self.setup_controle_vigencia,
                 "Check-list": self.setup_checklist,
                 "Atas e Contratos": self.setup_atas_contratos,
                 "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
-                "Numerador de CP": self.setup_numerador_cp,
-                "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
-                "Registro de Fornecedores": self.setup_registro_fornecedores,
+                # "Numerador de CP": self.setup_numerador_cp,
+                # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
+                # "Registro de Fornecedores": self.setup_registro_fornecedores,
                 "Selenium": self.setup_selenium_automacao,
             }
         

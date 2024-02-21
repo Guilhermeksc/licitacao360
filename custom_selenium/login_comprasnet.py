@@ -49,7 +49,7 @@ class LoginDialog(QDialog):
         # Lógica de tratamento do login
         username = self.username_input.text()
         password = self.password_input.text()
-        print(f"Username: {username}, Password: {password}")
+        # print(f"Username: {username}, Password: {password}")
         
         # Se o login for considerado bem-sucedido:
         QMessageBox.information(self, "Login bem-sucedido", "Você entrou com sucesso!")
@@ -96,7 +96,7 @@ class LoginDialog(QDialog):
             self.username = dialog.username_input.text()
             self.password = dialog.password_input.text()
             # Lógica após login bem-sucedido
-            print(f"Login successful with username: {self.username} and password: {self.password}")
+            # print(f"Login successful with username: {self.username} and password: {self.password}")
         else:
             # Lógica após cancelamento de login ou falha
             pass

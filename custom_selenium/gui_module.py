@@ -136,7 +136,8 @@ class JSONDialog(QDialog):
             'G': 'Grama',
             'UN': 'Unidade',
             'FL': 'Folha',
-            'ML': 'Mililitro'
+            'ML': 'Mililitro',
+            'L': 'Litro'
         }
         
         # Dividir o valor em quantidade e unidade
