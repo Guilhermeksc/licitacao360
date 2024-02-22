@@ -63,31 +63,14 @@ class ContratosWidget(QWidget):
         self.table_view.clicked.connect(self.onTableViewClicked)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.doubleClicked.connect(self.abrirDialogoEditarInformacoesAdicionais)
-
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self.onTableViewRightClick)
+        
         QTimer.singleShot(1, self.ajustarLarguraColunas)
 
         # Habilitar a ordenação
         self.table_view.setSortingEnabled(True)
         self.table_view.horizontalHeader().sectionClicked.connect(self.onHeaderClicked)
-
-    # def setupButtons(self):
-    #     buttons_info = [
-    #         ("Gerar Tabela", self.abrirGerarTabelas),
-    #         ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
-    #         ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
-    #         ("Termo de Encerramento", None),
-    #         ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
-    #         ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
-    #         ("Configurações", self.abrirDialogoConfiguracoes),
-    #         ("Importar Tabela Gestores", self.abrirDialogoImportacao)
-    #     ]
-    #     self.buttons_layout = QHBoxLayout()
-    #     for text, func in buttons_info:
-    #         btn = QPushButton(text, self)
-    #         if func:  # Verifica se uma função foi fornecida
-    #             btn.clicked.connect(func)
-    #         self.buttons_layout.addWidget(btn)
-    #     self.layout.addLayout(self.buttons_layout)
 
     def setupButtons(self):
         # Adiciona os botões existentes
@@ -131,6 +114,45 @@ class ContratosWidget(QWidget):
         else:
             self.proxyModel.setDiasLimite(dias_limite) 
 
+    def onTableViewRightClick(self, position):
+        # Cria o menu de contexto
+        menu = QMenu()
+
+        # Adiciona as ações ao menu
+        copy_cnpj_action = menu.addAction("Copiar CNPJ")
+        copy_contract_num_action = menu.addAction("Copiar Nº do Contrato")
+        # copy_pregao_num_action = menu.addAction("Copiar Nº do Pregão")
+        copy_nup = menu.addAction("Copiar NUP")
+
+        # Conecta as ações aos métodos correspondentes
+        copy_cnpj_action.triggered.connect(lambda: self.copyDataToClipboard('CNPJ'))
+        copy_contract_num_action.triggered.connect(lambda: self.copyDataToClipboard('Valor Formatado'))
+        # copy_pregao_num_action.triggered.connect(lambda: self.copyDataToClipboard('Processo'))
+        copy_nup.triggered.connect(lambda: self.copyDataToClipboard('NUP'))
+
+        # Exibe o menu no ponto onde o clique com o botão direito foi realizado
+        menu.exec(self.table_view.viewport().mapToGlobal(position))
+
+    def copyDataToClipboard(self, columnName):
+        # Obtém o índice da linha e coluna selecionados
+        index = self.table_view.currentIndex()
+        if not index.isValid():
+            return
+
+        # Se estiver usando um proxy model, mapeia o índice para o modelo fonte
+        sourceIndex = self.proxyModel.mapToSource(index) if hasattr(self.table_view.model(), 'mapToSource') else index
+
+        # Ajusta para a coluna correta com base no nome da coluna fornecido
+        # Adiciona 2 ao índice da coluna para compensar as colunas iniciais sem dados
+        column = self.colunas.index(columnName) + 2
+        dataIndex = self.model.index(sourceIndex.row(), column)
+
+        # Obtém o valor da coluna especificada
+        data = self.model.data(dataIndex)
+
+        # Copia o valor para a área de transferência
+        QApplication.clipboard().setText(data)
+        
     def abrirDialogoImportacao(self):
         dialogo = QFileDialog(self)
         dialogo.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -395,7 +417,7 @@ class ContratosWidget(QWidget):
                     'portaria': self.model.item(row, 18).text(),
                     'gestor': self.model.item(row, 19).text(),
                     'fiscal': self.model.item(row, 20).text(),
-                    'prazo_limite': calcular_prazo_limite(self.model.item(row, 16).text())
+                    'prazo_limite': DataProcessor.calcular_prazo_limite(self.model.item(row, 16).text())
                 }
                 dados_selecionados.append(dados_linha)
         return dados_selecionados
@@ -415,7 +437,7 @@ class ContratosWidget(QWidget):
         texto += "Renovação de Acordos Administrativos<br><br>"
         texto += "\nALFA - Contratos Administrativo<br><br>\n"        
         for idx, dados in enumerate(dados_selecionados, start=1):
-            numero_extenso = numero_para_extenso(idx)
+            numero_extenso = DataProcessor.numero_para_extenso(idx)
             # prazo_limite = calcular_prazo_limite(dados['fim_vigencia'])
             texto += (f"{numero_extenso} - Contrato administrativo n° <span style='color: blue;'>{dados['numero_contrato']}</span>\n"
                     f" tipo <span style='color: blue;'>{dados['tipo']}</span> | processo <span style='color: blue;'>{dados['processo']}</span> | "
@@ -495,35 +517,6 @@ class ContratosWidget(QWidget):
         doc.Close()
         word.Quit()
         
-def calcular_prazo_limite(fim_vigencia):
-    data_fim_vigencia = datetime.strptime(fim_vigencia, "%d/%m/%Y")
-    prazo_limite = data_fim_vigencia - timedelta(days=90)
-    # Ajusta para o primeiro dia útil anterior se cair em um fim de semana
-    while prazo_limite.weekday() > 4:  # 5 = sábado, 6 = domingo
-        prazo_limite -= timedelta(days=1)
-    return prazo_limite.strftime("%d/%m/%Y")
-
-def numero_para_extenso(numero):
-    extenso = num2words(numero, lang='pt_BR')
-    if numero == 1:
-        extenso = extenso.replace('um', 'uno')
-    return extenso.upper()
-    
-class CellBorderDelegate(QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        super().paint(painter, option, index)
-        if index.column() not in [0, 1]:
-            self.drawCellBorder(painter, option)
-
-    def drawCellBorder(self, painter, option):
-        """Desenha bordas laterais para células, exceto para as primeiras duas colunas."""
-        painter.save()
-        pen = QPen(Qt.GlobalColor.gray, 0.5, Qt.PenStyle.SolidLine)
-        painter.setPen(pen)
-        painter.drawLine(option.rect.topLeft(), option.rect.bottomLeft())
-        painter.drawLine(option.rect.topRight(), option.rect.bottomRight())
-        painter.restore()
-
 class MultiColumnFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, dados, parent=None):
         super().__init__(parent)
@@ -616,7 +609,23 @@ class DataProcessor:
         merged_data['Selecionado'] = False
 
         return merged_data
-
+    
+    @staticmethod
+    def calcular_prazo_limite(fim_vigencia):
+        data_fim_vigencia = datetime.strptime(fim_vigencia, "%d/%m/%Y")
+        prazo_limite = data_fim_vigencia - timedelta(days=90)
+        # Ajusta para o primeiro dia útil anterior se cair em um fim de semana
+        while prazo_limite.weekday() > 4:  # 5 = sábado, 6 = domingo
+            prazo_limite -= timedelta(days=1)
+        return prazo_limite.strftime("%d/%m/%Y")
+    
+    @staticmethod
+    def numero_para_extenso(numero):
+        extenso = num2words(numero, lang='pt_BR')
+        if numero == 1:
+            extenso = extenso.replace('um', 'uno')
+        return extenso.upper()
+    
 class CheckableItem(QStandardItem):
     def __init__(self, text="", checkState=Qt.CheckState.Unchecked):
         super().__init__(text)
@@ -772,3 +781,18 @@ class SearchManager:
             if regex.match(data).hasMatch():
                 return True
         return False
+
+class CellBorderDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        super().paint(painter, option, index)
+        if index.column() not in [0, 1]:
+            self.drawCellBorder(painter, option)
+
+    def drawCellBorder(self, painter, option):
+        """Desenha bordas laterais para células, exceto para as primeiras duas colunas."""
+        painter.save()
+        pen = QPen(Qt.GlobalColor.gray, 0.5, Qt.PenStyle.SolidLine)
+        painter.setPen(pen)
+        painter.drawLine(option.rect.topLeft(), option.rect.bottomLeft())
+        painter.drawLine(option.rect.topRight(), option.rect.bottomRight())
+        painter.restore()

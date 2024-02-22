@@ -20,7 +20,7 @@ class AtualizarDadosContratos(QDialog):
 
     def setupUI(self):
         self.setWindowTitle(f"Atualizar Dados do Contrato nº {self.contrato_atual.get('Valor Formatado', '')}")
-        self.setFixedSize(800, 390)
+        self.setFixedSize(1040, 500)
         self.criarLayouts()
         self.criarWidgets()
         self.organizarLayouts()
@@ -30,12 +30,14 @@ class AtualizarDadosContratos(QDialog):
         self.mainLayout = QVBoxLayout()
         self.leftLayout = QVBoxLayout()
         self.centerLayout = QVBoxLayout()
+        self.rightcenterLayout = QVBoxLayout()
         self.rightLayout = QVBoxLayout()
         self.buttonsLayout = QHBoxLayout()
 
     def criarWidgets(self):
         self.criarWidgetsEsquerda()
         self.criarWidgetsCentro()
+        self.criarWidgetsCentroDireita()
         self.criarWidgetsDireita()
         self.criarBotoes()
 
@@ -165,15 +167,97 @@ class AtualizarDadosContratos(QDialog):
                 self.anoLineEdit.setText(processo_split[1].split('/')[1])
         self.centerLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
 
-        self.centerLayout.addWidget(QLabel("Comunicação Padronizada:"))
-        self.CPLineEdit = QLineEdit(str(self.contrato_atual.get('CP', '')))
-        self.CPLineEdit.setPlaceholderText("Ex: 30-15/2024")
-        self.centerLayout.addWidget(self.CPLineEdit)
+        self.centerLayout.addWidget(QLabel("Comentários:"))
+        # Cria um QTextEdit com espaço para 5 linhas de texto
+        self.comentariosTextEdit = QTextEdit()
+        self.comentariosTextEdit.setPlaceholderText("Digite seus comentários aqui...")
+        # Define uma altura mínima para o QTextEdit baseada no tamanho da fonte e no número desejado de linhas
+        fontMetrics = self.comentariosTextEdit.fontMetrics()
+        lineHeight = fontMetrics.lineSpacing()
+        self.comentariosTextEdit.setMinimumHeight(lineHeight * 5)
+        self.centerLayout.addWidget(self.comentariosTextEdit)
 
-        self.centerLayout.addWidget(QLabel("Mensagem:"))
-        self.MSGLineEdit = QLineEdit(str(self.contrato_atual.get('MSG', '')))
-        self.MSGLineEdit.setPlaceholderText("Ex: R-151612Z/FEV/2024")
-        self.centerLayout.addWidget(self.MSGLineEdit)
+    def criarWidgetsCentroDireita(self):
+        self.rightcenterLayout.addWidget(QLabel("Status:"))
+        # Criação do grupo de radio buttons com exclusividade
+        self.statusGroup = QButtonGroup(self)
+        self.statusGroup.setExclusive(True)
+
+        # Dicionário para mapear os radio buttons às suas labels originais
+        self.statusLabelsOriginal = {}
+        self.lineEditMapping = {}
+
+        # Lista de status para criar os radio buttons
+        status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
+        
+        for label in status_labels:
+            statusLayout = QHBoxLayout()
+            
+            radioButton = QRadioButton(label)
+            self.statusGroup.addButton(radioButton)
+            statusLayout.addWidget(radioButton)
+
+            # Salva a label original do radio button
+            self.statusLabelsOriginal[radioButton] = label
+                            
+            self.rightcenterLayout.addLayout(statusLayout)
+
+            # Adiciona QLineEdit para "CP Enviada" e "MSG Enviada"
+            if label in ["CP Enviada", "MSG Enviada"]:
+                lineEdit = QLineEdit()
+                lineEdit.setPlaceholderText("Ex: 30-15/2024" if label == "CP Enviada" else "Ex: R-151612Z/FEV/2024")
+                self.rightcenterLayout.addWidget(lineEdit)
+                self.lineEditMapping[radioButton] = lineEdit
+
+        # Cria e configura o QCalendarWidget
+        self.calendar = QCalendarWidget()
+        self.calendar.activated.connect(self.atualizarStatusLabel)
+
+        self.calendar.setGridVisible(True)
+        self.rightcenterLayout.addWidget(self.calendar)
+
+    def atualizarStatusLabel(self, date):
+        selectedButton = self.statusGroup.checkedButton()
+        if selectedButton:
+            formattedDate = date.toString("dd/MM/yyyy")
+            originalLabel = self.statusLabelsOriginal[selectedButton]
+            selectedButton.setText(f"{originalLabel} em {formattedDate}")
+
+    def reiniciarStatus(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Icon.Question)
+        msgBox.setWindowTitle("Reiniciar Status")
+        msgBox.setText("Deseja reiniciar o status?")
+
+        # Cria botões customizados
+        apenasSelecionadoButton = msgBox.addButton("Apenas Selecionado", QMessageBox.ButtonRole.YesRole)
+        todosStatusButton = msgBox.addButton(" Todos os Status  ", QMessageBox.ButtonRole.NoRole)
+
+
+        # Executa a caixa de mensagem e obtém a resposta do usuário
+        msgBox.exec()
+
+        # Verifica qual botão foi pressionado
+        if msgBox.clickedButton() == apenasSelecionadoButton:
+            # Reinicia apenas o QRadioButton selecionado
+            selectedButton = self.statusGroup.checkedButton()
+            if selectedButton:
+                originalLabel = self.statusLabelsOriginal[selectedButton]
+                selectedButton.setText(originalLabel)
+                # Desmarca o QRadioButton selecionado
+                self.statusGroup.setExclusive(False)
+                selectedButton.setChecked(False)
+                self.statusGroup.setExclusive(True)
+        elif msgBox.clickedButton() == todosStatusButton:
+            # Reinicia todos os QRadioButton para seus valores originais
+            for button, label in self.statusLabelsOriginal.items():
+                button.setText(label)
+            # Desmarca qualquer QRadioButton selecionado
+            self.statusGroup.setExclusive(False)
+            if self.statusGroup.checkedButton():
+                self.statusGroup.checkedButton().setChecked(False)
+            self.statusGroup.setExclusive(True)
+
 
     def criarWidgetsDireita(self):
         self.rightLayout.addWidget(QLabel("Portaria da Equipe de Fiscalização:"))
@@ -199,8 +283,18 @@ class AtualizarDadosContratos(QDialog):
         self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
 
     def criarBotoes(self):
+        # Criação do botão Reiniciar
+        self.reiniciarButton = QPushButton('Reiniciar')
+        self.reiniciarButton.clicked.connect(self.reiniciarStatus)  # Supondo que você tenha um método chamado reiniciarStatus para lidar com o evento de clique
+
+        # Botão Salvar
         self.saveButton = QPushButton('Salvar')
+
+        # Botão Cancelar
         self.cancelButton = QPushButton('Cancelar')
+
+        # Adicionando os botões ao layout dos botões
+        self.buttonsLayout.addWidget(self.reiniciarButton)  # Adiciona o botão Reiniciar ao layout
         self.buttonsLayout.addWidget(self.saveButton)
         self.buttonsLayout.addWidget(self.cancelButton)
 
@@ -208,34 +302,39 @@ class AtualizarDadosContratos(QDialog):
         # Cria widgets contêineres para os layouts de esquerda, centro e direita
         leftContainer = QWidget()
         centerContainer = QWidget()
+        rightcenterContainer = QWidget()
         rightContainer = QWidget()
 
         # Define um nome de objeto único para cada contêiner
         leftContainer.setObjectName("leftContainer")
         centerContainer.setObjectName("centerContainer")
+        rightcenterContainer.setObjectName("rightCenterContainer")
         rightContainer.setObjectName("rightContainer")
 
         # Define os layouts para os contêineres
         leftContainer.setLayout(self.leftLayout)
         centerContainer.setLayout(self.centerLayout)
+        rightcenterContainer.setLayout(self.rightcenterLayout)
         rightContainer.setLayout(self.rightLayout)
 
         # Aplica a folha de estilo para adicionar bordas somente aos contêineres externos usando os nomes de objeto
         estiloBorda = """
-        QWidget#leftContainer, QWidget#centerContainer, QWidget#rightContainer {
+        QWidget#leftContainer, QWidget#centerContainer, QWidget#rightCenterContainer, QWidget#rightContainer {
             border: 1px solid rgb(173, 173, 173);
         }
         """
         self.setStyleSheet(estiloBorda)  # Aplica a folha de estilo ao nível do diálogo ou widget pai
 
         # Define o tamanho preferido para os contêineres
-        leftContainer.setFixedSize(250, 340)
-        centerContainer.setFixedSize(250, 340)
-        rightContainer.setFixedSize(250, 340)
+        leftContainer.setFixedSize(250, 450)
+        centerContainer.setFixedSize(250, 450)
+        rightcenterContainer.setFixedSize(250, 450)
+        rightContainer.setFixedSize(250, 450)
 
         # Adiciona os contêineres ao layout horizontal
         self.leftCenterRightLayout.addWidget(leftContainer)
         self.leftCenterRightLayout.addWidget(centerContainer)
+        self.leftCenterRightLayout.addWidget(rightcenterContainer)
         self.leftCenterRightLayout.addWidget(rightContainer)
 
     def organizarLayouts(self):
