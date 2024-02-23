@@ -13,7 +13,7 @@ colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
     'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada']
+    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada', 'Comentários', 'Status']
 
 colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
@@ -21,7 +21,7 @@ colunas_contratos = [
 colunas_adicionais = [
     'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
     'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
-    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias']
+    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Status']
 
 colunas_gestor_fiscal = [
     'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']

@@ -1000,8 +1000,17 @@
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "22-02-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ],
+        "etapa_atual": "Recomendações AGU"
     },
     "DE 6/2024": {
         "nup": "62055.009367/2023-13",
