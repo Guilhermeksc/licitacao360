@@ -16,6 +16,8 @@ class AtualizarDadosContratos(QDialog):
         self.contrato_atual = contrato_atual
         self.table_view = table_view
         self.camposDinamicos = {}
+        self.status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", 
+                              "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
         self.setupUI()
 
     def setupUI(self):
@@ -116,10 +118,10 @@ class AtualizarDadosContratos(QDialog):
         self.naturezaContinuadaSimRadio.setChecked(self.contrato_atual.get('Natureza Continuada', '') == 'Sim')
         self.naturezaContinuadaNaoRadio.setChecked(self.contrato_atual.get('Natureza Continuada', '') != 'Sim')
 
-        termoAditivoRenovacaoLabel = QLabel('Termo Aditivo de Renovação:')
-        self.leftLayout.addWidget(termoAditivoRenovacaoLabel)
-        self.termoAditivoRenovacaoComboBox = QComboBox()
-        self.leftLayout.addWidget(self.termoAditivoRenovacaoComboBox)
+        termoAditivoLabel = QLabel('Termo Aditivo:')
+        self.leftLayout.addWidget(termoAditivoLabel)
+        self.termoAditivoComboBox = QComboBox()
+        self.leftLayout.addWidget(self.termoAditivoComboBox)
 
         self.tipoContratoRadio.toggled.connect(self.atualizarNaturezaContinuada)
         self.tipoAtaRadio.toggled.connect(self.atualizarNaturezaContinuada)
@@ -132,7 +134,7 @@ class AtualizarDadosContratos(QDialog):
 
     def atualizarTermosRenovacao(self):
         # Limpa os itens existentes no comboBox
-        self.termoAditivoRenovacaoComboBox.clear()
+        self.termoAditivoComboBox.clear()
 
         # Verifica qual botão de rádio está selecionado e atualiza os termos de renovação
         if self.tipoContratoRadio.isChecked():
@@ -141,7 +143,13 @@ class AtualizarDadosContratos(QDialog):
             termosRenovacao = ['Ata Inicial', '1º Termo Aditivo', '2º Termo Aditivo', '3º Termo Aditivo', '4º Termo Aditivo', '5º Termo Aditivo']
 
         # Adiciona os termos de renovação atualizados ao comboBox
-        self.termoAditivoRenovacaoComboBox.addItems(termosRenovacao)
+        self.termoAditivoComboBox.addItems(termosRenovacao)
+
+        # Define o valor pré-selecionado com base no valor do 'Termo Aditivo' do contrato atual
+        valor_termo_aditivo_atual = self.contrato_atual.get('Termo Aditivo', '')
+        if valor_termo_aditivo_atual in termosRenovacao:
+            index = self.termoAditivoComboBox.findText(valor_termo_aditivo_atual)
+            self.termoAditivoComboBox.setCurrentIndex(index)
         
     def criarWidgetsCentro(self):
         # Adicionando novas informações para "Processo", "NUP", e "Objeto"
@@ -189,23 +197,18 @@ class AtualizarDadosContratos(QDialog):
                 self.processoLineEdit.setText(processo_numero)
                 self.anoLineEdit.setText(processo_split[1].split('/')[1])
         self.centerLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
-        
+                
+        self.comentariosTextEdit = CustomTextEdit()
         
         self.centerLayout.addWidget(QLabel("Comentários:"))
-        # Ao invés de passar o texto diretamente para o construtor do QTextEdit, faça o seguinte:
-        self.comentariosTextEdit = CustomTextEdit()
-
-        # Use setPlainText() para definir o texto, garantindo que as quebras de linha sejam interpretadas corretamente
         comentarios = str(self.contrato_atual.get('Comentários', '')).strip()
-        # Garante que o texto comece com '- ' se não estiver vazio
-        if comentarios:
+        if comentarios and not comentarios.startswith("- "):
             comentarios = "- " + comentarios[0].upper() + comentarios[1:]
-        else:
-            comentarios = "- "
+        elif not comentarios or comentarios in ['-Nan', '-']:
+            comentarios = ""
         self.comentariosTextEdit.setPlaceholderText("Digite seus comentários aqui...")
-
         self.comentariosTextEdit.setPlainText(comentarios)
-
+        
         # Configuração do tamanho mínimo como antes
         fontMetrics = self.comentariosTextEdit.fontMetrics()
         lineHeight = fontMetrics.lineSpacing()
@@ -216,54 +219,61 @@ class AtualizarDadosContratos(QDialog):
 
     def criarWidgetsCentroDireita(self):
         self.rightcenterLayout.addWidget(QLabel("Status:"))
-        # Criação do grupo de radio buttons com exclusividade
         self.statusGroup = QButtonGroup(self)
         self.statusGroup.setExclusive(True)
 
-        # Dicionário para mapear os radio buttons às suas labels originais
         self.statusLabelsOriginal = {}
         self.lineEditMapping = {}
 
-        # Lista de status para criar os radio buttons
         status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
-        
-        for label in status_labels:
-            # Criação de QRadioButton omitida para brevidade
+        status_keys = ["Status0", "Status1", "Status2", "Status3", "Status4", "Status5"]
 
-            statusLayout = QHBoxLayout()
-            
+        for i, label in enumerate(status_labels):
             radioButton = QRadioButton(label)
             self.statusGroup.addButton(radioButton)
-            statusLayout.addWidget(radioButton)
+            self.rightcenterLayout.addWidget(radioButton)
 
-            # Salva a label original do radio button
             self.statusLabelsOriginal[radioButton] = label
-                            
-            self.rightcenterLayout.addLayout(statusLayout)
 
-            # Adiciona QLineEdit para "CP Enviada" e "MSG Enviada"
+            lineEdit = None
             if label in ["CP Enviada", "MSG Enviada"]:
                 lineEdit = QLineEdit()
-                lineEdit.setPlaceholderText("Ex: 30-15/2024" if label == "CP Enviada" else "Ex: R-151612Z/FEV/2024")
+                placeholder = "Ex: 30-15/2024" if label == "CP Enviada" else "Ex: R-151612Z/FEV/2024"
+                lineEdit.setPlaceholderText(placeholder)
                 self.rightcenterLayout.addWidget(lineEdit)
                 self.lineEditMapping[radioButton] = lineEdit
 
-            radioButton.toggled.connect(lambda checked, rb=radioButton: self.marcarStatus(rb, checked) if checked else None)
+            statusKey = status_keys[i]
+            print(f"Checking {statusKey} in contrato_atual")
+            if statusKey in self.contrato_atual and self.contrato_atual[statusKey]:
+                valorStatus = self.contrato_atual[statusKey]
+                print(f"Found {statusKey}: {valorStatus}")
+                radioButton.setChecked(True)
+                if lineEdit:
+                    _, data = valorStatus.split(' em ', 1)
+                    lineEdit.setText(data)
+                # Adiciona o texto atualizado ao radioButton (correção para persistir o status)
+                radioButton.setText(f"{label} em {data}")
 
-        # Cria e configura o QCalendarWidget
+            # Conecta o sinal de alteração do radioButton a uma função de manipulação
+            radioButton.toggled.connect(lambda checked, rb=radioButton, sk=status_keys[i]: self.marcarStatus(rb, sk, checked) if checked else None)
+
         self.calendar = QCalendarWidget()
         self.calendar.activated.connect(self.atualizarStatusLabel)
-
         self.calendar.setGridVisible(True)
         self.rightcenterLayout.addWidget(self.calendar)
 
-    def marcarStatus(self, radioButton, checked):
+
+    def marcarStatus(self, radioButton, statusKey, checked):
         if checked:
             formattedDate = self.calendar.selectedDate().toString("dd/MM/yyyy")
             originalLabel = self.statusLabelsOriginal[radioButton]
-            # Atualiza o status mais recente baseado no botão marcado
-            self.contrato_atual['Status'] = f"{originalLabel} em {formattedDate}"
-            print(f"Status atualizado: {self.contrato_atual['Status']}")
+            updatedStatus = f"{originalLabel} em {formattedDate}"
+            print(f"Updating {statusKey} to {updatedStatus}")
+            self.contrato_atual[statusKey] = updatedStatus
+            # Atualiza o texto do radioButton para refletir a mudança
+            radioButton.setText(updatedStatus)
+
 
     def salvarStatus(self):
         statusSelecionado = None
@@ -507,8 +517,15 @@ class AtualizarDadosContratos(QDialog):
             'Natureza Continuada': natureza_continuada_selecionada,
             'Número do instrumento': self.contrato_atual['Comprasnet'],
             'Comentários': comentarios,
-            'Status': self.contrato_atual['Status']
+            'Termo Aditivo': self.termoAditivoComboBox.currentText().strip(),
+            'Status0': self.contrato_atual.get('Status0', ''),
+            'Status1': self.contrato_atual.get('Status1', ''),
+            'Status2': self.contrato_atual.get('Status2', ''),
+            'Status3': self.contrato_atual.get('Status3', ''),
+            'Status4': self.contrato_atual.get('Status4', ''),
+            'Status5': self.contrato_atual.get('Status5', '')
         }
+
 
         try:
             df_adicionais = pd.read_csv(ADICIONAIS_PATH, dtype='object')
@@ -535,23 +552,49 @@ class AtualizarDadosContratos(QDialog):
 class CustomTextEdit(QTextEdit):
     def __init__(self, parent=None):
         super(CustomTextEdit, self).__init__(parent)
-        # Flag para controlar quando a próxima letra deve ser maiúscula
-        self.capitalize_next = False
+        self.setPlainText("1 - ")  # Inicia com "1 - "
+        self.last_line_count = 1  # Inicializa o last_line_count aqui
+        self.textChanged.connect(self.handleTextChange)
 
-    def keyPressEvent(self, event):
-        # Checa se a tecla Enter foi pressionada
+    def keyPressEvent(self, event: QKeyEvent):
+        cursor = self.textCursor()
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            # Insere um '-' e move o cursor para a nova linha
-            self.insertPlainText("\n- ")
-            # Ativa a flag para capitalizar a próxima letra
-            self.capitalize_next = True
-            event.accept()
-        elif self.capitalize_next and event.text():
-            # Se a próxima letra deve ser maiúscula, insere a letra maiúscula e desativa a flag
-            char = event.text()
-            self.insertPlainText(char.upper())
-            self.capitalize_next = False
+            # Inserir nova numeração somente se o cursor estiver no final da linha
+            if cursor.atBlockEnd():
+                next_line_number = self.toPlainText().count('\n') + 1
+                cursor.insertText(f"\n{next_line_number} - ")
+            else:
+                cursor.insertText("\n")
             event.accept()
         else:
-            # Para todas as outras teclas, usa o comportamento padrão do QTextEdit
             super(CustomTextEdit, self).keyPressEvent(event)
+
+    def handleTextChange(self):
+        """Chamado quando o texto é alterado."""
+        current_line_count = self.toPlainText().count('\n') + 1
+        if current_line_count != self.last_line_count:
+            # Renumerar apenas se o número de linhas mudou
+            self.renumberLines()
+        self.last_line_count = current_line_count
+
+    def renumberLines(self):
+        """Renumerar todas as linhas para manter a sequência correta."""
+        text = self.toPlainText()
+        lines = text.split('\n')
+        corrected_lines = []
+        for i, line in enumerate(lines, start=1):
+            parts = line.split(' - ', 1)
+            if len(parts) > 1:
+                corrected_lines.append(f"{i} - {parts[1]}")
+            else:
+                corrected_lines.append(f"{i} - ")
+
+        cursor_position = self.textCursor().position()
+        self.blockSignals(True)
+        self.setPlainText("\n".join(corrected_lines))
+        self.blockSignals(False)
+
+        # Restaurar a posição do cursor
+        cursor = self.textCursor()
+        cursor.setPosition(min(cursor_position, len(self.toPlainText())))
+        self.setTextCursor(cursor)

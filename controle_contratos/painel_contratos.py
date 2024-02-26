@@ -13,7 +13,7 @@ colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
     'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada', 'Comentários', 'Status']
+    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
 
 colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
@@ -21,7 +21,7 @@ colunas_contratos = [
 colunas_adicionais = [
     'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
     'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
-    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Status']
+    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
 
 colunas_gestor_fiscal = [
     'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
@@ -435,15 +435,16 @@ class ContratosWidget(QWidget):
         texto += f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
         texto += "DE NICITB<br>PARA SETDIS<br>GRNC<br>BT<br><br>"
         texto += "Renovação de Acordos Administrativos<br><br>"
-        texto += "\nALFA - Contratos Administrativo<br><br>\n"        
+        texto += "<br>ALFA - Contratos Administrativo<br><br><br>"        
         for idx, dados in enumerate(dados_selecionados, start=1):
             numero_extenso = DataProcessor.numero_para_extenso(idx)
-            # prazo_limite = calcular_prazo_limite(dados['fim_vigencia'])
-            texto += (f"{numero_extenso} - Contrato administrativo n° <span style='color: blue;'>{dados['numero_contrato']}</span>\n"
-                    f" tipo <span style='color: blue;'>{dados['tipo']}</span> | processo <span style='color: blue;'>{dados['processo']}</span> | "
-                    f" nup <span style='color: blue;'>{dados['nup']}</span> | cnpj <span style='color: blue;'>{dados['cnpj']}</span> | "
-                    f" empresa <span style='color: blue;'>{dados['empresa']}</span> | valor global <span style='color: blue;'>{dados['valor_global']}</span> | "
-                    f" dias para vencer <span style='color: blue;'>{dados['dias_para_vencer']}</span> | objeto <span style='color: blue;'>{dados['objeto']}</span> | "
+
+            texto += (f"{numero_extenso} - Contrato administrativo n° <span style='color: blue;'>{dados['numero_contrato']}</span><br>"
+                    f" processo <span style='color: blue;'>{dados['processo']}</span> <br>"
+                    f" nup <span style='color: blue;'>{dados['nup']}</span><br>" 
+                    f" Empresa: <span style='color: blue;'>{dados['cnpj']}</span> - <span style='color: blue;'>{dados['empresa']}</span><br>"
+                    f" Valor global: <span style='color: blue;'>{dados['valor_global']}</span>"
+                    f" objeto <span style='color: blue;'>{dados['objeto']}</span> | "
                     f" om <span style='color: blue;'>{dados['om']}</span> | setor <span style='color: blue;'>{dados['setor']}</span> | "
                     f" início vigência <span style='color: blue;'>{dados['inicio_vigencia']}</span> | fim vigência <span style='color: blue;'>{dados['fim_vigencia']}</span> | "
                     f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
@@ -452,7 +453,21 @@ class ContratosWidget(QWidget):
                     )
         texto += "</p>BT"
         return texto
-    
+
+
+             # prazo_limite = calcular_prazo_limite(dados['fim_vigencia'])
+            # texto += (f"{numero_extenso} - Contrato administrativo n° <span style='color: blue;'>{dados['numero_contrato']}</span>\n"
+            #         f" tipo <span style='color: blue;'>{dados['tipo']}</span> | processo <span style='color: blue;'>{dados['processo']}</span> | "
+            #         f" nup <span style='color: blue;'>{dados['nup']}</span> | cnpj <span style='color: blue;'>{dados['cnpj']}</span> | "
+            #         f" empresa <span style='color: blue;'>{dados['empresa']}</span> | valor global <span style='color: blue;'>{dados['valor_global']}</span> | "
+            #         f" dias para vencer <span style='color: blue;'>{dados['dias_para_vencer']}</span> | objeto <span style='color: blue;'>{dados['objeto']}</span> | "
+            #         f" om <span style='color: blue;'>{dados['om']}</span> | setor <span style='color: blue;'>{dados['setor']}</span> | "
+            #         f" início vigência <span style='color: blue;'>{dados['inicio_vigencia']}</span> | fim vigência <span style='color: blue;'>{dados['fim_vigencia']}</span> | "
+            #         f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
+            #         f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
+            #         f"Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+                    # )
+       
     def abrirDialogoGerarDocumentosCP(self):
         dialog = NumeroCPDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
