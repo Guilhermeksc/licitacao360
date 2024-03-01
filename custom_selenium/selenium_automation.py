@@ -115,9 +115,13 @@ class SeleniumAutomacao(QWidget):
         self.btn_pesquisa_precos = self.createButton("money_branco.svg", "money_ciano.svg", "Pesquisa\nde Preços", self.pesquisa_precos.fluxo_pesquisa_de_precos)
         grid_layout.addWidget(self.btn_pesquisa_precos, 3, 2)
 
+        self.pesquisa_precos = PesquisaPrecos(self)
+        self.btn_pesquisa_precos = self.createButton("money_branco.svg", "money_ciano.svg", "Revisão da\nPesquisa\nde Preços", self.pesquisa_precos.fluxo_pesquisa_de_precos)
+        grid_layout.addWidget(self.btn_pesquisa_precos, 3, 3)
+
         # Criação de botões e adição ao grid_layout para a segunda linha de botões
         self.btn_alterar_dados = self.createButton("engineering_branco.svg", "engineering_ciano.svg", "Conformidade\ndo IRP", self.fluxo_alteracao_irp)
-        grid_layout.addWidget(self.btn_alterar_dados, 3, 3)
+        grid_layout.addWidget(self.btn_alterar_dados, 3, 4)
 
         # Rótulo para "Consolidação de Demandas"
         label_consolidacao = QLabel("Consolidação de Demandas")

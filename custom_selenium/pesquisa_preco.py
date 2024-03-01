@@ -79,7 +79,6 @@ class PesquisaPrecos(QDialog):
         valor_pesquisa = f"{temp_numero_pesquisa}/2024"
         print(f"confirmar_numero_pesquisa: Valor a ser usado na pesquisa: {valor_pesquisa}")
 
-
     def load_credentials_from_json(self):
         try:
             with open(self.settings_file, 'r') as f:
@@ -158,84 +157,114 @@ class PesquisaPrecos(QDialog):
         time.sleep(0.3)
         esperar_e_clicar(self.driver, ABRIR_JANELA_PESQUISA_PRECOS) # Abrir nova janela IRP
 
-        print(f"Janela atual: {self.driver.current_url}")
-        aguardar_mudanca_janela(self.driver)
-        print(f"Janela atual: {self.driver.current_url}")
+        # Aguarde um momento para garantir que a nova janela seja aberta
+        time.sleep(1)  # Ajuste este tempo conforme necessário
+
+        janelas_abertas = self.driver.window_handles  # Obter a lista de janelas
+        janela_atual = self.driver.current_window_handle  # Obter a janela atual
+        
+        print(f"Breakpoint1") 
+        # Mudar para a nova janela
+        for janela in janelas_abertas:
+            if janela != janela_atual:
+                print(f"Mudando para nova janela: {janela}")
+                self.driver.switch_to.window(janela)
+                break  # Sai do loop após mudar para a nova janela
+        print(f"Breakpoint2")
+
+        # aguardar_mudanca_janela(self.driver)
+        print(f"Breakpoint3")
 
         # Esperar até que o spinner desapareça
         WebDriverWait(self.driver, 20).until(
             EC.invisibility_of_element((By.ID, "spinner"))
         )
         print("Spinner desapareceu.")
-
-        # Checar se há iframes e mudar para o iframe apropriado, se necessário
+        print(f"Breakpoint4")
+        # Checar se há iframes na página
         iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+        print(f"Total de iframes encontrados: {len(iframes)}")  # Print para verificar o número de iframes
+        print(f"Breakpoint5")
+        # Mudar para o iframe apropriado, se necessário
         if len(iframes) > 0:
-            self.driver.switch_to.frame(iframes[0])  # Assumindo que é o primeiro iframe
+            # Se existirem iframes, mudar para o primeiro encontrado
+            self.driver.switch_to.frame(iframes[0])
+            print("Mudou para o primeiro iframe.")
+        else:
+            print("Nenhum iframe encontrado. Continuando no contexto padrão da página.")
 
-        # Substitua 0 pelo índice correto do iframe se houver mais de um
-        if len(iframes) > 0:
-            self.driver.switch_to.frame(0)
-
+        # Adicionando um breve delay para garantir a estabilidade após a troca de iframe
+        time.sleep(1)
+        print(f"Breakpoint6")
         try:
+            # Tentar localizar o campo de pesquisa e verificar sua visibilidade
             campo_pesquisa = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.XPATH, "//*[@id='termo-pesquisa']"))
             )
+            print("Campo de pesquisa foi encontrado com sucesso.")
+
+            # Limpar qualquer valor existente antes de inserir o novo valor
+            campo_pesquisa.clear()
+            print("Campo de pesquisa limpo.")
+
+            # Aguardar brevemente para garantir que o campo esteja pronto para a nova entrada
+            time.sleep(1)
+
+            # Inserir o novo valor
             campo_pesquisa.send_keys(self.numero_pesquisa)
+            print(f"Valor inserido no campo de pesquisa: {self.numero_pesquisa}")
+        except TimeoutException:
+            print("Falha ao localizar o campo de pesquisa no tempo esperado.")
 
-            try:
-                # Esperar até que a lupa esteja visível e clicável
-                lupa_pesquisa = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, LUPA_PESQUISA_PRECOS))
-                )
+        try:
+            # Esperar até que a lupa esteja visível e clicável
+            lupa_pesquisa = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, LUPA_PESQUISA_PRECOS))
+            )
 
-                # Rolando a página até a lupa
-                self.driver.execute_script("arguments[0].scrollIntoView(true);", lupa_pesquisa)
-                time.sleep(1)  # Pequena pausa para permitir que a página se ajuste
+            # Rolando a página até a lupa
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", lupa_pesquisa)
+            time.sleep(1)  # Pequena pausa para permitir que a página se ajuste
 
-                # Clicando na lupa com JavaScript
-                self.driver.execute_script("arguments[0].click();", lupa_pesquisa)
-            except TimeoutException:
-                print("A lupa de pesquisa não ficou clicável no tempo esperado.")
-            except ElementClickInterceptedException as e:
-                print(f"Erro ao tentar clicar na lupa de pesquisa: {e}")
+            # Clicando na lupa com JavaScript
+            self.driver.execute_script("arguments[0].click();", lupa_pesquisa)
+        except TimeoutException:
+            print("A lupa de pesquisa não ficou clicável no tempo esperado.")
+        except ElementClickInterceptedException as e:
+            print(f"Erro ao tentar clicar na lupa de pesquisa: {e}")
 
-            print(f"Valor de self.numero_pesquisa antes de formar valor_pesquisa: {self.numero_pesquisa}")
-            valor_pesquisa = f"{self.numero_pesquisa}/2024"
-            print(f"Valor a ser usado na pesquisa: {valor_pesquisa}")
+        print(f"Valor de self.numero_pesquisa antes de formar valor_pesquisa: {self.numero_pesquisa}")
+        valor_pesquisa = f"{self.numero_pesquisa}/2024"
+        print(f"Valor a ser usado na pesquisa: {valor_pesquisa}")
 
-            clicar_no_botao_editar(self.driver, valor_pesquisa)
+        clicar_no_botao_editar(self.driver, valor_pesquisa)
 
-            print("Aguardando o desaparecimento do spinner...")
-            esperar_invisibilidade_elemento(self.driver, "div#spinner")
-            print("Spinner desapareceu.")
+        print("Aguardando o desaparecimento do spinner...")
+        esperar_invisibilidade_elemento(self.driver, "div#spinner")
+        print("Spinner desapareceu.")
 
-            # Esperar explicitamente até que o elemento esteja clicável antes de tentar clicar nele
-            try:
-                # Esperar até que o elemento esteja visível e clicável
-                elemento_a_clicar = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, SELECIONAR_ITEM_CSS))
-                )
-                
-                # Rolando a página até o elemento
-                self.driver.execute_script("arguments[0].scrollIntoView(true);", elemento_a_clicar)
-                time.sleep(1)  # Espera para permitir que a página se ajuste
+        # Esperar explicitamente até que o elemento esteja clicável antes de tentar clicar nele
+        try:
+            # Esperar até que o elemento esteja visível e clicável
+            elemento_a_clicar = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, SELECIONAR_ITEM_CSS))
+            )
+            
+            # Rolando a página até o elemento
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", elemento_a_clicar)
+            time.sleep(1)  # Espera para permitir que a página se ajuste
 
-                # Clicando no elemento com JavaScript
-                self.driver.execute_script("arguments[0].click();", elemento_a_clicar)
-            except TimeoutException:
-                print("O elemento não ficou clicável no tempo esperado.")
-            except ElementClickInterceptedException as e:
-                print(f"Erro ao tentar clicar no elemento: {e}")
+            # Clicando no elemento com JavaScript
+            self.driver.execute_script("arguments[0].click();", elemento_a_clicar)
+        except TimeoutException:
+            print("O elemento não ficou clicável no tempo esperado.")
+        except ElementClickInterceptedException as e:
+            print(f"Erro ao tentar clicar no elemento: {e}")
 
-            # Substitua 'ELEMENTO_INDICATIVO_POS_SELECAO' pelo seletor CSS do elemento indicativo
-            WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, TITULO_ADICIONAR_ITEM_XPATH)))
+        # Substitua 'ELEMENTO_INDICATIVO_POS_SELECAO' pelo seletor CSS do elemento indicativo
+        WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, TITULO_ADICIONAR_ITEM_XPATH)))
 
-            self.processar_linhas_tabela()
-
-        except NoSuchElementException:
-            print("Campo de pesquisa não encontrado. Verifique o XPath e a presença de iframes.")
-
+        self.processar_linhas_tabela()
 
     def aguardar_e_interagir_com_modal(self):
         print("Aguardando a abertura do modal...")
