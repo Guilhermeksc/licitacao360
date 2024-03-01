@@ -439,17 +439,16 @@ class ContratosWidget(QWidget):
         for idx, dados in enumerate(dados_selecionados, start=1):
             numero_extenso = DataProcessor.numero_para_extenso(idx)
 
-            texto += (f"{numero_extenso} - Contrato administrativo n° <span style='color: blue;'>{dados['numero_contrato']}</span><br>"
-                    f" processo <span style='color: blue;'>{dados['processo']}</span> <br>"
-                    f" nup <span style='color: blue;'>{dados['nup']}</span><br>" 
-                    f" Empresa: <span style='color: blue;'>{dados['cnpj']}</span> - <span style='color: blue;'>{dados['empresa']}</span><br>"
-                    f" Valor global: <span style='color: blue;'>{dados['valor_global']}</span>"
-                    f" objeto <span style='color: blue;'>{dados['objeto']}</span> | "
-                    f" om <span style='color: blue;'>{dados['om']}</span> | setor <span style='color: blue;'>{dados['setor']}</span> | "
-                    f" início vigência <span style='color: blue;'>{dados['inicio_vigencia']}</span> | fim vigência <span style='color: blue;'>{dados['fim_vigencia']}</span> | "
-                    f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
-                    f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
-                    f"Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+            texto += (f"{numero_extenso} - <span style='color: blue;'>{dados['processo']}</span>:<br>"
+                    f" Contrato Administrativo n° <span style='color: blue;'>{dados['numero_contrato']};</span><br>"
+                    f" Nup: <span style='color: blue;'>{dados['nup']};</span><br>" 
+                    f" Nome da Empresa: <span style='color: blue;'>{dados['empresa']}</span>, CNPJ: <span style='color: blue;'>{dados['cnpj']};</span><br>"
+                    f" Objeto: <span style='color: blue;'>{dados['objeto']};</span><br>"
+                    f" Valor global: <span style='color: blue;'>{dados['valor_global']}; e</span><br>"
+                    f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br><br>"
+                    # f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
+                    # f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
+                    # f"Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
                     )
         texto += "</p>BT"
         return texto

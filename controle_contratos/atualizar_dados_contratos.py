@@ -249,11 +249,20 @@ class AtualizarDadosContratos(QDialog):
                 valorStatus = self.contrato_atual[statusKey]
                 print(f"Found {statusKey}: {valorStatus}")
                 radioButton.setChecked(True)
-                if lineEdit:
-                    _, data = valorStatus.split(' em ', 1)
-                    lineEdit.setText(data)
-                # Adiciona o texto atualizado ao radioButton (correção para persistir o status)
-                radioButton.setText(f"{label} em {data}")
+                
+                if ' em ' in valorStatus:  # Verifica se a string contém ' em '
+                    status, data = valorStatus.split(' em ', 1)
+                    if lineEdit:
+                        lineEdit.setText(data)
+                        # Adiciona o texto atualizado ao radioButton
+                        radioButton.setText(f"{label} em {data}")
+                else:
+                    # Lidar com o caso em que ' em ' não está presente
+                    # Pode ser definindo 'data' como uma string vazia, ou qualquer outra lógica adequada
+                    data = ""  # ou qualquer valor padrão apropriado
+                    if lineEdit:
+                        # Se necessário, configure o QLineEdit mesmo sem dados específicos de data
+                        lineEdit.setText(data)
 
             # Conecta o sinal de alteração do radioButton a uma função de manipulação
             radioButton.toggled.connect(lambda checked, rb=radioButton, sk=status_keys[i]: self.marcarStatus(rb, sk, checked) if checked else None)
