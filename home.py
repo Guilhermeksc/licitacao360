@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
             (" Documentos Licitação", ICONS_DIR / "x.png"), 
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Check-list", ICONS_DIR / "x.png"), 
-            (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
+            # (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"), 
             # (" Controle de Vigência", ICONS_DIR / "x.png"), 
             # (" Numerador de CP", ICONS_DIR / "x.png"),
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Contratos"))
         # self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Vigência"))
         self.inicio_widget.checklistClicked.connect(lambda: self.change_content("Check-list"))
-        self.inicio_widget.escalacaoPregoeirosClicked.connect(lambda: self.change_content("Escalação de Pregoeiros"))
+        # self.inicio_widget.escalacaoPregoeirosClicked.connect(lambda: self.change_content("Escalação de Pregoeiros"))
         # self.inicio_widget.numeradorCpClicked.connect(lambda: self.change_content("Numerador de CP"))
         # self.inicio_widget.mensagensPadronizadasClicked.connect(lambda: self.change_content("Mensagens Padronizadas"))
         # self.inicio_widget.registroFornecedoresClicked.connect(lambda: self.change_content("Registro de Fornecedores"))
@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
             # "Controle de Vigência": self.setup_controle_vigencia,
             "Check-list": self.setup_checklist,
             "Atas e Contratos": self.setup_atas_contratos,
-            "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
+            # "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
             # "Numerador de CP": self.setup_numerador_cp,
             # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
             # "Registro de Fornecedores": self.setup_registro_fornecedores,
@@ -246,7 +246,7 @@ class MainWindow(QMainWindow):
                 # "Controle de Vigência": self.setup_controle_vigencia,
                 "Check-list": self.setup_checklist,
                 "Atas e Contratos": self.setup_atas_contratos,
-                "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
+                # "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
                 # "Numerador de CP": self.setup_numerador_cp,
                 # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
                 # "Registro de Fornecedores": self.setup_registro_fornecedores,

@@ -5,7 +5,7 @@ Número do instrumento,Objeto,OM,Tipo,Portaria,Posto Gestor,Gestor,Posto Gestor 
 00100/2023,Embarcações,GptFNB,Contrato,,SO,,SO,,2Ten,,2Ten,,,87000/23-100/00,Não,PE 42/2023,62055.005109/2023-50,,,,,,,,,,,,,,
 00105/2023,Embarcações,GptFNB,Contrato,,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/23-105/00,Não,PE 42/2023,62055.005109/2023-50,,,,,,,,,,,,,,
 00005/2021,Central Telefônica,Com7ºDN,Contrato,,,,,,,,,,,87000/21-005/00,Sim,PE 10/2020,62055.006867/2020-42,Divisão de Segurança da Informação e Comunicações,,,,,,,,,,,,,
-00102/2023,Embarcações,GptFNB,Contrato,nan,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/23-102/00,Não,PE 42/2023,62055.005109/2023-50,,,,,,,- Nan,Contrato Inicial,CP Enviada em 01/03/2024,MSG Enviada em 07/03/2024,Seção de Contratos em 01/03/2024,Assessoria Jurídica em 01/03/2024,nan,nan
+00102/2023,Embarcações,GptFNB,Contrato,,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/23-102/00,Não,PE 42/2023,62055.005109/2023-50,,,,,,,- Nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica em 01/03/2024,CJACM,Assinatura SIGDEM
 00106/2023,Embarcações,GptFNB,Contrato,,,,,,,,,,,87000/23-106/00,Não,PE 42/2023,62055.005109/2023-50,,,,,,,,,,,,,,
 00039/2023,Dedetização,CeIMBra,Ata,,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/23-039/00,Não,PE 01/2022,62055.002194/2020-51,Divisão de Municiamento,,,,,,,,,,,,,
 00008/2022,Manutenção de Cozinha,CeIMBra,Contrato,,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/22-008/00,Sim,PE 02/2021,62055.001984/2022-81,Divisão de Municiamento,,,,,,,,,,,,,
@@ -43,7 +43,10 @@ Número do instrumento,Objeto,OM,Tipo,Portaria,Posto Gestor,Gestor,Posto Gestor 
 00086/2021,Serviços de Engenharia,Com7ºDN,Contrato,,,,,,,,,,,87000/21-086/00,Sim,PE 25/2021,62055.009053/2020-60,Divisão de Obras,,,,,,- Nan,Contrato Inicial,,,,,,
 00085/2021,Serviços de Engenharia,Com7ºDN,Contrato,,,,,,,,,,,87000/21-085/00,Sim,PE 25/2021,62055.009053/2020- 60,Divisão de Obras,,,,,,,,,,,,,
 00084/2021,Serviços de Engenharia,Com7ºDN,Contrato,,,,,,,,,,,87000/21-084/00,Sim,PE 25/2021,62055.009053/2020-60,Divisão de Obras,,,,,,,,,,,,,
-00109/2021,Serviços de Limpeza,Com7ºDN,Contrato,,,,,,,,,,,87000/21-109/00,Sim,PE 15/2021,62055.006756/2020-36,Divisão de Serviços Gerais,,,,,,- Nan,Contrato Inicial,,,,,,
+00109/2021,Serviços de Limpeza,Com7ºDN,Contrato,,,,,,,,,,,87000/21-109/00,Sim,PE 15/2021,62055.006756/2020-36,Divisão de Serviços Gerais,,,,,,"1 - Teste
+2 - TEste
+3 - Teste
+4 - Novo Teste",Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos em 01/03/2024,Assessoria Jurídica,CJACM,Assinatura SIGDEM
 00073/2023,Resíduos Sólidos,Com7ºDN,Contrato,,,,,,,,,,,87000/23-073/00,Sim,PE 06/2023,62055.004003/2023-39,Divisão de Serviços Gerais,,,,,,- Nan,Contrato Inicial,,,,,,
 00072/2023,Resíduos Sólidos,Com7ºDN,Ata,,,,,,,,,,,87000/23-072/00,Não,PE 06/2023,62055.004003/2023-39,Divisão de Serviços Gerais,,,,,,,,,,,,,
 00120/2021,Assistência Social,Com7ºDN,Contrato,,,,,,,,,,,87000/21-120/00,Sim,TJIL 01/2016,62055.005960/2021-11,Divisão de Assistência Social,,,,,,- Nan,Contrato Inicial,,,,,,
@@ -69,7 +72,7 @@ Número do instrumento,Objeto,OM,Tipo,Portaria,Posto Gestor,Gestor,Posto Gestor 
 00082/2020,Montagem de Palanques,Com7ºDN,Contrato,,,,,,,,,,,87000/20-082/00,Sim,PE 08/2020,62055.005423/2020-90,Divisão de Manutenção e Reparo de PNR,,,,,,,,,,,,,
 00080/2020,Montagem de Palanques,Com7ºDN,Contrato,,,,,,,,,,,87000/20-080/00,Sim,PE 08/2020,62055.005423/2020-90,Divisão de Manutenção e Reparo de PNR,,,,,,,,,,,,,
 00071/2023,Transporte de Bagagem,CeIMBra,Contrato,,SO,Mendonça,SO,Messias,2Ten,Andressa,2Ten,Rodolfo,,87000/23-071/00,Sim,TJDL 1002/2023,62055.005793/2023-70,Seção de Passagem e Bagagem,,,,,,- Nan,Contrato Inicial,,,,,,
-00058/2019,Cessão de Uso,Com7ºDN,Contrato,,,,,,,,,,,87000/19-058/00,Sim,PE 19/2024,62055.006396/2019-39,Divisão de Gerência dos Créditos,,,,,,- Nan,3º Termo Aditivo,,,,,,
+00058/2019,Cessão de Uso,Com7ºDN,Contrato,nan,,nan,,nan,,nan,,nan,,87000/19-058/00,Sim,PE 19/2019,62055.006396/2019-39,Divisão de Gerência dos Créditos,,,,,,- Nan,3º Termo Aditivo,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica,CJACM,Assinatura SIGDEM
 00059/2019,Cessão de Uso,Com7ºDN,Contrato,,,,,,,,,,,87000/19-059/00,Sim,PE 19/2019,62055.006396/2019-39,Divisão de Gerência dos Créditos,,,,,,,,,,,,,
 00057/2019,Cessão de Uso,Com7ºDN,Contrato,,,,,,,,,,,87000/19-057/00,Sim,PE 19/2019,62055.006396/2019-40,Divisão de Gerência dos Créditos,,,,,,,,,,,,,
 00156/2021,Assistência Social,Com7ºDN,Contrato,,,,,,,,,,,87000/21-156/00,Sim,PE 01/2016,62055.008819/2021-70,Divisão de Assistência Social,25/01/2024,16/01/2024,,,,"1 - teste
@@ -125,4 +128,4 @@ Número do instrumento,Objeto,OM,Tipo,Portaria,Posto Gestor,Gestor,Posto Gestor 
 00122/2023,Eventos Protocolares,CeIMBra,Ata,,,,,,,,,,,87000/23-122/00,Não,PE 22/2023,62055.002453/2023-97,Divisão de Municiamento,30-16,,,,,,,,,,,,
 00002/2021,,Com7ºDN,Contrato,,,,,,,,,,,,Não,PE /2024,,Divisão de Manutenção e Reparo de PNR,,,,,,,,,,,,,
 00001/2019,,Com7ºDN,Contrato,,,,,,,,,,,,Não,PE /2024,,Divisão de Manutenção e Reparo de PNR,,,,,,,,,,,,,
-00002/2024,Panificados,Com7ºDN,Contrato,,,,,,,,,,,87000/24-002/00,Não,PE 08/2023,62055.002425/2023-70,Divisão de Manutenção e Reparo de PNR,,,,,,,Contrato Inicial,,,,,,
+00002/2024,Panificados,Com7ºDN,Contrato,,,,,,,,,,,87000/24-002/00,Não,PE 08/2023,62055.002425/2023-70,Divisão de Manutenção e Reparo de PNR,14/03/2024,13/03/2024,,,,- Nan,2º Termo Aditivo,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica,CJACM,Assinatura SIGDEM

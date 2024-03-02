@@ -79,7 +79,7 @@ class ContratosWidget(QWidget):
             ("Gerar Tabela", self.abrirGerarTabelas),
             ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
-            ("Termo de Encerramento", None),
+
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
             ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
             # ("Configurações", self.abrirDialogoConfiguracoes),
@@ -152,7 +152,18 @@ class ContratosWidget(QWidget):
 
         # Copia o valor para a área de transferência
         QApplication.clipboard().setText(data)
-        
+        # Mostra um tooltip indicando que o dado foi copiado
+        self.showCopyTooltip(f"{columnName} copiado: {data}")
+
+    def showCopyTooltip(self, message):
+        cursorPos = QCursor.pos()  # Obter a posição atual do cursor
+        # Corrige a chamada para usar msecShowTime em vez de timeout
+        QToolTip.showText(cursorPos, message, msecShowTime=2500)  # Mostrar tooltip na posição do cursor por 1.5 segundos
+
+        # A linha abaixo para esconder automaticamente o tooltip após o tempo não é estritamente necessária,
+        # pois o msecShowTime já controla isso, mas pode ser mantida se houver comportamento inesperado.
+        QTimer.singleShot(2500, QToolTip.hideText)
+
     def abrirDialogoImportacao(self):
         dialogo = QFileDialog(self)
         dialogo.setFileMode(QFileDialog.FileMode.ExistingFile)

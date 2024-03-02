@@ -60,9 +60,9 @@ class InicioWidget(QWidget):
         # self.button_numerador_cp = self.create_button("Numerador\nde CP", self.numeradorCpClicked)
         # self.button_mensagens_padronizadas = self.create_button("Mensagens\nPadronizadas", self.mensagensPadronizadasClicked)
         # self.button_registro_fornecedores = self.create_button("Registro de\nFornecedores", self.registroFornecedoresClicked)
-        self.button_slides_conges = self.create_button("Conselho de\nGestão", self.configuracoesClicked)
+        # self.button_slides_conges = self.create_button("Conselho de\nGestão", self.configuracoesClicked)
         self.button_configuracoes = self.create_button("Configurações", self.configuracoesClicked)
-        self.button_links_uteis = self.create_button("Links\nÚteis", self.configuracoesClicked)
+        # self.button_links_uteis = self.create_button("Links\nÚteis", self.configuracoesClicked)
 
     def configuracoesClicked(self):
         self.dialog = ConfiguracoesDialog(self)
@@ -113,9 +113,9 @@ class InicioWidget(QWidget):
         # grid_layout.addWidget(self.button_mensagens_padronizadas, 1, 3)
         # grid_layout.addWidget(self.button_registro_fornecedores, 1, 4)
 
-        grid_layout.addWidget(self.button_slides_conges, 2, 3)
+        # grid_layout.addWidget(self.button_slides_conges, 2, 3)
         grid_layout.addWidget(self.button_configuracoes, 2, 4)
-        grid_layout.addWidget(self.button_links_uteis, 2, 5)
+        # grid_layout.addWidget(self.button_links_uteis, 2, 5)
 
         # Adicionar o grid layout ao layout principal
         self.layout.addLayout(grid_layout)

@@ -243,26 +243,20 @@ class AtualizarDadosContratos(QDialog):
                 self.rightcenterLayout.addWidget(lineEdit)
                 self.lineEditMapping[radioButton] = lineEdit
 
-            statusKey = status_keys[i]
-            print(f"Checking {statusKey} in contrato_atual")
-            if statusKey in self.contrato_atual and self.contrato_atual[statusKey]:
+            statusKey = f"Status{i}"
+            if statusKey in self.contrato_atual:
                 valorStatus = self.contrato_atual[statusKey]
-                print(f"Found {statusKey}: {valorStatus}")
-                radioButton.setChecked(True)
-                
-                if ' em ' in valorStatus:  # Verifica se a string contém ' em '
+                # Se o status inclui uma data, atualize o radioButton e o lineEdit
+                if ' em ' in valorStatus:
                     status, data = valorStatus.split(' em ', 1)
+                    radioButton.setChecked(True)
+                    radioButton.setText(valorStatus)  # Atualiza com o valor que inclui a data
                     if lineEdit:
                         lineEdit.setText(data)
-                        # Adiciona o texto atualizado ao radioButton
-                        radioButton.setText(f"{label} em {data}")
                 else:
-                    # Lidar com o caso em que ' em ' não está presente
-                    # Pode ser definindo 'data' como uma string vazia, ou qualquer outra lógica adequada
-                    data = ""  # ou qualquer valor padrão apropriado
-                    if lineEdit:
-                        # Se necessário, configure o QLineEdit mesmo sem dados específicos de data
-                        lineEdit.setText(data)
+                    # Caso não tenha data, apenas marca o radioButton se for o status atual
+                    if valorStatus == label:
+                        radioButton.setChecked(True)
 
             # Conecta o sinal de alteração do radioButton a uma função de manipulação
             radioButton.toggled.connect(lambda checked, rb=radioButton, sk=status_keys[i]: self.marcarStatus(rb, sk, checked) if checked else None)
@@ -272,48 +266,74 @@ class AtualizarDadosContratos(QDialog):
         self.calendar.setGridVisible(True)
         self.rightcenterLayout.addWidget(self.calendar)
 
-
     def marcarStatus(self, radioButton, statusKey, checked):
         if checked:
-            formattedDate = self.calendar.selectedDate().toString("dd/MM/yyyy")
             originalLabel = self.statusLabelsOriginal[radioButton]
-            updatedStatus = f"{originalLabel} em {formattedDate}"
+            # Verifica se já existe uma data definida para o status
+            if statusKey in self.contrato_atual and ' em ' in self.contrato_atual[statusKey]:
+                # Extrai a data existente
+                _, existingDate = self.contrato_atual[statusKey].split(' em ', 1)
+                updatedStatus = f"{originalLabel} em {existingDate}"  # Mantém a data existente
+            else:
+                # Se não houver data definida, não atualiza a data neste ponto
+                updatedStatus = originalLabel  # Mantém apenas o label original
+
             print(f"Updating {statusKey} to {updatedStatus}")
             self.contrato_atual[statusKey] = updatedStatus
             # Atualiza o texto do radioButton para refletir a mudança
             radioButton.setText(updatedStatus)
 
+    def desmarcarTodosBotoes(self):
+        # Desmarca todos os botões de rádio no grupo statusGroup
+        for button in self.statusGroup.buttons():
+            button.setChecked(False)
 
     def salvarStatus(self):
-        statusSelecionado = None
-        dataSelecionada = None
+        self.desmarcarTodosBotoes()  # Desmarca todos os botões antes de salvar o status
 
-        # Verifica qual botão está marcado e guarda a informação do status mais recente
-        for label in reversed(self.statusLabelsOriginal.values()):
-            for radioButton in self.statusGroup.buttons():
-                if radioButton.isChecked() and self.statusLabelsOriginal[radioButton] == label:
-                    statusSelecionado = label
-                    # Supondo que você tenha uma maneira de obter a data selecionada para este status
-                    dataSelecionada = self.calendar.selectedDate().toString("dd/MM/yyyy")
-                    break
-            if statusSelecionado:
-                break
+        for i, radioButton in enumerate(self.statusGroup.buttons()):
+            originalLabel = self.statusLabelsOriginal[radioButton]
+            statusKey = f"Status{i}"
 
-        if statusSelecionado:
-            # Formata o status com a data selecionada
-            statusFinal = f"{statusSelecionado} em {dataSelecionada}"
-            # Salva o status no dicionário ou modelo de dados
-            self.contrato_atual['Status'] = statusFinal
-            print(f"Status atualizado: {statusFinal}")
-        else:
-            print("Nenhum status selecionado.")
+            # Se o status atual no dicionário já contém uma data, mantenha essa informação.
+            if ' em ' in self.contrato_atual.get(statusKey, ''):
+                statusAtualComData = self.contrato_atual[statusKey]
+            else:
+                statusAtualComData = originalLabel  # Mantém apenas o label sem adicionar uma nova data.
+
+            self.contrato_atual[statusKey] = statusAtualComData
+
+            # Atualiza o texto do radioButton se estiver marcado para refletir a mudança.
+            if radioButton.isChecked():
+                radioButton.setText(statusAtualComData)
+
+            print(f"{statusKey}: {self.contrato_atual[statusKey]}")
 
     def atualizarStatusLabel(self, date):
         selectedButton = self.statusGroup.checkedButton()
         if selectedButton:
             formattedDate = date.toString("dd/MM/yyyy")
             originalLabel = self.statusLabelsOriginal[selectedButton]
-            selectedButton.setText(f"{originalLabel} em {formattedDate}")
+            print(f"Data selecionada: {formattedDate}")
+            print(f"Botão selecionado antes da atualização: {selectedButton.text()}")
+            
+            # Atualiza o status no dicionário com a nova data
+            updated = False
+            for i, radioButton in enumerate(self.statusGroup.buttons()):
+                if radioButton == selectedButton:
+                    statusKey = f"Status{i}"
+                    self.contrato_atual[statusKey] = f"{originalLabel} em {formattedDate}"
+                    print(f"{statusKey} atualizado para: {self.contrato_atual[statusKey]}")
+                    updated = True
+                    break
+            
+            # Confirmação de que a atualização ocorreu
+            if updated:
+                # Atualiza o texto do botão selecionado
+                selectedButton.setText(f"{originalLabel} em {formattedDate}")
+                print(f"Botão selecionado após atualização: {selectedButton.text()}")
+            else:
+                print("Atualização de status falhou. O botão selecionado não corresponde a nenhum status conhecido.")
 
     def reiniciarStatus(self):
         msgBox = QMessageBox()
@@ -321,35 +341,38 @@ class AtualizarDadosContratos(QDialog):
         msgBox.setWindowTitle("Reiniciar Status")
         msgBox.setText("Deseja reiniciar o status?")
 
-        # Cria botões customizados
         apenasSelecionadoButton = msgBox.addButton("Apenas Selecionado", QMessageBox.ButtonRole.YesRole)
-        todosStatusButton = msgBox.addButton(" Todos os Status  ", QMessageBox.ButtonRole.NoRole)
+        todosStatusButton = msgBox.addButton("Todos os Status", QMessageBox.ButtonRole.NoRole)
 
+        response = msgBox.exec()
 
-        # Executa a caixa de mensagem e obtém a resposta do usuário
-        msgBox.exec()
-
-        # Verifica qual botão foi pressionado
         if msgBox.clickedButton() == apenasSelecionadoButton:
-            # Reinicia apenas o QRadioButton selecionado
-            selectedButton = self.statusGroup.checkedButton()
-            if selectedButton:
-                originalLabel = self.statusLabelsOriginal[selectedButton]
-                selectedButton.setText(originalLabel)
-                # Desmarca o QRadioButton selecionado
-                self.statusGroup.setExclusive(False)
-                selectedButton.setChecked(False)
-                self.statusGroup.setExclusive(True)
+            self.reiniciarStatusSelecionado()
         elif msgBox.clickedButton() == todosStatusButton:
-            # Reinicia todos os QRadioButton para seus valores originais
-            for button, label in self.statusLabelsOriginal.items():
-                button.setText(label)
-            # Desmarca qualquer QRadioButton selecionado
-            self.statusGroup.setExclusive(False)
-            if self.statusGroup.checkedButton():
-                self.statusGroup.checkedButton().setChecked(False)
-            self.statusGroup.setExclusive(True)
+            self.reiniciarTodosStatus()
 
+    def reiniciarStatusSelecionado(self):
+        selectedButton = self.statusGroup.checkedButton()
+        if selectedButton:
+            statusKey = self.findStatusKeyForButton(selectedButton)
+            if statusKey:
+                # Atualiza para 'nan'
+                self.contrato_atual[statusKey] = 'nan'
+                selectedButton.setText(self.statusLabelsOriginal[selectedButton])
+
+    def reiniciarTodosStatus(self):
+        for radioButton in self.statusGroup.buttons():
+            statusKey = self.findStatusKeyForButton(radioButton)
+            if statusKey:
+                # Atualiza todos os status para 'nan'
+                self.contrato_atual[statusKey] = 'nan'
+                radioButton.setText(self.statusLabelsOriginal[radioButton])
+
+    def findStatusKeyForButton(self, button):
+        for statusKey, radioButton in enumerate(self.statusGroup.buttons()):
+            if button == radioButton:
+                return f"Status{statusKey}"
+        return None
 
     def criarWidgetsDireita(self):
         self.rightLayout.addWidget(QLabel("Portaria da Equipe de Fiscalização:"))
