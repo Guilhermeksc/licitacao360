@@ -12,19 +12,19 @@ import os
 colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
-    'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
+    'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
+    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
 
 colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
 
 colunas_adicionais = [
-    'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
+    'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
+    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
     'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
 
 colunas_gestor_fiscal = [
-    'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
+    'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
 
 class ContratosWidget(QWidget):
     def __init__(self, colunas, parent=None):
@@ -288,8 +288,11 @@ class ContratosWidget(QWidget):
         contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
         self.model = CustomTableModel(contratos_data, colunas, ICONS_DIR)
         self.proxyModel = MultiColumnFilterProxyModel(contratos_data)  # Passando contratos_data
+
         self.proxyModel.setSourceModel(self.model)
+
         self.table_view.setModel(self.proxyModel)
+        self.proxyModel.setColumnIndices(colunas)
         self.checkboxManager = CheckboxManager(self.model)
         self.searchField.textChanged.connect(self.onSearchTextChanged)
 
@@ -396,6 +399,9 @@ class ContratosWidget(QWidget):
                 indice = model.index(sourceIndex.row(), coluna)
                 chave = model.headerData(coluna, Qt.Orientation.Horizontal)
                 valor = model.data(indice, Qt.ItemDataRole.DisplayRole)
+                # Checar se o valor é a string "nan" e substituir por ''
+                if valor == "nan":
+                    valor = ''
                 contrato_atual[chave] = valor
 
             print("Contrato Atual:", contrato_atual)
@@ -546,25 +552,56 @@ class MultiColumnFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, dados, parent=None):
         super().__init__(parent)
         self.merged_data = dados
+        # Define as colunas que serão ocultas
+        self.hidden_columns = set([
+            'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto_Gestor', 
+            'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 
+            'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status2', 
+            'Status3', 'Status4', 'Status5'
+        ])
+
+        self.column_indices = {}
 
     def filterAcceptsRow(self, sourceRow, sourceParent):
-        # Obtenha o número total de colunas no modelo de dados
+        # Mantém a lógica original para filtragem de linhas
         columnCount = self.sourceModel().columnCount(sourceParent)
-        
-        # Verifique cada coluna para a correspondência do texto de busca
         for column in range(columnCount):
-            # Obtenha o índice do item na linha e coluna atual
             index = self.sourceModel().index(sourceRow, column, sourceParent)
-            # Obtenha o valor do item
             data = self.sourceModel().data(index)
-            
-            # Compare o valor do item com a expressão regular de filtro
             if self.filterRegularExpression().match(data).hasMatch():
-                return True  # Aceita a linha se qualquer coluna corresponder
+                return True
+        return False
+
+    def filterAcceptsColumn(self, sourceColumn, sourceParent):
+        print(f"Verificando coluna: {sourceColumn}")  # Debug
+        if sourceColumn < 2:
+            return True
+
+        # Trata explicitamente os índices 34 e 35 como ocultos
+        if sourceColumn in [34, 35]:
+            return False
         
-        return False  # Rejeita a linha se nenhuma coluna corresponder
-    
+        column_name = self.column_indices.get(sourceColumn)
+        print(f"Nome da coluna: {column_name}")  # Debug
+        if column_name in self.hidden_columns:
+            print(f"Ocultando coluna: {column_name}")  # Debug
+            return False
+        print(f"Mostrando coluna: {column_name}")  # Debug
+        return True
+
+    def setColumnIndices(self, column_names):
+        # Mapeia nomes de colunas para seus índices
+        self.column_indices = {index: name for index, name in enumerate(column_names)}
+        print("Mapeamento de índices para nomes de colunas:", self.column_indices)
+        self.invalidateFilter()
+
+    def setHiddenColumns(self, hidden_columns):
+        # Permite atualizar o conjunto de colunas ocultas dinamicamente
+        self.hidden_columns = set(hidden_columns)
+        self.invalidateFilter()  # Atualiza o filtro para aplicar as mudanças
+
     def getDataFrame(self):
+        # Retorna os dados originais armazenados em 'merged_data'
         return self.merged_data
 
 class DataProcessor:
@@ -674,6 +711,7 @@ class CustomTableModel(QStandardItemModel):
         self.setHorizontalHeaderLabels(['', ''] + self.colunas)
         for i, row in self.merged_data.iterrows():
             self.setupRow(i, row)
+        print(f"Número total de colunas configuradas: {self.columnCount()}")
 
     def setupRow(self, i, row):
         self.setupCheckboxItem(i, row)

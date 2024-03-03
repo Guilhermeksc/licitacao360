@@ -7,6 +7,10 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 from diretorios import *
+import re
+from docxtpl import DocxTemplate
+import comtypes.client
+import os
 
 class AtualizarDadosContratos(QDialog):
     dadosContratosSalvos = pyqtSignal(dict, int)
@@ -198,21 +202,10 @@ class AtualizarDadosContratos(QDialog):
                 self.anoLineEdit.setText(processo_split[1].split('/')[1])
         self.centerLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
                 
-        self.comentariosTextEdit = CustomTextEdit()
-        
+        self.comentariosTextEdit = CustomTextEdit(self)
         self.centerLayout.addWidget(QLabel("Comentários:"))
         comentarios = str(self.contrato_atual.get('Comentários', '')).strip()
-        if comentarios and not comentarios.startswith("- "):
-            comentarios = "- " + comentarios[0].upper() + comentarios[1:]
-        elif not comentarios or comentarios in ['-Nan', '-']:
-            comentarios = ""
-        self.comentariosTextEdit.setPlaceholderText("Digite seus comentários aqui...")
         self.comentariosTextEdit.setPlainText(comentarios)
-        
-        # Configuração do tamanho mínimo como antes
-        fontMetrics = self.comentariosTextEdit.fontMetrics()
-        lineHeight = fontMetrics.lineSpacing()
-        self.comentariosTextEdit.setMinimumHeight(lineHeight * 5)
 
         # Adiciona o QTextEdit ao layout
         self.centerLayout.addWidget(self.comentariosTextEdit)
@@ -223,8 +216,17 @@ class AtualizarDadosContratos(QDialog):
         self.statusGroup.setExclusive(True)
 
         self.statusLabelsOriginal = {}
-        self.lineEditMapping = {}
 
+        # Inicializa lineEditCP e lineEditMSG antes de criar os widgets
+        self.lineEditCP = QLineEdit()
+        self.lineEditMSG = QLineEdit()
+        
+        # Carrega os valores de CP e MSG do contrato atual, se existirem
+        valor_cp_atual = self.contrato_atual.get('CP', '').strip()
+        valor_msg_atual = self.contrato_atual.get('MSG', '').strip()
+        self.lineEditCP.setText(valor_cp_atual)
+        self.lineEditMSG.setText(valor_msg_atual)
+        
         status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
         status_keys = ["Status0", "Status1", "Status2", "Status3", "Status4", "Status5"]
 
@@ -235,32 +237,28 @@ class AtualizarDadosContratos(QDialog):
 
             self.statusLabelsOriginal[radioButton] = label
 
-            lineEdit = None
-            if label in ["CP Enviada", "MSG Enviada"]:
-                lineEdit = QLineEdit()
-                placeholder = "Ex: 30-15/2024" if label == "CP Enviada" else "Ex: R-151612Z/FEV/2024"
-                lineEdit.setPlaceholderText(placeholder)
-                self.rightcenterLayout.addWidget(lineEdit)
-                self.lineEditMapping[radioButton] = lineEdit
+            # Conecta o sinal de alteração do radioButton a uma função de manipulação
+            radioButton.toggled.connect(lambda checked, rb=radioButton, sk=status_keys[i]: self.marcarStatus(rb, sk, checked) if checked else None)
 
+            if label == "CP Enviada":
+                placeholder = "Digite o nº da CP, Ex: 30-15/2024"
+                self.lineEditCP.setPlaceholderText(placeholder)
+                self.rightcenterLayout.addWidget(self.lineEditCP)
+
+            elif label == "MSG Enviada":
+                placeholder = "Digite o nº da MSG, Ex: R-151612Z/FEV/2024"
+                self.lineEditMSG.setPlaceholderText(placeholder)
+                self.rightcenterLayout.addWidget(self.lineEditMSG)
+            # Parte ajustada para lidar com a atualização dos valores
+                
             statusKey = f"Status{i}"
             if statusKey in self.contrato_atual:
                 valorStatus = self.contrato_atual[statusKey]
-                # Se o status inclui uma data, atualize o radioButton e o lineEdit
                 if ' em ' in valorStatus:
                     status, data = valorStatus.split(' em ', 1)
                     radioButton.setChecked(True)
                     radioButton.setText(valorStatus)  # Atualiza com o valor que inclui a data
-                    if lineEdit:
-                        lineEdit.setText(data)
-                else:
-                    # Caso não tenha data, apenas marca o radioButton se for o status atual
-                    if valorStatus == label:
-                        radioButton.setChecked(True)
-
-            # Conecta o sinal de alteração do radioButton a uma função de manipulação
-            radioButton.toggled.connect(lambda checked, rb=radioButton, sk=status_keys[i]: self.marcarStatus(rb, sk, checked) if checked else None)
-
+                    
         self.calendar = QCalendarWidget()
         self.calendar.activated.connect(self.atualizarStatusLabel)
         self.calendar.setGridVisible(True)
@@ -356,17 +354,26 @@ class AtualizarDadosContratos(QDialog):
         if selectedButton:
             statusKey = self.findStatusKeyForButton(selectedButton)
             if statusKey:
-                # Atualiza para 'nan'
-                self.contrato_atual[statusKey] = 'nan'
+                self.contrato_atual[statusKey] = ''
                 selectedButton.setText(self.statusLabelsOriginal[selectedButton])
+                
+                # Limpa o QLineEdit se o status selecionado for "CP Enviada" ou "MSG Enviada"
+                label = self.statusLabelsOriginal[selectedButton]
+                if label == "CP Enviada":
+                    self.lineEditCP.clear()
+                elif label == "MSG Enviada":
+                    self.lineEditMSG.clear()
 
     def reiniciarTodosStatus(self):
         for radioButton in self.statusGroup.buttons():
             statusKey = self.findStatusKeyForButton(radioButton)
             if statusKey:
-                # Atualiza todos os status para 'nan'
-                self.contrato_atual[statusKey] = 'nan'
+                self.contrato_atual[statusKey] = ''
                 radioButton.setText(self.statusLabelsOriginal[radioButton])
+        
+        # Limpa ambos os QLineEdit já que todos os status estão sendo reiniciados
+        self.lineEditCP.clear()
+        self.lineEditMSG.clear()
 
     def findStatusKeyForButton(self, button):
         for statusKey, radioButton in enumerate(self.statusGroup.buttons()):
@@ -379,39 +386,58 @@ class AtualizarDadosContratos(QDialog):
         self.portariaEdit = QLineEdit(str(self.contrato_atual.get('Portaria', '')))
         self.rightLayout.addWidget(self.portariaEdit)
 
+        self.rightLayout.addWidget(QLabel("Posto/Graduação:"))
+        self.postoGestorEdit = QLineEdit(str(self.contrato_atual.get('Posto_Gestor', '')))
+        self.rightLayout.addWidget(self.postoGestorEdit)
+
         self.rightLayout.addWidget(QLabel("Gestor:"))
         self.gestorEdit = QLineEdit(str(self.contrato_atual.get('Gestor', '')))
         self.rightLayout.addWidget(self.gestorEdit)
 
         self.rightLayout.addWidget(QLabel("Gestor Substituto:"))
-        self.gestorSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Gestor Substituto', '')))
+        self.gestorSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Gestor_Substituto', '')))
         self.rightLayout.addWidget(self.gestorSubstitutoEdit)
+
+        self.rightLayout.addWidget(QLabel("Posto/Graduação:"))
+        self.postoFiscalEdit = QLineEdit(str(self.contrato_atual.get('Posto_Fiscal', '')))
+        self.rightLayout.addWidget(self.postoFiscalEdit)
 
         self.rightLayout.addWidget(QLabel("Fiscal:"))
         self.fiscalEdit = QLineEdit(str(self.contrato_atual.get('Fiscal', '')))
         self.rightLayout.addWidget(self.fiscalEdit)
 
         self.rightLayout.addWidget(QLabel("Fiscal Substituto:"))
-        self.fiscalSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Fiscal Substituto', '')))
+        self.fiscalSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Fiscal_Substituto', '')))
         self.rightLayout.addWidget(self.fiscalSubstitutoEdit)
 
         self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
 
+    def abrirTemplatePortaria(self):
+        template_path = TEMPLATE_PORTARIA_GESTOR  # Definir o caminho do template conforme necessário
+        gerador = GeradorPortaria(self.contrato_atual, template_path)
+        print(self.contrato_atual)
+        gerador.gerar_portaria()
+        
     def criarBotoes(self):
-        # Criação do botão Reiniciar
-        self.reiniciarButton = QPushButton('Reiniciar')
-        self.reiniciarButton.clicked.connect(self.reiniciarStatus)  # Supondo que você tenha um método chamado reiniciarStatus para lidar com o evento de clique
-
         # Botão Salvar
-        self.saveButton = QPushButton('Salvar')
+        self.saveButton = QPushButton('Salvar Alterações')
 
         # Botão Cancelar
         self.cancelButton = QPushButton('Cancelar')
 
+        # Criação do botão Reiniciar
+        self.reiniciarButton = QPushButton('Reiniciar Status')
+        self.reiniciarButton.clicked.connect(self.reiniciarStatus)  # Supondo que você tenha um método chamado reiniciarStatus para lidar com o evento de clique
+
+        # Botão Portaria
+        self.portariaButton = QPushButton('Atualizar Portaria')
+        self.portariaButton.clicked.connect(self.abrirTemplatePortaria)
+
         # Adicionando os botões ao layout dos botões
-        self.buttonsLayout.addWidget(self.reiniciarButton)  # Adiciona o botão Reiniciar ao layout
         self.buttonsLayout.addWidget(self.saveButton)
         self.buttonsLayout.addWidget(self.cancelButton)
+        self.buttonsLayout.addWidget(self.reiniciarButton)  # Adiciona o botão Reiniciar ao layout
+        self.buttonsLayout.addWidget(self.portariaButton)
 
     def ajustarTamanhosLayouts(self):
         # Cria widgets contêineres para os layouts de esquerda, centro e direita
@@ -509,16 +535,6 @@ class AtualizarDadosContratos(QDialog):
 
         # Obter texto do QTextEdit de comentários
         comentarios = self.comentariosTextEdit.toPlainText().strip()
-        # Inicializa as variáveis para os valores de CP e MSG
-        valor_cp = ""
-        valor_msg = ""
-
-        # Localiza os QLineEdit para CP e MSG usando os QRadioButton mapeados
-        for radioButton, lineEdit in self.lineEditMapping.items():
-            if self.statusLabelsOriginal[radioButton] == "CP Enviada":
-                valor_cp = lineEdit.text().strip()
-            elif self.statusLabelsOriginal[radioButton] == "MSG Enviada":
-                valor_msg = lineEdit.text().strip()
 
         # Obtem o prefixo do processo a partir da seleção no processoComboBox e formata o valor do processo
         processo_prefixo = self.processoComboBox.currentText()
@@ -538,13 +554,15 @@ class AtualizarDadosContratos(QDialog):
             'Objeto': self.objetoLineEdit.text().strip(),
             'OM': self.omComboBox.currentText().strip(),
             'Setor': self.setorResponsavelComboBox.currentText().strip(),
-            'CP': valor_cp,
-            'MSG': valor_msg,
+            'CP': self.lineEditCP.text().strip(),
+            'MSG': self.lineEditMSG.text().strip(),
             'Portaria': self.portariaEdit.text().strip(),
+            'Posto_Gestor': self.postoGestorEdit.text().strip(),
             'Gestor': self.gestorEdit.text().strip(),
-            'Gestor Substituto': self.gestorSubstitutoEdit.text().strip(),
+            'Gestor_Substituto': self.gestorSubstitutoEdit.text().strip(),
+            'Posto_Fiscal': self.postoFiscalEdit.text().strip(),
             'Fiscal': self.fiscalEdit.text().strip(),
-            'Fiscal Substituto': self.fiscalSubstitutoEdit.text().strip(),
+            'Fiscal_Substituto': self.fiscalSubstitutoEdit.text().strip(),
             'Tipo': tipo_selecionado,
             'Natureza Continuada': natureza_continuada_selecionada,
             'Número do instrumento': self.contrato_atual['Comprasnet'],
@@ -557,7 +575,6 @@ class AtualizarDadosContratos(QDialog):
             'Status4': self.contrato_atual.get('Status4', ''),
             'Status5': self.contrato_atual.get('Status5', '')
         }
-
 
         try:
             df_adicionais = pd.read_csv(ADICIONAIS_PATH, dtype='object')
@@ -584,7 +601,10 @@ class AtualizarDadosContratos(QDialog):
 class CustomTextEdit(QTextEdit):
     def __init__(self, parent=None):
         super(CustomTextEdit, self).__init__(parent)
-        self.setPlainText("1 - ")  # Inicia com "1 - "
+        self.setPlaceholderText("Digite seus comentários aqui...")
+        self.setMinimumHeight(self.fontMetrics().lineSpacing() * 5)
+
+        # self.setPlainText("1 - ")  # Inicia com "1 - "
         self.last_line_count = 1  # Inicializa o last_line_count aqui
         self.textChanged.connect(self.handleTextChange)
 
@@ -630,3 +650,63 @@ class CustomTextEdit(QTextEdit):
         cursor = self.textCursor()
         cursor.setPosition(min(cursor_position, len(self.toPlainText())))
         self.setTextCursor(cursor)
+
+class WorkerThread(QThread):
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, input_path, output_path):
+        super().__init__()
+        self.input_path = input_path
+        self.output_path = output_path
+
+    def run(self):
+        try:
+            word = comtypes.client.CreateObject('Word.Application')
+            doc = word.Documents.Open(str(self.input_path))
+            doc.SaveAs2(str(self.output_path), FileFormat=17)  # wdFormatPDF = 17
+            doc.Close()
+            word.Quit()
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+
+class GeradorPortaria:
+    def __init__(self, contrato_atual, template_path, parent=None):
+        self.contrato_atual = contrato_atual
+        self.template_path = template_path
+        self.parent = parent
+
+    def gerar_portaria(self):
+        try:
+            doc = DocxTemplate(self.template_path)
+            doc.render(self.contrato_atual)
+            nome_arquivo_safe = f"portaria_{self.contrato_atual['Comprasnet']}.docx".replace("/", "_")
+            documento_saida = self.template_path.parent / nome_arquivo_safe
+            doc.save(documento_saida)
+            
+            output_path = documento_saida.with_suffix('.pdf')
+            self.converter_para_pdf(documento_saida, output_path)
+        except Exception as e:
+            QMessageBox.critical(self.parent, "Erro", f"Erro ao gerar a portaria: {e}")
+
+    def converter_para_pdf(self, input_path, output_path):
+        # Mostra um QProgressDialog
+        progress_dialog = QProgressDialog("Convertendo para PDF...", "Cancelar", 0, 0, self.parent)
+        progress_dialog.setCancelButton(None)  # Desabilita o botão cancelar
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.show()
+
+        # Cria e inicia a thread de trabalho
+        self.thread = WorkerThread(input_path, output_path)
+        self.thread.finished.connect(lambda: self.conversao_concluida(progress_dialog, output_path))
+        self.thread.error.connect(lambda e: self.mostrar_erro(progress_dialog, e))
+        self.thread.start()
+
+    def conversao_concluida(self, progress_dialog, output_path):
+        progress_dialog.close()
+        os.startfile(output_path)  # Abre o documento PDF após a conversão
+
+    def mostrar_erro(self, progress_dialog, error_message):
+        progress_dialog.close()
+        QMessageBox.critical(self.parent, "Erro na Conversão", error_message)
