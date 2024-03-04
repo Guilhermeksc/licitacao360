@@ -8,6 +8,7 @@ from num2words import num2words
 from docxtpl import DocxTemplate
 import comtypes.client
 import os
+import re
 
 colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
@@ -209,8 +210,8 @@ class ContratosWidget(QWidget):
         print(adicionais_df.dtypes)
         # Colunas de interesse para sincronização
         colunas_gestor_fiscal = [
-            'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto',
-            'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto'
+            'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',
+            'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto'
         ]
 
         # Assegurar que 'Valor Formatado' esteja presente e seja a chave para sincronização
@@ -462,10 +463,10 @@ class ContratosWidget(QWidget):
                     f" Nome da Empresa: <span style='color: blue;'>{dados['empresa']}</span>, CNPJ: <span style='color: blue;'>{dados['cnpj']};</span><br>"
                     f" Objeto: <span style='color: blue;'>{dados['objeto']};</span><br>"
                     f" Valor global: <span style='color: blue;'>{dados['valor_global']}; e</span><br>"
-                    f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br><br>"
-                    # f" portaria <span style='color: blue;'>{dados['portaria']}</span> | gestor <span style='color: blue;'>{dados['gestor']}</span> | "
+                    f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br>"
+                    f" Gestor do Contrato: <span style='color: blue;'>{dados['gestor']}</span><br><br>"
                     # f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
-                    # f"Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+                    f" Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
                     )
         texto += "</p>BT"
         return texto
@@ -725,7 +726,7 @@ class CustomTableModel(QStandardItemModel):
         checkbox_item.setCheckState(Qt.CheckState.Checked if row['Selecionado'] else Qt.CheckState.Unchecked)
         self.setItem(i, 1, checkbox_item)
 
-    def setupIconItem(self, i, row):
+    # def setupIconItem(self, i, row):
         try:
             dias_value = int(row.get('Dias', 180))
         except ValueError:
@@ -733,6 +734,47 @@ class CustomTableModel(QStandardItemModel):
         icon_path = self.icons_dir / ("unchecked.png" if dias_value < 180 else "checked.png")
         icon_item = QStandardItem(QIcon(str(icon_path)), "")
         self.setItem(i, 0, icon_item)
+        
+    def setupIconItem(self, i, row):
+        # Padrão para identificar a presença de uma data (dd/mm/aaaa) no final do valor
+        date_pattern = re.compile(r"em \d{2}/\d{2}/\d{4}$")
+        status_checked = False
+
+        try:
+            dias_value = int(row.get('Dias', 180))
+        except ValueError:
+            dias_value = 180
+
+        # Verifica a presença e a prioridade dos status
+        if 'Status5' in row and date_pattern.search(row['Status5']):
+            icon_path = self.icons_dir / "icon_signature.png"
+            status_checked = True
+        elif 'Status4' in row and date_pattern.search(row['Status4']):
+            icon_path = self.icons_dir / "icon_law_agu.png"
+            status_checked = True
+        elif 'Status3' in row and date_pattern.search(row['Status3']):
+            icon_path = self.icons_dir / "icon_law.png"
+            status_checked = True
+        elif 'Status2' in row and date_pattern.search(row['Status2']):
+            icon_path = self.icons_dir / "icon_tick.png"
+            status_checked = True
+        elif ('Status0' in row and date_pattern.search(row['Status0'])) or ('Status1' in row and date_pattern.search(row['Status1'])):
+            icon_path = self.icons_dir / "icon_send.png"
+            status_checked = True
+
+        # Se nenhum status com data foi encontrado, determina o ícone com base no valor de 'Dias'
+        if not status_checked:
+            if dias_value < 60:
+                icon_path = self.icons_dir / "icon_warning.png"
+            elif dias_value < 180:
+                icon_path = self.icons_dir / "icon_alerta_amarelo.png"
+            else:
+                icon_path = self.icons_dir / "checked.png"
+
+        # Cria e define o item do ícone
+        icon_item = QStandardItem(QIcon(str(icon_path)), "")
+        self.setItem(i, 0, icon_item)
+
 
     def setupDataItems(self, i, row):
         for j, col in enumerate(self.colunas, start=2):

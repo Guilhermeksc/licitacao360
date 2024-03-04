@@ -246,7 +246,7 @@ class AtualizarDadosContratos(QDialog):
                 self.rightcenterLayout.addWidget(self.lineEditCP)
 
             elif label == "MSG Enviada":
-                placeholder = "Digite o nº da MSG, Ex: R-151612Z/FEV/2024"
+                placeholder = "Digite a MSG, Ex: R-151612Z/FEV/2024"
                 self.lineEditMSG.setPlaceholderText(placeholder)
                 self.rightcenterLayout.addWidget(self.lineEditMSG)
             # Parte ajustada para lidar com a atualização dos valores
@@ -381,36 +381,57 @@ class AtualizarDadosContratos(QDialog):
                 return f"Status{statusKey}"
         return None
 
+    def adicionarTitulo(self, titulo, layout):
+        # Cria e adiciona um QLabel como título ao layout vertical
+        layout.addWidget(QLabel(titulo))
+
+    def adicionarCampoDuplo(self, chave1, chave2, layout, placeholder1="", placeholder2=""):
+        hLayout = QHBoxLayout()
+
+        # Cria os QLineEdit para as chaves fornecidas
+        edit1 = QLineEdit(str(self.contrato_atual.get(chave1, '')))
+        edit2 = QLineEdit(str(self.contrato_atual.get(chave2, '')))
+
+        # Configura o texto de placeholder para os edits, se fornecido
+        if placeholder1:
+            edit1.setPlaceholderText(placeholder1)
+        if placeholder2:
+            edit2.setPlaceholderText(placeholder2)
+
+        hLayout.addWidget(edit1)
+        hLayout.addWidget(edit2)
+
+        # Configura a proporção do espaço que cada widget ocupa no layout, se necessário
+        hLayout.setStretch(0, 1)
+        hLayout.setStretch(1, 3)
+
+        layout.addLayout(hLayout)
+
+        return edit1, edit2
+
     def criarWidgetsDireita(self):
-        self.rightLayout.addWidget(QLabel("Portaria da Equipe de Fiscalização:"))
-        self.portariaEdit = QLineEdit(str(self.contrato_atual.get('Portaria', '')))
-        self.rightLayout.addWidget(self.portariaEdit)
+        # Adiciona títulos e campos ao layout vertical principal
+        self.adicionarTitulo("Equipe de Fiscalização:", self.rightLayout)
+        self.portariaEdit = self.adicionarCampo("Nº da portaria:", 'Portaria', self.rightLayout)
+        self.adicionarTitulo("Posto e Nome do Gestor:", self.rightLayout)
+        self.postoGestorEdit, self.gestorEdit = self.adicionarCampoDuplo('Posto_Gestor', 'Gestor', self.rightLayout, "CT (AA)", "Nome Completo")
+        self.adicionarTitulo("Posto e Nome do Gestor Substituto:", self.rightLayout)
+        self.postoGestorSubstitutoEdit, self.gestorSubstitutoEdit = self.adicionarCampoDuplo('Posto_Gestor_Substituto', 'Gestor_Substituto', self.rightLayout, "1ºTEN(RM2-T)", "Nome Completo")
+        self.adicionarTitulo("Posto e Nome do Fiscal:", self.rightLayout)
+        self.postoFiscalEdit, self.fiscalEdit = self.adicionarCampoDuplo('Posto_Fiscal', 'Fiscal', self.rightLayout, "SO-MO", "Nome Completo")
+        self.adicionarTitulo("Posto e Nome do Fiscal Substituto:", self.rightLayout)
+        self.postoFiscalSubstitutoEdit, self.fiscalSubstitutoEdit = self.adicionarCampoDuplo('Posto_Fiscal_Substituto', 'Fiscal_Substituto', self.rightLayout, "1ºSG-AD", "Nome Completo")
 
-        self.rightLayout.addWidget(QLabel("Posto/Graduação:"))
-        self.postoGestorEdit = QLineEdit(str(self.contrato_atual.get('Posto_Gestor', '')))
-        self.rightLayout.addWidget(self.postoGestorEdit)
 
-        self.rightLayout.addWidget(QLabel("Gestor:"))
-        self.gestorEdit = QLineEdit(str(self.contrato_atual.get('Gestor', '')))
-        self.rightLayout.addWidget(self.gestorEdit)
+        self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.rightLayout.addWidget(QLabel("Gestor Substituto:"))
-        self.gestorSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Gestor_Substituto', '')))
-        self.rightLayout.addWidget(self.gestorSubstitutoEdit)
-
-        self.rightLayout.addWidget(QLabel("Posto/Graduação:"))
-        self.postoFiscalEdit = QLineEdit(str(self.contrato_atual.get('Posto_Fiscal', '')))
-        self.rightLayout.addWidget(self.postoFiscalEdit)
-
-        self.rightLayout.addWidget(QLabel("Fiscal:"))
-        self.fiscalEdit = QLineEdit(str(self.contrato_atual.get('Fiscal', '')))
-        self.rightLayout.addWidget(self.fiscalEdit)
-
-        self.rightLayout.addWidget(QLabel("Fiscal Substituto:"))
-        self.fiscalSubstitutoEdit = QLineEdit(str(self.contrato_atual.get('Fiscal_Substituto', '')))
-        self.rightLayout.addWidget(self.fiscalSubstitutoEdit)
-
-        self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
+    def adicionarCampo(self, label, chave, layout):
+        hLayout = QHBoxLayout()
+        hLayout.addWidget(QLabel(label))
+        edit = QLineEdit(str(self.contrato_atual.get(chave, '')))
+        hLayout.addWidget(edit)
+        layout.addLayout(hLayout)
+        return edit
 
     def abrirTemplatePortaria(self):
         template_path = TEMPLATE_PORTARIA_GESTOR  # Definir o caminho do template conforme necessário
@@ -559,9 +580,11 @@ class AtualizarDadosContratos(QDialog):
             'Portaria': self.portariaEdit.text().strip(),
             'Posto_Gestor': self.postoGestorEdit.text().strip(),
             'Gestor': self.gestorEdit.text().strip(),
+            'Posto_Gestor_Substituto': self.postoGestorSubstitutoEdit.text().strip(),            
             'Gestor_Substituto': self.gestorSubstitutoEdit.text().strip(),
             'Posto_Fiscal': self.postoFiscalEdit.text().strip(),
             'Fiscal': self.fiscalEdit.text().strip(),
+            'Posto_Fiscal_Substituto': self.postoFiscalSubstitutoEdit.text().strip(),
             'Fiscal_Substituto': self.fiscalSubstitutoEdit.text().strip(),
             'Tipo': tipo_selecionado,
             'Natureza Continuada': natureza_continuada_selecionada,
@@ -594,7 +617,8 @@ class AtualizarDadosContratos(QDialog):
             df_adicionais.to_csv(ADICIONAIS_PATH, index=False, encoding='utf-8')
             QMessageBox.information(self, "Sucesso", "Dados do contrato atualizados com sucesso.")
             self.dadosContratosSalvos.emit(campos_adicionais, self.indice_linha)
-            self.accept()
+            
+            # self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar os dados do contrato: {e}")
 

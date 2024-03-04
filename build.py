@@ -3,22 +3,31 @@ from diretorios import *
 import os
 def build_executable():
     # Caminho para o script principal
-    main_script = "main.py"
+    main_script = "home.py"
     
     # Recursos para adicionar
     resources = [
         (DATABASE_DIR, "database"),
         (ICONS_DIR, "database/icons"),
         (IMAGE_PATH, "database/image"),
-        (PDF_DIR, "database/pasta_pdf"),
-        (SICAF_DIR, "database/pasta_sicaf"),
+        (MENSAGEM_DIR, "database/mensagem"),
+        # (PDF_DIR, "database/pasta_pdf"),
+        # (SICAF_DIR, "database/pasta_sicaf"),
         (PASTA_TEMPLATE, "database/template"),
-        (SICAF_TXT_DIR, "database/pasta_sicaf/sicaf_txt"),
-        (TXT_DIR, "database/pasta_pdf/homolog_txt"),
+        # (SICAF_TXT_DIR, "database/pasta_sicaf/sicaf_txt"),
+        # (TXT_DIR, "database/pasta_pdf/homolog_txt"),
         (RELATORIO_PATH, "database"),
         (LV_FINAL_DIR, "database/Nova pasta"),
-        (LV_BASE_DIR, "database/Nova pasta")
+        (LV_BASE_DIR, "database/Nova pasta"),
+        (WEBDRIVER_DIR, "database/selenium"),
+        (TEMPLATE_DIR, "database/template"),
+        (CP_DIR, "database/template/comunicacao_padronizada"),
+        (GERAR_RELATORIO_DIR, "database/template/relatorio_controle_pregao"),
+        (CONTROLE_CONTRATOS_DIR, "controle_contratos"),
+        (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
+        (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")
     ]
+
 
     pyinstaller_args = [
         "pyinstaller",

@@ -10,8 +10,8 @@ import os
 from diretorios import *
 from datetime import datetime
 
-colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto Gestor', 'Gestor', 'Posto Gestor Substituto', 'Gestor Substituto', 
-    'Posto Fiscal', 'Fiscal', 'Posto Fiscal Substituto', 'Fiscal Substituto']
+colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
+    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
 
 colunas = [
     'Valor Formatado', 'Objeto', 'OM', 'Setor', 'Fornecedor Formatado', 'Valor Global', 'Vig. Fim', 'Dias']
@@ -248,14 +248,14 @@ class GerarTabelas(QDialog):
             ('Fornecedor Formatado', 'Empresa'),
             ('Objeto', 'Objeto'),
             ('Setor', 'Setor'),
-            ('Posto Gestor', 'Posto/Graduação Gestor'),
+            ('Posto_Gestor', 'Posto/Graduação Gestor'),
             ('Gestor', 'Gestor'),
-            ('Posto Gestor Substituto', 'Posto/Graduação Gestor Substituto'),
-            ('Gestor Substituto', 'Gestor Substituto'),
-            ('Posto Fiscal', 'Posto/Graduação Fiscal'),
+            ('Posto_Gestor_Substituto', 'Posto/Graduação Gestor Substituto'),
+            ('Gestor_Substituto', 'Gestor Substituto'),
+            ('Posto_Fiscal', 'Posto/Graduação Fiscal'),
             ('Fiscal', 'Fiscal'),
-            ('Posto Fiscal Substituto', 'Posto/Graduação Fiscal Substituto'),
-            ('Fiscal Substituto', 'Fiscal Substituto'),
+            ('Posto_Fiscal_Substituto', 'Posto/Graduação Fiscal Substituto'),
+            ('Fiscal_Substituto', 'Fiscal Substituto'),
         ]
 
         # Reordenar e renomear colunas conforme necessário
