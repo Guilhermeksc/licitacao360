@@ -1,0 +1,21 @@
+Nº,Identificação,SAPIENS,Início,Fim,Págs
+01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
+02,Minuta da Ata de Registro de Preços,minuta_arp,5,14,10
+03,Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,portaria_comissao,15,18,4
+04,Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,portaria_plan,19,22,4
+05,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,23,24,2
+06,Minuta do Contrato,minuta_contrato,25,35,11
+07,Despacho de Encaminhamento para AGU,termo,36,37,2
+08,Estudo Técnico Preliminar (ETP),etp,38,54,17
+09,Comunicação Padronizada,termo,55,56,2
+10,Nota Técnica,nota_tecnica,57,64,8
+11,Termo de Referência,tr,65,84,20
+12,Lista de Verificação,checklist,85,91,7
+13,Despacho,despacho,92,93,2
+14,Despachos,Despacho,94,97,4
+15,Minuta do Edital,minuta_edital,98,124,27
+16,Pesquisa de Preços,pesquisa_precos,125,186,62
+17,Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,portaria_od,187,189,3
+18,Matriz de Gerenciamento de Riscos,mr,190,200,11
+19,Documento de Formalização da Demanda (DFD),dfd,201,210,10
+20,Autorização para Abertura de Processo,termo_abertura,211,212,2
