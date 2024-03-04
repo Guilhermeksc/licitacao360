@@ -26,7 +26,7 @@ class AtualizarDadosContratos(QDialog):
 
     def setupUI(self):
         self.setWindowTitle(f"Atualizar Dados do Contrato nº {self.contrato_atual.get('Valor Formatado', '')}")
-        self.setFixedSize(1040, 500)
+        self.setFixedSize(1040, 570)
         self.criarLayouts()
         self.criarWidgets()
         self.organizarLayouts()
@@ -47,11 +47,29 @@ class AtualizarDadosContratos(QDialog):
         self.criarWidgetsDireita()
         self.criarBotoes()
 
+    def criarWidgetFornecedor(self):
+        self.valor_fixo_fornecedor = self.contrato_atual.get('Fornecedor Formatado', '')
+        self.fornecedorLineEdit = QLineEdit(self.valor_fixo_fornecedor)
+        self.fornecedorLineEdit.textChanged.connect(self.on_fornecedor_changed)
+        self.leftLayout.addWidget(self.fornecedorLineEdit)
+
+    @pyqtSlot(str)
+    def on_fornecedor_changed(self, text):
+        if not text.startswith(self.valor_fixo_fornecedor):
+            # Se o usuário tentar alterar o valor fixo, restaura o valor fixo e mantém o texto adicional
+            cursor_pos = self.fornecedorLineEdit.cursorPosition()  # Guarda a posição do cursor para restaurar depois
+            texto_adicional = text[len(self.valor_fixo_fornecedor):]  # Extrai texto adicional inserido pelo usuário
+            self.fornecedorLineEdit.setText(self.valor_fixo_fornecedor + texto_adicional)
+            self.fornecedorLineEdit.setCursorPosition(min(cursor_pos, len(self.valor_fixo_fornecedor)))
+
     def criarWidgetsEsquerda(self):
         self.leftLayout.addWidget(QLabel(f"ID Comprasnet Contratos: {self.contrato_atual.get('Comprasnet', '')}"))
         self.leftLayout.addWidget(QLabel(f"Início da Vigência: {self.contrato_atual.get('Vig. Início', '')}"))
         self.leftLayout.addWidget(QLabel(f"Final da Vigência: {self.contrato_atual.get('Vig. Fim', '')}"))
-        self.leftLayout.addWidget(QLabel(f"Fornecedor: {self.contrato_atual.get('Fornecedor Formatado', '')}"))
+        self.leftLayout.addWidget(QLabel(f"Fornecedor:"))
+
+        self.criarWidgetFornecedor()
+
         self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('CNPJ', '')}"))
         self.leftLayout.addWidget(QLabel(f"Valor Global: {self.contrato_atual.get('Valor Global', '')}"))
 
@@ -114,6 +132,18 @@ class AtualizarDadosContratos(QDialog):
         naturezaLayout.addWidget(self.naturezaContinuadaNaoRadio)
         self.leftLayout.addLayout(naturezaLayout)
 
+        materialservicoLabel = QLabel('Material ou Serviço:')
+        self.leftLayout.addWidget(materialservicoLabel)
+        materialservicoLayout = QHBoxLayout()
+        self.materialservicoGroup = QButtonGroup(self)
+        self.materialRadio = QRadioButton("Material")
+        self.servicoRadio = QRadioButton("Serviço")
+        self.materialservicoGroup.addButton(self.materialRadio)
+        self.materialservicoGroup.addButton(self.servicoRadio)
+        materialservicoLayout.addWidget(self.materialRadio)
+        materialservicoLayout.addWidget(self.servicoRadio)
+        self.leftLayout.addLayout(materialservicoLayout)
+
         self.leftLayout.setAlignment(Qt.AlignmentFlag.AlignTop) # Alinha o conteúdo do bloco da esquerda ao topo
 
         # Inicializa os estados dos botões de rádio
@@ -121,6 +151,8 @@ class AtualizarDadosContratos(QDialog):
         self.tipoAtaRadio.setChecked(self.contrato_atual.get('Tipo', '') == 'Ata')
         self.naturezaContinuadaSimRadio.setChecked(self.contrato_atual.get('Natureza Continuada', '') == 'Sim')
         self.naturezaContinuadaNaoRadio.setChecked(self.contrato_atual.get('Natureza Continuada', '') != 'Sim')
+        self.materialRadio.setChecked(self.contrato_atual.get('material_servico', '') == 'Material')
+        self.servicoRadio.setChecked(self.contrato_atual.get('material_servico', '') != 'Material')
 
         termoAditivoLabel = QLabel('Termo Aditivo:')
         self.leftLayout.addWidget(termoAditivoLabel)
@@ -227,8 +259,8 @@ class AtualizarDadosContratos(QDialog):
         self.lineEditCP.setText(valor_cp_atual)
         self.lineEditMSG.setText(valor_msg_atual)
         
-        status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
-        status_keys = ["Status0", "Status1", "Status2", "Status3", "Status4", "Status5"]
+        status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM", "Contrato Renovado"]
+        status_keys = ["Status0", "Status1", "Status2", "Status3", "Status4", "Status5", "Status6"]
 
         for i, label in enumerate(status_labels):
             radioButton = QRadioButton(label)
@@ -409,10 +441,23 @@ class AtualizarDadosContratos(QDialog):
 
         return edit1, edit2
 
+    def carregarOrdenadorDespesas(self):
+        try:
+            ordenador_despesas_df = pd.read_excel(ORDENADOR_DESPESAS_DIR)
+            self.ordenador_despesas_df = ordenador_despesas_df
+            for index, row in ordenador_despesas_df.iterrows():
+                self.ordenadordespesasComboBox.addItem(row['nome'], f"{row['nome']}\n{row['posto']}\n{row['od']}")
+        except Exception as e:
+            print(f"Erro ao carregar tabela Ordenador de Despesas: {e}")
+
     def criarWidgetsDireita(self):
         # Adiciona títulos e campos ao layout vertical principal
         self.adicionarTitulo("Equipe de Fiscalização:", self.rightLayout)
         self.portariaEdit = self.adicionarCampo("Nº da portaria:", 'Portaria', self.rightLayout)
+        self.rightLayout.addWidget(QLabel("NUP da Portaria:"))
+        self.nupportariaEdit = QLineEdit(str(self.contrato_atual.get('NUP_portaria', '')))  # Conversão para string aqui
+        self.nupportariaEdit.setPlaceholderText("00000.00000/0000-00")
+        self.rightLayout.addWidget(self.nupportariaEdit)
         self.adicionarTitulo("Posto e Nome do Gestor:", self.rightLayout)
         self.postoGestorEdit, self.gestorEdit = self.adicionarCampoDuplo('Posto_Gestor', 'Gestor', self.rightLayout, "CT (AA)", "Nome Completo")
         self.adicionarTitulo("Posto e Nome do Gestor Substituto:", self.rightLayout)
@@ -422,6 +467,23 @@ class AtualizarDadosContratos(QDialog):
         self.adicionarTitulo("Posto e Nome do Fiscal Substituto:", self.rightLayout)
         self.postoFiscalSubstitutoEdit, self.fiscalSubstitutoEdit = self.adicionarCampoDuplo('Posto_Fiscal_Substituto', 'Fiscal_Substituto', self.rightLayout, "1ºSG-AD", "Nome Completo")
 
+        ordenadordespesasLabel = QLabel('Ordenador de Despesas:')
+        self.rightLayout.addWidget(ordenadordespesasLabel)
+        self.ordenadordespesasComboBox = QComboBox()
+        self.carregarOrdenadorDespesas()
+        self.rightLayout.addWidget(self.ordenadordespesasComboBox)
+
+        portariaassinadaLabel = QLabel('Portaria Assinada?')
+        self.rightLayout.addWidget(portariaassinadaLabel)
+        portariaassinadaLayout = QHBoxLayout()
+        self.portariaassinadaGroup = QButtonGroup(self)
+        self.portariaassinadaSimRadio = QRadioButton("Sim")
+        self.portariaassinadaNaoRadio = QRadioButton("Não")
+        self.naturezaContinuadaGroup.addButton(self.portariaassinadaSimRadio)
+        self.naturezaContinuadaGroup.addButton(self.portariaassinadaNaoRadio)
+        portariaassinadaLayout.addWidget(self.portariaassinadaSimRadio)
+        portariaassinadaLayout.addWidget(self.portariaassinadaNaoRadio)
+        self.rightLayout.addLayout(portariaassinadaLayout)
 
         self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -433,10 +495,17 @@ class AtualizarDadosContratos(QDialog):
         layout.addLayout(hLayout)
         return edit
 
-    def abrirTemplatePortaria(self):
+    def salvarEgerarPortaria(self):
+        # Atualiza contrato_atual com as últimas alterações
+        self.salvar()  # Supondo que este método atualize contrato_atual com os últimos dados
+        contrato_atualizado = self.getUpdatedData()  # Obtem os dados atualizados
+        
+        # Agora usa contrato_atualizado para gerar a portaria
+        self.abrirTemplatePortaria(contrato_atualizado)
+        
+    def abrirTemplatePortaria(self, contrato_atual):
         template_path = TEMPLATE_PORTARIA_GESTOR  # Definir o caminho do template conforme necessário
-        gerador = GeradorPortaria(self.contrato_atual, template_path)
-        print(self.contrato_atual)
+        gerador = GeradorPortaria(contrato_atual, template_path, self)
         gerador.gerar_portaria()
         
     def criarBotoes(self):
@@ -452,7 +521,7 @@ class AtualizarDadosContratos(QDialog):
 
         # Botão Portaria
         self.portariaButton = QPushButton('Atualizar Portaria')
-        self.portariaButton.clicked.connect(self.abrirTemplatePortaria)
+        self.portariaButton.clicked.connect(self.salvarEgerarPortaria)
 
         # Adicionando os botões ao layout dos botões
         self.buttonsLayout.addWidget(self.saveButton)
@@ -488,10 +557,10 @@ class AtualizarDadosContratos(QDialog):
         self.setStyleSheet(estiloBorda)  # Aplica a folha de estilo ao nível do diálogo ou widget pai
 
         # Define o tamanho preferido para os contêineres
-        leftContainer.setFixedSize(250, 450)
-        centerContainer.setFixedSize(250, 450)
-        rightcenterContainer.setFixedSize(250, 450)
-        rightContainer.setFixedSize(250, 450)
+        leftContainer.setFixedSize(250, 510)
+        centerContainer.setFixedSize(250, 510)
+        rightcenterContainer.setFixedSize(250, 510)
+        rightContainer.setFixedSize(250, 510)
 
         # Adiciona os contêineres ao layout horizontal
         self.leftCenterRightLayout.addWidget(leftContainer)
@@ -553,6 +622,7 @@ class AtualizarDadosContratos(QDialog):
         self.salvarStatus()
         tipo_selecionado = "Contrato" if self.tipoContratoRadio.isChecked() else "Ata"
         natureza_continuada_selecionada = "Sim" if self.naturezaContinuadaSimRadio.isChecked() else "Não"
+        escolha_material_servico = "Material" if self.materialRadio.isChecked() else "Serviço"
 
         # Obter texto do QTextEdit de comentários
         comentarios = self.comentariosTextEdit.toPlainText().strip()
@@ -566,6 +636,11 @@ class AtualizarDadosContratos(QDialog):
             valor_processo_formatado = f"{processo_codigo} {numero_processo}/{ano_processo}"
         else:
             valor_processo_formatado = ""
+
+        nome_selecionado = self.ordenadordespesasComboBox.currentText()
+        valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
+        print(f"Nome selecionado: {nome_selecionado}")
+        print(f"Valor completo: {valor_completo}")
 
         # Define os campos adicionais com o valor do processo formatado
         campos_adicionais = {
@@ -588,6 +663,7 @@ class AtualizarDadosContratos(QDialog):
             'Fiscal_Substituto': self.fiscalSubstitutoEdit.text().strip(),
             'Tipo': tipo_selecionado,
             'Natureza Continuada': natureza_continuada_selecionada,
+            'material_servico': escolha_material_servico,
             'Número do instrumento': self.contrato_atual['Comprasnet'],
             'Comentários': comentarios,
             'Termo Aditivo': self.termoAditivoComboBox.currentText().strip(),
@@ -596,7 +672,11 @@ class AtualizarDadosContratos(QDialog):
             'Status2': self.contrato_atual.get('Status2', ''),
             'Status3': self.contrato_atual.get('Status3', ''),
             'Status4': self.contrato_atual.get('Status4', ''),
-            'Status5': self.contrato_atual.get('Status5', '')
+            'Status5': self.contrato_atual.get('Status5', ''),
+            'Status6': self.contrato_atual.get('Status6', ''),
+            'fornecedor_corrigido': self.fornecedorLineEdit.text().strip(),
+            'NUP_portaria': self.nupportariaEdit.text().strip(),
+            'ordenador_despesas': valor_completo,
         }
 
         try:

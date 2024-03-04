@@ -14,7 +14,9 @@ colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
     'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
-    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
+    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 
+    'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
+    'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas']
 
 colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
@@ -22,7 +24,9 @@ colunas_contratos = [
 colunas_adicionais = [
     'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
-    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Termo Aditivo', 'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5']
+    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Termo Aditivo', 
+    'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
+    'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas']
 
 colunas_gestor_fiscal = [
     'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
@@ -433,8 +437,9 @@ class ContratosWidget(QWidget):
                     'fim_vigencia': self.model.item(row, 16).text(),                
                     'numero_contrato': self.model.item(row, 17).text(),  
                     'portaria': self.model.item(row, 18).text(),
-                    'gestor': self.model.item(row, 19).text(),
-                    'fiscal': self.model.item(row, 20).text(),
+                    'posto_gestor': self.model.item(row, 19).text(),
+                    'gestor': self.model.item(row, 20).text(),
+                    'fiscal': self.model.item(row, 23).text(),
                     'prazo_limite': DataProcessor.calcular_prazo_limite(self.model.item(row, 16).text())
                 }
                 dados_selecionados.append(dados_linha)
@@ -464,7 +469,7 @@ class ContratosWidget(QWidget):
                     f" Objeto: <span style='color: blue;'>{dados['objeto']};</span><br>"
                     f" Valor global: <span style='color: blue;'>{dados['valor_global']}; e</span><br>"
                     f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br>"
-                    f" Gestor do Contrato: <span style='color: blue;'>{dados['gestor']}</span><br><br>"
+                    f" Gestor do Contrato: <span style='color: blue;'>{dados['posto_gestor']} {dados['gestor']}</span><br><br>"
                     # f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
                     f" Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
                     )
@@ -542,12 +547,24 @@ class ContratosWidget(QWidget):
         progress_dialog.setValue(len(dados_selecionados))
 
     def docx_to_pdf(self, docx_path, pdf_path):
-        word = comtypes.client.CreateObject('Word.Application')
-        word.Visible = False
-        doc = word.Documents.Open(str(docx_path))  # Converte Path para string aqui
-        doc.SaveAs2(str(pdf_path), FileFormat=17)  # Converte Path para string aqui
-        doc.Close()
-        word.Quit()
+        try:
+            word = comtypes.client.CreateObject('Word.Application')
+            word.Visible = False
+
+            # Assegura que os caminhos são strings
+            docx_path_str = str(docx_path)
+            pdf_path_str = str(pdf_path)
+
+            doc = word.Documents.Open(docx_path_str)
+            doc.SaveAs2(pdf_path_str, FileFormat=17)
+            doc.Close()
+            word.Quit()
+            print(f"Documento DOCX convertido para PDF: {pdf_path}")
+        except Exception as e:
+            print(f"Erro ao converter DOCX para PDF: {e}")
+            # Certifica-se de fechar a aplicação Word em caso de erro
+            if 'word' in locals():
+                word.Quit()
         
 class MultiColumnFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, dados, parent=None):

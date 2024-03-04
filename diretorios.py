@@ -83,7 +83,7 @@ CONTROLE_PROCESSOS_DIR = DATABASE_DIR / "controle_processos.xlsx"
 CONTROLE_DISPENSA_DIR = DATABASE_DIR / "controle_dispensa.xlsx"
 
 TABELA_UASG_DIR = DATABASE_DIR / "tabela_uasg.xlsx"
-
+ORDENADOR_DESPESAS_DIR = DATABASE_DIR / "ordenador_despesas.xlsx"
 FONT_STYLE = ("Arial", 20, "bold")
 
 URL_SAPIENS = 'https://sapiens.agu.gov.br/login'
