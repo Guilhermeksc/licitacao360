@@ -14,14 +14,14 @@ import os
 
 class AtualizarDadosContratos(QDialog):
     dadosContratosSalvos = pyqtSignal(dict, int)
+    statusAlterado = pyqtSignal(int, str, str)
 
-    def __init__(self, contrato_atual, table_view, parent=None):
+    def __init__(self, contrato_atual, table_view, model, indice_linha, parent=None):
         super().__init__(parent)
         self.contrato_atual = contrato_atual
         self.table_view = table_view
-        self.camposDinamicos = {}
-        self.status_labels = ["CP Enviada", "MSG Enviada", "Seção de Contratos", 
-                              "Assessoria Jurídica", "CJACM", "Assinatura SIGDEM"]
+        self.model = model
+        self.indice_linha = indice_linha 
         self.setupUI()
 
     def setupUI(self):
@@ -66,14 +66,11 @@ class AtualizarDadosContratos(QDialog):
         self.leftLayout.addWidget(QLabel(f"ID Comprasnet Contratos: {self.contrato_atual.get('Comprasnet', '')}"))
         self.leftLayout.addWidget(QLabel(f"Início da Vigência: {self.contrato_atual.get('Vig. Início', '')}"))
         self.leftLayout.addWidget(QLabel(f"Final da Vigência: {self.contrato_atual.get('Vig. Fim', '')}"))
-        self.leftLayout.addWidget(QLabel(f"Fornecedor:"))
-
-        self.criarWidgetFornecedor()
-
-        self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('CNPJ', '')}"))
         self.leftLayout.addWidget(QLabel(f"Valor Global: {self.contrato_atual.get('Valor Global', '')}"))
-
-        # OM: [QLabel] seguido por [QComboBox] na linha abaixo
+        self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('CNPJ', '')}"))
+        self.leftLayout.addWidget(QLabel(f"Fornecedor:"))
+        self.criarWidgetFornecedor()
+     
         omLabel = QLabel('OM:')
         self.leftLayout.addWidget(omLabel)
         self.omComboBox = QComboBox()
@@ -313,6 +310,8 @@ class AtualizarDadosContratos(QDialog):
             # Atualiza o texto do radioButton para refletir a mudança
             radioButton.setText(updatedStatus)
 
+        self.statusAlterado.emit(self.indice_linha, statusKey, self.contrato_atual[statusKey])
+
     def desmarcarTodosBotoes(self):
         # Desmarca todos os botões de rádio no grupo statusGroup
         for button in self.statusGroup.buttons():
@@ -473,17 +472,17 @@ class AtualizarDadosContratos(QDialog):
         self.carregarOrdenadorDespesas()
         self.rightLayout.addWidget(self.ordenadordespesasComboBox)
 
-        portariaassinadaLabel = QLabel('Portaria Assinada?')
-        self.rightLayout.addWidget(portariaassinadaLabel)
-        portariaassinadaLayout = QHBoxLayout()
-        self.portariaassinadaGroup = QButtonGroup(self)
-        self.portariaassinadaSimRadio = QRadioButton("Sim")
-        self.portariaassinadaNaoRadio = QRadioButton("Não")
-        self.naturezaContinuadaGroup.addButton(self.portariaassinadaSimRadio)
-        self.naturezaContinuadaGroup.addButton(self.portariaassinadaNaoRadio)
-        portariaassinadaLayout.addWidget(self.portariaassinadaSimRadio)
-        portariaassinadaLayout.addWidget(self.portariaassinadaNaoRadio)
-        self.rightLayout.addLayout(portariaassinadaLayout)
+        # portariaassinadaLabel = QLabel('Portaria Assinada?')
+        # self.rightLayout.addWidget(portariaassinadaLabel)
+        # portariaassinadaLayout = QHBoxLayout()
+        # self.portariaassinadaGroup = QButtonGroup(self)
+        # self.portariaassinadaSimRadio = QRadioButton("Sim")
+        # self.portariaassinadaNaoRadio = QRadioButton("Não")
+        # self.naturezaContinuadaGroup.addButton(self.portariaassinadaSimRadio)
+        # self.naturezaContinuadaGroup.addButton(self.portariaassinadaNaoRadio)
+        # portariaassinadaLayout.addWidget(self.portariaassinadaSimRadio)
+        # portariaassinadaLayout.addWidget(self.portariaassinadaNaoRadio)
+        # self.rightLayout.addLayout(portariaassinadaLayout)
 
         self.rightLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -617,7 +616,7 @@ class AtualizarDadosContratos(QDialog):
         return self.contrato_atual
             
     def salvar(self):
-        print("Dados do contrato atual antes das alterações:", self.contrato_atual)
+        # print("Dados do contrato atual antes das alterações:", self.contrato_atual)
 
         self.salvarStatus()
         tipo_selecionado = "Contrato" if self.tipoContratoRadio.isChecked() else "Ata"
@@ -639,8 +638,8 @@ class AtualizarDadosContratos(QDialog):
 
         nome_selecionado = self.ordenadordespesasComboBox.currentText()
         valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
-        print(f"Nome selecionado: {nome_selecionado}")
-        print(f"Valor completo: {valor_completo}")
+        # print(f"Nome selecionado: {nome_selecionado}")
+        # print(f"Valor completo: {valor_completo}")
 
         # Define os campos adicionais com o valor do processo formatado
         campos_adicionais = {
@@ -678,26 +677,31 @@ class AtualizarDadosContratos(QDialog):
             'NUP_portaria': self.nupportariaEdit.text().strip(),
             'ordenador_despesas': valor_completo,
         }
+    
+        # Atualizar contrato_atual com os novos valores antes de salvar no CSV
+        self.contrato_atual.update(campos_adicionais)
 
         try:
             df_adicionais = pd.read_csv(ADICIONAIS_PATH, dtype='object')
             df_adicionais = df_adicionais.astype('object')
 
             # Verifica se o registro já existe
-            indice = df_adicionais.index[df_adicionais['Número do instrumento'] == campos_adicionais['Número do instrumento']].tolist()
+            indice = df_adicionais.index[df_adicionais['Número do instrumento'] == self.contrato_atual['Número do instrumento']].tolist()
             if indice:
                 indice = indice[0]
-                for campo, valor in campos_adicionais.items():
+                for campo, valor in self.contrato_atual.items():
                     df_adicionais.at[indice, campo] = str(valor)
             else:
                 # Adiciona uma nova linha com os dados do contrato atual se não encontrar um registro correspondente
-                novo_registro = pd.DataFrame([campos_adicionais], columns=df_adicionais.columns)
+                novo_registro = pd.DataFrame([self.contrato_atual], columns=df_adicionais.columns)
                 df_adicionais = pd.concat([df_adicionais, novo_registro], ignore_index=True, sort=False).fillna(pd.NA)
 
             df_adicionais.to_csv(ADICIONAIS_PATH, index=False, encoding='utf-8')
             QMessageBox.information(self, "Sucesso", "Dados do contrato atualizados com sucesso.")
-            self.dadosContratosSalvos.emit(campos_adicionais, self.indice_linha)
-            
+            self.dadosContratosSalvos.emit(self.contrato_atual, self.indice_linha)
+
+            # print("Dados do contrato atual após alterações:", self.contrato_atual)
+
             # self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar os dados do contrato: {e}")

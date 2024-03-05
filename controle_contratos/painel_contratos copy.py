@@ -10,9 +10,6 @@ import comtypes.client
 import os
 import re
 
-colunas_contratos = [
-    'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
-
 colunas = [
     'Comprasnet', 'Tipo', 'Processo', 'NUP', 'CNPJ', 'Fornecedor Formatado', 
     'Dias', 'Valor Global', 'Objeto', 'OM', 'Setor', 'CP', 'MSG', 'Vig. Início',
@@ -21,12 +18,15 @@ colunas = [
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
     'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas']
 
+colunas_contratos = [
+    'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
+
 colunas_adicionais = [
-    'Número do instrumento', 'Dias', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
+    'Número do instrumento', 'Objeto', 'OM', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
-    'Processo', 'NUP',  'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'fornecedor_corrigido',  'Comentários', 'Termo Aditivo', 
+    'Processo', 'NUP', 'Setor', 'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'Dias', 'Comentários', 'Termo Aditivo', 
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
-     'material_servico', 'NUP_portaria', 'ordenador_despesas']
+    'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas']
 
 colunas_gestor_fiscal = [
     'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
@@ -48,10 +48,6 @@ class ContratosWidget(QWidget):
         self.setupSearchField()
         self.setupTableView()
         self.setupButtons()
-
-    def refreshTableView(self):
-        # Força a tabela a se atualizar/redesenhar
-        self.table_view.viewport().update()
 
     def setupTableView(self):
         self.table_view = QTableView(self)
@@ -88,8 +84,10 @@ class ContratosWidget(QWidget):
             ("Gerar Tabela", self.abrirGerarTabelas),
             ("CP Alerta Prazo", self.abrirDialogoGerarDocumentosCP),  
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
+
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
             ("Marcar/Desmarcar Todos", self.onTestToggleClicked),
+            # ("Configurações", self.abrirDialogoConfiguracoes),
             ("Importar Tabela Gestores", self.abrirDialogoImportacao)
         ]
         for text, func in buttons_info:
@@ -97,33 +95,79 @@ class ContratosWidget(QWidget):
             if func:  # Verifica se uma função foi fornecida
                 btn.clicked.connect(func)
             self.buttons_layout.addWidget(btn)
+        
+        # # Adiciona o ComboBox para seleção de filtro
+        # self.filtroDiasComboBox = QComboBox(self)
+        # self.filtroDiasComboBox.addItem("Filtrar Dias", None)  # Opção padrão
+        # self.filtroDiasComboBox.addItem("Filtrar < 180 Dias", 180)
+        # self.filtroDiasComboBox.addItem("Filtrar < 120 Dias", 120)
+        # self.filtroDiasComboBox.addItem("Filtrar < 60 Dias", 60)
+        # self.filtroDiasComboBox.addItem("Remover Filtro", -1)  # Usaremos -1 como indicador para remover o filtro
+        
+        # # Conecta o sinal de mudança do ComboBox ao método de filtragem
+        # self.filtroDiasComboBox.currentIndexChanged.connect(self.aplicarFiltroDias)
+        
+        # self.buttons_layout.addWidget(self.filtroDiasComboBox)
         self.layout.addLayout(self.buttons_layout)
 
+    def aplicarFiltroDias(self, index):
+        # Obtém o valor associado à opção selecionada
+        dias_limite = self.filtroDiasComboBox.itemData(index)
+        
+        if dias_limite is None or dias_limite == -1:
+            self.proxyModel.setDiasLimite(None)  # Remove o filtro
+        else:
+            self.proxyModel.setDiasLimite(dias_limite) 
+
     def onTableViewRightClick(self, position):
+        # Cria o menu de contexto
         menu = QMenu()
+
+        # Adiciona as ações ao menu
         copy_cnpj_action = menu.addAction("Copiar CNPJ")
         copy_contract_num_action = menu.addAction("Copiar Nº do Contrato")
+        # copy_pregao_num_action = menu.addAction("Copiar Nº do Pregão")
         copy_nup = menu.addAction("Copiar NUP")
+
+        # Conecta as ações aos métodos correspondentes
         copy_cnpj_action.triggered.connect(lambda: self.copyDataToClipboard('CNPJ'))
         copy_contract_num_action.triggered.connect(lambda: self.copyDataToClipboard('Valor Formatado'))
+        # copy_pregao_num_action.triggered.connect(lambda: self.copyDataToClipboard('Processo'))
         copy_nup.triggered.connect(lambda: self.copyDataToClipboard('NUP'))
+
+        # Exibe o menu no ponto onde o clique com o botão direito foi realizado
         menu.exec(self.table_view.viewport().mapToGlobal(position))
 
     def copyDataToClipboard(self, columnName):
+        # Obtém o índice da linha e coluna selecionados
         index = self.table_view.currentIndex()
         if not index.isValid():
             return
+
+        # Se estiver usando um proxy model, mapeia o índice para o modelo fonte
         sourceIndex = self.proxyModel.mapToSource(index) if hasattr(self.table_view.model(), 'mapToSource') else index
+
+        # Ajusta para a coluna correta com base no nome da coluna fornecido
+        # Adiciona 2 ao índice da coluna para compensar as colunas iniciais sem dados
         column = self.colunas.index(columnName) + 2
         dataIndex = self.model.index(sourceIndex.row(), column)
+
+        # Obtém o valor da coluna especificada
         data = self.model.data(dataIndex)
+
+        # Copia o valor para a área de transferência
         QApplication.clipboard().setText(data)
         # Mostra um tooltip indicando que o dado foi copiado
         self.showCopyTooltip(f"{columnName} copiado: {data}")
 
     def showCopyTooltip(self, message):
         cursorPos = QCursor.pos()  # Obter a posição atual do cursor
+        # Corrige a chamada para usar msecShowTime em vez de timeout
         QToolTip.showText(cursorPos, message, msecShowTime=2500)  # Mostrar tooltip na posição do cursor por 1.5 segundos
+
+        # A linha abaixo para esconder automaticamente o tooltip após o tempo não é estritamente necessária,
+        # pois o msecShowTime já controla isso, mas pode ser mantida se houver comportamento inesperado.
+        QTimer.singleShot(2500, QToolTip.hideText)
 
     def abrirDialogoImportacao(self):
         dialogo = QFileDialog(self)
@@ -142,17 +186,25 @@ class ContratosWidget(QWidget):
                 df = pd.read_excel(caminho_arquivo)
             else:
                 raise ValueError("Formato de arquivo não suportado.")
+            
             # Renomear a coluna conforme especificado
-            df.rename(columns={'Número': 'Valor Formatado'}, inplace=True)            
+            df.rename(columns={'Número': 'Valor Formatado'}, inplace=True)
+            
+            # Converter todas as colunas para o tipo 'object'
             df = df.astype(str)
+
             # Imprimir os nomes das colunas e seus tipos após a conversão
             print("Colunas df de caminho_arquivo após a conversão:")
             print(df.dtypes)
+
+            # Sincronizar com o arquivo ADICIONAIS_PATH
             self.sincronizarComAdicionais(df)
+
             QMessageBox.information(self, "Sucesso", "Dados importados e sincronizados com sucesso.")
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao importar dados: {e}")
             print(f"Erro ao importar dados: {e}")
+
 
     def sincronizarComAdicionais(self, df_novos_dados):
         # Carregar dados existentes
@@ -180,8 +232,14 @@ class ContratosWidget(QWidget):
                     for coluna in colunas_gestor_fiscal:
                         if coluna in df_novos_dados.columns:
                             adicionais_df.at[idx, coluna] = row[coluna]
+
+        # Salvar os dados sincronizados de volta ao ADICIONAIS_PATH
         adicionais_df.to_csv(ADICIONAIS_PATH, index=False)
+
+        # Atualizar a visualização, se necessário
         self.atualizarModeloDeDados()
+
+        # Ajustar as larguras das colunas conforme necessário
         self.ajustarLarguraColunas()
 
     def abrirGerarTabelas(self):
@@ -196,6 +254,36 @@ class ContratosWidget(QWidget):
         self.table_view.setModel(self.proxyModel)
         # Reconecta o SearchManager aqui
         self.searchManager = SearchManager(self.proxyModel, self.searchField)
+
+    def abrirDialogoDeAtualizacao(self):
+        dialogo = AtualizarDadosContratos(self)
+        dialogo.dadosContratosSalvos.connect(self.atualizarModeloDeDados)
+        dialogo.dadosContratosSalvos.connect(self.atualizarIconeContrato)
+        dialogo.exec()
+
+    def atualizarIconeContrato(self, contrato_atualizado, indice_linha, statusMudado):
+        model = self.table_view.model()
+
+        # Verifica se estamos usando um proxy model e obtém o source model
+        if isinstance(model, QSortFilterProxyModel):
+            model = model.sourceModel()
+
+        # Determina o novo ícone com base no status que mudou
+        novoIconePath = self.determinarIconeParaStatus(statusMudado, contrato_atualizado[statusMudado])
+
+        # Atualiza o ícone na linha correspondente
+        if hasattr(model, 'atualizarIconeNaLinha'):
+            model.atualizarIconeNaLinha(indice_linha, novoIconePath)
+
+    def determinarIconeParaStatus(self, statusMudado, valorStatus):
+        # Verifica se o status mudado possui um valor que indica uma mudança para um status específico
+        # e retorna o caminho do ícone correspondente.
+        for status, icone in self.icon_mapping.items():
+            if statusMudado == status:
+                # Assumindo que self.icons_dir é o diretório onde os ícones estão armazenados
+                return os.path.join(self.icons_dir, icone)
+        # Se nenhum status específico for encontrado, pode retornar um ícone padrão
+        return os.path.join(self.icons_dir, "icon_default.png")
 
     def onItemChanged(self, item):
         if item.column() == 1:  # Verifica se a mudança ocorreu na coluna dos checkboxes
@@ -234,8 +322,6 @@ class ContratosWidget(QWidget):
         self.proxyModel.setSourceModel(self.model)
 
         self.table_view.setModel(self.proxyModel)
-        # Conecta o sinal do modelo ao método de atualização da tabela
-        self.model.requestViewUpdate.connect(self.refreshTableView)
         self.proxyModel.setColumnIndices(colunas)
         self.checkboxManager = CheckboxManager(self.model)
         self.searchField.textChanged.connect(self.onSearchTextChanged)
@@ -270,18 +356,16 @@ class ContratosWidget(QWidget):
     def abrirDialogoEditarInformacoesAdicionais(self):
         selectionModel = self.table_view.selectionModel()
         if selectionModel.hasSelection():
-            indice_linha = selectionModel.currentIndex().row()
-            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_linha, 0)).row()
+            indice_linha = selectionModel.currentIndex().row()  # Obtém o índice da linha selecionada
             contrato_atual = self.obterContratoAtual()
             if contrato_atual:
-                # Inclua 'indice_linha' como um argumento aqui
-                dialogo = AtualizarDadosContratos(contrato_atual, self.table_view, self.model, indice_linha_source, self)
+                dialogo = AtualizarDadosContratos(contrato_atual, self.table_view, self)
+                dialogo.indice_linha = indice_linha  # Passa o índice da linha para o diálogo
                 dialogo.dadosContratosSalvos.connect(self.atualizarLinhaEspecifica)
-                dialogo.statusAlterado.connect(self.model.atualizarIconeStatus)
                 dialogo.exec()
-            else:
-                QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
-
+        else:
+            QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
+        
     def atualizarLinhaEspecifica(self, dados_atualizados, indice_visual):
         coluna_mapeamento = {'Número do instrumento': 'Comprasnet'}  # Defina o mapeamento aqui conforme necessário
         if hasattr(self, 'proxyModel'):
@@ -314,6 +398,10 @@ class ContratosWidget(QWidget):
         self.model = CustomTableModel(contratos_data, colunas, ICONS_DIR)
         self.table_view.setModel(self.model)
         self.ajustarLarguraColunas()  
+
+    def abrirDialogoConfiguracoes(self):
+        dialog = ConfiguracoesDialog(self.colunas, self.table_view, self)
+        dialog.exec()
 
     def ajustarLarguraColunas(self):
         for i in range(self.table_view.model().columnCount()):
@@ -496,7 +584,7 @@ class MultiColumnFilterProxyModel(QSortFilterProxyModel):
         # Define as colunas que serão ocultas
         self.hidden_columns = set([
             'MSG', 'Vig. Início', 'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto_Gestor', 
-            'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 
+            'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 
             'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 'Status0', 'Status2', 
             'Status3', 'Status4', 'Status5'
         ])
@@ -637,8 +725,6 @@ class CheckableItem(QStandardItem):
         self.setEditable(False)
 
 class CustomTableModel(QStandardItemModel):
-    requestViewUpdate = pyqtSignal()
-
     def __init__(self, dados, colunas, icons_dir, parent=None):
         super().__init__(parent)
         self.merged_data = dados
@@ -659,19 +745,17 @@ class CustomTableModel(QStandardItemModel):
         self.setupModel()
 
     def atualizarIconeStatus(self, indice_linha, statusMudado, novoValorStatus):
-        print(f"Atualizando ícone para linha {indice_linha}, status mudado: {statusMudado}, novo valor: {novoValorStatus}")
-        
-        # Verifica se o 'statusMudado' corresponde a uma chave válida em 'icon_mapping'
-        if statusMudado in self.icon_mapping:
-            novoIconePath = os.path.join(self.icons_dir, self.icon_mapping[statusMudado])
-            print(f"Status '{statusMudado}' mapeado para '{self.icon_mapping[statusMudado]}'")
+        # Aqui, 'icon_mapping' precisa estar acessível ou passado como parâmetro
+        novoIconePath = None
+        for statusKey, iconFile in self.icon_mapping.items():
+            if statusMudado == statusKey and novoValorStatus in self.icon_mapping:
+                novoIconePath = os.path.join(self.icons_dir, self.icon_mapping[novoValorStatus])
+                break
+
+        if novoIconePath:
             icon_item = self.item(indice_linha, 0)  # Assumindo que a coluna 0 é onde os ícones são exibidos
             icon_item.setIcon(QIcon(novoIconePath))
             self.dataChanged.emit(self.index(indice_linha, 0), self.index(indice_linha, 0))
-        else:
-            print(f"Ícone para status '{statusMudado}' não encontrado. Verifique 'icon_mapping' e 'statusMudado'.")
-        # Após a lógica de atualização do ícone
-        self.requestViewUpdate.emit()
 
     def setDataFrame(self, new_data):
         self.merged_data = new_data
@@ -701,13 +785,6 @@ class CustomTableModel(QStandardItemModel):
             icon_item = QStandardItem(QIcon(icon_path), "")
             self.setItem(i, 0, icon_item)
         else:
-            # Verifica se o valor da coluna Portaria é 'nan' ou ''
-            if pd.isnull(row.get('Portaria', '')) or row.get('Portaria', '') == '':
-                warning_icon_path = os.path.join(self.icons_dir, self.icon_mapping['Warning'])
-                icon_item = QStandardItem(QIcon(warning_icon_path), "")
-                self.setItem(i, 0, icon_item)
-                return  # Retorna após configurar o ícone de aviso para a coluna Portaria
-
             print(f"Icon not found for row: {row}")
 
     def determineIconPath(self, row):
