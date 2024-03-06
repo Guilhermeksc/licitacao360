@@ -279,12 +279,6 @@ class GerarTabelas(QDialog):
 
         QMessageBox.information(self, "Sucesso", "Planilha Completa gerada e convertida para PDF com sucesso!")
 
-        # Abrir o PDF automaticamente (Windows)
-        try:
-            os.startfile(pdf_filepath)
-        except Exception as e:
-            QMessageBox.warning(self, "Erro ao abrir PDF", f"Não foi possível abrir o arquivo PDF automaticamente.\nErro: {e}")
-
     def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, image_size_cm=(2, 2)):
         pdf_path = str(pdf_path)
         left_image_path = str(left_image_path)
@@ -317,6 +311,13 @@ class GerarTabelas(QDialog):
 
         # Informar ao usuário sobre o salvamento do novo arquivo
         print(f"PDF modificado salvo como: {novo_pdf_path}")
+
+        # Abrir o PDF automaticamente (Windows)
+        try:
+            os.startfile(novo_pdf_path)
+        except Exception as e:
+            QMessageBox.warning(self, "Erro ao abrir PDF", f"Não foi possível abrir o arquivo PDF automaticamente.\nErro: {e}")
+
 
     def convertModelToDataFrame(self):
         colunas = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
