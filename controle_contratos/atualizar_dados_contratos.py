@@ -785,8 +785,36 @@ class GeradorPortaria:
         self.template_path = template_path
         self.parent = parent
 
+    def ajustar_processo(self):
+        processo = self.contrato_atual.get("Processo", "")
+        padrao = r"^(DE|PE|C|TJDL|TJIL) (\d+)/(\d+)$"
+        substituicoes = {
+            "DE": "na Dispensa Eletrônica nº",
+            "PE": "no Pregão Eletrônico nº",
+            "C": "na Concorrência nº",
+            "TJDL": "no Termo de Justificativa de Dispensa de Licitação (TJDL) nº",
+            "TJIL": "no Termo de Justificativa de Inexigibilidade de Licitação (TJIL) nº",
+        }
+        
+        match = re.match(padrao, processo)
+        if match:
+            prefixo, valor1, valor2 = match.groups()
+            novo_prefixo = substituicoes.get(prefixo)
+            if novo_prefixo:
+                self.contrato_atual["Processo"] = f"{novo_prefixo} {valor1}/{valor2}"
+
+    def ajustar_material_servico(self):
+        material_servico = self.contrato_atual.get("material_servico", "")
+        substituicoes = {
+            "Serviço": "a contratação de empresa especializada em",
+            "Material": "a aquisição de",
+        }
+        self.contrato_atual["material_servico"] = substituicoes.get(material_servico, material_servico)
+
     def gerar_portaria(self):
         try:
+            self.ajustar_processo()  # Ajustar o valor de "Processo" antes de renderizar
+            self.ajustar_material_servico()  # Ajustar o valor de "material_servico" antes de renderizar
             doc = DocxTemplate(self.template_path)
             doc.render(self.contrato_atual)
             nome_arquivo_safe = f"portaria_{self.contrato_atual['Comprasnet']}.docx".replace("/", "_")
@@ -797,6 +825,7 @@ class GeradorPortaria:
             self.converter_para_pdf(documento_saida, output_path)
         except Exception as e:
             QMessageBox.critical(self.parent, "Erro", f"Erro ao gerar a portaria: {e}")
+
 
     def converter_para_pdf(self, input_path, output_path):
         # Mostra um QProgressDialog
