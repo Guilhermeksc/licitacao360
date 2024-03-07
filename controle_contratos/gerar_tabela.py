@@ -11,11 +11,11 @@ import win32com.client
 import fitz
 import time
 
-colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
+colunasDesejadas = ['Tipo', 'Processo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
 
 colunas = [
-    'Valor Formatado', 'Objeto', 'OM', 'Setor', 'Fornecedor Formatado', 'Vig. Fim', 'Dias']
+    'Processo', 'Valor Formatado', 'OM', 'Setor', 'Fornecedor Formatado', 'Objeto', 'Vig. Fim', 'Dias']
 
 class GerarTabelas(QDialog):
     def __init__(self, model, parent=None):
@@ -124,6 +124,7 @@ class GerarTabelas(QDialog):
     def ajustarColunas(self, df, aba):
         # Renomeia as colunas com base na aba atual
         renomear_colunas = {
+            'Dias': 'Dias p/\nVencer',
             'Setor': 'Setor Demandante',
             'Fornecedor Formatado': 'Contratado'
         }
@@ -156,9 +157,9 @@ class GerarTabelas(QDialog):
         df_ata = df[df['Tipo'] == 'Ata'][colunas].sort_values(by='Dias')
 
         # Adicionar colunas "Contrato Inicial" e "Termo Aditivo" com "Link" como placeholder
-        df_contratos['Contrato Inicial'] = 'Link'
+        df_contratos['Portaria'] = 'Link'
         df_contratos['Termo Aditivo'] = 'Link'
-        df_ata['Contrato Inicial'] = 'Link'
+        df_ata['Portaria'] = 'Link'
         df_ata['Termo Aditivo'] = 'Link'
 
         filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
@@ -191,7 +192,8 @@ class GerarTabelas(QDialog):
                     'text_wrap': True,
                     'valign': 'vcenter',  # Centraliza verticalmente
                     'align': 'center',    # Centraliza horizontalmente
-                    'border': 1
+                    'border': 1,
+                    'bg_color': '#ADD8E6'  # Define a cor de fundo como azul claro
                 })
 
                 # Cria um novo formato para os links que centraliza o conteúdo
@@ -204,7 +206,8 @@ class GerarTabelas(QDialog):
 
                 cell_format = writer.book.add_format({
                     'border': 1,
-                    'align': 'center', 
+                    'align': 'center',
+                    'bold': True, 
                     'valign': 'vcenter', 
                     'font_size': 10
                 })
@@ -227,7 +230,7 @@ class GerarTabelas(QDialog):
 
                 # Identificar índices das colunas de hiperlinks
                 columns = df.columns.tolist()
-                link_col_index_1 = columns.index('Contrato Inicial')
+                link_col_index_1 = columns.index('Portaria')
                 link_col_index_2 = columns.index('Termo Aditivo')
 
                 # Aplicar hiperlinks centralizados nas colunas específicas
@@ -240,18 +243,18 @@ class GerarTabelas(QDialog):
                     for col_num in range(len(df.columns)):
                         worksheet.write(row_num, col_num, df.iloc[row_num-5, col_num], cell_format)
                                     
-                worksheet.merge_range('A1:J1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
-                worksheet.merge_range('A2:J2', '"Prontidão e Efetividade no Planalto Central"', cabecalho_format)
+                worksheet.merge_range('A1:K1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
+                worksheet.merge_range('A2:K2', '"Prontidão e Efetividade no Planalto Central"', cabecalho_format)
                 titulo = "Controle de Contratos - 2024" if name == 'Contratos' else "Controle de Atas de Registro de Preços - 2024"
-                worksheet.merge_range('A3:J3', titulo, title_format)  # Título agora na linha 3
+                worksheet.merge_range('A3:K3', titulo, title_format)  # Título agora na linha 3
                 worksheet.set_row(0, 20)
                 worksheet.set_row(1, 30)
                 worksheet.set_row(2, 30)
                 data_atual = datetime.now().strftime("%d/%m/%Y")
-                worksheet.merge_range('A4:J4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
+                worksheet.merge_range('A4:K4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
                 
                 # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
-                col_widths = [3, 15, 21, 9, 30, 30, 10, 5, 10, 10]
+                col_widths = [3, 10, 15, 9, 21, 30, 25, 10, 7, 10, 10]
                 for i, width in enumerate(col_widths):
                     worksheet.set_column(i, i, width)
 
