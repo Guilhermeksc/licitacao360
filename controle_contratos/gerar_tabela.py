@@ -15,7 +15,7 @@ colunasDesejadas = ['Tipo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
 
 colunas = [
-    'Valor Formatado', 'Objeto', 'OM', 'Setor', 'Fornecedor Formatado', 'Valor Global', 'Vig. Fim', 'Dias']
+    'Valor Formatado', 'Objeto', 'OM', 'Setor', 'Fornecedor Formatado', 'Vig. Fim', 'Dias']
 
 class GerarTabelas(QDialog):
     def __init__(self, model, parent=None):
@@ -175,7 +175,7 @@ class GerarTabelas(QDialog):
                 # Configurações de layout de página
                 worksheet.set_landscape()  # Orientação paisagem
                 worksheet.set_paper(9)  # Definir o tamanho do papel como A4
-                worksheet.set_margins(left=0, right=0, top=0, bottom=0)  # Margens estreitas
+                worksheet.set_margins(left=0, right=0, top=0, bottom=0.7)  # Margens estreitas
                 worksheet.fit_to_pages(1, 0)  # Ajustar para caber em uma página
 
                 # Formatos para as células
@@ -202,7 +202,12 @@ class GerarTabelas(QDialog):
                     'underline':  1       # Opcional: Sublinha o texto
                 })
 
-                cell_format = writer.book.add_format({'border': 1})
+                cell_format = writer.book.add_format({
+                    'border': 1,
+                    'align': 'center', 
+                    'valign': 'vcenter', 
+                    'font_size': 10
+                })
                 title_format = writer.book.add_format({
                     'align': 'center', 
                     'bold': True, 
@@ -211,20 +216,10 @@ class GerarTabelas(QDialog):
                 })
 
                 date_format = writer.book.add_format({
-                    'align': 'right', 
                     'italic': True, 
-                    'font_size': 10
+                    'font_size': 10,
+                    'align': 'right' 
                 })
-
-                # Definir formatos para linhas ímpares e pares para alternar as cores de fundo
-                even_row_format = writer.book.add_format({'bg_color': '#F2F2F2', 'border': 1})  # Cor cinza claro para linhas pares
-                odd_row_format = writer.book.add_format({'border': 1})  # Sem cor de fundo para linhas ímpares (mantendo o formato padrão)
-
-                # Aplicar o formato alternado a todas as linhas de dados, começando da linha 6 (índice 5) até o fim dos dados
-                for row_num in range(5, len(df) + 5):
-                    # Definir o formato da linha com base na paridade do número da linha
-                    row_format = even_row_format if (row_num + 1) % 2 == 0 else odd_row_format
-                    worksheet.set_row(row_num, None, row_format)
 
                 # Aplicar o formato aos cabeçalhos das colunas
                 for col_num, value in enumerate(df.columns):
@@ -245,15 +240,18 @@ class GerarTabelas(QDialog):
                     for col_num in range(len(df.columns)):
                         worksheet.write(row_num, col_num, df.iloc[row_num-5, col_num], cell_format)
                                     
-                worksheet.merge_range('A1:K1', 'Centro de Intendência da Marinha em Brasília (CeIMBra)', cabecalho_format)
-                worksheet.merge_range('A2:K2', '"Prontidão e Efetividade no Planalto Central"', cabecalho_format)
-                titulo = "Controle de Contratos" if name == 'Contratos' else "Controle de Atas"
-                worksheet.merge_range('A3:K3', titulo, title_format)  # Título agora na linha 3
+                worksheet.merge_range('A1:J1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
+                worksheet.merge_range('A2:J2', '"Prontidão e Efetividade no Planalto Central"', cabecalho_format)
+                titulo = "Controle de Contratos - 2024" if name == 'Contratos' else "Controle de Atas de Registro de Preços - 2024"
+                worksheet.merge_range('A3:J3', titulo, title_format)  # Título agora na linha 3
+                worksheet.set_row(0, 20)
+                worksheet.set_row(1, 30)
+                worksheet.set_row(2, 30)
                 data_atual = datetime.now().strftime("%d/%m/%Y")
-                worksheet.merge_range('A4:K4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
+                worksheet.merge_range('A4:J4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
                 
                 # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
-                col_widths = [3, 15, 21, 9, 30, 30, 15, 10, 4]
+                col_widths = [3, 15, 21, 9, 30, 30, 10, 5, 10, 10]
                 for i, width in enumerate(col_widths):
                     worksheet.set_column(i, i, width)
 
@@ -275,37 +273,66 @@ class GerarTabelas(QDialog):
         if not MARINHA_PATH.is_file():
             raise FileNotFoundError(f"O arquivo de imagem não foi encontrado em: {MARINHA_PATH}")
 
-        self.adicionar_imagem_ao_pdf(str(pdf_filepath), str(TUCANO_PATH), str(MARINHA_PATH))
+        CEIMBRA_BG = DATABASE_DIR / "image" / "ceimbra_bg.png"
+
+        # Verifica se o arquivo da imagem existe antes de prosseguir
+        if not CEIMBRA_BG.is_file():
+            raise FileNotFoundError(f"O arquivo de imagem não foi encontrado em: {CEIMBRA_BG}")
+        
+        self.adicionar_imagem_ao_pdf(str(pdf_filepath), str(TUCANO_PATH), str(MARINHA_PATH), str(CEIMBRA_BG))
 
         QMessageBox.information(self, "Sucesso", "Planilha Completa gerada e convertida para PDF com sucesso!")
 
-    def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, image_size_cm=(2, 2)):
+    def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
         pdf_path = str(pdf_path)
         left_image_path = str(left_image_path)
         right_image_path = str(right_image_path)
+        watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
 
         doc = fitz.open(pdf_path)
-        primeira_pagina = doc[0]
-        page_width = primeira_pagina.rect.width
+        numero_total_paginas = len(doc)  # Obter o número total de páginas
+     
+        for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
+            page_width = pagina.rect.width
+            page_height = pagina.rect.height
+            texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
 
-        # Calcular o tamanho da imagem em pontos
-        image_size_pt = (image_size_cm[0] * 72 / 2.54, image_size_cm[1] * 72 / 2.54)
-        
-        # Calcular o deslocamento das imagens a partir das bordas em pontos
-        offset_left_x_pt = 8 * 72 / 2.54
-        offset_right_x_pt = page_width - (8 * 72 / 2.54) - image_size_pt[0]
-        offset_y_pt = 0.1 * 72 / 2.54  # 1 cm do topo
-        
-        # Definir os retângulos onde as imagens serão inseridas
-        left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
-        right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
-        
-        # Inserir as imagens na primeira página
-        primeira_pagina.insert_image(left_rect, filename=left_image_path)
-        primeira_pagina.insert_image(right_rect, filename=right_image_path)
-        
+            # Configurar o texto para o contador de páginas
+            text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
+            pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
+            
+            # Inserir marca d'água centralizada em todas as páginas
+            wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
+            pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
+            scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
+            scaled_width = pix.width * scale
+            scaled_height = pix.height * scale
+            center_x = (page_width - scaled_width) / 2
+            center_y = (page_height - scaled_height) / 2
+            watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
+            
+            pagina.insert_image(watermark_rect, filename=watermark_image_path)
+            
+            # Inserir imagens esquerda e direita apenas na primeira página
+            if pagina_number == 0:
+                # Calcular o tamanho da imagem em pontos
+                image_size_pt = (image_size_cm[0] * 108 / 2.54, image_size_cm[1] * 108 / 2.54)
+                
+                # Calcular o deslocamento das imagens a partir das bordas em pontos
+                offset_left_x_pt = 4 * 72 / 2.54
+                offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
+                offset_y_pt = 0.1 * 72 / 2.54  # 1 cm do topo
+                
+                # Definir os retângulos onde as imagens serão inseridas
+                left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+                right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+                
+                # Inserir as imagens na primeira página
+                pagina.insert_image(left_rect, filename=left_image_path)
+                pagina.insert_image(right_rect, filename=right_image_path)
+            
         # Salvar o documento modificado
-        novo_pdf_path = pdf_path.replace('.pdf', '_com_imagens.pdf')
+        novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
         doc.save(novo_pdf_path)
         doc.close()
 
@@ -316,7 +343,7 @@ class GerarTabelas(QDialog):
         try:
             os.startfile(novo_pdf_path)
         except Exception as e:
-            QMessageBox.warning(self, "Erro ao abrir PDF", f"Não foi possível abrir o arquivo PDF automaticamente.\nErro: {e}")
+            print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
 
 
     def convertModelToDataFrame(self):
