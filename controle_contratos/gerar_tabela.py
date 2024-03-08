@@ -15,7 +15,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
 colunasDesejadas = ['Tipo', 'Processo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
-    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
+    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
 
 colunas = [
     'Processo', 'Valor Formatado', 'OM', 'Setor', 'Fornecedor Formatado', 'Objeto', 'Vig. Fim', 'Dias']
@@ -226,7 +226,7 @@ class GerarTabelas(QDialog):
             time.sleep(1)
             doc.Close(False)  # Fecha o documento sem salvar mudanças
             excel.Quit()  # Fecha a aplicação Excel
-        
+                    
     def gerarPlanilhaCompleta(self):
         df = self.convertModelToDataFrame()
         df['Dias'] = pd.to_numeric(df['Dias'], errors='coerce').fillna(0).astype(int)
@@ -234,18 +234,11 @@ class GerarTabelas(QDialog):
         df_ata = df[df['Tipo'] == 'Ata'][colunas].sort_values(by='Dias')
 
         filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
-    
+                
         with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
             for name, df in [('Contratos', df_contratos), ('Ata', df_ata)]:
                 df = self.ajustarColunas(df.copy(), name)
                 df.insert(0, 'Nº', range(1, len(df) + 1))
-                
-                # Usa o nome correto da coluna com base no tipo do documento
-                coluna_valor_formatado = 'Contrato' if name == 'Contratos' else 'Ata'
-                
-                # Processa as colunas 'Processo' e o valor formatado corretamente
-                df['Processo Formatado'] = df['Processo'].apply(lambda x: x.replace('/', '-').replace(' ', '_'))
-                df[coluna_valor_formatado + ' Link'] = df[coluna_valor_formatado].apply(lambda x: x.replace('/', '_'))
                 
                 # Escreve os dados a partir da quinta linha
                 df.to_excel(writer, sheet_name=name, index=False, startrow=4)  
@@ -275,12 +268,7 @@ class GerarTabelas(QDialog):
                 })
 
                 # Cria um novo formato para os links que centraliza o conteúdo
-                link_format = writer.book.add_format({
-                    'valign': 'vcenter',  # Centraliza verticalmente
-                    'align': 'center',    # Centraliza horizontalmente
-                    'font_color': 'blue', # Opcional: Muda a cor da fonte para azul
-                    'underline':  1       # Opcional: Sublinha o texto
-                })
+                link_format = writer.book.add_format({'font_color': 'blue', 'bold': True, 'underline': True})
 
                 cell_format = writer.book.add_format({
                     'border': 1,
@@ -320,23 +308,18 @@ class GerarTabelas(QDialog):
                 worksheet.set_row(2, 30)
                 data_atual = datetime.now().strftime("%d/%m/%Y")
                 worksheet.merge_range('A4:K4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
-                
+
+                if 'link_contrato_inicial' in df.columns:
+                    link_column_index = df.columns.get_loc('link_contrato_inicial')
+                    for row, link in enumerate(df['link_contrato_inicial'], start=5):
+                        worksheet.write_url(row, link_column_index, link, string='Ver Detalhes')
+                else:
+                    print("A coluna 'link_contrato_inicial' não existe no DataFrame.")
+                                 
                 # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
                 col_widths = [3, 10, 15, 9, 21, 30, 25, 10, 7, 10, 10]
                 for i, width in enumerate(col_widths):
                     worksheet.set_column(i, i, width)
-
-                # Adiciona o hiperlink diretamente aqui ao invés de usar uma função separada
-                for idx, row in df.iterrows():
-                    # Constrói o link com base nas informações da linha
-                    link = f"https://www.com7dn.mb/sites/default/arquivos/obtencao/Atas_e_Contratos/{row['Processo Formatado']}/{row[coluna_valor_formatado + ' Link']}/{name.lower()}_inicial/{name.lower()}_inicial.pdf"
-                    
-                    # O valor atual na célula que vai conter o hiperlink (na coluna de índice 2)
-                    valor_atual = row[coluna_valor_formatado]
-                    
-                    # Escreve o hiperlink na coluna "C" (índice 2), usando o valor atual como o rótulo do link
-                    # O índice da linha é ajustado por idx + 5 para começar a partir da linha 5 na planilha
-                    worksheet.write_url(f'C{idx + 5}', link, string=valor_atual)
 
         # Converta para PDF ou adicione imagens, se necessário
         pdf_filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.pdf")

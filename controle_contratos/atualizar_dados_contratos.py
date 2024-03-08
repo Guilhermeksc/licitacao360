@@ -11,6 +11,7 @@ import re
 from docxtpl import DocxTemplate
 import comtypes.client
 import os
+import numpy as np
 
 class AtualizarDadosContratos(QDialog):
     dadosContratosSalvos = pyqtSignal(dict, int)
@@ -30,7 +31,6 @@ class AtualizarDadosContratos(QDialog):
         self.criarLayouts()
         self.criarWidgets()
         self.organizarLayouts()
-        self.conectarSinais()
 
     def criarLayouts(self):
         self.mainLayout = QVBoxLayout()
@@ -506,13 +506,26 @@ class AtualizarDadosContratos(QDialog):
         template_path = TEMPLATE_PORTARIA_GESTOR  # Definir o caminho do template conforme necessário
         gerador = GeradorPortaria(contrato_atual, template_path, self)
         gerador.gerar_portaria()
-        
+
+    def on_hiperlink_button_clicked(self):
+        # Utiliza self.contrato_atual que já possui os dados do contrato atual
+        dialog = LinksDialog(row=self.contrato_atual)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            links = dialog.get_links()
+            # Atualiza self.contrato_atual com os novos links
+            self.contrato_atual['link_portaria'] = links['link_portaria']
+            self.contrato_atual['link_contrato_inicial'] = links['link_contrato_inicial']
+            self.contrato_atual['link_termo_aditivo'] = links['link_termo_aditivo']
+            # Se necessário, aqui você pode atualizar o dataframe ou outra estrutura de dados onde os contratos são armazenados
+            # Por exemplo, se você tiver um dataframe, atualize-o conforme necessário
+
     def criarBotoes(self):
         # Botão Salvar
         self.saveButton = QPushButton('Salvar Alterações')
+        self.saveButton.clicked.connect(self.salvar)
 
-        # Botão Cancelar
-        self.cancelButton = QPushButton('Cancelar')
+        self.hiperlinkButton = QPushButton('Hiperlinks')
+        self.hiperlinkButton.clicked.connect(self.on_hiperlink_button_clicked)
 
         # Criação do botão Reiniciar
         self.reiniciarButton = QPushButton('Reiniciar Status')
@@ -524,7 +537,7 @@ class AtualizarDadosContratos(QDialog):
 
         # Adicionando os botões ao layout dos botões
         self.buttonsLayout.addWidget(self.saveButton)
-        self.buttonsLayout.addWidget(self.cancelButton)
+        self.buttonsLayout.addWidget(self.hiperlinkButton)
         self.buttonsLayout.addWidget(self.reiniciarButton)  # Adiciona o botão Reiniciar ao layout
         self.buttonsLayout.addWidget(self.portariaButton)
 
@@ -574,9 +587,7 @@ class AtualizarDadosContratos(QDialog):
         self.mainLayout.addLayout(self.buttonsLayout)
         self.setLayout(self.mainLayout)
 
-    def conectarSinais(self):
-        self.saveButton.clicked.connect(self.salvar)
-        self.cancelButton.clicked.connect(self.reject)
+
 
     def obterIndicePorTexto(self, comboBox, texto):
         for i in range(comboBox.count()):
@@ -676,7 +687,11 @@ class AtualizarDadosContratos(QDialog):
             'fornecedor_corrigido': self.fornecedorLineEdit.text().strip(),
             'NUP_portaria': self.nupportariaEdit.text().strip(),
             'ordenador_despesas': valor_completo,
+            'link_contrato_inicial_edit': self.contrato_atual.get('link_contrato_inicial', ''),
+            'link_termo_aditivo_edit': self.contrato_atual.get('link_termo_aditivo', ''),
+            'link_portaria_edit': self.contrato_atual.get('link_portaria', ''),
         }
+
     
         # Atualizar contrato_atual com os novos valores antes de salvar no CSV
         self.contrato_atual.update(campos_adicionais)
@@ -847,3 +862,54 @@ class GeradorPortaria:
     def mostrar_erro(self, progress_dialog, error_message):
         progress_dialog.close()
         QMessageBox.critical(self.parent, "Erro na Conversão", error_message)
+
+class LinksDialog(QDialog):
+    def __init__(self, row, parent=None):
+        super().__init__(parent)
+        self.row = row
+        self.initUI()
+    
+    def initUI(self):
+        self.setWindowTitle("Editar Hiperlinks")
+        self.setGeometry(100, 100, 900, 200)  # Ajuste conforme necessário
+        
+        layout = QVBoxLayout()
+        
+        # Verifica se o valor é ausente ou NaN antes de decidir entre usar o valor existente ou generate_link
+        self.link_portaria_edit = QLineEdit(self.row.get('link_portaria') if self.row.get('link_portaria') not in [None, '', np.nan] else self.generate_link("portaria/portaria.pdf"))
+        self.link_contrato_inicial_edit = QLineEdit(self.row.get('link_contrato_inicial') if self.row.get('link_contrato_inicial') not in [None, '', np.nan] else self.generate_link("contrato_inicial/contrato_inicial.pdf"))
+        self.link_termo_aditivo_edit = QLineEdit(self.row.get('link_termo_aditivo') if self.row.get('link_termo_aditivo') not in [None, '', np.nan] else self.generate_link("termo_aditivo/termo_aditivo.pdf"))
+        
+        # Adicionando widgets ao layout
+        layout.addWidget(QLabel("Link Portaria:"))
+        layout.addWidget(self.link_portaria_edit)
+        layout.addWidget(QLabel("Link Contrato Inicial:"))
+        layout.addWidget(self.link_contrato_inicial_edit)
+        layout.addWidget(QLabel("Link Termo Aditivo:"))
+        layout.addWidget(self.link_termo_aditivo_edit)
+        
+        # Botões
+        button_layout = QHBoxLayout()
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Cancelar")
+        self.cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+    
+    def generate_link(self, suffix):
+        base_url = "https://www.com7dn.mb/sites/default/arquivos/obtencao/Atas_e_Contratos/"
+        processo_formatado = self.row['Processo'].replace(' ', '_').replace('/', '-')
+        valor_formatado = self.row['Valor Formatado'].replace('/', '_')
+        return f"{base_url}{processo_formatado}/{valor_formatado}/{suffix}"
+
+    def get_links(self):
+        return {
+            "link_portaria": self.link_portaria_edit.text(),
+            "link_contrato_inicial": self.link_contrato_inicial_edit.text(),
+            "link_termo_aditivo": self.link_termo_aditivo_edit.text()
+        }

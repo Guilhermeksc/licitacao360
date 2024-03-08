@@ -19,14 +19,14 @@ colunas = [
     'Vig. Fim', 'Valor Formatado', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Natureza Continuada', 'Comentários', 'Termo Aditivo', 
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
-    'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas']
+    'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
 
 colunas_adicionais = [
     'Número do instrumento', 'Dias', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
     'Processo', 'NUP',  'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'fornecedor_corrigido',  'Comentários', 'Termo Aditivo', 
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
-     'material_servico', 'NUP_portaria', 'ordenador_despesas']
+     'material_servico', 'NUP_portaria', 'ordenador_despesas', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
 
 colunas_gestor_fiscal = [
     'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
