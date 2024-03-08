@@ -75,8 +75,10 @@ TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
 IMAGE_PATH = DATABASE_DIR / "image"
 
-TUCANO_PATH = IMAGE_PATH / "imagem_excel.png"
-CEIMBRA_PATH = IMAGE_PATH / "ceimbra.png"
+TUCANO_PATH = DATABASE_DIR / "image" / "imagem_excel.png"
+MARINHA_PATH = DATABASE_DIR / "image" / "marinha.png"
+CEIMBRA_BG = DATABASE_DIR / "image" / "ceimbra_bg.png"
+
 MENSAGEM_DIR = DATABASE_DIR / "mensagem"
 ITEM_SELECIONADO_PATH = DATABASE_DIR / "item_selecionado.csv"
 

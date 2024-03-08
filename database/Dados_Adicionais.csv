@@ -3,7 +3,7 @@ Número do instrumento,Dias,Objeto,OM,Setor,Tipo,Portaria,Posto_Gestor,Gestor,Po
 Capitão de Mar e Guerra (IM)
 Ordenador de Despesa"
 00001/2023,nan,Resíduos Sólidos,Com7ºDN,Divisão de Serviços Gerais,Contrato,x,nan,x,nan,nan,nan,x,nan,nan,nan,87000/23-001/00,Não,PE /2024,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
-01531/2017,0350,Fornecimento de Energia,Com7ºDN,Divisão de Serviços Gerais,Contrato,nan,CC(IM),Siqueira Campos,2T(AA),Millioli,SG-MR,Rodolfo,SG-FR,Vicenti,nan,87000/17-1531/00,Sim,TJDL 01/2019,62055.000619/2017-92,nan,nan,07.522.669/0001-92,NEOENERGIA DISTRIBUICAO BRASI,NEOENERGIA DISTRIBUICAO BRASI,- Nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica em 18/03/2024,CJACM,Assinatura SIGDEM,Contrato Renovado,Serviço,nan,"ALEXANDRE SOARES MATHEUS
+01531/2017,0346,Fornecimento de Energia,Com7ºDN,Divisão de Serviços Gerais,Contrato,nan,CC(IM),Siqueira Campos,2T(AA),Millioli,SG-MR,Rodolfo,SG-FR,Vicenti,nan,87000/17-1531/00,Sim,TJDL 01/2019,62055.000619/2017-92,nan,nan,07.522.669/0001-92,NEOENERGIA DISTRIBUICAO BRASI,NEOENERGIA DISTRIBUICAO BRASI,- Nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica em 18/03/2024,CJACM,Assinatura SIGDEM,Contrato Renovado,Serviço,nan,"ALEXANDRE SOARES MATHEUS
 Capitão de Mar e Guerra (IM)
 Ordenador de Despesa"
 00100/2023,nan,Embarcações,GptFNB,nan,Contrato,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,87000/23-100/00,Não,PE 42/2023,62055.005109/2023-50,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
@@ -12,7 +12,7 @@ Ordenador de Despesa"
 00102/2023,nan,Embarcações,GptFNB,nan,Contrato,nan,nan,Mendonça,nan,nan,nan,Andressa,nan,nan,nan,87000/23-102/00,Não,PE 42/2023,62055.005109/2023-50,nan,nan,nan,nan,nan,- Nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica,CJACM,Assinatura SIGDEM,nan,nan,nan,nan
 00106/2023,nan,Embarcações,GptFNB,nan,Contrato,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,87000/23-106/00,Não,PE 42/2023,62055.005109/2023-50,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
 00039/2023,nan,Dedetização,CeIMBra,Divisão de Municiamento,Ata,nan,nan,Mendonça,nan,nan,nan,Andressa,nan,nan,nan,87000/23-039/00,Não,PE 01/2022,62055.002194/2020-51,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
-00008/2022,0025,Manutenção de Cozinha,CeIMBra,Divisão de Municiamento,Contrato,nan,SO-MO,Mendonça,nan,nan,nan,Andressa,nan,nan,nan,87000/22-008/00,Sim,PE 02/2021,62055.001984/2022-81,nan,nan,02.479.932/0001-94,NORTFORT COMERCIO E SERVICOS,NORTFORT COMERCIO E SERVICOS,nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica,CJACM em 12/03/2024,Assinatura SIGDEM,Contrato Renovado,Serviço,nan,"ALEXANDRE SOARES MATHEUS
+00008/2022,0021,Manutenção de Cozinha,CeIMBra,Divisão de Municiamento,Contrato,nan,SO-MO,Mendonça,nan,nan,nan,Andressa,nan,nan,nan,87000/22-008/00,Sim,PE 02/2021,62055.001984/2022-81,nan,nan,02.479.932/0001-94,NORTFORT COMERCIO E SERVICOS,NORTFORT COMERCIO E SERVICOS,nan,Contrato Inicial,CP Enviada,MSG Enviada,Seção de Contratos,Assessoria Jurídica,CJACM em 12/03/2024,Assinatura SIGDEM,Contrato Renovado,Serviço,nan,"ALEXANDRE SOARES MATHEUS
 Capitão de Mar e Guerra (IM)
 Ordenador de Despesa"
 00038/2023,nan,Desentupidora,CeIMBra,Divisão de Municiamento,Ata,nan,nan,Mendonça,nan,nan,nan,Andressa,nan,nan,nan,87000/23-038/00,Não,PE 01/2022,62055.002194/2020-51,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
@@ -145,7 +145,7 @@ Capitão de Mar e Guerra (IM)
 Ordenador de Despesa"
 00002/2021,nan,nan,Com7ºDN,Divisão de Manutenção e Reparo de PNR,Contrato,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,Não,PE /2024,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
 00001/2019,nan,nan,Com7ºDN,Divisão de Manutenção e Reparo de PNR,Contrato,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,Não,PE /2024,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
-00002/2024,0355,Panificados,CeIMBra,Divisão de Obtenção,Ata,72,CC(IM),Siqueira Campos,2T(AA),Piredda,SG-MR,Mario,SG-FR,Campos,nan,87000/24-002/00,Não,PE 08/2023,62055.002425/2023-70,nan,nan,00.543.061/0001-03,UEDAMA COMERCIO DE PRODUTOS A,UEDAMA COMERCIO DE PRODUTOS A,"1 - Comentário 1
+00002/2024,0351,Panificados,CeIMBra,Divisão de Obtenção,Ata,72,CC(IM),Siqueira Campos,2T(AA),Piredda,SG-MR,Mario,SG-FR,Campos,nan,87000/24-002/00,Não,PE 08/2023,62055.002425/2023-70,nan,nan,00.543.061/0001-03,UEDAMA COMERCIO DE PRODUTOS A,UEDAMA COMERCIO DE PRODUTOS A,"1 - Comentário 1
 2 - Comentário 2
 3 - Comentário 3",Ata Inicial,CP Enviada,MSG Enviada em 13/03/2024,Seção de Contratos,Assessoria Jurídica,CJACM em 20/03/2024,Assinatura SIGDEM,Contrato Renovado,Material,62055.005678/2024-45,"ALEXANDRE SOARES MATHEUS
 Capitão de Mar e Guerra (IM)

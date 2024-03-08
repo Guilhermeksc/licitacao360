@@ -11,6 +11,8 @@ import win32com.client
 import fitz
 import time
 import subprocess
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 colunasDesejadas = ['Tipo', 'Processo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
@@ -131,18 +133,27 @@ class GerarTabelas(QDialog):
             
             # Itera sobre as linhas do DataFrame
             for index, row in df.iterrows():
+                # Obtém o valor em 'Processo' e ajusta para substituir '/' por '_'
+                processo = row['Processo'].replace('/', '-').replace(' ', '_')
+
+                # Cria a pasta para o 'Processo' dentro de 'Atas_e_Contratos'
+                processo_folder_path = os.path.join(atas_contratos_dir, processo)
+                os.makedirs(processo_folder_path, exist_ok=True)
+
                 # Obtém o valor formatado e ajusta para substituir '/' por '_'
                 valor_formatado = row['Valor Formatado'].replace('/', '_')
                 
-                # Cria a subpasta com base no valor formatado
-                subfolder_path = os.path.join(atas_contratos_dir, valor_formatado)
-                os.makedirs(subfolder_path, exist_ok=True)
-                # Cria as pastas adicionais dentro da subpasta
+                # Cria a subpasta 'Valor Formatado' dentro da pasta 'Processo'
+                valor_formatado_path = os.path.join(processo_folder_path, valor_formatado)
+                os.makedirs(valor_formatado_path, exist_ok=True)
+                
+                # Cria as pastas adicionais dentro da subpasta 'Valor Formatado'
                 for additional_folder in ['portaria_fiscalizacao', 'contrato_inicial', 'termo_aditivo']:
-                    additional_folder_path = os.path.join(subfolder_path, additional_folder)
+                    additional_folder_path = os.path.join(valor_formatado_path, additional_folder)
                     os.makedirs(additional_folder_path, exist_ok=True)
 
             QMessageBox.information(self, "Sucesso", "Pastas geradas com sucesso!")
+
                             
     def getUniqueOMs(self):
         omSet = set()
@@ -215,27 +226,28 @@ class GerarTabelas(QDialog):
             time.sleep(1)
             doc.Close(False)  # Fecha o documento sem salvar mudanças
             excel.Quit()  # Fecha a aplicação Excel
-
+        
     def gerarPlanilhaCompleta(self):
         df = self.convertModelToDataFrame()
         df['Dias'] = pd.to_numeric(df['Dias'], errors='coerce').fillna(0).astype(int)
         df_contratos = df[df['Tipo'] == 'Contrato'][colunas].sort_values(by='Dias')
         df_ata = df[df['Tipo'] == 'Ata'][colunas].sort_values(by='Dias')
 
-        # Adicionar colunas "Contrato Inicial" e "Termo Aditivo" com "Link" como placeholder
-        df_contratos['Portaria'] = 'Link'
-        df_contratos['Termo Aditivo'] = 'Link'
-        df_ata['Portaria'] = 'Link'
-        df_ata['Termo Aditivo'] = 'Link'
-
         filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
-
+    
         with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
             for name, df in [('Contratos', df_contratos), ('Ata', df_ata)]:
                 df = self.ajustarColunas(df.copy(), name)
                 df.insert(0, 'Nº', range(1, len(df) + 1))
                 
-                # Comece a escrever os dados a partir da quinta linha (indexado como 4)
+                # Usa o nome correto da coluna com base no tipo do documento
+                coluna_valor_formatado = 'Contrato' if name == 'Contratos' else 'Ata'
+                
+                # Processa as colunas 'Processo' e o valor formatado corretamente
+                df['Processo Formatado'] = df['Processo'].apply(lambda x: x.replace('/', '-').replace(' ', '_'))
+                df[coluna_valor_formatado + ' Link'] = df[coluna_valor_formatado].apply(lambda x: x.replace('/', '_'))
+                
+                # Escreve os dados a partir da quinta linha
                 df.to_excel(writer, sheet_name=name, index=False, startrow=4)  
                 worksheet = writer.sheets[name]
 
@@ -294,16 +306,6 @@ class GerarTabelas(QDialog):
                 for col_num, value in enumerate(df.columns):
                     worksheet.write(4, col_num, value, header_format)
 
-                # Identificar índices das colunas de hiperlinks
-                columns = df.columns.tolist()
-                link_col_index_1 = columns.index('Portaria')
-                link_col_index_2 = columns.index('Termo Aditivo')
-
-                # Aplicar hiperlinks centralizados nas colunas específicas
-                for row_num in range(5, len(df) + 5):
-                    worksheet.write_url(row_num, link_col_index_1, 'https://www.com7dn.mb/sites/default/arquivos/obtencao/acordos%20adm/embarcacoes%20cfb/lc%20de%20souza%20embarca%C3%A7%C3%B5es%20-%202023.pdf', string='Link', cell_format=link_format)
-                    worksheet.write_url(row_num, link_col_index_2, 'https://www.com7dn.mb/sites/default/arquivos/obtencao/portaria/Portaria-de-Fiscalizacao-de-Contrato%2058---FORTT-DO-BRASIL.pdf', string='Link', cell_format=link_format)
-
                 # Aplicar bordas a todas as células de dados
                 for row_num in range(5, len(df) + 5):
                     for col_num in range(len(df.columns)):
@@ -324,30 +326,21 @@ class GerarTabelas(QDialog):
                 for i, width in enumerate(col_widths):
                     worksheet.set_column(i, i, width)
 
-        filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
+                # Adiciona o hiperlink diretamente aqui ao invés de usar uma função separada
+                for idx, row in df.iterrows():
+                    # Constrói o link com base nas informações da linha
+                    link = f"https://www.com7dn.mb/sites/default/arquivos/obtencao/Atas_e_Contratos/{row['Processo Formatado']}/{row[coluna_valor_formatado + ' Link']}/{name.lower()}_inicial/{name.lower()}_inicial.pdf"
+                    
+                    # O valor atual na célula que vai conter o hiperlink (na coluna de índice 2)
+                    valor_atual = row[coluna_valor_formatado]
+                    
+                    # Escreve o hiperlink na coluna "C" (índice 2), usando o valor atual como o rótulo do link
+                    # O índice da linha é ajustado por idx + 5 para começar a partir da linha 5 na planilha
+                    worksheet.write_url(f'C{idx + 5}', link, string=valor_atual)
+
+        # Converta para PDF ou adicione imagens, se necessário
         pdf_filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.pdf")
-
-        # Chamada para a função excel_to_pdf para converter o arquivo Excel para PDF
         self.excel_to_pdf(filepath, pdf_filepath)
-
-        TUCANO_PATH = DATABASE_DIR / "image" / "imagem_excel.png"
-
-        # Verifica se o arquivo da imagem existe antes de prosseguir
-        if not TUCANO_PATH.is_file():
-            raise FileNotFoundError(f"O arquivo de imagem não foi encontrado em: {TUCANO_PATH}")
-
-        MARINHA_PATH = DATABASE_DIR / "image" / "marinha.png"
-
-        # Verifica se o arquivo da imagem existe antes de prosseguir
-        if not MARINHA_PATH.is_file():
-            raise FileNotFoundError(f"O arquivo de imagem não foi encontrado em: {MARINHA_PATH}")
-
-        CEIMBRA_BG = DATABASE_DIR / "image" / "ceimbra_bg.png"
-
-        # Verifica se o arquivo da imagem existe antes de prosseguir
-        if not CEIMBRA_BG.is_file():
-            raise FileNotFoundError(f"O arquivo de imagem não foi encontrado em: {CEIMBRA_BG}")
-        
         self.adicionar_imagem_ao_pdf(str(pdf_filepath), str(TUCANO_PATH), str(MARINHA_PATH), str(CEIMBRA_BG))
 
         QMessageBox.information(self, "Sucesso", "Planilha Completa gerada e convertida para PDF com sucesso!")
