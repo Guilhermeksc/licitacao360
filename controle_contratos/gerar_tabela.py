@@ -10,6 +10,7 @@ from datetime import datetime
 import win32com.client
 import fitz
 import time
+import subprocess
 
 colunasDesejadas = ['Tipo', 'Processo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
     'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto']
@@ -43,41 +44,106 @@ class GerarTabelas(QDialog):
         # Adicionar botão "Planilha Completa"
         btnPlanilhaCompleta = QPushButton("Planilha Completa", self)
         btnPlanilhaCompleta.clicked.connect(self.gerarPlanilhaCompleta)
-        layout.addWidget(btnPlanilhaCompleta)
+        layout.addWidget(btnPlanilhaCompleta)   
 
-        # Adicionar botão "Importar Tabela Gestores"
-        btnImportarTabelaGestores = QPushButton("Importar Tabela Gestores", self)
-        btnImportarTabelaGestores.clicked.connect(self.importarTabelaGestores)
-        layout.addWidget(btnImportarTabelaGestores)
+        # Adicionar botão "Gerar Pastas"
+        btnGerarPastas = QPushButton("Gerar Pastas", self)
+        btnGerarPastas.clicked.connect(self.gerartodasPastas)
+        layout.addWidget(btnGerarPastas)  # Adicione o botão ao layout
 
-        # Adicionar a QTableView ao layout
-        layout.addWidget(self.table_view)
-    
-    def importarTabelaGestores(self):
-        filePath, _ = QFileDialog.getOpenFileName(self, "Importar Tabela Gestores", "", "Excel Files (*.xlsx *.xls)")
-        if filePath:
-            try:
-                sicronizar_gestor_fiscal = pd.read_excel(filePath)
+        # Adicionar botão "Verificar nomes dos PDF"
+        btnVerificarPDFs = QPushButton("Verificar nomes dos PDF", self)
+        btnVerificarPDFs.clicked.connect(self.verificarPDFs)
+        layout.addWidget(btnVerificarPDFs)
+
+    def verificarPDFs(self):
+        dir_path = QFileDialog.getExistingDirectory(self, "Selecione a pasta a ser verificada", QDir.homePath())
+
+        if dir_path:
+            problema_encontrado = False
+            log = []
+
+            for subfolder in os.listdir(dir_path):
+                subfolder_path = os.path.join(dir_path, subfolder)
+                if os.path.isdir(subfolder_path):
+                    for additional_folder in ['portaria_fiscalizacao', 'contrato_inicial', 'termo_aditivo']:
+                        self.verificarPastaEspecifica(subfolder, subfolder_path, additional_folder, log, problema_encontrado)
+
+            for subfolder in os.listdir(dir_path):
+                subfolder_path = os.path.join(dir_path, subfolder)
+                if os.path.isdir(subfolder_path):
+                    for additional_folder in ['portaria_fiscalizacao', 'contrato_inicial', 'termo_aditivo']:
+                        self.verificarPastaEspecifica(subfolder, subfolder_path, additional_folder, log, problema_encontrado)
+
+
+            self.finalizarVerificacao(dir_path, problema_encontrado, log)
+
+    def verificarPastaEspecifica(self, subfolder, subfolder_path, additional_folder, log, problema_encontrado):
+        additional_folder_path = os.path.join(subfolder_path, additional_folder)
+        if os.path.exists(additional_folder_path):
+            pdf_files = [f for f in os.listdir(additional_folder_path) if f.lower().endswith('.pdf')]
+            if len(pdf_files) > 1:
+                self.deletarPDFsAntigos(additional_folder_path, pdf_files, subfolder, additional_folder, log)
+            elif len(pdf_files) == 0:
+                problema_encontrado = True
+                log.append(f"Nenhum PDF encontrado em '{subfolder}/{additional_folder}'.")
+            else:
+                self.renomearPDF(additional_folder_path, pdf_files[0], additional_folder, log)
+        else:
+            problema_encontrado = True
+            log.append(f"A pasta '{additional_folder}' não foi encontrada em '{subfolder_path}'.")
+
+    def deletarPDFsAntigos(self, additional_folder_path, pdf_files, subfolder, additional_folder, log):
+        pdf_files.sort(key=lambda x: os.path.getctime(os.path.join(additional_folder_path, x)), reverse=True)
+        for file_to_delete in pdf_files[1:]:
+            os.remove(os.path.join(additional_folder_path, file_to_delete))
+        log.append(f"Mais de um PDF encontrado em '{subfolder}/{additional_folder}'. Apenas o mais recente foi mantido.")
+
+    def renomearPDF(self, additional_folder_path, pdf_file, additional_folder, log):
+        new_pdf_name = f"{additional_folder}.pdf"
+        old_pdf_path = os.path.join(additional_folder_path, pdf_file)
+        new_pdf_path = os.path.join(additional_folder_path, new_pdf_name)
+        os.rename(old_pdf_path, new_pdf_path)
+        log.append(f"Renomeado '{pdf_file}' para '{new_pdf_name}'.")
+
+    def finalizarVerificacao(self, dir_path, problema_encontrado, log):
+        if problema_encontrado:
+            log_message = "\n".join(log)
+            log_file_path = os.path.join(dir_path, "log_erros.txt")
+            with open(log_file_path, 'w') as log_file:
+                log_file.write(log_message)
+            QMessageBox.information(self, "Sucesso", f"Todos os PDFs foram verificados com sucesso! O log de erros foi salvo em:\n{log_file_path}")
+            subprocess.Popen(['notepad.exe', log_file_path])
+        else:
+            QMessageBox.information(self, "Sucesso", "Todos os PDFs foram verificados com sucesso!")
+
+    def gerartodasPastas(self):
+        # Abrir uma janela para o usuário escolher onde as pastas serão criadas
+        dir_path = QFileDialog.getExistingDirectory(self, "Selecione a pasta de destino", QDir.homePath())
+
+        if dir_path:  # Verifica se o usuário selecionou um diretório
+            # Cria a pasta 'Atas_e_Contratos' dentro do diretório selecionado
+            atas_contratos_dir = os.path.join(dir_path, "Atas_e_Contratos")
+            os.makedirs(atas_contratos_dir, exist_ok=True)
+            
+            # Obtém os dados do modelo
+            df = self.convertModelToDataFrame()
+            
+            # Itera sobre as linhas do DataFrame
+            for index, row in df.iterrows():
+                # Obtém o valor formatado e ajusta para substituir '/' por '_'
+                valor_formatado = row['Valor Formatado'].replace('/', '_')
                 
-                # Supondo que `self.model` seja uma instância de `CustomTableModel` que possui um método `getDataFrame`
-                dataframe_atual = self.model.getDataFrame()
-                
-                # Implementação da lógica de sincronização
-                for index, row in sicronizar_gestor_fiscal.iterrows():
-                    if row['Número'] in dataframe_atual['Valor Formatado'].values:
-                        # Encontrar o índice no dataframe_atual onde existe correspondência
-                        indices = dataframe_atual[dataframe_atual['Valor Formatado'] == row['Número']].index
-                        for col in ['Posto/Graduação Gestor', 'Gestor', 'Posto/Graduação Gestor Substituto', 'Gestor Substituto', 'Posto/Graduação Fiscal', 'Fiscal', 'Posto/Graduação Fiscal Substituto', 'Fiscal Substituto']:
-                            dataframe_atual.loc[indices, col] = row[col]
-                
-                # Atualizar o modelo com o DataFrame modificado
-                self.model.setDataFrame(dataframe_atual)  # Supondo que existe um método `setDataFrame` para atualizar o DataFrame
-                self.table_view.setModel(self.model)  # Atualize a QTableView com o novo modelo
-                
-            except Exception as e:
-                QMessageBox.warning(self, "Erro", f"Não foi possível importar o arquivo.\nErro: {e}")
-                print(f"Não foi possível importar o arquivo.\nErro: {e}")
-                
+                # Cria a subpasta com base no valor formatado
+                subfolder_path = os.path.join(atas_contratos_dir, valor_formatado)
+                os.makedirs(subfolder_path, exist_ok=True)
+                # Cria as pastas adicionais dentro da subpasta
+                for additional_folder in ['portaria_fiscalizacao', 'contrato_inicial', 'termo_aditivo']:
+                    additional_folder_path = os.path.join(subfolder_path, additional_folder)
+                    os.makedirs(additional_folder_path, exist_ok=True)
+
+            QMessageBox.information(self, "Sucesso", "Pastas geradas com sucesso!")
+                            
     def getUniqueOMs(self):
         omSet = set()
         for row in range(self.model.rowCount()):
@@ -347,7 +413,6 @@ class GerarTabelas(QDialog):
             os.startfile(novo_pdf_path)
         except Exception as e:
             print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
-
 
     def convertModelToDataFrame(self):
         colunas = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
