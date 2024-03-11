@@ -77,7 +77,6 @@ class GerarTabelas(QDialog):
                     for additional_folder in ['portaria_fiscalizacao', 'contrato_inicial', 'termo_aditivo']:
                         self.verificarPastaEspecifica(subfolder, subfolder_path, additional_folder, log, problema_encontrado)
 
-
             self.finalizarVerificacao(dir_path, problema_encontrado, log)
 
     def verificarPastaEspecifica(self, subfolder, subfolder_path, additional_folder, log, problema_encontrado):

@@ -22,11 +22,12 @@ colunas = [
     'fornecedor_corrigido', 'material_servico', 'NUP_portaria', 'ordenador_despesas', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
 
 colunas_adicionais = [
-    'Número do instrumento', 'Dias', 'Objeto', 'OM', 'Setor', 'Tipo', 'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto',  
-    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
-    'Processo', 'NUP',  'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'fornecedor_corrigido',  'Comentários', 'Termo Aditivo', 
+    'Número do instrumento', 'Dias', 'Objeto', 'OM', 'Setor', 'Tipo', 'Vig. Fim Formatado', 'Valor Formatado', 'Natureza Continuada', 
+    'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 
+    'Processo', 'NUP',  'CP', 'MSG', 'CNPJ', 'Fornecedor Formatado', 'fornecedor_corrigido', 'Termo Aditivo', 
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6',
-     'material_servico', 'NUP_portaria', 'ordenador_despesas', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
+    'material_servico', 'NUP_portaria', 'ordenador_despesas', 
+    'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria', 'Comentários']
 
 colunas_gestor_fiscal = [
     'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
@@ -201,7 +202,7 @@ class ContratosWidget(QWidget):
         if item.column() == 1:  # Verifica se a mudança ocorreu na coluna dos checkboxes
             row = item.row()
             check_state = item.checkState() == Qt.CheckState.Checked
-            print(f"Checkbox na linha {row} alterado para {'selecionado' if check_state else 'não selecionado'}")
+            # print(f"Checkbox na linha {row} alterado para {'selecionado' if check_state else 'não selecionado'}")
             # Atualiza o DataFrame
             self.model.merged_data.at[row, 'Selecionado'] = check_state
 
@@ -211,11 +212,11 @@ class ContratosWidget(QWidget):
         self.layout.addWidget(self.searchField)
 
     def onHeaderClicked(self, logicalIndex):
-        print("Antes da reordenação:")
+        # print("Antes da reordenação:")
         for i in range(self.model.rowCount()):
             item = self.model.item(i, 1)  # Assumindo que os checkboxes estejam na coluna 1
-            if item:
-                print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
+            # if item:
+            #     print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
         
         sortOrder = self.table_view.horizontalHeader().sortIndicatorOrder()
         self.proxyModel.sort(logicalIndex, sortOrder)
@@ -223,8 +224,8 @@ class ContratosWidget(QWidget):
         print("Depois da reordenação:")
         for i in range(self.model.rowCount()):
             item = self.model.item(i, 1)
-            if item:
-                print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
+            # if item:
+            #     print(f"Linha {i}: {'selecionado' if item.checkState() == Qt.CheckState.Checked else 'não selecionado'}")
 
     def loadAndConfigureModel(self):
         contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
@@ -259,7 +260,7 @@ class ContratosWidget(QWidget):
                 newState = not item.checkState() == Qt.CheckState.Checked
                 item.setCheckState(Qt.CheckState.Checked if newState else Qt.CheckState.Unchecked)
                 self.model.merged_data.at[sourceIndex.row(), 'Selecionado'] = newState
-                print(f"Estado do checkbox na linha {sourceIndex.row()} atualizado para {'selecionado' if newState else 'não selecionado'}")
+                # print(f"Estado do checkbox na linha {sourceIndex.row()} atualizado para {'selecionado' if newState else 'não selecionado'}")
 
     def onSelectionChanged(self, selected, deselected):
         selected_rows = self.table_view.selectionModel().selectedRows()
@@ -283,31 +284,68 @@ class ContratosWidget(QWidget):
                 QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
 
     def atualizarLinhaEspecifica(self, dados_atualizados, indice_visual):
-        coluna_mapeamento = {'Número do instrumento': 'Comprasnet'}  # Defina o mapeamento aqui conforme necessário
-        if hasattr(self, 'proxyModel'):
-            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_visual, 0)).row()
-        else:
-            indice_linha_source = indice_visual
+        coluna_mapeamento = {'Número do instrumento': 'Comprasnet'}
 
-        for chave, valor in dados_atualizados.items():
-            # Aplica o mapeamento para encontrar o nome correto da coluna
-            coluna_mapeada = coluna_mapeamento.get(chave, chave)
-            if coluna_mapeada in self.colunas:
-                coluna_index = self.colunas.index(coluna_mapeada) + 2   # Assumindo que não há mais desalinhamento
-                try:
-                    item = self.model.item(indice_linha_source, coluna_index)
-                    if item:
-                        item.setText(str(valor))
-                        # Notifica a mudança para atualizar a view
-                        self.model.dataChanged.emit(self.model.index(indice_linha_source, coluna_index), self.model.index(indice_linha_source, coluna_index))
-                except Exception as e:
-                    print(f"Erro ao atualizar coluna '{chave}': {e}")
-            else:
-                print(f"Coluna '{chave}' não encontrada nas colunas definidas.")
-        
-        # Força a atualização do filtro no proxyModel, se necessário
+        # Converte o índice visual para índice de fonte se estiver usando um proxyModel
         if hasattr(self, 'proxyModel'):
-            self.proxyModel.invalidateFilter()
+            indice_modelo_fonte = self.proxyModel.mapToSource(self.proxyModel.index(indice_visual, 0))
+        else:
+            indice_modelo_fonte = self.model.index(indice_visual, 0)
+
+        # Utiliza o índice de fonte para encontrar o valor "Comprasnet" correspondente na linha
+        valor_comprasnet = self.model.data(self.model.index(indice_modelo_fonte.row(), self.colunas.index('Comprasnet')))
+
+        print(f"Atualizando linha para 'Comprasnet': {valor_comprasnet}")
+
+        # Itera pelo modelo para encontrar a linha com o valor "Comprasnet" correspondente
+        for i in range(self.model.rowCount()):
+            item = self.model.item(i, self.colunas.index('Comprasnet'))
+            if item and item.text() == valor_comprasnet:
+                print(f"Linha com 'Comprasnet': {valor_comprasnet} encontrada para atualização.")
+                # Atualiza os dados para essa linha
+                for chave, valor in dados_atualizados.items():
+                    coluna_mapeada = coluna_mapeamento.get(chave, chave)
+                    if coluna_mapeada in self.colunas:
+                        coluna_index = self.colunas.index(coluna_mapeada)
+                        item_atualizar = self.model.item(i, coluna_index)
+                        if item_atualizar:
+                            item_atualizar.setText(str(valor))
+                            print(f"Coluna '{coluna_mapeada}' atualizada para: {valor}")
+                            # Notifica a mudança para atualizar a visualização
+                            self.model.dataChanged.emit(self.model.index(i, coluna_index), self.model.index(i, coluna_index))
+                break
+        else:
+            print(f"Linha com 'Comprasnet': {valor_comprasnet} não encontrada.")
+
+
+    # def atualizarLinhaEspecifica(self, dados_atualizados, indice_visual):
+    #     coluna_mapeamento = {'Número do instrumento': 'Comprasnet'}  # Defina o mapeamento aqui conforme necessário
+    #     if hasattr(self, 'proxyModel'):
+    #         indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_visual, 0)).row()
+    #     else:
+    #         indice_linha_source = indice_visual
+
+    #     for chave, valor in dados_atualizados.items():
+    #         # Aplica o mapeamento para encontrar o nome correto da coluna
+    #         coluna_mapeada = coluna_mapeamento.get(chave, chave)
+    #         print(f"Coluna '{chave}' encontrada corretamente.")
+
+    #         if coluna_mapeada in self.colunas:
+    #             coluna_index = self.colunas.index(coluna_mapeada) + 2   # Assumindo que não há mais desalinhamento
+    #             try:
+    #                 item = self.model.item(indice_linha_source, coluna_index)
+    #                 if item:
+    #                     item.setText(str(valor))
+    #                     # Notifica a mudança para atualizar a view
+    #                     self.model.dataChanged.emit(self.model.index(indice_linha_source, coluna_index), self.model.index(indice_linha_source, coluna_index))
+    #             except Exception as e:
+    #                 print(f"Erro ao atualizar coluna '{chave}': {e}")
+    #         else:
+    #             print(f"Coluna '{chave}' não encontrada nas colunas definidas.")
+        
+    #     # Força a atualização do filtro no proxyModel, se necessário
+    #     if hasattr(self, 'proxyModel'):
+    #         self.proxyModel.invalidateFilter()
 
     def atualizarDadosTableView(self):
         contratos_data = DataProcessor.load_data(CONTRATOS_PATH, ADICIONAIS_PATH, colunas_contratos, colunas_adicionais)
@@ -514,7 +552,7 @@ class MultiColumnFilterProxyModel(QSortFilterProxyModel):
         return False
 
     def filterAcceptsColumn(self, sourceColumn, sourceParent):
-        print(f"Verificando coluna: {sourceColumn}")  # Debug
+        # print(f"Verificando coluna: {sourceColumn}")  # Debug
         if sourceColumn < 2:
             return True
 
@@ -523,11 +561,11 @@ class MultiColumnFilterProxyModel(QSortFilterProxyModel):
             return False
         
         column_name = self.column_indices.get(sourceColumn)
-        print(f"Nome da coluna: {column_name}")  # Debug
+        # print(f"Nome da coluna: {column_name}")  # Debug
         if column_name in self.hidden_columns:
-            print(f"Ocultando coluna: {column_name}")  # Debug
+            # print(f"Ocultando coluna: {column_name}")  # Debug
             return False
-        print(f"Mostrando coluna: {column_name}")  # Debug
+        # print(f"Mostrando coluna: {column_name}")  # Debug
         return True
 
     def setColumnIndices(self, column_names):
