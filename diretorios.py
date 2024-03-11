@@ -100,6 +100,7 @@ ICONS_EDIT_DIR = ICONS_DIR  / "edit.gif"
 #Diretórios do módulo Controle de Contratos
 CONTRATOS_PATH = DATABASE_DIR / "Contratos.csv"
 ADICIONAIS_PATH = DATABASE_DIR / "Dados_Adicionais.csv"
+NOVOS_DADOS_PATH = DATABASE_DIR / "novos_dados.csv"
 CONTROLE_CONTRATOS_DIR = BASE_DIR / "controle_contratos"
 TEMPLATE_PORTARIA_GESTOR = CONTROLE_CONTRATOS_DIR / "template_portaria_gestor_fiscal.docx"
 DATABASE_CONTRATOS = CONTROLE_CONTRATOS_DIR / "data_contratos"
