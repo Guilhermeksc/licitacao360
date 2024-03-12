@@ -371,15 +371,16 @@ def inserir_relacao_empresa(paragrafo, registro, cnpj):
 def gerar_campos_item(item):
     # Convertendo item_num e catalogo para inteiros
     item_num_int = int(item["item_num"])
-    catalogo_int = int(item["catalogo"])
+    # catalogo_int = int(item["catalogo"])
 
     # Formatando a quantidade
     quantidade_formatada = f"{float(item['quantidade']):.2f}".rstrip('0').rstrip('.')
 
     return [
-        (f'Item {item_num_int} - Descrição: {item["descricao_detalhada_tr"]}', False),
+        (f'Item {item_num_int}', False),
+        (f'Descrição: {item["descricao_detalhada_tr"]}', False),
         (f'Unidade de Fornecimento: {item["unidade"]}', False),
-        (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
+        # (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
         (f'Quantidade: {quantidade_formatada}   |   Valor Unitário: R$ {formatar_brl(item["valor_homologado_item_unitario"])}   |   Valor Total do Item: R$ {formatar_brl(item["valor_homologado_total_item"])}', False),
         (f'{"-" * 130}', False)
     ]
