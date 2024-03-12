@@ -968,7 +968,7 @@
                 "etapa": "Recomendações AGU",
                 "data_inicial": "22-02-2024",
                 "data_final": null,
-                "dias_na_etapa": 15,
+                "dias_na_etapa": 18,
                 "comentario": "",
                 "sequencial": 1
             }
@@ -1007,7 +1007,7 @@
                 "etapa": "Nota Técnica",
                 "data_inicial": "24-02-2024",
                 "data_final": null,
-                "dias_na_etapa": 13,
+                "dias_na_etapa": 16,
                 "comentario": "teste",
                 "sequencial": 1
             }
