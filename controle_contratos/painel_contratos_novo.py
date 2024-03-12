@@ -60,7 +60,7 @@ class PandasModel(QtCore.QAbstractTableModel):
             return None
 
         # Tratamento especial para coluna 'Portaria' para ícones de NaN
-        if index.column() == 18:
+        if index.column() == 19:
             if role == Qt.ItemDataRole.DecorationRole:
                 # Verifica se o valor em 'Portaria' é NaN
                 if pd.isna(self._data.iloc[index.row(), index.column() - 2]):  # Ajustando o índice para corresponder ao DataFrame
@@ -149,7 +149,181 @@ class ContratosWidget(QWidget):
         self.setupUI()
         self.load_data()
         self.setup_model()
+        self.setupButtons()
         self.colunas = colunas_adicionais 
+
+    def setupButtons(self):
+        # Adiciona os botões existentes
+        self.buttons_layout = QHBoxLayout()
+        # buttons_info = [
+        #     ("Gerar Tabela", self.abrirGerarTabelas),
+        #     ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
+        #     ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
+        #     ("Importar Tabela Gestores", self.abrirDialogoImportacao)
+        # ]
+
+        buttons_info = [
+            ("Gerar Tabela", self.abrirDialogoAlertaPrazo),
+            ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
+            ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
+            ("Importar Tabela Gestores", self.abrirDialogoAlertaPrazo)
+        ]
+
+        for text, func in buttons_info:
+            btn = QPushButton(text, self)
+            if func:  # Verifica se uma função foi fornecida
+                btn.clicked.connect(func)
+            self.buttons_layout.addWidget(btn)
+        self.layout.addLayout(self.buttons_layout)
+
+    def abrirGerarTabelas(self):
+        dialog = GerarTabelas(self.model, self)
+        dialog.exec()
+
+    def abrirDialogoAlertaPrazo(self):
+        dados_selecionados = self.coletarDadosSelecionados()
+        texto = self.prepararTextoAlertaPrazo(dados_selecionados)
+        dialogo = MSGAlertaPrazo(texto)
+        dialogo.exec()
+
+    def abrirDialogoEditarInformacoesAdicionais(self):
+        selectionModel = self.tableView.selectionModel()
+        if selectionModel.hasSelection():
+            indice_linha = selectionModel.currentIndex().row()
+            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_linha, 0)).row()
+            contrato_atual = self.obterContratoAtual()
+            if contrato_atual:
+                # Inclua 'indice_linha' como um argumento aqui
+                dialogo = AtualizarDadosContratos(contrato_atual, self.tableView, self.model, indice_linha_source, self)
+                dialogo.dadosContratosSalvos.connect(self.atualizarLinhaEspecifica)
+                dialogo.exec()
+            else:
+                QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
+    
+    def obterContratoAtual(self):
+        selection = self.tableView.selectionModel().selectedIndexes()
+        if selection:
+            # Se estiver usando um proxy model, assegure-se de mapear para o source model
+            model = self.tableView.model().sourceModel() if hasattr(self.tableView.model(), 'sourceModel') else self.tableView.model()
+
+            index = selection[0]  # Índice da célula selecionada no proxy model
+            sourceIndex = self.tableView.model().mapToSource(index) if hasattr(self.tableView.model(), 'mapToSource') else index
+
+            contrato_atual = {}
+            for coluna in range(model.columnCount()):
+                indice = model.index(sourceIndex.row(), coluna)
+                chave = model.headerData(coluna, Qt.Orientation.Horizontal)
+                valor = model.data(indice, Qt.ItemDataRole.DisplayRole)
+                # Checar se o valor é a string "nan" e substituir por ''
+                if valor == "nan":
+                    valor = ''
+                contrato_atual[chave] = valor
+
+            print("Contrato Atual:", contrato_atual)
+            return contrato_atual
+        else:
+            return None
+        
+    def atualizarLinhaEspecifica(self, dados_atualizados, indice_visual):
+        coluna_mapeamento = {'Número do instrumento': 'Número do instrumento'}
+
+        # Converte o índice visual para índice de fonte se estiver usando um proxyModel
+        if hasattr(self, 'proxyModel'):
+            indice_modelo_fonte = self.proxyModel.mapToSource(self.proxyModel.index(indice_visual, 0))
+        else:
+            indice_modelo_fonte = self.model.index(indice_visual, 0)
+
+        # Utiliza o índice de fonte para encontrar o valor "Número do instrumento" correspondente na linha
+        valor_comprasnet = self.model.data(self.model.index(indice_modelo_fonte.row(), self.colunas.index('Número do instrumento')))
+
+        print(f"Atualizando linha para 'Número do instrumento': {valor_comprasnet}")
+
+        # Itera pelo modelo para encontrar a linha com o valor "Comprasnet" correspondente
+        for i in range(self.model.rowCount()):
+            item = self.model.item(i, self.colunas.index('Número do instrumento'))
+            if item and item.text() == valor_comprasnet:
+                print(f"Linha com 'Número do instrumento': {valor_comprasnet} encontrada para atualização.")
+                # Atualiza os dados para essa linha
+                for chave, valor in dados_atualizados.items():
+                    coluna_mapeada = coluna_mapeamento.get(chave, chave)
+                    if coluna_mapeada in self.colunas:
+                        coluna_index = self.colunas.index(coluna_mapeada)
+                        item_atualizar = self.model.item(i, coluna_index)
+                        if item_atualizar:
+                            item_atualizar.setText(str(valor))
+                            print(f"Coluna '{coluna_mapeada}' atualizada para: {valor}")
+                            # Notifica a mudança para atualizar a visualização
+                            self.model.dataChanged.emit(self.model.index(i, coluna_index), self.model.index(i, coluna_index))
+                break
+        else:
+            print(f"Linha com 'Número do instrumento': {valor_comprasnet} não encontrada.")
+
+    def coletarDadosSelecionados(self):
+        dados_selecionados = []
+        for row in range(self.model.rowCount()):
+            checkbox_item = self.model.item(row, 1)  # Assumindo que os checkboxes estejam na coluna 1
+            if checkbox_item.checkState() == Qt.CheckState.Checked:
+                """
+                0 'Processo' | 1 'contrato_formatado'       | 2 'Termo Aditivo'      | 3 'NUP'           | 4 'Objeto' 
+                5 'cnpj_cpf' | 6 'empresa'                  | 7 'Valor Global'       | 8 'Vig. Fim'      | 9 'Dias'          
+                10 'OM'      | 11 'Setor'                   | 12 'material_servico'  | 14 'Natureza Continuada' | 15 'Comentários'
+                16 'Portaria'| 17 'Posto_Gestor'            | 18 'Gestor'            | 19 'Posto_Gestor_Substituto' | 20 'Gestor_Substituto'
+                21 'Posto_Fiscal' | 22 'Fiscal'             | 23 'Posto_Fiscal_Substituto' | 24 'Fiscal_Substituto' | 25 'Status0'
+                26 'Status1' | 27 'Status2'                 | 28 'Status3'           | 29 'Status4'      | 30 'Status5'
+                31 'Status6' | 32 'NUP_portaria'            | 33 'ordenador_despesas'| 34 'base_url'     | 35 'link_contrato_inicial'
+                36 'link_termo_aditivo' | 37 'link_portaria'| 38 'Fornecedor'        | 39 'Vig. Início'  | 40 'Número do instrumento'
+                41 'Status Icon'        | 42 'CP'           | 43 'MSG'               | 44 'fornecedor_corrigido' | 45 'Selected'
+                """
+                dados_linha = {
+                    'numero_comprasnet': self.model.item(row, 40).text(),
+                    'tipo': self.model.item(row, 3).text(),
+                    'processo': self.model.item(row, 0).text(),                
+                    'nup': self.model.item(row, 3).text(),
+                    'cnpj': self.model.item(row, 5).text(), 
+                    'empresa': self.model.item(row, 6).text(),
+                    'dias_para_vencer': self.model.item(row, 9).text(),
+                    'valor_global': self.model.item(row, 7).text(), 
+                    'objeto': self.model.item(row, 4).text(),                    
+                    'om': self.model.item(row, 10).text(), 
+                    'setor': self.model.item(row, 11).text(), 
+                    'cp': self.model.item(row, 42).text(),
+                    'msg': self.model.item(row, 43).text(),
+                    'inicio_vigencia': self.model.item(row, 39).text(), 
+                    'fim_vigencia': self.model.item(row, 8).text(),                
+                    'numero_contrato': self.model.item(row, 1).text(),  
+                    'portaria': self.model.item(row, 16).text(),
+                    'posto_gestor': self.model.item(row, 17).text(),
+                    'gestor': self.model.item(row, 18).text(),
+                    'fiscal': self.model.item(row, 22).text(),
+                    'prazo_limite': DataProcessor.calcular_prazo_limite(self.model.item(row, 8).text())
+                }
+                dados_selecionados.append(dados_linha)
+        return dados_selecionados
+
+    def prepararTextoAlertaPrazo(self, dados_selecionados):
+        texto = "<p>ROTINA<br>"
+        mes_atual = datetime.now().strftime("%b").upper()
+        ano_atual = datetime.now().strftime('%Y')
+        texto += f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
+        texto += "DE NICITB<br>PARA SETDIS<br>GRNC<br>BT<br><br>"
+        texto += "Renovação de Acordos Administrativos<br><br>"
+        texto += "<br>ALFA - Contratos Administrativo<br><br>"        
+        for idx, dados in enumerate(dados_selecionados, start=1):
+            numero_extenso = DataProcessor.numero_para_extenso(idx)
+
+            texto += (f"{numero_extenso} - <span style='color: blue;'>{dados['processo']}</span>:<br>"
+                    f" Contrato Administrativo n° <span style='color: blue;'>{dados['numero_contrato']};</span><br>"
+                    f" Nup: <span style='color: blue;'>{dados['nup']};</span><br>" 
+                    f" Nome da Empresa: <span style='color: blue;'>{dados['empresa']}</span>, CNPJ: <span style='color: blue;'>{dados['cnpj']};</span><br>"
+                    f" Objeto: <span style='color: blue;'>{dados['objeto']};</span><br>"
+                    f" Valor global: <span style='color: blue;'>{dados['valor_global']}; e</span><br>"
+                    f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br>"
+                    f" Gestor do Contrato: <span style='color: blue;'>{dados['posto_gestor']} {dados['gestor']}</span><br><br>"
+                    # f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
+                    f" Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+                    )
+        texto += "</p>BT"
+        return texto
 
     def setup_model(self):
         # Defina e configure o seu modelo aqui, por exemplo:
@@ -223,30 +397,37 @@ class ContratosWidget(QWidget):
         # Mostra um tooltip indicando que o dado foi copiado
         self.showCopyTooltip(f"{columnName} copiado: {data}")
 
-
     def showCopyTooltip(self, message):
         cursorPos = QCursor.pos()  # Obter a posição atual do cursor
         QToolTip.showText(cursorPos, message, msecShowTime=2500)  # Mostrar tooltip na posição do cursor por 1.5 segundos
 
     def handleRowPressed(self, index):
         if index.isValid():
-            # Verifica se o clique ocorreu na coluna do checkbox
-            if index.column() == 1:
-                # Obtém o modelo de dados
-                model = self.tableView.model()
-                # Obtém o índice da célula do checkbox para a linha clicada
-                checkbox_index = model.index(index.row(), 1)
-                # Obtém o valor atual do checkbox
-                current_state = model.data(checkbox_index, Qt.ItemDataRole.CheckStateRole)
-                # Inverte o valor do checkbox
-                new_state = not current_state
-                # Define o novo estado do checkbox
-                model.setData(checkbox_index, new_state, Qt.ItemDataRole.EditRole)
-            else:
-                # Se o clique não ocorreu na coluna do checkbox, então seleciona a linha
-                selection_model = self.tableView.selectionModel()
-                selection_model.select(index, QItemSelectionModel.SelectionFlag.Select)
+            # Ajusta para que qualquer seleção de célula na linha altere o estado do checkbox
+            model = self.tableView.model()
             
+            # Considerando que a coluna do checkbox é conhecida (por exemplo, a segunda coluna, indexada como 1)
+            checkbox_column_index = 1
+            
+            # Obtém o índice do checkbox na linha selecionada
+            checkbox_index = model.index(index.row(), checkbox_column_index)
+            
+            # Verifica se o clique foi diretamente no checkbox, se sim, ignora o resto da lógica
+            # para permitir que o comportamento padrão do checkbox ocorra
+            if index.column() == checkbox_column_index:
+                return
+
+            # Inverte o estado do checkbox
+            current_state = model.data(checkbox_index, QtCore.Qt.ItemDataRole.CheckStateRole)
+            new_state = QtCore.Qt.CheckState.Unchecked if current_state == QtCore.Qt.CheckState.Checked else QtCore.Qt.CheckState.Checked
+            
+            # Define o novo estado do checkbox
+            model.setData(checkbox_index, new_state, QtCore.Qt.ItemDataRole.CheckStateRole)
+
+            # Atualiza a seleção da linha (opcional, dependendo da UX desejada)
+            selection_model = self.tableView.selectionModel()
+            selection_model.select(index, QtCore.QItemSelectionModel.SelectionFlag.Select | QtCore.QItemSelectionModel.SelectionFlag.Rows)
+
     def ajustarLarguraColunas(self):
         for i in range(self.tableView.model().columnCount()):
             self.tableView.resizeColumnToContents(i)
@@ -256,14 +437,12 @@ class ContratosWidget(QWidget):
         model = PandasModel(merged_data)
         self.searchManager = SearchManager(model, self.searchField)
         self.tableView.setModel(self.searchManager.proxyModel)
-        indices_colunas_visiveis = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 18]
+        indices_colunas_visiveis = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 19]
 
         for column in range(model.columnCount()):
             self.tableView.setColumnHidden(column, column not in indices_colunas_visiveis)
 
         self.tableView.setSortingEnabled(True)
-
-
 
     def onTableViewClicked(self, index):
         if index.isValid():

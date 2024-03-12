@@ -2,7 +2,7 @@
     "PE 2/2024": {
         "nup": "62055.009367/2023-13",
         "objeto": "Transporte de Carga",
-        "uasg": 787010,
+        "uasg": "787010",
         "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "CeIMBra",
         "setor_responsavel": "PDU",
@@ -69,7 +69,7 @@
     "PE 3/2024": {
         "nup": "62055.010878/2023-70",
         "objeto": "Manutenção de Elevadores",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "DSG",
@@ -144,7 +144,7 @@
     "PE 4/2024": {
         "nup": "62055.002451/2023-06 ",
         "objeto": "Cestas Básicas",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "NAS",
@@ -163,7 +163,7 @@
     "PE 5/2024": {
         "nup": "62055.006044/2023-60",
         "objeto": "Provedor de Internet",
-        "uasg": 787400,
+        "uasg": "787400",
         "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
         "sigla_om": "ERMB",
         "setor_responsavel": "ERMB (CLTI)",
@@ -182,7 +182,7 @@
     "PE 6/2024": {
         "nup": "62055.006579/2023-31",
         "objeto": "Telefonia Fixa",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Telemática",
@@ -192,7 +192,7 @@
     "PE 7/2024": {
         "nup": "62055.005107/2023-61",
         "objeto": "Água Mineral",
-        "uasg": 787010,
+        "uasg": "787010",
         "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "CeIMBra",
         "setor_responsavel": "Subsistência",
@@ -202,7 +202,7 @@
     "PE 8/2024": {
         "nup": "62055.002454/2023-31",
         "objeto": "Material Permanente de Rancho",
-        "uasg": 787200,
+        "uasg": "787200",
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
@@ -212,7 +212,7 @@
     "PE 9/2024": {
         "nup": "62055.001220/2024-58",
         "objeto": "Moto Aquática",
-        "uasg": 787310,
+        "uasg": "787310",
         "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
         "sigla_om": "CFAT",
         "setor_responsavel": "CFAT",
@@ -222,7 +222,7 @@
     "PE 10/2024": {
         "nup": "62055.001221/2024-01",
         "objeto": "Material de Carpintaria",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7DN",
@@ -232,7 +232,7 @@
     "PE 11/2024": {
         "nup": "62055.001224/2024-36",
         "objeto": "Material de Marinharia e Salvatagem",
-        "uasg": 787320,
+        "uasg": "787320",
         "orgao_responsavel": "CAPITANIA FLUVIAL DE BRASÍLIA",
         "sigla_om": "CFB",
         "setor_responsavel": "CFB",
@@ -242,7 +242,7 @@
     "PE 12/2024": {
         "nup": "62055.001230/2024-93",
         "objeto": "Material Hidráulico",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -252,7 +252,7 @@
     "PE 13/2024": {
         "nup": "62055.001232/2024-82",
         "objeto": "Equipamento de Informática",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -262,7 +262,7 @@
     "PE 14/2024": {
         "nup": "62055.001234/2024-71",
         "objeto": "Material de Expediente",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -272,7 +272,7 @@
     "PE 15/2024": {
         "nup": "62055.001236/2024-61",
         "objeto": "Material de Higiene e Limpeza",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -282,7 +282,7 @@
     "PE 16/2024": {
         "nup": "62055.001237/2024-13",
         "objeto": "Pisos e Revestimentos",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -292,7 +292,7 @@
     "PE 17/2024": {
         "nup": "62055.001238/2024-50",
         "objeto": "Serviço de Transporte de Pessoal ",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -302,7 +302,7 @@
     "PE 18/2024": {
         "nup": "62055.001241/2024-73",
         "objeto": "Material de Segurança Orgânica",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
@@ -312,7 +312,7 @@
     "PE 19/2024": {
         "nup": "62055.001242/2024-18",
         "objeto": "Material Esportivo (PROFESP) ",
-        "uasg": 787400,
+        "uasg": "787400",
         "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
         "sigla_om": "ERMB",
         "setor_responsavel": "ERMB",
@@ -322,422 +322,17 @@
     "PE 20/2024": {
         "nup": "62055.001243/2024-62",
         "objeto": "Material Escolar",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Com7ºDN",
         "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 21/2024": {
-        "nup": "62055.001244/2024-15",
-        "objeto": "Óculos de Graus",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 22/2024": {
-        "nup": "62055.001245/2024-51",
-        "objeto": "Cestas Básicas",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 23/2024": {
-        "nup": "62055.001246/2024-04",
-        "objeto": "Material Permanente de Rancho",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 24/2024": {
-        "nup": "62055.001247/2024-41",
-        "objeto": "Material para Copa e Cozinha",
-        "uasg": 787200,
-        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
-        "sigla_om": "GptFNB",
-        "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 25/2024": {
-        "nup": "62055.001248/2024-95",
-        "objeto": "Serviços Gráficos Especializados",
-        "uasg": 787900,
-        "orgao_responsavel": "CENTRO DE INSTRUÇÃO E ADESTRAMENTO DE BRASÍLIA",
-        "sigla_om": "CIAB",
-        "setor_responsavel": "CIAB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 26/2024": {
-        "nup": "62055.001249/2024-30",
-        "objeto": "Mobiliários Corporativos",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 27/2024": {
-        "nup": "62055.001250/2024-64",
-        "objeto": "Periféricos de Informática ",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 28/2024": {
-        "nup": "62055.001251/2024-17",
-        "objeto": "Gêneros Frigorificados",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 29/2024": {
-        "nup": "62055.001252/2024-53",
-        "objeto": "Gêneros Hortifrutigranjeiros",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 30/2024": {
-        "nup": "62055.001253/2024-06",
-        "objeto": "Gêneros secos",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 31/2024": {
-        "nup": "62055.001254/2024-42",
-        "objeto": "Gêneros Laticínios e Frios",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 32/2024": {
-        "nup": "62055.001255/2024-97",
-        "objeto": "Material de Representação",
-        "uasg": 787010,
-        "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "NI-CeIMBra",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 33/2024": {
-        "nup": "62055.001256/2024-31",
-        "objeto": "Material de Academia",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 34/2024": {
-        "nup": "62055.001258/2024-21",
-        "objeto": "Seguro de Viaturas",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 35/2024": {
-        "nup": "62055.001259/2024-75",
-        "objeto": "Material de Manutenção de Embarcações Esportivas",
-        "uasg": 787320,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE BRASÍLIA",
-        "sigla_om": "CFB",
-        "setor_responsavel": "CFB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 36/2024": {
-        "nup": "62055.001261/2024-44",
-        "objeto": "Instalação de Concertina e Placa de Identificação",
-        "uasg": 787400,
-        "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
-        "sigla_om": "ERMB",
-        "setor_responsavel": "ERMB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 37/2024": {
-        "nup": "62055.001262/2024-99",
-        "objeto": "Material elétricos",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "Com7ºDN",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 38/2024": {
-        "nup": "62055.001263/2024-33",
-        "objeto": "Material de Pintura",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "GPTFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 39/2024": {
-        "nup": "62055.001264/2024-88",
-        "objeto": "Gás Liquefeito de Petróleo (GLP) ",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "CeIMBra",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 40/2024": {
-        "nup": "62055.001266/2024-77",
-        "objeto": "Aquisição de sobressalentes para viaturas",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "CFGO",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 41/2024": {
-        "nup": "62055.001268/2024-66",
-        "objeto": "Manutenção de Equipamentos de Rancho",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "GPTFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 42/2024": {
-        "nup": "62055.001269/2024-19",
-        "objeto": "Manutenção de equipamentos de ar condicionado",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "GPTFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 43/2024": {
-        "nup": "62055.001270/2024-35",
-        "objeto": "Obra de construção da nova sede da CFB",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "CFB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 44/2024": {
-        "nup": "62055.001271/2024-80",
-        "objeto": "Constr. de Galpão para Embarcações",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "CFAT",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 45/2024": {
-        "nup": "62055.001272/2024-24",
-        "objeto": "Constr.Vestiário e Banheiros para alunos(PROFESP) ",
-        "uasg": 787400,
-        "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
-        "sigla_om": "ERMB",
-        "setor_responsavel": "CFAT",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 46/2024": {
-        "nup": "62055.001273/2024-79",
-        "objeto": "Manutenção de Viaturas e embarcações",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "CFGO",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 47/2024": {
-        "nup": "62055.001275/2024-68",
-        "objeto": "Serviço de Impressão e Reprografia",
-        "uasg": 787320,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE BRASÍLIA",
-        "sigla_om": "CFB",
-        "setor_responsavel": "CFGO",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 48/2024": {
-        "nup": "62055.001278/2024-00",
-        "objeto": "Serviço de Engenharia para Reforma/ Construção de PNR",
-        "uasg": 787320,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE BRASÍLIA",
-        "sigla_om": "CFB",
-        "setor_responsavel": "CFGO",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 49/2024": {
-        "nup": "62055.001279/2024-46",
-        "objeto": "Fornecimento de CLG",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "CFGO",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 50/2024": {
-        "nup": "62055.001282/2024-60",
-        "objeto": "Sistema de Aquecimento de Piscina PROFESP",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "ERMBRA",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 51/2024": {
-        "nup": "62055.001284/2024-59",
-        "objeto": "Manutenção de Câmaras Frigoríficas",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 52/2024": {
-        "nup": "62055.001287/2024-92",
-        "objeto": "Remoção de Tanques de combustíveis PROFESP",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "ERMBRA",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 53/2024": {
-        "nup": "62055.001289/2024-81",
-        "objeto": "Aquisição de Trator Agrícola",
-        "uasg": 787400,
-        "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
-        "sigla_om": "ERMB",
-        "setor_responsavel": "CFAT",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 54/2024": {
-        "nup": "62055.001294/2024-94",
-        "objeto": "Serviço de Engenharia para Reforma no Píer",
-        "uasg": 787200,
-        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
-        "sigla_om": "GptFNB",
-        "setor_responsavel": "CFAT",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 55/2024": {
-        "nup": "62055.001295/2024-39",
-        "objeto": "Construção do Alojamento Feminino e de Trânsito",
-        "uasg": 787310,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
-        "sigla_om": "CFAT",
-        "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 56/2024": {
-        "nup": "62055.001296/2024-83",
-        "objeto": "Manutenção de Instrumentos musicais",
-        "uasg": 787320,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE BRASÍLIA",
-        "sigla_om": "CFB",
-        "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 57/2024": {
-        "nup": "62055.001298/2024-72",
-        "objeto": "Aquisição de Instrumentos Musicais",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "GptFNB",
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 58/2024": {
-        "nup": "62055.001299/2024-17",
-        "objeto": "Aquisição de mobiliário para nova sede da CFB",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "CFB",
-        "historico": [
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "01-02-2024",
-                "data_final": "01-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "teste",
-                "sequencial": 1
-            },
-            {
-                "etapa": "CJACM",
-                "data_inicial": "01-02-2024",
-                "data_final": "01-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Devolvido por Nota",
-                "data_inicial": "01-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 3
-            }
-        ],
         "etapa_atual": "Planejamento"
     },
     "PE 4/2023": {
         "nup": "62055.000344/2023-35",
         "objeto": "Gêneros Secos",
-        "uasg": 787010,
+        "uasg": "787010",
         "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "CeIMBra",
         "setor_responsavel": "Subsistência",
@@ -753,10 +348,18 @@
             {
                 "etapa": "Em recurso",
                 "data_inicial": "07-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 13,
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 34,
                 "comentario": "",
                 "sequencial": 2
+            },
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
             }
         ],
         "etapa_atual": "Planejamento"
@@ -764,7 +367,7 @@
     "PE 7/2023": {
         "nup": "62055.002424/2023-25",
         "objeto": "Frigorificados – CFAT",
-        "uasg": 787310,
+        "uasg": "787310",
         "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
         "sigla_om": "CFAT",
         "setor_responsavel": "CFAT",
@@ -780,10 +383,18 @@
             {
                 "etapa": "Em recurso",
                 "data_inicial": "07-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 13,
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 34,
                 "comentario": "",
                 "sequencial": 2
+            },
+            {
+                "etapa": "Homologado",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
             }
         ],
         "etapa_atual": "Planejamento"
@@ -791,7 +402,7 @@
     "PE 10/2023": {
         "nup": "62055.002426/2023-14",
         "objeto": "Material Elétrico e Eletrônico",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "DSG",
@@ -807,10 +418,18 @@
             {
                 "etapa": "Em recurso",
                 "data_inicial": "07-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 13,
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 34,
                 "comentario": "",
                 "sequencial": 2
+            },
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
             }
         ],
         "etapa_atual": "Planejamento"
@@ -818,7 +437,7 @@
     "PE 13/2023": {
         "nup": "62055.002436/2023-50",
         "objeto": "Material de Pintura",
-        "uasg": 787200,
+        "uasg": "787200",
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
@@ -826,28 +445,26 @@
             {
                 "etapa": "Sessão Pública",
                 "data_inicial": "30-01-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 21,
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 42,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
             }
         ],
-        "etapa_atual": "Planejamento"
-    },
-    "C 58/2024": {
-        "nup": "62055.001299/2024-17",
-        "objeto": "Aquisição de mobiliário para nova sede da CFB",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "CFB",
-        "historico": [],
         "etapa_atual": "Planejamento"
     },
     "DE 1/2023": {
         "nup": "62055.000344/2023-35",
         "objeto": "Dispensa1",
-        "uasg": 787010,
+        "uasg": "787010",
         "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "NI-CeIMBra",
         "setor_responsavel": "Subsistência",
@@ -863,10 +480,87 @@
             {
                 "etapa": "Homologado",
                 "data_inicial": "02-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 18,
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 39,
                 "comentario": "",
                 "sequencial": 2
+            },
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
+            },
+            {
+                "etapa": "Impugnado",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 4
+            },
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 5
+            },
+            {
+                "etapa": "IRP",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": {
+                    "numero_irp": "",
+                    "data_manifestacao": "22-03-2024",
+                    "data_confirmacao": "27-03-2024",
+                    "datahora_msg_divulgacao": ""
+                },
+                "sequencial": 6
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 7
+            },
+            {
+                "etapa": "CJACM",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 8
+            },
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 9
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 10
+            },
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 11
             }
         ],
         "etapa_atual": "Planejamento"
@@ -874,7 +568,7 @@
     "DE 2/2023": {
         "nup": "62055.002424/2023-25",
         "objeto": "Dispensa2",
-        "uasg": 787310,
+        "uasg": "787310",
         "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
         "sigla_om": "CFAT",
         "setor_responsavel": "CFAT",
@@ -901,7 +595,7 @@
     "DE 8/2024": {
         "nup": "62055.002451/2023-06 ",
         "objeto": "Dispensa8",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "NAS",
@@ -920,9 +614,9 @@
     "DE 7/2024": {
         "nup": "62055.010878/2023-70",
         "objeto": "Dispensa7",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
+        "uasg": "787000",
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
         "setor_responsavel": "DSG",
         "historico": [
             {
@@ -939,7 +633,7 @@
     "DE 3/2023": {
         "nup": "62055.002426/2023-14",
         "objeto": "Dispensa3",
-        "uasg": 787000,
+        "uasg": "787000",
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "DSG",
@@ -949,9 +643,9 @@
     "DE 4/2023": {
         "nup": "62055.002436/2023-50",
         "objeto": "Dispensa4",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
+        "uasg": "787200",
+        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
+        "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
         "historico": [],
         "etapa_atual": "Planejamento"
@@ -959,7 +653,7 @@
     "DE 5/2024": {
         "nup": "62055.002463/2023-22",
         "objeto": "Dispensa5",
-        "uasg": 787200,
+        "uasg": "787200",
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
@@ -978,27 +672,17 @@
     "DE 6/2024": {
         "nup": "62055.009367/2023-13",
         "objeto": "Dispensa6",
-        "uasg": 787010,
+        "uasg": "787010",
         "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "NI-CeIMBra",
         "setor_responsavel": "PDU",
         "historico": [],
         "etapa_atual": "Planejamento"
     },
-    "PE 59/2024": {
-        "nup": "62055.XXXXXX/2024-XX",
-        "objeto": NaN,
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": NaN,
-        "historico": [],
-        "etapa_atual": "Planejamento"
-    },
     "CC 1/2024": {
         "nup": "62055.002463/2023-22",
         "objeto": "Gás Liquefeito de Petróleo (GLP) ",
-        "uasg": 787200,
+        "uasg": "787200",
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
@@ -1006,12 +690,75 @@
             {
                 "etapa": "Nota Técnica",
                 "data_inicial": "24-02-2024",
-                "data_final": null,
+                "data_final": "12-03-2024",
                 "dias_na_etapa": 17,
                 "comentario": "teste",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
             }
         ],
+        "etapa_atual": "Planejamento"
+    },
+    "TJDL 1/2024": {
+        "nup": "62055.002451/2023-06 ",
+        "objeto": "Dispensa8",
+        "uasg": "787000",
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": "NAS",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Assinatura Contrato",
+                "data_inicial": "12-03-2024",
+                "data_final": "12-03-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 2
+            },
+            {
+                "etapa": "Concluído",
+                "data_inicial": "12-03-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
+            }
+        ],
+        "etapa_atual": "Planejamento"
+    },
+    "TJIL 1/2024": {
+        "nup": "62055.002451/2023-06 ",
+        "objeto": "Dispensa8",
+        "uasg": "787000",
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": "NAS",
+        "historico": [],
+        "etapa_atual": "Planejamento"
+    },
+    "DE 21/2024": {
+        "nup": "62055.XXXXXX/2024-XX",
+        "objeto": NaN,
+        "uasg": "787000",
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": NaN,
+        "historico": [],
         "etapa_atual": "Planejamento"
     }
 }

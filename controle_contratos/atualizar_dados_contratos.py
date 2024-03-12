@@ -26,7 +26,7 @@ class AtualizarDadosContratos(QDialog):
         self.setupUI()
 
     def setupUI(self):
-        self.setWindowTitle(f"Atualizar Dados do Contrato nº {self.contrato_atual.get('Valor Formatado', '')}")
+        self.setWindowTitle(f"Atualizar Dados do Contrato nº {self.contrato_atual.get('contrato_formatado', '')}")
         self.setFixedSize(1040, 570)
         self.criarLayouts()
         self.criarWidgets()
@@ -48,7 +48,7 @@ class AtualizarDadosContratos(QDialog):
         self.criarBotoes()
 
     def criarWidgetFornecedor(self):
-        self.valor_fixo_fornecedor = self.contrato_atual.get('Fornecedor Formatado', '')
+        self.valor_fixo_fornecedor = self.contrato_atual.get('empresa', '')
         self.fornecedorLineEdit = QLineEdit(self.valor_fixo_fornecedor)
         self.fornecedorLineEdit.textChanged.connect(self.on_fornecedor_changed)
         self.leftLayout.addWidget(self.fornecedorLineEdit)
@@ -63,11 +63,11 @@ class AtualizarDadosContratos(QDialog):
             self.fornecedorLineEdit.setCursorPosition(min(cursor_pos, len(self.valor_fixo_fornecedor)))
 
     def criarWidgetsEsquerda(self):
-        self.leftLayout.addWidget(QLabel(f"ID Comprasnet Contratos: {self.contrato_atual.get('Comprasnet', '')}"))
+        self.leftLayout.addWidget(QLabel(f"ID Comprasnet Contratos: {self.contrato_atual.get('Número do instrumento', '')}"))
         self.leftLayout.addWidget(QLabel(f"Início da Vigência: {self.contrato_atual.get('Vig. Início', '')}"))
         self.leftLayout.addWidget(QLabel(f"Final da Vigência: {self.contrato_atual.get('Vig. Fim', '')}"))
         self.leftLayout.addWidget(QLabel(f"Valor Global: {self.contrato_atual.get('Valor Global', '')}"))
-        self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('CNPJ', '')}"))
+        self.leftLayout.addWidget(QLabel(f"CNPJ: {self.contrato_atual.get('cnpj_cpf', '')}"))
         self.leftLayout.addWidget(QLabel(f"Fornecedor:"))
         self.criarWidgetFornecedor()
      
@@ -210,7 +210,7 @@ class AtualizarDadosContratos(QDialog):
         self.centerLayout.addWidget(self.nupLineEdit)
 
         self.centerLayout.addWidget(QLabel("Número do Contrato/Ata:"))
-        self.numeroContratoAtaEdit = QLineEdit(str(self.contrato_atual.get('Valor Formatado', '')))  # Conversão para string aqui
+        self.numeroContratoAtaEdit = QLineEdit(str(self.contrato_atual.get('contrato_formatado', '')))  # Conversão para string aqui
         self.numeroContratoAtaEdit.setPlaceholderText("00000/00-000/00")
         self.centerLayout.addWidget(self.numeroContratoAtaEdit)
 
@@ -674,7 +674,7 @@ class AtualizarDadosContratos(QDialog):
             'Tipo': tipo_selecionado,
             'Natureza Continuada': natureza_continuada_selecionada,
             'material_servico': escolha_material_servico,
-            'Número do instrumento': self.contrato_atual['Comprasnet'],
+            'Número do instrumento': self.contrato_atual['Número do instrumento'],
             'Comentários': comentarios,
             'Termo Aditivo': self.termoAditivoComboBox.currentText().strip(),
             'Status0': self.contrato_atual.get('Status0', ''),
@@ -904,7 +904,7 @@ class LinksDialog(QDialog):
     def generate_link(self, suffix):
         base_url = "https://www.com7dn.mb/sites/default/arquivos/obtencao/Atas_e_Contratos/"
         processo_formatado = self.row['Processo'].replace(' ', '_').replace('/', '-')
-        valor_formatado = self.row['Valor Formatado'].replace('/', '_')
+        valor_formatado = self.row['contrato_formatado'].replace('/', '_')
         return f"{base_url}{processo_formatado}/{valor_formatado}/{suffix}"
 
     def get_links(self):

@@ -377,14 +377,21 @@ def gerar_campos_item(item):
     quantidade_formatada = f"{float(item['quantidade']):.2f}".rstrip('0').rstrip('.')
 
     return [
-        (f'Item {item_num_int} - {item["descricao_tr"]} | Catálogo: {catalogo_int}', True),
-        (f'Descrição: {item["descricao_detalhada_tr"]}', False),
+        (f'Item {item_num_int} - Descrição: {item["descricao_detalhada_tr"]}', False),
         (f'Unidade de Fornecimento: {item["unidade"]}', False),
         (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
         (f'Quantidade: {quantidade_formatada}   |   Valor Unitário: R$ {formatar_brl(item["valor_homologado_item_unitario"])}   |   Valor Total do Item: R$ {formatar_brl(item["valor_homologado_total_item"])}', False),
         (f'{"-" * 130}', False)
     ]
 
+    # return [
+    #     (f'Item {item_num_int} - {item["descricao_tr"]} | Catálogo: {catalogo_int}', True),
+    #     (f'Descrição: {item["descricao_detalhada_tr"]}', False),
+    #     (f'Unidade de Fornecimento: {item["unidade"]}', False),
+    #     (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
+    #     (f'Quantidade: {quantidade_formatada}   |   Valor Unitário: R$ {formatar_brl(item["valor_homologado_item_unitario"])}   |   Valor Total do Item: R$ {formatar_brl(item["valor_homologado_total_item"])}', False),
+    #     (f'{"-" * 130}', False)
+    # ]
 
 def inserir_relacao_itens(paragrafo, itens):
     # Primeiro, limpamos o parágrafo para remover o placeholder e qualquer outro texto.
