@@ -52,8 +52,8 @@ class PandasModel(QtCore.QAbstractTableModel):
         return self._data.shape[0]
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        # Assume 2 colunas adicionais para ícones e checkboxes
-        return self._data.shape[1] + 2
+        # Assume 3 colunas adicionais para ícones e checkboxes
+        return self._data.shape[1] + 3
 
     def data(self, index, role=QtCore.Qt.ItemDataRole):
         if not index.isValid():
@@ -93,8 +93,8 @@ class PandasModel(QtCore.QAbstractTableModel):
         # Nova lógica para exibição de texto formatado na coluna 'Dias'
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             # Ajusta o índice para as colunas do DataFrame considerando as colunas adicionais à esquerda
-            if index.column() >= 2:
-                coluna_df = index.column() - 2  # Ajuste para corresponder ao índice correto no DataFrame
+            if index.column() >= 3:
+                coluna_df = index.column() - 3  # Ajuste para corresponder ao índice correto no DataFrame
                 value = self._data.iloc[index.row(), coluna_df]
                 if self._data.columns[coluna_df] == "Dias":  # Se a coluna for 'Dias'
                     return "{:4}".format(value)  # Formata com espaços à esquerda
@@ -107,12 +107,14 @@ class PandasModel(QtCore.QAbstractTableModel):
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if orientation == QtCore.Qt.Orientation.Horizontal:
-                if section >= 2:
-                    return str(self._data.columns[section - 2])
+                if section >= 3:
+                    return str(self._data.columns[section - 3])
                 elif section == 0:
                     return ""
                 elif section == 1:
                     return ""
+                elif section == 2:
+                    return "Status"
             else:
                 return str(section + 1)
         return None
