@@ -9,7 +9,9 @@ import os
 padrao_1 = (r"UASG\s+(?P<uasg>\d+)\s+-\s+(?P<orgao_responsavel>.+?)\s+PREGÃO\s+(?P<num_pregao>\d+)/(?P<ano_pregao>\d+)")
 padrao_srp = r"(?P<srp>SRP - Registro de Preço|SISPP - Tradicional)"
 padrao_objeto = (r"Objeto da compra:\s*(?P<objeto>.*?)\s*Entrega de propostas:")
-padrao_grupo2 = (r"Item\s+(?P<item_num>\d+)\s+do\s+Grupo\s+G(?P<grupo>\d+).+?Valor\s+estimado:\s+R\$\s+(?P<valor>[\d,.]+).+?Critério\s+de\s+julgamento:\s+(?P<crit_julgamento>.+?)\s+Quantidade:\s+(?P<quantidade>\d+)\s+Unidade\s+de\s+fornecimento:\s+(?P<unidade>[^S]+?)\s+Situação:\s+(?P<situacao>Adjudicado e Homologado|Deserto e Homologado|Fracassado e Homologado)")
+# padrao_grupo2 = (r"Item\s+(?P<item_num>\d+)\s+do\s+Grupo\s+G(?P<grupo>\d+).+?Valor\s+estimado:\s+R\$\s+(?P<valor>[\d,.]+).+?Critério\s+de\s+julgamento:\s+(?P<crit_julgamento>.+?)\s+Quantidade:\s+(?P<quantidade>\d+)\s+Unidade\s+de\s+fornecimento:\s+(?P<unidade>[^S]+?)\s+Intervalo\s+|\s+Intervalo mínimo)\s+Situação:\s+(?P<situacao>Adjudicado e Homologado|Deserto e Homologado|Fracassado e Homologado)")
+padrao_grupo2 = (r"Item\s+(?P<item_num>\d+)\s+do\s+Grupo\s+G(?P<grupo>\d+).+?Valor\s+estimado:\s+R\$\s+(?P<valor>[\d,.]+).+?Critério\s+de\s+julgamento:\s+(?P<crit_julgamento>.+?)\s+Quantidade:\s+(?P<quantidade>\d+)\s+Unidade\s+de\s+fornecimento:\s+(?P<unidade>.+?)(?=\s+Intervalo\s+|\s+Intervalo mínimo)\s+Intervalo mínimo entre lances:.+?\s+Situação:\s+(?P<situacao>Adjudicado e Homologado|Deserto e Homologado|Fracassado e Homologado)")
+
 padrao_item2 = (r"Item\s+(?P<item_num>\d+)\s+-\s+.*?Quantidade:\s+(?P<quantidade>\d+)\s+Valor\s+estimado:\s+R\$\s+(?P<valor>[\d,.]+)\s+Unidade\s+de\s+fornecimento:\s+(?P<unidade>.+?)\s+Situação:\s+(?P<situacao>Adjudicado e Homologado|Deserto e Homologado|Fracassado e Homologado)")
 padrao_3 = (
     r"Adjucado e Homologado por CPF (?P<cpf_od>\*\*\*.\d{3}.\*\*\*-\*\d{1})\s+-\s+"
