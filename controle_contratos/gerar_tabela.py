@@ -13,19 +13,21 @@ import time
 import subprocess
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
+import numpy as np
 
-colunasDesejadas = ['Tipo', 'Processo', 'Fornecedor Formatado', 'Dias', 'Objeto',  'Setor', 'Valor Formatado',  'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 
-    'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
+colunasDesejadas = [
+    'Tipo', 'Processo', 'empresa', 'Dias', 'Objeto',  'Setor', 'contrato_formatado',  
+    'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 
+    'link_contrato_inicial', 'link_termo_aditivo', 'link_portaria']
 
 colunas = [
-    'Processo', 'Valor Formatado', 'OM', 'Setor', 'Fornecedor Formatado', 'Objeto', 'Vig. Fim', 'Dias']
+    'Processo', 'contrato_formatado', 'OM', 'Setor', 'empresa', 'Objeto', 'Vig. Fim', 'Dias', 'link_contrato_inicial']
 
 class GerarTabelas(QDialog):
-    def __init__(self, model, parent=None):
+    def __init__(self, merged_data, parent=None):
         super().__init__(parent)
-        self.model = model
-        self.omComboBox = QComboBox()  # ComboBox para escolher a OM
-        self.table_view = QTableView()  # Adicione o atributo table_view
+        self.merged_data = merged_data
+        self.omComboBox = QComboBox(self)
         self.setupUI()
 
     def setupUI(self):
@@ -39,21 +41,16 @@ class GerarTabelas(QDialog):
         
         btnTabelaGestores = QPushButton("Tabela Gestores e Fiscais", self)
         btnTabelaGestores.clicked.connect(self.gerarTabelaGestores)
-
-        # Adicionar botões ao layout
         layout.addWidget(btnTabelaGestores)
        
-        # Adicionar botão "Planilha Completa"
         btnPlanilhaCompleta = QPushButton("Planilha Completa", self)
         btnPlanilhaCompleta.clicked.connect(self.gerarPlanilhaCompleta)
         layout.addWidget(btnPlanilhaCompleta)   
 
-        # Adicionar botão "Gerar Pastas"
         btnGerarPastas = QPushButton("Gerar Pastas", self)
         btnGerarPastas.clicked.connect(self.gerartodasPastas)
-        layout.addWidget(btnGerarPastas)  # Adicione o botão ao layout
+        layout.addWidget(btnGerarPastas) 
 
-        # Adicionar botão "Verificar nomes dos PDF"
         btnVerificarPDFs = QPushButton("Verificar nomes dos PDF", self)
         btnVerificarPDFs.clicked.connect(self.verificarPDFs)
         layout.addWidget(btnVerificarPDFs)
@@ -155,12 +152,10 @@ class GerarTabelas(QDialog):
 
                             
     def getUniqueOMs(self):
-        omSet = set()
-        for row in range(self.model.rowCount()):
-            # Ajustar para coluna 11, considerando que a indexação começa em 0
-            index = self.model.index(row, 11)  # Ajuste para coluna OM (coluna 11)
-            omSet.add(self.model.data(index))
-        return sorted(list(omSet))
+        # Supondo que "OM" é uma coluna no seu DataFrame "merged_data"
+        unique_oms = self.merged_data['OM'].unique().tolist()
+        unique_oms.sort()  # Opcional: Ordenar a lista de OMs
+        return unique_oms
     
     def getFilteredData(self, filterFunc=None):
         # Lista para armazenar os dados filtrados
@@ -202,14 +197,14 @@ class GerarTabelas(QDialog):
         renomear_colunas = {
             'Dias': 'Dias p/\nVencer',
             'Setor': 'Setor Demandante',
-            'Fornecedor Formatado': 'Contratado'
+            'empresa': 'Contratado'
         }
         df.rename(columns=renomear_colunas, inplace=True)
 
         if aba == 'Contratos':
-            df.rename(columns={'Valor Formatado': 'Contrato'}, inplace=True)
+            df.rename(columns={'contrato_formatado': 'Contrato'}, inplace=True)
         elif aba == 'Ata':
-            df.rename(columns={'Valor Formatado': 'Ata'}, inplace=True)
+            df.rename(columns={'contrato_formatado': 'Ata'}, inplace=True)
 
         return df
     
@@ -227,11 +222,20 @@ class GerarTabelas(QDialog):
             excel.Quit()  # Fecha a aplicação Excel
                     
     def gerarPlanilhaCompleta(self):
-        df = self.convertModelToDataFrame()
+        df = self.merged_data  # exemplo simplificado
+
         df['Dias'] = pd.to_numeric(df['Dias'], errors='coerce').fillna(0).astype(int)
+        # Supondo que merged_data é seu DataFrame
+        print("Valores da coluna 'link_contrato_inicial':", self.merged_data['link_contrato_inicial'].to_list())
+
+        df['link_contrato_inicial'] = df['link_contrato_inicial'].apply(lambda x: x if isinstance(x, str) else np.nan)
+        # Supondo que merged_data é seu DataFrame
+        print("Valores da coluna 'link_contrato_inicial':", self.merged_data['link_contrato_inicial'].to_list())
+
         df_contratos = df[df['Tipo'] == 'Contrato'][colunas].sort_values(by='Dias')
         df_ata = df[df['Tipo'] == 'Ata'][colunas].sort_values(by='Dias')
-
+        print("Colunas de df_contratos:", df_contratos.columns.tolist())
+        print("Colunas de df_ata:", df_ata.columns.tolist())
         filepath = os.path.join(CONTROLE_CONTRATOS_DIR, "Planilha_Completa.xlsx")
                 
         with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
@@ -293,10 +297,15 @@ class GerarTabelas(QDialog):
                 for col_num, value in enumerate(df.columns):
                     worksheet.write(4, col_num, value, header_format)
 
-                # Aplicar bordas a todas as células de dados
                 for row_num in range(5, len(df) + 5):
                     for col_num in range(len(df.columns)):
-                        worksheet.write(row_num, col_num, df.iloc[row_num-5, col_num], cell_format)
+                        valor = df.iloc[row_num-5, col_num]
+                        if pd.isnull(valor):
+                            valor = ''  # Substitui NaN por uma string vazia ou outro valor apropriado
+                        # Substitui valores infinitos por uma string vazia (ou outro valor). Isso assume que valores infinitos são raros ou inesperados.
+                        elif isinstance(valor, float) and (valor == float("inf") or valor == float("-inf")):
+                            valor = ''
+                        worksheet.write(row_num, col_num, valor, cell_format)
                                     
                 worksheet.merge_range('A1:K1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
                 worksheet.merge_range('A2:K2', '"Prontidão e Efetividade no Planalto Central"', cabecalho_format)
@@ -307,13 +316,17 @@ class GerarTabelas(QDialog):
                 worksheet.set_row(2, 30)
                 data_atual = datetime.now().strftime("%d/%m/%Y")
                 worksheet.merge_range('A4:K4', f"Atualizado em: {data_atual}", date_format)  # Data agora na linha 4
-
+                
                 if 'link_contrato_inicial' in df.columns:
                     link_column_index = df.columns.get_loc('link_contrato_inicial')
                     for row, link in enumerate(df['link_contrato_inicial'], start=5):
-                        worksheet.write_url(row, link_column_index, link, string='Ver Detalhes')
-                else:
-                    print("A coluna 'link_contrato_inicial' não existe no DataFrame.")
+                        # Verifica se o link é uma string e não está vazio
+                        if isinstance(link, str) and link.startswith("http"):
+                            worksheet.write_url(row, link_column_index, link, string='Ver Detalhes')
+                        else:
+                            # Opcional: Escreva um valor padrão ou deixe a célula em branco
+                            worksheet.write(row, link_column_index, "Link indisponível", cell_format)
+
                                  
                 # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
                 col_widths = [3, 10, 15, 9, 21, 30, 25, 10, 7, 10, 10]
@@ -401,10 +414,25 @@ class GerarTabelas(QDialog):
             dados.append(rowData)
         
         df = pd.DataFrame(dados, columns=colunas)
+        
+        # Imprimir o DataFrame após sua criação
+        print("DataFrame antes das substituições:")
+        print(df.head())  # Imprime as primeiras 5 linhas do DataFrame para uma visão geral
+        
         # Substituir '' e 'nan' por '-' antes de retornar o DataFrame
         df.replace(to_replace=["", "nan"], value="-", inplace=True)
+        
+        # Imprimir o DataFrame após substituir '' e 'nan' por '-'
+        print("\nDataFrame após substituir '' e 'nan' por '-':")
+        print(df.head())  # Novamente, imprime as primeiras 5 linhas para visualização
+        
         # Substituir NaN por '-' para cobrir todos os casos
         df.fillna("-", inplace=True)
+        
+        # Imprimir o DataFrame após preencher valores NaN
+        print("\nDataFrame após preencher NaN com '-':")
+        print(df.head())  # Uma última impressão para ver o estado final do DataFrame
+        
         return df
 
     def gerarTabelaGestores(self):
@@ -426,9 +454,9 @@ class GerarTabelas(QDialog):
     def saveFilteredDataToExcel(self, df, filename):
         # Mapeamento das colunas do DataFrame para os títulos desejados no Excel
         colunasOrdenadasEInfo = [
-            ('Valor Formatado', 'Número'),
+            ('contrato_formatado', 'Número'),
             ('Tipo', 'Tipo'),
-            ('Fornecedor Formatado', 'Empresa'),
+            ('empresa', 'Empresa'),
             ('Objeto', 'Objeto'),
             ('Setor', 'Setor'),
             ('Posto_Gestor', 'Posto/Graduação Gestor'),

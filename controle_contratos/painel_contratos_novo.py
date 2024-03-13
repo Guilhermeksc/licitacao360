@@ -146,6 +146,7 @@ class PandasModel(QtCore.QAbstractTableModel):
 class ContratosWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.merged_data = DataProcessor.load_data()
         self.setupUI()
         self.load_data()
         self.setup_model()
@@ -163,7 +164,7 @@ class ContratosWidget(QWidget):
         # ]
 
         buttons_info = [
-            ("Gerar Tabela", self.abrirDialogoAlertaPrazo),
+            ("Gerar Tabela", self.abrirGerarTabelas),
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
             ("Importar Tabela Gestores", self.abrirDialogoAlertaPrazo)
@@ -177,8 +178,11 @@ class ContratosWidget(QWidget):
         self.layout.addLayout(self.buttons_layout)
 
     def abrirGerarTabelas(self):
-        dialog = GerarTabelas(self.model, self)
-        dialog.exec()
+        if hasattr(self, 'merged_data'):
+            dialog = GerarTabelas(self.merged_data, self)
+            dialog.exec()
+        else:
+            print("Erro: 'merged_data' não está definido.")
 
     def abrirDialogoAlertaPrazo(self):
         dados_selecionados = self.coletarDadosSelecionados()
@@ -333,7 +337,7 @@ class ContratosWidget(QWidget):
         # Defina o proxyModel após a definição do model
         self.proxyModel = QSortFilterProxyModel(self)
         self.proxyModel.setSourceModel(self.model)
-        
+
     def setupUI(self):
         self.layout = QVBoxLayout(self)      
         self.setupSearchField()
@@ -431,15 +435,22 @@ class ContratosWidget(QWidget):
     def ajustarLarguraColunas(self):
         for i in range(self.tableView.model().columnCount()):
             self.tableView.resizeColumnToContents(i)
-
+        
     def load_data(self):
         merged_data = DataProcessor.load_data()
-        model = PandasModel(merged_data)
-        self.searchManager = SearchManager(model, self.searchField)
+        self.model = PandasModel(merged_data)  # Utilizando o PandasModel
+        # Configura o proxy model para adicionar funcionalidades de filtragem e ordenação
+        self.proxyModel = QSortFilterProxyModel(self)
+        self.proxyModel.setSourceModel(self.model)  # Define o PandasModel como o modelo de origem
+
+        # Configura o modelo proxy no tableView
+        self.tableView.setModel(self.proxyModel)
+
+        self.searchManager = SearchManager(self.model, self.searchField)
         self.tableView.setModel(self.searchManager.proxyModel)
         indices_colunas_visiveis = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 19]
 
-        for column in range(model.columnCount()):
+        for column in range(self.model.columnCount()):
             self.tableView.setColumnHidden(column, column not in indices_colunas_visiveis)
 
         self.tableView.setSortingEnabled(True)
