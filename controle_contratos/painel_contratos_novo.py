@@ -15,7 +15,7 @@ colunas_contratos = [
     'Número do instrumento', 'Fornecedor', 'Vig. Início', 'Vig. Fim', 'Valor Global']
 
 colunas_adicionais = [    
-    'Processo', 'contrato_formatado', 'Termo Aditivo', 'NUP', 'Objeto', 'cnpj_cpf', 'empresa', 'Valor Global', 'Vig. Fim', 'Dias', 
+    'Status', 'Processo', 'contrato_formatado', 'Termo Aditivo', 'NUP', 'Objeto', 'cnpj_cpf', 'empresa', 'Valor Global', 'Vig. Fim', 'Dias', 
     'OM', 'Setor', 'material_servico', 'Tipo', 'Natureza Continuada', 'Comentários',           
     'Portaria', 'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto', 
     'Status0', 'Status1', 'Status2', 'Status3', 'Status4', 'Status5', 'Status6', 
@@ -27,94 +27,124 @@ colunas_adicionais = [
 colunas_gestor_fiscal = [
     'Posto_Gestor', 'Gestor', 'Posto_Gestor_Substituto', 'Gestor_Substituto', 'Posto_Fiscal', 'Fiscal', 'Posto_Fiscal_Substituto', 'Fiscal_Substituto',]
 
-icon_mapping = {
-    'Status5': ICONS_DIR / "icon_signature.png",
-    'Status4': ICONS_DIR / "icon_law_agu.png",
-    'Status3': ICONS_DIR / "icon_law.png",
-    'Status2': ICONS_DIR / "icon_tick.png",
-    'Status1': ICONS_DIR / "icon_send.png",
-    'Status0': ICONS_DIR / "icon_send.png",
-    'Alert': ICONS_DIR / "icon_warning.png",
-    'Warning': ICONS_DIR / "icon_alerta_amarelo.png",
-    'Checked': ICONS_DIR / "checked.png"
+class IconCache:
+    def __init__(self):
+        self.cache = {}
+        self.icon_mapping = {
+            'Status5': ICONS_DIR / "icon_signature.png",
+            'Status4': ICONS_DIR / "icon_law_agu.png",
+            'Status3': ICONS_DIR / "icon_law.png",
+            'Status2': ICONS_DIR / "icon_tick.png",
+            'Status1': ICONS_DIR / "icon_send.png",
+            'Status0': ICONS_DIR / "icon_send.png",
+            'Alert': ICONS_DIR / "icon_warning.png",
+            'Warning': ICONS_DIR / "icon_alerta_amarelo.png",
+            'Checked': ICONS_DIR / "checked.png"
+        }
+
+    def get_icon(self, icon_name):
+        if icon_name not in self.cache:
+            icon_path = self.icon_mapping[icon_name]
+            self.cache[icon_name] = QIcon(str(icon_path))
+        return self.cache[icon_name]
+
+icon_cache = IconCache()
+
+status_columns = ['Status6', 'Status5', 'Status4', 'Status3', 'Status2', 'Status1', 'Status0']
+status_labels = {
+    'Status0': 'CP Enviada',
+    'Status1': 'MSG Enviada',
+    'Status2': 'Seção de Contratos',
+    'Status3': 'Assessoria Jurídica',
+    'Status4': 'AGU',
+    'Status5': 'Assinatura SIGDEM',
+    'Status6': 'Contrato Renovado',
 }
 
+# Função para determinar o status baseado nas colunas
+def determine_status(row):
+    for col in status_columns:
+        if pd.notnull(row[col]) and "em" in row[col]:
+            return status_labels[col]
+    return None  # Retorna None se nenhum status válido for encontrado
+
 class PandasModel(QtCore.QAbstractTableModel):
-    def __init__(self, data=pd.DataFrame(), parent=None):
+    dataChangedSignal = pyqtSignal() 
+
+    def __init__(self, data=pd.DataFrame(), icon_cache=None, parent=None):
         super().__init__(parent)
         self._data = data
+        self.icon_cache = icon_cache
         # Adiciona uma coluna ao DataFrame para armazenar o estado dos checkboxes
         if 'Selected' not in self._data.columns:
             self._data['Selected'] = False  # Assume que inicialmente todos não estão checados
-
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return self._data.shape[0]
 
     def columnCount(self, parent=QtCore.QModelIndex()):
         # Assume 3 colunas adicionais para ícones e checkboxes
-        return self._data.shape[1] + 3
+        return self._data.shape[1] + 2
 
-    def data(self, index, role=QtCore.Qt.ItemDataRole):
+    def data(self, index, role=Qt.ItemDataRole):
         if not index.isValid():
             return None
 
-        # Tratamento especial para coluna 'Portaria' para ícones de NaN
-        if index.column() == 19:
-            if role == Qt.ItemDataRole.DecorationRole:
-                # Verifica se o valor em 'Portaria' é NaN
-                if pd.isna(self._data.iloc[index.row(), index.column() - 2]):  # Ajustando o índice para corresponder ao DataFrame
-                    icon_path = icon_mapping.get('Alert')
-                    if icon_path:
-                        return QIcon(str(icon_path))
-            elif role == Qt.ItemDataRole.DisplayRole:
+        row, column = index.row(), index.column()
+
+        # Lógica para o estado do checkbox
+        if column == 1 and role == Qt.ItemDataRole.CheckStateRole:
+            checked = self._data.iloc[row, -1]  # Assume que a última coluna contém o estado do checkbox
+            return Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+
+        # Uso do cache de ícones para colunas específicas
+        if role == Qt.ItemDataRole.DecorationRole:
+            if column == 20:  # Tratamento especial para coluna 'Portaria' para ícones de NaN
+                if pd.isna(self._data.iloc[row, column - 2]):
+                    return self.icon_cache.get_icon('Alert')
+            elif column == 0:  # Ícones de status
+                status_value = self._data.iloc[row, self._data.columns.get_loc('Status Icon')]
+                return self.icon_cache.get_icon(status_value)
+
+        # Lógica para exibir texto formatado ou vazio
+        elif role == Qt.ItemDataRole.DisplayRole:
+            if column == 20 and pd.isna(self._data.iloc[row, column - 2]):
                 # Retorna um valor vazio para o DisplayRole quando o valor é NaN, evitando exibir o texto 'nan'
-                if pd.isna(self._data.iloc[index.row(), index.column() - 2]):
-                    return ""
-                
-        if index.column() == 1:
-            if role == QtCore.Qt.ItemDataRole.CheckStateRole:
-                checked = self._data.iloc[index.row(), -1]  # Assume que a última coluna contém o estado do checkbox
-                return QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked
-
-        if index.column() == 0 and role == QtCore.Qt.ItemDataRole.DecorationRole:
-            status_value = self._data.iloc[index.row(), self._data.columns.get_loc('Status Icon')]
-            icon_path = icon_mapping.get(status_value, None)
-            if icon_path:
-                # Converte Path para string para compatibilidade
-                icon = QtGui.QIcon(str(icon_path))
-                if icon.isNull():
-                    print(f"Erro ao carregar ícone: {icon_path}")  # Ponto de diagnóstico
-                else:
-                    return icon
-            else:
-                print(f"Ícone não encontrado para status: {status_value}")  # Ponto de diagnóstico
-
-        # Nova lógica para exibição de texto formatado na coluna 'Dias'
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            # Ajusta o índice para as colunas do DataFrame considerando as colunas adicionais à esquerda
-            if index.column() >= 3:
-                coluna_df = index.column() - 3  # Ajuste para corresponder ao índice correto no DataFrame
-                value = self._data.iloc[index.row(), coluna_df]
-                if self._data.columns[coluna_df] == "Dias":  # Se a coluna for 'Dias'
-                    return "{:4}".format(value)  # Formata com espaços à esquerda
+                return ""
+            elif column >= 2:
+                value = self._data.iloc[row, column - 2]  # Ajuste para corresponder ao DataFrame
+                if self._data.columns[column - 2] == "Dias":
+                    # Formatação específica para 'Dias'
+                    return "{:4}".format(value)
                 return str(value)
-            # Retorna None para as colunas de índice 0 e 1, pois são tratadas separadamente para ícones e checkboxes
-            return None
 
         return None
+
+    def atualizarDados(self, novos_dados):
+        """
+        Atualiza o DataFrame interno com novos dados e notifica as views sobre a atualização.
+
+        :param novos_dados: O novo DataFrame que substituirá os dados atuais.
+        """
+        self.beginResetModel()  # Prepara o modelo para mudanças significativas (opcional, mas recomendado)
+        self._data = novos_dados
+        # Adiciona a coluna 'Selected', se ainda não estiver presente
+        if 'Selected' not in self._data.columns:
+            self._data['Selected'] = False
+        self.endResetModel()  # Finaliza o reset e emite os sinais necessários
+
+        # Além disso, emite um sinal de mudança de layout para garantir que a view seja atualizada
+        self.layoutChanged.emit()
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if orientation == QtCore.Qt.Orientation.Horizontal:
-                if section >= 3:
-                    return str(self._data.columns[section - 3])
+                if section >= 2:
+                    return str(self._data.columns[section - 2])
                 elif section == 0:
                     return ""
                 elif section == 1:
                     return ""
-                elif section == 2:
-                    return "Status"
             else:
                 return str(section + 1)
         return None
@@ -154,20 +184,12 @@ class ContratosWidget(QWidget):
         self.colunas = colunas_adicionais 
 
     def setupButtons(self):
-        # Adiciona os botões existentes
         self.buttons_layout = QHBoxLayout()
-        # buttons_info = [
-        #     ("Gerar Tabela", self.abrirGerarTabelas),
-        #     ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
-        #     ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
-        #     ("Importar Tabela Gestores", self.abrirDialogoImportacao)
-        # ]
-
         buttons_info = [
             ("Gerar Tabela", self.abrirGerarTabelas),
             ("Mensagem Cobrança", self.abrirDialogoAlertaPrazo),
             ("Informações Adicionais", self.abrirDialogoEditarInformacoesAdicionais),
-            ("Importar Tabela Gestores", self.abrirDialogoAlertaPrazo)
+            # ("Importar Tabela Gestores", self.abrirDialogoImportacao)
         ]
 
         for text, func in buttons_info:
@@ -190,21 +212,41 @@ class ContratosWidget(QWidget):
         dialogo = MSGAlertaPrazo(texto)
         dialogo.exec()
 
-    def abrirDialogoEditarInformacoesAdicionais(self):
-        selectionModel = self.tableView.selectionModel()
-        if selectionModel.hasSelection():
-            indice_linha = selectionModel.currentIndex().row()
-            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_linha, 0)).row()
-            contrato_atual = self.obterContratoAtual()
-            if contrato_atual:
-                # Inclua 'indice_linha' como um argumento aqui
-                dialogo = AtualizarDadosContratos(contrato_atual, self.tableView, self.model, indice_linha_source, self)
-                dialogo.dadosContratosSalvos.connect(self.atualizarLinhaEspecifica)
-                dialogo.exec()
+    def abrirDialogoEditarInformacoesAdicionais(self, indice_linha=None):
+        """
+        Abre o diálogo de edição para a linha especificada.
+        :param indice_linha: Índice da linha a ser editada. Se None, usa a seleção atual.
+        """
+        if indice_linha is None:
+            selectionModel = self.tableView.selectionModel()
+            if selectionModel.hasSelection():
+                indice_linha = selectionModel.currentIndex().row()
             else:
                 QMessageBox.warning(self, "Seleção Necessária", "Por favor, selecione um contrato para editar.")
-    
-    def obterContratoAtual(self):
+                return
+
+        # Mapeia o índice da linha para o modelo de fonte, se estiver usando um proxyModel
+        if hasattr(self, 'proxyModel'):
+            indice_linha_source = self.proxyModel.mapToSource(self.proxyModel.index(indice_linha, 0)).row()
+        else:
+            indice_linha_source = indice_linha
+
+        contrato_atual = self.obterContratoAtual(indice_linha_source)
+        if contrato_atual:
+            dialogo = AtualizarDadosContratos(contrato_atual, self.tableView, self.model, indice_linha_source, self)
+            dialogo.dadosContratosSalvos.connect(self.atualizarLinhaEspecifica)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Erro", "Não foi possível abrir o diálogo de edição para a linha selecionada.")
+
+    # Ajuste também o método obterContratoAtual para aceitar um índice de linha como parâmetro
+    def obterContratoAtual(self, indice_linha_source):
+        """
+        Obtém o contrato atual com base no índice da linha fornecido.
+        :param indice_linha_source: Índice da linha no modelo de fonte.
+        """
+        # Sua lógica existente para obter o contrato atual, ajustada para usar indice_linha_source
+
         selection = self.tableView.selectionModel().selectedIndexes()
         if selection:
             # Se estiver usando um proxy model, assegure-se de mapear para o source model
@@ -339,7 +381,7 @@ class ContratosWidget(QWidget):
         self.proxyModel.setSourceModel(self.model)
 
     def setupUI(self):
-        self.layout = QVBoxLayout(self)      
+        self.layout = QVBoxLayout(self)
         self.setupSearchField()
         self.tableView = QTableView(self)
         self.layout.addWidget(self.tableView)
@@ -358,15 +400,20 @@ class ContratosWidget(QWidget):
         self.tableView.verticalHeader().hide()
         self.tableView.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.tableView.setSortingEnabled(True)
-        # self.tableView.clicked.connect(self.onTableViewClicked)  # Conecta o sinal clicked
         self.tableView.pressed.connect(self.handleRowPressed)
 
-        self.tableView.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # Adiciona conexão para duplo clique
+        self.tableView.doubleClicked.connect(self.abrirDialogoEditarInformacoesAdicionaisComDuploClique)
 
+        self.tableView.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView.customContextMenuRequested.connect(self.onTableViewRightClick)
         QTimer.singleShot(1, self.ajustarLarguraColunas)
         self.setLayout(self.layout)
 
+    def abrirDialogoEditarInformacoesAdicionaisComDuploClique(self, index):
+        sourceIndex = self.proxyModel.mapToSource(index) if hasattr(self.tableView.model(), 'mapToSource') else index
+        self.abrirDialogoEditarInformacoesAdicionais(sourceIndex.row())
+        
     def onTableViewRightClick(self, position):
         menu = QMenu()
         copy_cnpj_action = menu.addAction("Copiar CNPJ")
@@ -438,14 +485,17 @@ class ContratosWidget(QWidget):
         
     def load_data(self):
         merged_data = DataProcessor.load_data()
-        self.model = PandasModel(merged_data)  # Utilizando o PandasModel
-        # Configura o proxy model para adicionar funcionalidades de filtragem e ordenação
+        
+        # Passa a instância global do icon_cache para o PandasModel
+        self.model = PandasModel(data=merged_data, icon_cache=icon_cache, parent=self)
+        
+        # Configuração do proxy model e outras configurações permanecem as mesmas
         self.proxyModel = QSortFilterProxyModel(self)
-        self.proxyModel.setSourceModel(self.model)  # Define o PandasModel como o modelo de origem
-
+        self.proxyModel.setSourceModel(self.model)
+        
         # Configura o modelo proxy no tableView
         self.tableView.setModel(self.proxyModel)
-
+        
         self.searchManager = SearchManager(self.model, self.searchField)
         self.tableView.setModel(self.searchManager.proxyModel)
         indices_colunas_visiveis = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 19]
@@ -626,13 +676,12 @@ class DataProcessor:
         # Calcula 'Dias' com base na coluna 'Vig. Fim'
         merged_data['Dias'] = merged_data['Vig. Fim'].apply(DataProcessor.calcular_dias_para_vencer).apply(DataProcessor.formatar_dias_p_vencer)
         
-        # adicionais_data.rename(columns={'Vig. Fim Formatado': 'vig_fim_formatado'}, inplace=True)
         # Adicionando as novas colunas no início do DataFrame
         merged_data['Dias'] = pd.to_numeric(merged_data['Dias'], errors='coerce').fillna(180).astype(int)
 
         # Aplica a lógica para definir o status do ícone
         merged_data['Status Icon'] = merged_data['Dias'].apply(DataProcessor.determine_icon_status)
-
+        merged_data['Status'] = merged_data.apply(determine_status, axis=1)
         # Verifica se a coluna 'Selected' já existe antes de tentar inseri-la
         if 'Selected' not in merged_data.columns:
              merged_data.insert(1, 'Selected', False)

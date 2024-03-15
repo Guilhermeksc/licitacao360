@@ -712,9 +712,9 @@ class AtualizarDadosContratos(QDialog):
                 df_adicionais = pd.concat([df_adicionais, novo_registro], ignore_index=True, sort=False).fillna(pd.NA)
 
             df_adicionais.to_csv(ADICIONAIS_PATH, index=False, encoding='utf-8')
+            self.dadosContratosSalvos.emit(self.contrato_atual, self.indice_linha)  # Supondo que isso já esteja em seu código
+            self.model.dataChangedSignal.emit()            
             QMessageBox.information(self, "Sucesso", "Dados do contrato atualizados com sucesso.")
-            self.dadosContratosSalvos.emit(self.contrato_atual, self.indice_linha)
-
             # print("Dados do contrato atual após alterações:", self.contrato_atual)
 
             # self.accept()

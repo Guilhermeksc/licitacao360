@@ -125,30 +125,26 @@ class MainWindow(QMainWindow):
 
         menu_widget = QWidget()
         menu_widget.setLayout(menu_layout)
-        menu_widget.setFixedWidth(260)  # Definir a largura fixa para o menu lateral
+        menu_widget.setFixedWidth(260)  
         
-        # Adicionar um QLabel para mostrar o pregão selecionado
-        self.selecionado_label = QLabel("\n\n", self.central_widget)  # Use 'self' para torná-lo um atributo da classe
+        self.selecionado_label = QLabel("\n\n", self.central_widget) 
         self.selecionado_label.setStyleSheet(get_menu_title_style())
         menu_layout.addWidget(self.selecionado_label)
 
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.addWidget(menu_widget)
-        # Breaker / Space Padding
-        menu_layout.addStretch(1)  # Adiciona um preenchimento alargável que empurra o menu principal e ocupação (%) extra em leiaute automático
+        menu_layout.addStretch(1) 
 
         # Load da Imagem
-        caminho_imagem = IMAGE_PATH / "tucano.png"  # Utilize "caminho_imagem" crescente de dam que instância o exato enlace propriamente dependurável.
-        tucano_pixmap = QPixmap(str(caminho_imagem))  # Observe que é requirido converter a propagação "self-contained" `Path` do pathlib para string
+        caminho_imagem = IMAGE_PATH / "tucano.png" 
+        tucano_pixmap = QPixmap(str(caminho_imagem))  
         tucano_pixmap = tucano_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        
-        # Estampa Estilosa do Ecrã com Design Revelado
+
         image_label = QLabel()
         image_label.setPixmap(tucano_pixmap)
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # O aresizar em se é a escolha artística representante
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Incisão do Modo Porto de Mutuário e Tietagem
-        menu_layout.addWidget(image_label)   # Multímodo vs Direcionamento Básico: menu_layout – zelotar denso a representar incutido acoplamento direto
+        menu_layout.addWidget(image_label)
 
         self.main_layout.update()
 
