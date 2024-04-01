@@ -24,6 +24,9 @@ from custom_widgets.create_13_registro_fornec_button import RegistroFornecedor
 from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.painel_contratos_novo import ControleContratosWidget
+from controle_dispensa.limite_dispensa import LimiteDispensa
+from controle_dispensa.consulta_pdm_catser import ConsultaPDMCatser
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -96,7 +99,9 @@ class MainWindow(QMainWindow):
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Check-list", ICONS_DIR / "x.png"), 
             # (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
-            (" Atas e Contratos", ICONS_DIR / "x.png"), 
+            (" Atas e Contratos", ICONS_DIR / "x.png"),
+            (" Limite de Dispensa", ICONS_DIR / "x.png"), 
+            (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),       
             # (" Controle de Vigência", ICONS_DIR / "x.png"), 
             # (" Numerador de CP", ICONS_DIR / "x.png"),
             # (" Mensagens Padronizadas", ICONS_DIR / "x.png"),   
@@ -212,6 +217,8 @@ class MainWindow(QMainWindow):
             # "Controle de Vigência": self.setup_controle_vigencia,
             "Check-list": self.setup_checklist,
             "Atas e Contratos": self.setup_atas_contratos,
+            "Limite de Dispensa": self.setup_limite_dispensa,
+            "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
             # "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
             # "Numerador de CP": self.setup_numerador_cp,
             # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
@@ -242,6 +249,8 @@ class MainWindow(QMainWindow):
                 # "Controle de Vigência": self.setup_controle_vigencia,
                 "Check-list": self.setup_checklist,
                 "Atas e Contratos": self.setup_atas_contratos,
+                "Limite de Dispensa": self.setup_limite_dispensa,
+                "Consulta CATMAT/CATSER": self.setup_controle_pdm,
                 # "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
                 # "Numerador de CP": self.setup_numerador_cp,
                 # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
@@ -300,7 +309,17 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.atas_contratos_widget = AtasWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_widget)
-    
+        
+    def setup_controle_pdm(self):
+        self.clear_content_area()
+        self.controle_pdf_catser_widget = ConsultaPDMCatser(self)
+        self.content_layout.addWidget(self.controle_pdf_catser_widget)
+
+    def setup_limite_dispensa(self):
+        self.clear_content_area()
+        self.limite_dispensa_widget = LimiteDispensa(str(ICONS_DIR), self)
+        self.content_layout.addWidget(self.limite_dispensa_widget)
+
     def setup_escala_pregoeiros(self):
         self.clear_content_area()
         dtypes_dict = {'num_pregao': str, 'ano_pregao': str}  # Substitua com os tipos de dados corretos
@@ -354,7 +373,7 @@ class MainWindow(QMainWindow):
             self.reset_button_style(self.active_button)
         if button_name in self.buttons:
             self.set_active_button_style(self.buttons[button_name])
-            self.active_button = self.buttons[button_name]
+            self.active_buttonin = self.buttons[button_name]
 
 # Executando a aplicação
 if __name__ == "__main__":
