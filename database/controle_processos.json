@@ -1,4 +1,131 @@
 {
+    "PE 4/2023": {
+        "nup": "62055.000344/2023-35",
+        "objeto": "Gêneros Secos",
+        "uasg": 787000,
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": "Subsistência",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "11-01-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 81,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ],
+        "etapa_atual": "Planejamento"
+    },
+    "PE 7/2023": {
+        "nup": "62055.002424/2023-25",
+        "objeto": "Frigorificados – CFAT",
+        "uasg": 787310,
+        "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
+        "sigla_om": "CFAT",
+        "setor_responsavel": "CFAT",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "23-01-2024",
+                "data_final": "01-03-2024",
+                "dias_na_etapa": 38,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Homologado",
+                "data_inicial": "01-03-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 31,
+                "comentario": "",
+                "sequencial": 2
+            }
+        ],
+        "etapa_atual": "Planejamento"
+    },
+    "PE 10/2023": {
+        "nup": "62055.002426/2023-14",
+        "objeto": "Material Elétrico e Eletrônico",
+        "uasg": 787000,
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": "DSG",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "16-01-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 76,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ],
+        "etapa_atual": "Planejamento"
+    },
+    "PE 13/2023": {
+        "nup": "62055.002436/2023-50",
+        "objeto": "Material de Pintura",
+        "uasg": 787200,
+        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
+        "sigla_om": "GptFNB",
+        "setor_responsavel": "GptFNB",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "18-01-2024",
+                "data_final": "27-03-2024",
+                "dias_na_etapa": 69,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Homologado",
+                "data_inicial": "27-03-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 5,
+                "comentario": "Faltou homologar alguns itens",
+                "sequencial": 2
+            }
+        ],
+        "etapa_atual": "Planejamento"
+    },
+    "CC 1/2024": {
+        "nup": "62055.002463/2023-22",
+        "objeto": "Nova Sede da CFB",
+        "uasg": 787900,
+        "orgao_responsavel": "CENTRO DE INSTRUÇÃO E ADESTRAMENTO DE BRASÍLIA",
+        "sigla_om": "CIAB",
+        "setor_responsavel": "GptFNB",
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "01-04-2024",
+                "data_final": "02-04-2024",
+                "dias_na_etapa": 1,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "02-04-2024",
+                "data_final": "02-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "teste",
+                "sequencial": 2
+            },
+            {
+                "etapa": "Em recurso",
+                "data_inicial": "02-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 3
+            }
+        ],
+        "etapa_atual": "Em recurso"
+    },
     "PE 2/2024": {
         "nup": "62055.009367/2023-13",
         "objeto": "Transporte de Carga",
@@ -8,60 +135,12 @@
         "setor_responsavel": "PDU",
         "historico": [
             {
-                "etapa": "Edital",
-                "data_inicial": "01-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 6,
+                "etapa": "Setor Responsável",
+                "data_inicial": "01-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 1,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "Nota Técnica",
-                "data_inicial": "07-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "07-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 3
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "07-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "andressa verificou inconsistencia",
-                "sequencial": 4
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "07-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "inconsistencia sanada",
-                "sequencial": 5
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "07-02-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 6
-            },
-            {
-                "etapa": "CJACM",
-                "data_inicial": "07-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 13,
-                "comentario": "",
-                "sequencial": 7
             }
         ],
         "etapa_atual": "Planejamento"
@@ -75,68 +154,28 @@
         "setor_responsavel": "DSG",
         "historico": [
             {
-                "etapa": "Nota Técnica",
-                "data_inicial": "30-01-2024",
-                "data_final": "30-01-2024",
+                "etapa": "Recomendações AGU",
+                "data_inicial": "01-04-2024",
+                "data_final": "01-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
             },
             {
-                "etapa": "CJACM",
-                "data_inicial": "30-01-2024",
-                "data_final": "30-01-2024",
+                "etapa": "Setor Responsável",
+                "data_inicial": "01-04-2024",
+                "data_final": "01-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 2
             },
             {
-                "etapa": "Devolvido por Nota",
-                "data_inicial": "30-01-2024",
-                "data_final": "30-01-2024",
-                "dias_na_etapa": 0,
+                "etapa": "Edital",
+                "data_inicial": "01-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 1,
                 "comentario": "",
                 "sequencial": 3
-            },
-            {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "30-01-2024",
-                "data_final": "08-02-2024",
-                "dias_na_etapa": 9,
-                "comentario": "",
-                "sequencial": 4
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-02-2024",
-                "data_final": "08-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 5
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "08-02-2024",
-                "data_final": "08-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 6
-            },
-            {
-                "etapa": "Nota Técnica",
-                "data_inicial": "08-02-2024",
-                "data_final": "08-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 7
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 12,
-                "comentario": "",
-                "sequencial": 8
             }
         ],
         "etapa_atual": "Planejamento"
@@ -150,11 +189,11 @@
         "setor_responsavel": "NAS",
         "historico": [
             {
-                "etapa": "CJACM",
-                "data_inicial": "30-01-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 21,
-                "comentario": "",
+                "etapa": "Sessão Pública",
+                "data_inicial": "18-03-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 14,
+                "comentario": "Pregão em andamento",
                 "sequencial": 1
             }
         ],
@@ -167,16 +206,7 @@
         "orgao_responsavel": "ESTAÇÃO RÁDIO DA MARINHA EM BRASÍLIA",
         "sigla_om": "ERMB",
         "setor_responsavel": "ERMB (CLTI)",
-        "historico": [
-            {
-                "etapa": "CJACM",
-                "data_inicial": "30-01-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 21,
-                "comentario": "",
-                "sequencial": 1
-            }
-        ],
+        "historico": [],
         "etapa_atual": "Planejamento"
     },
     "PE 6/2024": {
@@ -186,7 +216,16 @@
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "Telemática",
-        "historico": [],
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "27-03-2024",
+                "data_final": "01-04-2024",
+                "dias_na_etapa": 5,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ],
         "etapa_atual": "Planejamento"
     },
     "PE 7/2024": {
@@ -206,7 +245,16 @@
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
-        "historico": [],
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "01-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 1,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ],
         "etapa_atual": "Planejamento"
     },
     "PE 9/2024": {
@@ -329,138 +377,6 @@
         "historico": [],
         "etapa_atual": "Planejamento"
     },
-    "PE 4/2023": {
-        "nup": "62055.000344/2023-35",
-        "objeto": "Gêneros Secos",
-        "uasg": 787010,
-        "orgao_responsavel": "CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
-        "sigla_om": "CeIMBra",
-        "setor_responsavel": "Subsistência",
-        "historico": [
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "30-01-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 8,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Em recurso",
-                "data_inicial": "07-02-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 34,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 3
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 7/2023": {
-        "nup": "62055.002424/2023-25",
-        "objeto": "Frigorificados – CFAT",
-        "uasg": 787310,
-        "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
-        "sigla_om": "CFAT",
-        "setor_responsavel": "CFAT",
-        "historico": [
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "30-01-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 8,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Em recurso",
-                "data_inicial": "07-02-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 34,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Homologado",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 3
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 10/2023": {
-        "nup": "62055.002426/2023-14",
-        "objeto": "Material Elétrico e Eletrônico",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "DSG",
-        "historico": [
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "30-01-2024",
-                "data_final": "07-02-2024",
-                "dias_na_etapa": 8,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Em recurso",
-                "data_inicial": "07-02-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 34,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 3
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "PE 13/2023": {
-        "nup": "62055.002436/2023-50",
-        "objeto": "Material de Pintura",
-        "uasg": 787200,
-        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
-        "sigla_om": "GptFNB",
-        "setor_responsavel": "GptFNB",
-        "historico": [
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "30-01-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 42,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 2
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
     "DE 1/2023": {
         "nup": "62055.000344/2023-35",
         "objeto": "Dispensa1",
@@ -468,101 +384,7 @@
         "orgao_responsavel": "NÚCLEO DE IMPLANTAÇÃO DO CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA",
         "sigla_om": "NI-CeIMBra",
         "setor_responsavel": "Subsistência",
-        "historico": [
-            {
-                "etapa": "Em recurso",
-                "data_inicial": "02-02-2024",
-                "data_final": "02-02-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Homologado",
-                "data_inicial": "02-02-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 39,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 3
-            },
-            {
-                "etapa": "Impugnado",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 4
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 5
-            },
-            {
-                "etapa": "IRP",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": {
-                    "numero_irp": "",
-                    "data_manifestacao": "22-03-2024",
-                    "data_confirmacao": "27-03-2024",
-                    "datahora_msg_divulgacao": ""
-                },
-                "sequencial": 6
-            },
-            {
-                "etapa": "Nota Técnica",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 7
-            },
-            {
-                "etapa": "CJACM",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 8
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 9
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 10
-            },
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 11
-            }
-        ],
+        "historico": [],
         "etapa_atual": "Planejamento"
     },
     "DE 2/2023": {
@@ -572,62 +394,7 @@
         "orgao_responsavel": "CAPITANIA FLUVIAL DE ARAGUAIA-TOCANTINS",
         "sigla_om": "CFAT",
         "setor_responsavel": "CFAT",
-        "historico": [
-            {
-                "etapa": "Em recurso",
-                "data_inicial": "02-02-2024",
-                "data_final": "06-02-2024",
-                "dias_na_etapa": 4,
-                "comentario": "teste",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Homologado",
-                "data_inicial": "06-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 14,
-                "comentario": "",
-                "sequencial": 2
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "DE 8/2024": {
-        "nup": "62055.002451/2023-06 ",
-        "objeto": "Dispensa8",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "NAS",
-        "historico": [
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "02-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 18,
-                "comentario": "",
-                "sequencial": 1
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "DE 7/2024": {
-        "nup": "62055.010878/2023-70",
-        "objeto": "Dispensa7",
-        "uasg": 787000,
-        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
-        "sigla_om": "Com7ºDN",
-        "setor_responsavel": "DSG",
-        "historico": [
-            {
-                "etapa": "Setor Responsável",
-                "data_inicial": "02-02-2024",
-                "data_final": "20-02-2024",
-                "dias_na_etapa": 18,
-                "comentario": "",
-                "sequencial": 1
-            }
-        ],
+        "historico": [],
         "etapa_atual": "Planejamento"
     },
     "DE 3/2023": {
@@ -643,9 +410,9 @@
     "DE 4/2023": {
         "nup": "62055.002436/2023-50",
         "objeto": "Dispensa4",
-        "uasg": 787200,
-        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
-        "sigla_om": "GptFNB",
+        "uasg": 787000,
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
         "setor_responsavel": "GptFNB",
         "historico": [],
         "etapa_atual": "Planejamento"
@@ -657,16 +424,7 @@
         "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
         "sigla_om": "GptFNB",
         "setor_responsavel": "GptFNB",
-        "historico": [
-            {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "22-02-2024",
-                "data_final": null,
-                "dias_na_etapa": 38,
-                "comentario": "",
-                "sequencial": 1
-            }
-        ],
+        "historico": [],
         "etapa_atual": "Planejamento"
     },
     "DE 6/2024": {
@@ -679,69 +437,17 @@
         "historico": [],
         "etapa_atual": "Planejamento"
     },
-    "CC 1/2024": {
-        "nup": "62055.002463/2023-22",
-        "objeto": "Gás Liquefeito de Petróleo (GLP) ",
-        "uasg": 787200,
-        "orgao_responsavel": "GRUPAMENTO DE FUZILEIROS NAVAIS DE BRASÍLIA",
-        "sigla_om": "GptFNB",
-        "setor_responsavel": "GptFNB",
-        "historico": [
-            {
-                "etapa": "Nota Técnica",
-                "data_inicial": "24-02-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 17,
-                "comentario": "teste",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 2
-            }
-        ],
-        "etapa_atual": "Planejamento"
-    },
-    "TJDL 1/2024": {
-        "nup": "62055.002451/2023-06 ",
-        "objeto": "Dispensa8",
+    "DE 7/2024": {
+        "nup": "62055.010878/2023-70",
+        "objeto": "Dispensa7",
         "uasg": 787000,
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
-        "setor_responsavel": "NAS",
-        "historico": [
-            {
-                "etapa": "Sessão Pública",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 1
-            },
-            {
-                "etapa": "Assinatura Contrato",
-                "data_inicial": "12-03-2024",
-                "data_final": "12-03-2024",
-                "dias_na_etapa": 0,
-                "comentario": "",
-                "sequencial": 2
-            },
-            {
-                "etapa": "Concluído",
-                "data_inicial": "12-03-2024",
-                "data_final": null,
-                "dias_na_etapa": 19,
-                "comentario": "",
-                "sequencial": 3
-            }
-        ],
+        "setor_responsavel": "DSG",
+        "historico": [],
         "etapa_atual": "Planejamento"
     },
-    "TJIL 1/2024": {
+    "DE 8/2024": {
         "nup": "62055.002451/2023-06 ",
         "objeto": "Dispensa8",
         "uasg": 787000,
@@ -751,7 +457,37 @@
         "historico": [],
         "etapa_atual": "Planejamento"
     },
+    "TJIL 1/2024": {
+        "nup": "62055.002451/2023-06 ",
+        "objeto": "Nova Sede da CFB",
+        "uasg": 787900,
+        "orgao_responsavel": "CENTRO DE INSTRUÇÃO E ADESTRAMENTO DE BRASÍLIA",
+        "sigla_om": "CIAB",
+        "setor_responsavel": "NAS",
+        "historico": [],
+        "etapa_atual": "Planejamento"
+    },
+    "TJDL 1/2024": {
+        "nup": "62055.002451/2023-06 ",
+        "objeto": "Nova Sede da CFB",
+        "uasg": 787900,
+        "orgao_responsavel": "CENTRO DE INSTRUÇÃO E ADESTRAMENTO DE BRASÍLIA",
+        "sigla_om": "CIAB",
+        "setor_responsavel": "NAS",
+        "historico": [],
+        "etapa_atual": "Planejamento"
+    },
     "DE 21/2024": {
+        "nup": "62055.XXXXXX/2024-XX",
+        "objeto": NaN,
+        "uasg": 787000,
+        "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
+        "sigla_om": "Com7ºDN",
+        "setor_responsavel": NaN,
+        "historico": [],
+        "etapa_atual": "Planejamento"
+    },
+    "PE 22/2024": {
         "nup": "62055.XXXXXX/2024-XX",
         "objeto": NaN,
         "uasg": 787000,
