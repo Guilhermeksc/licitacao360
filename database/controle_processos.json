@@ -454,8 +454,25 @@
         "orgao_responsavel": "COMANDO DO 7º DISTRITO NAVAL",
         "sigla_om": "Com7ºDN",
         "setor_responsavel": "NAS",
-        "historico": [],
-        "etapa_atual": "Planejamento"
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "05-02-2024",
+                "data_final": "13-03-2024",
+                "dias_na_etapa": 37,
+                "comentario": "teste",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "13-03-2024",
+                "data_final": "02-04-2024",
+                "dias_na_etapa": 20,
+                "comentario": "testes",
+                "sequencial": 2
+            }
+        ],
+        "etapa_atual": "Edital"
     },
     "TJIL 1/2024": {
         "nup": "62055.002451/2023-06 ",
