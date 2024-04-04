@@ -16,7 +16,13 @@ import json
 import os
 import sys
 import datetime
+from datetime import datetime
+import xlsxwriter
 import openpyxl
+from openpyxl.utils import get_column_letter
+from openpyxl import load_workbook
+import fitz
+
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
@@ -31,6 +37,17 @@ class ReportButton(QPushButton):
     def emitOpenReportDialogSignal(self):
         self.openReportDialog.emit()
 
+def status_sort_key(status):
+    order = [
+        'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
+        'Sessão Pública', 'Impugnado', 'Provisionamento', 'Recomendações AGU',
+        'CJACM', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
+    ]
+    try:
+        return order.index(status)
+    except ValueError:
+        return len(order)
+    
 class ReportDialog(QDialog):
     def __init__(self, dataframe, icons_dir, parent=None):
         super().__init__(parent)
@@ -54,7 +71,7 @@ class ReportDialog(QDialog):
             "pdf64.png", "excel.png"
         ])
         # Configura os cabeçalhos das colunas
-        self.model.setHorizontalHeaderLabels(["Mod.", "Objeto", "OM", "Status Anterior", "Dias", "Status Atual", "Dias", "Pregoeiro"])
+        self.model.setHorizontalHeaderLabels(["Número", "Objeto", "OM", "Status Anterior", "Dias", "Status Atual", "Dias", "Pregoeiro"])
 
         self.load_data()
         self._create_buttons()  # Cria os botões
@@ -78,6 +95,11 @@ class ReportDialog(QDialog):
         except FileNotFoundError:
             print(f"Arquivo não encontrado: {PROCESSOS_JSON_PATH}")
             processos_json = {}
+
+        # Ordena o DataFrame pelo 'Status Atual' usando a função de mapeamento
+        self.dataframe['SortKey'] = self.dataframe['etapa'].apply(status_sort_key)
+        self.dataframe.sort_values('SortKey', inplace=True)
+        self.dataframe.drop('SortKey', axis=1, inplace=True)  # Remove a coluna auxiliar de ordenação
 
         for _, row in self.dataframe.iterrows():
             chave_processo = f"{row['mod']} {int(row['num_pregao'])}/{int(row['ano_pregao'])}"
@@ -120,8 +142,9 @@ class ReportDialog(QDialog):
 
     def create_excel(self, filename="relatorio.xlsx"):
         """
-        Cria um arquivo Excel a partir dos dados do modelo.
+        Cria um arquivo Excel a partir dos dados do modelo, incluindo cabeçalhos personalizados e formatação.
         """
+        # Cria um DataFrame dos dados
         data = []
         for row in range(self.model.rowCount()):
             row_data = []
@@ -129,11 +152,67 @@ class ReportDialog(QDialog):
                 item = self.model.item(row, column)
                 row_data.append(item.text() if item else "")
             data.append(row_data)
-        
         df = pd.DataFrame(data, columns=[self.model.horizontalHeaderItem(i).text() for i in range(self.model.columnCount())])
         
-        # Exportar para Excel
-        df.to_excel(filename, index=False)
+        # Cria o arquivo Excel com XlsxWriter
+        writer = pd.ExcelWriter(filename, engine='xlsxwriter')
+        df.to_excel(writer, sheet_name='Sheet1', startrow=4, index=False)  # A tabela começa na linha 5
+        
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+        # Configurações do formato de página e margens
+        worksheet.set_landscape()  # Define o layout de página para paisagem
+        worksheet.set_margins(left=0.79, right=0.39, top=0.39, bottom=0.39)  # Margens em polegadas (1 cm ≈ 0.39 inches, 2 cm ≈ 0.79 inches)
+        worksheet.set_header('', options={'margin': 0})  # Cabeçalho com margem 0
+        worksheet.set_footer('', options={'margin': 0})  # Rodapé com margem 0
+                
+        # Formatos para as células
+        cabecalho_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'bold': True,
+            'font_size': 14
+        })
+        cabecalho2_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'italic': True, 
+            'font_size': 12
+        })
+
+        date_format = workbook.add_format({
+            'italic': True, 
+            'font_size': 10,
+            'align': 'right'
+        })
+
+        # Formatos com cores intercaladas
+        light_gray_format = workbook.add_format({'bg_color': '#F2F2F2', 'align': 'center', 'valign': 'vcenter'})
+        white_format = workbook.add_format({'bg_color': '#FFFFFF', 'align': 'center', 'valign': 'vcenter'})
+                
+        # Configurações do cabeçalho e data
+        worksheet.merge_range('A1:H1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
+        worksheet.merge_range('A2:H2', '"Prontidão e Efetividade no Planalto Central"', cabecalho2_format)
+        worksheet.merge_range('A3:H3', 'Controle do Plano de Contratações Anual (PCA) 2024', cabecalho_format)
+        data_atual = datetime.now().strftime("%d/%m/%Y")
+        worksheet.merge_range('A4:H4', f"Atualizado em: {data_atual}", date_format)
+        
+        # Configurações de altura das linhas para o cabeçalho
+        worksheet.set_row(0, 20)
+        worksheet.set_row(2, 30)
+        worksheet.set_row(3, 20)  # Ajuste de altura para a linha da data
+            # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
+        col_widths = [10, 30, 10, 20, 5, 20, 5, 15]
+        for i, width in enumerate(col_widths):
+            worksheet.set_column(i, i, width)
+        # Aplicar formatação de conteúdo centralizado a partir da linha 5
+        for row_num in range(5, 5 + len(df)):
+            for col_num in range(8):  # Colunas A a H
+                cell_format = light_gray_format if (row_num % 2 == 0) else white_format
+                worksheet.write(row_num, col_num, df.iloc[row_num - 5, col_num], cell_format)
+        
+        # Fecha o arquivo Excel
+        writer.close()
         return filename  # Retorna o nome do arquivo criado
 
     def open_excel_file(self, filename):
@@ -150,14 +229,12 @@ class ReportDialog(QDialog):
         filename = self.create_excel()  # Cria o arquivo Excel
         self.open_excel_file(filename)  # Abre o arquivo Excel criado
 
-
     def excel_to_pdf(self, excel_file_path, pdf_file_path):
         """
         Converte um arquivo Excel em PDF.
         """
         excel = win32com.client.Dispatch("Excel.Application")
         excel.Visible = False  # Executa em background
-        doc = None
         try:
             doc = excel.Workbooks.Open(excel_file_path)
             doc.ExportAsFixedFormat(0, pdf_file_path)  # 0 indica que estamos exportando para PDF
@@ -167,6 +244,68 @@ class ReportDialog(QDialog):
             if doc is not None:
                 doc.Close(False)
             excel.Quit()
+
+    def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
+        pdf_path = str(pdf_path)
+        left_image_path = str(left_image_path)
+        right_image_path = str(right_image_path)
+        watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
+
+        doc = fitz.open(pdf_path)
+        numero_total_paginas = len(doc)  # Obter o número total de páginas
+     
+        for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
+            page_width = pagina.rect.width
+            page_height = pagina.rect.height
+            texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
+
+            # Configurar o texto para o contador de páginas
+            text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
+            pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
+            
+            # Inserir marca d'água centralizada em todas as páginas
+            wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
+            pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
+            scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
+            scaled_width = pix.width * scale
+            scaled_height = pix.height * scale
+            center_x = (page_width - scaled_width) / 2
+            center_y = (page_height - scaled_height) / 2
+            watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
+            
+            pagina.insert_image(watermark_rect, filename=watermark_image_path)
+            
+            # Inserir imagens esquerda e direita apenas na primeira página
+            if pagina_number == 0:
+                # Calcular o tamanho da imagem em pontos
+                image_size_pt = (image_size_cm[0] * 108 / 2.54, image_size_cm[1] * 108 / 2.54)
+                
+                # Calcular o deslocamento das imagens a partir das bordas em pontos
+                offset_left_x_pt = 4 * 72 / 2.54
+                offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
+                offset_y_pt = 0.5 * 72 / 2.54  # 1 cm do topo
+                
+                # Definir os retângulos onde as imagens serão inseridas
+                left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+                right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+                
+                # Inserir as imagens na primeira página
+                pagina.insert_image(left_rect, filename=left_image_path)
+                pagina.insert_image(right_rect, filename=right_image_path)
+            
+        # Salvar o documento modificado
+        novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
+        doc.save(novo_pdf_path)
+        doc.close()
+
+        # Informar ao usuário sobre o salvamento do novo arquivo
+        print(f"PDF modificado salvo como: {novo_pdf_path}")
+
+        # Abrir o PDF automaticamente (Windows)
+        try:
+            os.startfile(novo_pdf_path)
+        except Exception as e:
+            print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
 
     def on_export_pdf(self):
         """
@@ -181,7 +320,7 @@ class ReportDialog(QDialog):
         
         # Converte o arquivo Excel em PDF
         self.excel_to_pdf(excel_file_path, pdf_file_path)
-        
+        self.adicionar_imagem_ao_pdf(str(pdf_file_path), str(TUCANO_PATH), str(MARINHA_PATH), str(CEIMBRA_BG))
         # Tenta remover o arquivo Excel temporário
         try:
             os.remove(excel_file_path)

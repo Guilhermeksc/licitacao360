@@ -143,7 +143,7 @@ ETAPAS = [
 class ProcessosWidget(QWidget):
     def atualizar_visualizacao(self):
         """Recarrega os dados e atualiza a visualização."""
-        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR, CONTROLE_DISPENSA_DIR)
+        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR)
 
         self.preencher_blocos()
 
@@ -165,7 +165,7 @@ class ProcessosWidget(QWidget):
         self.blocks_layout.addWidget(list_widget, row * 2 + 1, col)
         self.etapas[etapa] = list_widget
 
-    def __init__(self, parent=None, controle_processos_path=None, controle_dispensa_path=None):
+    def __init__(self, parent=None, controle_processos_path=None):
         super().__init__(parent)
         # Cria a label
         label_fases = QLabel("Fases do Processo")
@@ -174,7 +174,7 @@ class ProcessosWidget(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(label_fases)  # Adicione a label ao layout
         self.current_selection = None
-        self.df_processos = self.carregar_dados_processos(controle_processos_path, controle_dispensa_path)
+        self.df_processos = self.carregar_dados_processos(controle_processos_path)
         self.criar_widgets_processos()
         self.preencher_blocos()  # Certifique-se de que este método é chamado
         # Certifique-se de que controle_processos_path é o caminho correto do arquivo JSON
@@ -206,7 +206,7 @@ class ProcessosWidget(QWidget):
                 
     def showEvent(self, event):
         # Chama a função de atualização de dados toda vez que o widget é mostrado
-        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR, CONTROLE_DISPENSA_DIR)
+        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR)
         self.preencher_blocos()  # Atualiza os list widgets com os dados mais recentes
         super().showEvent(event)  # Chama o método de evento de exibição padrão
 
@@ -371,7 +371,7 @@ class ProcessosWidget(QWidget):
             escrever_arquivo_json(PROCESSOS_JSON_PATH, processos_json)
 
     def atualizar_listas(self):
-        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR, CONTROLE_DISPENSA_DIR)
+        self.df_processos = self.carregar_dados_processos(CONTROLE_PROCESSOS_DIR)
         for etapa, list_widget in self.etapas.items():
             list_widget.clear() # Limpar a lista atual
             # Preencher cada lista com os dados atualizados
@@ -399,17 +399,15 @@ class ProcessosWidget(QWidget):
         ano_pregao = int(ano_pregao)
         return mod, num_pregao, ano_pregao
     
-    def carregar_dados_processos(self, controle_processos_path, controle_dispensa_path):
+    def carregar_dados_processos(self, controle_processos_path):
         try:
             df_processos = pd.read_excel(controle_processos_path or CONTROLE_PROCESSOS_DIR)
-            df_dispensa = pd.read_excel(controle_dispensa_path or CONTROLE_DISPENSA_DIR)
 
             # Preencher valores NaN na coluna 'etapa' com 'Setor Responsável' em ambos os DataFrames
             df_processos['etapa'] = df_processos['etapa'].fillna('Setor Responsável')
-            df_dispensa['etapa'] = df_dispensa['etapa'].fillna('Setor Responsável')
 
             # Concatenar os DataFrames
-            df_combinado = pd.concat([df_processos, df_dispensa], ignore_index=True)
+            df_combinado = pd.concat([df_processos], ignore_index=True)
 
             # Remover duplicatas, se necessário (ajuste conforme necessário)
             df_combinado = df_combinado.drop_duplicates(subset=['mod', 'num_pregao', 'ano_pregao'])
@@ -421,7 +419,6 @@ class ProcessosWidget(QWidget):
         except Exception as e:
             QMessageBox.warning(self, 'Erro', f'Erro ao ler os arquivos Excel: {e}')
             return pd.DataFrame()
-
 
     def inicializar_json_do_excel(self, caminho_excel, caminho_json):
         if caminho_excel is None:
