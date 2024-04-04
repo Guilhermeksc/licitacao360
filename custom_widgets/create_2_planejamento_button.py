@@ -422,7 +422,7 @@ class ApplicationUI(QMainWindow):
             print(f"Índice: {index}, Valor: {self.df_licitacao_completo.loc[index].to_dict()}")
 
         self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png"
+            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png"
         ])
         self.setup_ui()
 
@@ -461,12 +461,12 @@ class ApplicationUI(QMainWindow):
     def _create_buttons(self):
         self.buttons_layout = QHBoxLayout()
         self.button_specs = [
-            ("Adicionar", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item"),
-            ("Salvar", self.image_cache['save_to_drive'], self.on_save_data, "Salva o dataframe em um arquivo excel('.xlsx')"),
-            ("Carregar", self.image_cache['loading'], self.on_load_data, "Carrega o dataframe de um arquivo existente('.xlsx' ou '.odf')"),
-            ("Excluir", self.image_cache['delete'], self.on_delete_item, "Adiciona um novo item"),
-            ("Abrir Planilha Excel", self.image_cache['excel'], self.abrir_planilha_controle, "Abre a planilha de controle"),
-            ("Gerar Relatório", self.image_cache['excel'], self.on_generate_report, "Gera um relatório dos dados")
+            ("  Adicionar", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item"),
+            ("  Salvar", self.image_cache['save_to_drive'], self.on_save_data, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("  Carregar", self.image_cache['loading'], self.on_load_data, "Carrega o dataframe de um arquivo existente('.xlsx' ou '.odf')"),
+            ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Adiciona um novo item"),
+            ("  Abrir Planilha Excel", self.image_cache['excel'], self.abrir_planilha_controle, "Abre a planilha de controle"),
+            ("    Relatório", self.image_cache['website_menu'], self.on_generate_report, "Gera um relatório dos dados")
         ]
 
         for text, icon, callback, tooltip in self.button_specs:
