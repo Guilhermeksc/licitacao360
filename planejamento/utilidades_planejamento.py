@@ -4,7 +4,7 @@ import os
 import re
 from bs4 import BeautifulSoup 
 from datetime import datetime
-
+    
 def inicializar_json_do_excel(caminho_excel, caminho_json):
     # Verificar se o arquivo JSON já existe
     if os.path.exists(caminho_json):

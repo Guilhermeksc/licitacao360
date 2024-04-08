@@ -43,11 +43,20 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.ano_pregao = ano_pregao
         self.item_pca = item_pca
         self.portaria_PCA = portaria_PCA
+        try:
+            self.df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
+            if self.df_registro_selecionado.empty:
+                QMessageBox.warning(None, "Seleção Necessária", "O arquivo de registro selecionado está vazio. Por favor, selecione um registro antes de gerar um documento.")
+                return
+            else:
+                # Supondo que o DataFrame tenha a coluna 'item_pca' e você queira utilizar o valor da primeira linha
+                self.item_pca = self.df_registro_selecionado['item_pca'].iloc[0]
+        except Exception as e:
+            QMessageBox.warning(None, "Erro ao Carregar", f"Ocorreu um erro ao tentar carregar o registro selecionado: {e}")
+            return
+        
         self.setWindowTitle("Autorização para Abertura")
-        
-        # Ajustar o tamanho da janela
         self.setFixedSize(300, 400)
-        
         self.layout = QVBoxLayout(self)
         self.pasta = ''
         self.setupUi()
@@ -96,25 +105,22 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.itemPCALayout = QHBoxLayout()
         self.labelItemPCA = QLabel("Item do PCA:")
         self.lineEditItemPCA = QLineEdit()
-        # Usar settings para definir o valor do item PCA
-        item_PCA_definido = settings.value("item_pca", self.item_pca)
-        self.lineEditItemPCA.setText(item_PCA_definido)
-
+        self.lineEditItemPCA.setText(str(self.item_pca))
         # Adiciona o label e o line edit ao layout horizontal
         self.itemPCALayout.addWidget(self.labelItemPCA)
         self.itemPCALayout.addWidget(self.lineEditItemPCA)
         self.grupoItemPCALayout.addLayout(self.itemPCALayout)
+        self.lineEditItemPCA.editingFinished.connect(self.salvarItemPCA)
 
         # Continuação para adicionar a Portaria e seu QLineEdit
         self.labelPortariaPCA = QLabel("Portaria:")
         self.lineEditPortariaPCA = QLineEdit()
-
+        self.lineEditPortariaPCA.setText(str(self.portaria_PCA))
         # Carregar valor pré-definido da portaria de QSettings
         portaria_predefinida = settings.value("portaria_PCA", f"{self.portaria_PCA}")
-        self.lineEditPortariaPCA.setText(portaria_predefinida)
         self.lineEditPortariaPCA.setPlaceholderText("Ex: 05 Ceimbra, de 26 de janeiro de 2024.")
         # Conectar o sinal de edição concluída do QLineEdit da portaria a uma função para salvar o valor
-        self.lineEditItemPCA.editingFinished.connect(self.salvarItemPCA)
+
         self.lineEditPortariaPCA.editingFinished.connect(self.salvarPortariaPCA)
 
         self.grupoItemPCALayout.addWidget(self.labelPortariaPCA)
@@ -157,9 +163,10 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.salvarAlteracoesExcel()
 
     def salvarItemPCA(self):
-        # Atualiza o valor de item_pca em QSettings
+        # Atualiza o valor de portaria_PCA em QSettings
         self.item_pca = self.lineEditItemPCA.text()
         self.salvarAlteracoesExcel()
+
         
     def salvarAlteracoesExcel(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
@@ -236,22 +243,16 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             print(f"Pasta selecionada: {self.pasta}")
     
     def gerarDocx(self):
-
-        global df_registro_selecionado
-        if df_registro_selecionado is None or (isinstance(df_registro_selecionado, pd.DataFrame) and df_registro_selecionado.empty):
-            if os.path.exists(ITEM_SELECIONADO_PATH):
-                try:
-                    df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
-                    if df_registro_selecionado.empty:
-                        QMessageBox.warning(None, "Seleção Necessária", "O arquivo de registro selecionado está vazio. Por favor, selecione um registro antes de gerar um documento.")
-                        return
-                except Exception as e:
-                    QMessageBox.warning(None, "Erro ao Carregar", f"Ocorreu um erro ao tentar carregar o registro selecionado: {e}")
-                    return
-            else:
-                QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro antes de gerar um documento.")
+        try:
+            df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
+            if df_registro_selecionado.empty:
+                QMessageBox.warning(None, "Seleção Necessária", "O arquivo de registro selecionado está vazio. Por favor, selecione um registro antes de gerar um documento.")
                 return
-            
+        except Exception as e:
+            QMessageBox.warning(None, "Erro ao Carregar", f"Ocorreu um erro ao tentar carregar o registro selecionado: {e}")
+            return
+
+        # Continua com o processo de geração do documento
         template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
         salvar_nome = f"{self.mod} {self.num_pregao}-{self.ano_pregao} - Autorizacao para abertura de Processo Administrativo"
 
@@ -263,25 +264,18 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             nome_selecionado = self.ordenadordespesasComboBox.currentText()
             valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
 
-            # Formatar o valor_completo para uma string apropriada
-            ordenador_de_despesas_formatado = f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}"
-
             # Preparar os dados para renderizar no template
             data = {
                 **df_registro_selecionado.to_dict(orient='records')[0],  # Incorporar dados do DataFrame
                 "item_pca": self.lineEditItemPCA.text(),  # Sobrescrever com valor atual do QLineEdit de item_pca
                 "portaria_PCA": self.lineEditPortariaPCA.text(),  # Sobrescrever com valor atual do QLineEdit de portaria_PCA
-                'ordenador_de_despesas': ordenador_de_despesas_formatado  # Utilizar a string formatada
+                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}"  # Utilizar a string formatada
             }
 
             doc.render(data)
-
             save_path = os.path.join(self.pasta, f"{salvar_nome}.docx")
-
             doc.save(save_path)
-
-            # Limpar a cópia temporária ao concluir
-            shutil.rmtree(temp_dir)
+            shutil.rmtree(temp_dir)  # Limpar a cópia temporária ao concluir
 
             QMessageBox.information(None, "Sucesso", "Documento DOCX gerado com sucesso no diretório selecionado.")
             os.startfile(save_path)
