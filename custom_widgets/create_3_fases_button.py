@@ -428,14 +428,10 @@ class ProcessosWidget(QWidget):
         processos_json = {}
 
         for _, row in df.iterrows():
-            chave_processo = f"PE {row['num_pregao']}/{row['ano_pregao']}"
+            chave_processo = f"{row['mod']} {row['num_pregao']}/{row['ano_pregao']}"
             processos_json[chave_processo] = {
                 "nup": row["nup"],
                 "objeto": row["objeto"],
-                "uasg": row["uasg"],
-                "orgao_responsavel": row["orgao_responsavel"],
-                "sigla_om": row["sigla_om"],
-                "setor_responsavel": row["setor_responsavel"],
                 "etapas": {}
             }
 

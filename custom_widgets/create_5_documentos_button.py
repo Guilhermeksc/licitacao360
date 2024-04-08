@@ -136,11 +136,8 @@ class ErrorDialog(QDialog):
 
 df_licitacao = None
 
-from custom_widgets.create_2_planejamento_button import df_registro_selecionado  
 from docxtpl import DocxTemplate
 from PyQt6.QtWidgets import QApplication, QMessageBox
-import sys
-import os
 import pandas as pd
 
 def carregar_dados_pregao():

@@ -10,7 +10,7 @@ from styles.styless import (
     get_menu_button_activated_style, get_updated_background
 )
 from custom_widgets.create_1_inicio import InicioWidget
-from custom_widgets.create_2_planejamento_button import ApplicationUI
+from planejamento.planejamento_button import ApplicationUI
 from custom_widgets.create_3_fases_button import ProcessosWidget
 from custom_widgets.create_4_contagem_dias_button import ContagemDias
 from custom_widgets.create_5_documentos_button import DocumentosWidget
@@ -26,7 +26,6 @@ from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.painel_contratos_novo import ControleContratosWidget
 from controle_dispensa.limite_dispensa import LimiteDispensa
 from controle_dispensa.consulta_pdm_catser import ConsultaPDMCatser
-
 
 class MainWindow(QMainWindow):
     def __init__(self):

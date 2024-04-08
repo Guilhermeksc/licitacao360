@@ -33,6 +33,7 @@ def update_dir(title, key, default_value, parent=None):
         return Path(new_dir)
     return default_value
 
+PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 ICONS_DIR = DATABASE_DIR / "icons"
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))
@@ -89,6 +90,7 @@ CONTROLE_DISPENSA_DIR = DATABASE_DIR / "controle_dispensa.xlsx"
 
 TABELA_UASG_DIR = DATABASE_DIR / "tabela_uasg.xlsx"
 ORDENADOR_DESPESAS_DIR = DATABASE_DIR / "ordenador_despesas.xlsx"
+
 FONT_STYLE = ("Arial", 20, "bold")
 
 URL_SAPIENS = 'https://sapiens.agu.gov.br/login'

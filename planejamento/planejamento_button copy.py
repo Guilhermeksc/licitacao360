@@ -22,7 +22,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 import fitz
-
+from planejamento.popup_relatorio import ReportDialog
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
@@ -834,6 +834,13 @@ class ApplicationUI(QMainWindow):
         df_registro_selecionado.to_csv(ITEM_SELECIONADO_PATH, index=False, encoding='utf-8-sig')
         print(f"Registro salvo em {ITEM_SELECIONADO_PATH}")
         self.app.pregao_selecionado()
+        # Configurações opcionais para limitar o número de linhas e colunas impressas, se necessário
+        pd.set_option('display.max_columns', 10)  # Ajuste conforme necessário
+        pd.set_option('display.max_rows', 10)     # Ajuste conforme necessário
+
+        print(f"Registro salvo em {ITEM_SELECIONADO_PATH}")
+        print("Valores de df_registro_selecionado:")
+        print(df_registro_selecionado.to_string())
 
         return True
 
