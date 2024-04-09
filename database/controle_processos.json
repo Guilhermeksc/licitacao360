@@ -3,20 +3,28 @@
         "objeto": "Gêneros Secos",
         "historico": [
             {
-                "etapa": "Sessão Pública",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
             },
             {
-                "etapa": "Em recurso",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: Em recurso",
+                "comentario": "Movido para a etapa: Nota Técnica",
                 "sequencial": 2
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 3
             }
         ]
     },
@@ -24,12 +32,28 @@
         "objeto": "Frigorificados – CFAT",
         "historico": [
             {
-                "etapa": "Homologado",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 2
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 3
             }
         ]
     },
@@ -37,12 +61,36 @@
         "objeto": "Panificados",
         "historico": [
             {
-                "etapa": "Concluído",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 2
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 3
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 4
             }
         ]
     },
@@ -50,20 +98,73 @@
         "objeto": "Material Elétrico e Eletrônico",
         "historico": [
             {
-                "etapa": "Sessão Pública",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
             },
             {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 2
+            },
+            {
                 "etapa": "Edital",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Edital",
+                "sequencial": 3
+            }
+        ]
+    },
+    "PE 13/2023": {
+        "objeto": "Material de Pintura",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
                 "sequencial": 2
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 3
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 4
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 5
             }
         ]
     },
@@ -71,9 +172,9 @@
         "objeto": "Nova Sede da CFB",
         "historico": [
             {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -84,9 +185,9 @@
         "objeto": "Gás",
         "historico": [
             {
-                "etapa": "Concluído",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -97,9 +198,9 @@
         "objeto": "Transporte de Carga",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -110,20 +211,12 @@
         "objeto": "Manutenção de Elevadores",
         "historico": [
             {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: AGU",
-                "sequencial": 2
             }
         ]
     },
@@ -131,9 +224,9 @@
         "objeto": "Cestas Básicas",
         "historico": [
             {
-                "etapa": "Sessão Pública",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -144,20 +237,12 @@
         "objeto": "Provedor de Internet",
         "historico": [
             {
-                "etapa": "Edital",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "Nota Técnica",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: Nota Técnica",
-                "sequencial": 2
             }
         ]
     },
@@ -165,20 +250,12 @@
         "objeto": "Telefonia Fixa",
         "historico": [
             {
-                "etapa": "Sessão Pública",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "IRP",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: IRP",
-                "sequencial": 2
             }
         ]
     },
@@ -186,9 +263,9 @@
         "objeto": "Água Mineral",
         "historico": [
             {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -199,20 +276,12 @@
         "objeto": "Material Permanente de Rancho",
         "historico": [
             {
-                "etapa": "Recomendações AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "AGU",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: AGU",
-                "sequencial": 2
             }
         ]
     },
@@ -220,9 +289,9 @@
         "objeto": "Moto Aquática",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -234,8 +303,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -246,20 +315,12 @@
         "objeto": "Bebidas não-alcoólicas",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "IRP",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: IRP",
-                "sequencial": 2
             }
         ]
     },
@@ -268,8 +329,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -281,8 +342,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -293,20 +354,12 @@
         "objeto": "Material de Expediente",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: Edital",
-                "sequencial": 2
             }
         ]
     },
@@ -314,20 +367,12 @@
         "objeto": "Material de Higiene e Limpeza",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
-            },
-            {
-                "etapa": "Edital",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
-                "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: Edital",
-                "sequencial": 2
             }
         ]
     },
@@ -336,8 +381,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -349,8 +394,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -362,8 +407,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -375,8 +420,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -388,8 +433,8 @@
         "historico": [
             {
                 "etapa": "Planejamento",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -400,9 +445,9 @@
         "objeto": "Hortifrutigranjeiros",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
@@ -413,9 +458,9 @@
         "objeto": "Laticínios ",
         "historico": [
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "08-04-2024",
-                "data_final": "08-04-2024",
+                "etapa": "Planejamento",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1

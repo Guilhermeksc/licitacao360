@@ -29,35 +29,120 @@ import sqlite3
 
 CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
 
+class DatabaseManager:
+    def __init__(self, db_path):
+        self.db_path = db_path
+
+    def connect(self):
+        self.connection = sqlite3.connect(self.db_path)
+        return self.connection
+
+    def close(self):
+        if self.connection:
+            self.connection.close()
+
+    def atualizar_etapa_processo(self, modalidade, ultima_etapa):
+        with self.connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE controle_processos SET etapa = ? WHERE modalidade = ?",
+                (ultima_etapa, modalidade)
+            )
+            conn.commit()
+
 class EditarDadosDialog(QDialog):
+    dados_atualizados = pyqtSignal()
     def __init__(self, parent=None, dados=None):
         super().__init__(parent)
         self.setWindowTitle("Editar Dados")
-        self.layout = QFormLayout(self)
+        self.setFixedSize(700, 600)
+
+        # Cria o QGroupBox com o título 'Índices das Variáveis'
+        self.groupBox = QGroupBox('Índices das Variáveis', self)
+
+        # Cria a QScrollArea e o QWidget que será o conteúdo da QScrollArea
+        self.scrollArea = QScrollArea()
+        self.scrollContentWidget = QWidget()
+        self.scrollLayout = QFormLayout(self.scrollContentWidget)
+
+        # Configura a área de rolagem
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setWidget(self.scrollContentWidget)
+
+        # Configura o layout do groupBox para conter a scrollArea
+        self.groupBoxLayout = QVBoxLayout(self.groupBox)
+        self.groupBoxLayout.addWidget(self.scrollArea)
+
         self.line_edits = {}  # Dicionário para armazenar as QLineEdit
-        self.dados = dados  # DataFrame com os dados a serem editados
+        self.dados = dados  # Dicionário com os dados a serem editados
+
+        # Define o layout principal da QDialog
+        self.mainLayout = QVBoxLayout(self)
+        self.mainLayout.addWidget(self.groupBox)
+
+        # Customização do QGroupBox, QLabel, e QLineEdit
+        self.groupBox.setStyleSheet("""
+            QGroupBox {
+                font-size: 16px;
+                font-weight: bold;
+                border: 1px solid gray;
+                border-radius: 10px;
+                margin-top: 20px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left; 
+                padding: 0 3px;
+                background-color: transparent;
+            }
+            QLabel, QLineEdit {
+                font-size: 16px;
+            }            
+            QLabel {
+                font-weight: bold;
+            }
+        """)
+
+        # Adiciona o botão "Confirmar" fora do QGroupBox para que ele fique fixo
+        self.confirmar_button = QPushButton("Confirmar")
+        self.confirmar_button.clicked.connect(self.confirmar_edicao)
+        self.mainLayout.addWidget(self.confirmar_button)
+
         self.init_ui()
 
     def init_ui(self):
-        # Adiciona uma QLineEdit para cada variável no DataFrame
+        # Adiciona uma QLineEdit para cada variável no dicionário de dados
         for coluna, valor in self.dados.items():
-            line_edit = QLineEdit(self)
-            line_edit.setText(str(valor))  # Preenche o QLineEdit com o valor atual
+            line_edit = QLineEdit()
+            line_edit.setText(str(valor))
             self.line_edits[coluna] = line_edit
-            self.layout.addRow(coluna, line_edit)
-
-        # Botão para confirmar as alterações
-        confirmar_button = QPushButton("Confirmar", self)
-        confirmar_button.clicked.connect(self.confirmar_edicao)
-        self.layout.addRow(confirmar_button)
+            self.scrollLayout.addRow(QLabel(coluna), line_edit)
 
     def confirmar_edicao(self):
-        # Atualiza os valores no DataFrame com os novos valores das QLineEdit
-        for coluna, line_edit in self.line_edits.items():
-            novo_valor = line_edit.text()
-            self.dados[coluna] = novo_valor
-
-        # Fecha o QDialog
+        # Conecta ao banco de dados SQLite usando a variável CONTROLE_DADOS
+        conn = sqlite3.connect(CONTROLE_DADOS)
+        cursor = conn.cursor()
+        
+        # Prepara os dados para a atualização
+        dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}
+        
+        # Cria a parte SET da consulta SQL dinamicamente
+        set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
+        
+        # Prepara a lista de valores para a consulta (inclui os valores seguidos pelo id no final)
+        valores = list(dados_atualizados.values())
+        valores.append(self.dados['id'])  # Assume que 'self.dados' contém um campo 'id' com o ID do registro a ser atualizado
+        
+        # Constrói e executa a consulta SQL de UPDATE
+        query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
+        cursor.execute(query, valores)
+        
+        # Confirma as mudanças e fecha a conexão
+        conn.commit()
+        conn.close()
+        
+        # Fecha o diálogo
+        self.dados_atualizados.emit()
         self.accept()
 
 class CustomTableView(QTableView):
@@ -132,12 +217,17 @@ class TableMenu(QMenu):
     def editar_dados(self):
         if self.index.isValid():
             selected_row = self.index.row()
+            # Supondo que carregar_dados_pregao retorne um DataFrame pandas ou um dicionário de dados para o registro selecionado
             df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
             if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+                # Cria a instância do diálogo de edição passando o registro selecionado como um dicionário
                 dialog = EditarDadosDialog(parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
-                if dialog.exec() == QDialog.DialogCode.Accepted:
-                    # O usuário confirmou as alterações, os dados foram atualizados no DataFrame
-                    print("Dados atualizados:", df_registro_selecionado.iloc[0].to_dict())
+                
+                # Conecta o sinal de dados atualizados ao método que irá atualizar a tabela
+                dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
+                
+                # Exibe o diálogo de edição
+                dialog.exec()
             else:
                 QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
         else:
@@ -164,22 +254,30 @@ class TableMenu(QMenu):
         else:
             QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
 
-class YellowTextDelegate(QStyledItemDelegate):
+class CustomItemDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
 
     def paint(self, painter, option, index):
-        # Altera a cor do texto para a cor hexadecimal #fcc200 apenas para as colunas especificadas
+        # Aplica o alinhamento centralizado para todas as colunas
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+        super().initStyleOption(option, index)
+
+        # Altera a cor do texto para amarelo (#fcc200) apenas para as colunas "modalidade" e "objeto"
         if index.column() == index.model().fieldIndex("modalidade") or index.column() == index.model().fieldIndex("objeto"):
             painter.save()
-            # Configura a cor do pincel para amarelo #fcc200
             painter.setPen(QColor("#fcc200"))
-            value = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-            painter.drawText(option.rect, Qt.AlignmentFlag.AlignLeft, str(value))
+            # Usa o alinhamento centralizado modificado anteriormente
+            painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, str(index.model().data(index, Qt.ItemDataRole.DisplayRole)))
             painter.restore()
         else:
-            # Para outras colunas, usa o método padrão de pintura
+            # Para outras colunas, usa o método padrão de pintura com o alinhamento já ajustado
             super().paint(painter, option, index)
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        # Garante que o alinhamento centralizado seja aplicado
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class ApplicationUI(QMainWindow):
     itemSelected = pyqtSignal(str) 
@@ -200,33 +298,91 @@ class ApplicationUI(QMainWindow):
     def ensure_database_exists(self):
         # Verifica se o arquivo do banco de dados existe
         if not self.database_path.exists():
-            self.create_database()
+            db_manager = DatabaseManager(self.database_path)
+            connection = db_manager.connect()
+            try:
+                # Chama a função para carregar as últimas etapas
+                ultimas_etapas = self.carregar_ultimas_etapas(PROCESSOS_JSON_PATH)
+                # Cria o banco de dados passando as últimas etapas como argumento
+                self.create_database(ultimas_etapas)
+            finally:
+                db_manager.close()
+        
+        # Atualiza o banco de dados com as últimas etapas para cada processo
+        self.atualizar_etapas_processos(PROCESSOS_JSON_PATH)
 
-    def create_database(self):
-        # Cria o banco de dados e a tabela controle_processos com as colunas especificadas
-        connection = sqlite3.connect(self.database_path)
-        cursor = connection.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS controle_processos (
-                id INTEGER PRIMARY KEY,
-                modalidade TEXT,
-                nup TEXT,
-                objeto TEXT,
-                uasg TEXT,
-                orgao_responsavel TEXT,
-                sigla_om TEXT,
-                setor_responsavel TEXT,
-                coordenador_planejamento TEXT,
-                etapa TEXT,
-                pregoeiro TEXT,
-                item_pca TEXT,
-                portaria_PCA TEXT,
-                data_sessao TEXT
-            )
-        ''')
-        connection.commit()
-        connection.close()
+    def create_database(self, ultimas_etapas):
+        db_manager = DatabaseManager(self.database_path)
+        connection = db_manager.connect()
+        try:
+            cursor = connection.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS controle_processos (
+                    id INTEGER PRIMARY KEY,
+                    modalidade TEXT,
+                    nup TEXT,
+                    objeto TEXT,
+                    uasg TEXT,
+                    orgao_responsavel TEXT,
+                    sigla_om TEXT,
+                    setor_responsavel TEXT,
+                    coordenador_planejamento TEXT,
+                    etapa TEXT,
+                    pregoeiro TEXT,
+                    item_pca TEXT,
+                    portaria_PCA TEXT,
+                    data_sessao TEXT,     
+                    data_limite_entrega_tr TEXT,   
+                    nup_portaria_planejamento TEXT,   
+                    srp TEXT,   
+                    material_servico TEXT, 
+                    parecer_agu TEXT, 
+                    msg_irp TEXT, 
+                    data_limite_manifestacao_irp TEXT, 
+                    data_limite_confirmacao_irp TEXT, 
+                    num_irp TEXT, 
+                    om_participantes TEXT          
+                )
+            ''')
+            connection.commit()
+        finally:
+            db_manager.close()
 
+    def carregar_ultimas_etapas(self, processos_json_path):
+        ultimas_etapas = {}
+        
+        # Verifica se o arquivo JSON existe
+        try:
+            with open(processos_json_path, 'r', encoding='utf-8') as json_file:
+                processos_json = json.load(json_file)
+
+            # Itera sobre cada processo no arquivo JSON
+            for modalidade, info_modalidade in processos_json.items():
+                historico = info_modalidade.get('historico', [])
+                if historico:
+                    # Obtém a última etapa da lista 'historico'
+                    ultima_etapa = historico[-1]['etapa']
+                    ultimas_etapas[modalidade] = ultima_etapa
+                else:
+                    # Caso não exista 'historico', atribui um valor padrão
+                    ultimas_etapas[modalidade] = 'Sem histórico'
+
+        except FileNotFoundError:
+            print(f"Arquivo JSON não encontrado: {processos_json_path}")
+        
+        return ultimas_etapas
+
+    def salvar_ultimas_etapas(self, ultimas_etapas):
+        # Salva as últimas etapas no arquivo CONTROLE_DADOS
+        with open(CONTROLE_DADOS, 'w', encoding='utf-8') as json_file:
+            json.dump(ultimas_etapas, json_file, ensure_ascii=False, indent=4)
+
+    def atualizar_etapas_processos(self, processos_json_path):
+        db_manager = DatabaseManager(self.database_path)
+        ultimas_etapas = self.carregar_ultimas_etapas(processos_json_path)
+        for modalidade, ultima_etapa in ultimas_etapas.items():
+            db_manager.atualizar_etapa_processo(modalidade, ultima_etapa)
+                    
     def init_ui(self):
         self.main_widget = QWidget(self)  # Widget principal
         self.main_layout = QVBoxLayout(self.main_widget)  # Layout principal
@@ -234,22 +390,22 @@ class ApplicationUI(QMainWindow):
 
         self.table_view = CustomTableView(self)
         self.init_sql_model()
-        # Aplica o delegado personalizado para a QTableView
-        yellow_delegate = YellowTextDelegate(self.table_view)
-        self.table_view.setItemDelegateForColumn(self.model.fieldIndex("modalidade"), yellow_delegate)
-        self.table_view.setItemDelegateForColumn(self.model.fieldIndex("objeto"), yellow_delegate)
+
+        # Cria e aplica o CustomItemDelegate para todas as colunas da QTableView
+        custom_item_delegate = CustomItemDelegate(self.table_view)  # Instancia o delegate
+        
+        for column in range(self.model.columnCount()):
+            self.table_view.setItemDelegateForColumn(column, custom_item_delegate)
 
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-
-        # Configura a seleção para ser de uma única linha por vez
         self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-
-        # Continuação do seu código de inicialização, como configurar o modelo e estilos...
-        self.table_view.setModel(self.model)
         header = self.table_view.horizontalHeader()
         header.setStretchLastSection(True)
+
         for column in range(self.model.columnCount()):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+
+        self.table_view.setModel(self.model)
 
         # Configurações visuais usando folhas de estilo (QSS)
         self.table_view.setStyleSheet("""
@@ -257,6 +413,7 @@ class ApplicationUI(QMainWindow):
             background-color: black;
             color: white;
             font-size: 12pt;
+            border: 1px solid black;
         }
         QHeaderView::section {
             background-color: #333;
@@ -264,9 +421,6 @@ class ApplicationUI(QMainWindow):
             border: 0.5px solid #dcdcdc;
             color: white;
             font-size: 12pt;
-        }
-        QHeaderView {
-            background-color: black;
         }
         QTableCornerButton::section {
             background-color: transparent;
@@ -282,6 +436,7 @@ class ApplicationUI(QMainWindow):
 
         # Configura o widget principal como o central
         self.setCentralWidget(self.main_widget)
+
 
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():
@@ -311,17 +466,24 @@ class ApplicationUI(QMainWindow):
             self.buttons_layout.addWidget(btn)  # Adicione o botão ao layout dos botões
 
     def on_control_process(self):
+        print("Iniciando on_control_process...")
         # Carrega os dados dos processos antes de criar o diálogo
-        df_processos = carregar_dados_processos(CONTROLE_DADOS)
+        df_processos = carregar_dados_processos(CONTROLE_DADOS, PROCESSOS_JSON_PATH)
+        print("Dados dos processos carregados.")
         if not df_processos.empty:
+            print("DataFrame de processos não está vazio.")
             carregar_ou_criar_arquivo_json(df_processos, PROCESSOS_JSON_PATH)
             
             self.dialog = ProcessFlowDialog(etapas, df_processos, self)
+            print("Diálogo criado.")
+            
+            # Conecta o sinal dialogClosed à função que atualiza as etapas dos processos
+            self.dialog.dialogClosed.connect(lambda: self.atualizar_etapas_processos(PROCESSOS_JSON_PATH))
+            
             self.dialog.show()  # Mostra o diálogo
         else:
-            self.dialog.raise_()  # Traz o diálogo para o primeiro plano se já estiver aberto
-            self.dialog.activateWindow()
-
+            print("DataFrame de processos está vazio.")
+            
     def on_edit_item(self):
         # Implementar lógica de edição aqui
         print("Editar item")
@@ -342,12 +504,13 @@ class ApplicationUI(QMainWindow):
                 else:
                     print("Formato de arquivo não suportado.")
                     return
-                
-                # Preparar df para inserção no SQLite
                 # Certifique-se de que todas as colunas necessárias estejam presentes no DataFrame
                 expected_columns = ["modalidade", "nup", "objeto", "uasg", "orgao_responsavel", 
                                     "sigla_om", "setor_responsavel",  "coordenador_planejamento", 
-                                    "etapa", "pregoeiro", "item_pca", "portaria_PCA", "data_sessao"]
+                                    "etapa", "pregoeiro", "item_pca", "portaria_PCA", "data_sessao",
+                                    "data_limite_entrega_tr", "nup_portaria_planejamento", "srp", 
+                                    "material_servico", "parecer_agu", "msg_irp", "data_limite_manifestacao_irp",
+                                    "data_limite_confirmacao_irp", "num_irp", "om_participantes"]
                 for col in expected_columns:
                     if col not in df.columns:
                         df[col] = ""  # Adiciona colunas faltantes como vazias
@@ -367,15 +530,12 @@ class ApplicationUI(QMainWindow):
         if not self.db.open():
             print("Não foi possível abrir a conexão com o banco de dados.")
             return
-        
         # Configuração do modelo SQL
         self.model = QSqlTableModel(self, self.db)
         self.model.setTable('controle_processos')
         # Configura a estratégia de edição para submeter automaticamente as mudanças ao banco de dados
         self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
-        
         self.model.select()
-
         # Especifica as colunas a serem exibidas
         self.model.setHeaderData(1, Qt.Orientation.Horizontal, "Modalidade")
         self.model.setHeaderData(2, Qt.Orientation.Horizontal, "NUP")
@@ -384,12 +544,21 @@ class ApplicationUI(QMainWindow):
         self.model.setHeaderData(6, Qt.Orientation.Horizontal, "Sigla Órgão")
         self.model.setHeaderData(9, Qt.Orientation.Horizontal, "Etapa")
         self.model.setHeaderData(10, Qt.Orientation.Horizontal, "Pregoeiro")
-
         # Aplica o modelo ao QTableView
         self.table_view.setModel(self.model)
         for column in range(self.model.columnCount()):
             if column not in [1, 2, 3, 4, 6, 9, 10]:
                 self.table_view.hideColumn(column)  # Oculta as colunas não necessárias
+
+    def atualizar_tabela(self):
+        # Verifica se o modelo da tabela é um QSqlTableModel
+        if isinstance(self.model, QSqlTableModel):
+            # Para QSqlTableModel, chame o método select() para atualizar os dados
+            self.model.select()
+        else:
+            # Se não for um QSqlTableModel, talvez seja necessário realizar outras operações para atualizar a tabela
+            print("O modelo da tabela não é um QSqlTableModel. Faça as operações de atualização apropriadas aqui.")
+
 
 etapas = {
     'Planejamento': None,
@@ -569,7 +738,6 @@ class ApplicationUI2(QMainWindow):
             QHeaderView::section {
                 background-color: #333;
                 padding: 4px;
-                border: 1px solid #dcdcdc;
                 color: white;
                 font-size: 12pt;
             }

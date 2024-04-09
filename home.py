@@ -165,11 +165,11 @@ class MainWindow(QMainWindow):
         content_widget.setObjectName("contentWidget")
         content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                background-color: rgba(0, 0, 0, 60);
+                background-color: black;
                 border: 1px solid #ffffff;
-            }
-        """)
-
+                border-radius: 10px; 
+                }
+            """)
         self.main_layout.addWidget(content_widget)
 
         self.inicio_widget = InicioWidget(self)

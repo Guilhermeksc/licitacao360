@@ -117,6 +117,7 @@ class CustomCalendarWidget(QCalendarWidget):
                 selection-background-color: yellow;
             }
         """)
+
 class AlterarDatasDialog(QDialog):
     def __init__(self, listWidget, json_path):
         super().__init__()
@@ -453,6 +454,8 @@ class CustomListWidget(QListWidget):
                 self.addItem(item)  # Adiciona itens não formatados como estão
       
 class ProcessFlowDialog(QDialog):
+    dialogClosed = pyqtSignal()
+
     def __init__(self, etapas, df_processos, parent=None):
         super().__init__(parent)
         self.etapas = etapas
@@ -591,3 +594,7 @@ class ProcessFlowDialog(QDialog):
                 for item in items:
                     row = listWidget.row(item)
                     listWidget.takeItem(row)
+
+    def closeEvent(self, event):
+        self.dialogClosed.emit()
+        super().closeEvent(event)
