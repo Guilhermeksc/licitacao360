@@ -332,12 +332,12 @@ class CustomListWidget(QListWidget):
 
                 self.startDrag(Qt.DropAction.MoveAction)
 
-    def addFormattedTextItem(self, mod, num_pregao, ano_pregao, objeto):
+    def addFormattedTextItem(self, modalidade, objeto):
         formattedText = f"""<html>
         <head/>
         <body>
             <p style='text-align: center;'>
-                <span style='font-weight:600; font-size:14pt;'>{mod} {num_pregao}/{ano_pregao}</span><br/>
+                <span style='font-weight:600; font-size:14pt;'>{modalidade}</span><br/>
                 <span style='font-size:10pt;'>{objeto}</span>
             </p>
         </body>
@@ -558,7 +558,7 @@ class ProcessFlowDialog(QDialog):
                 partes = chave_processo.split()
                 mod = partes[0]
                 num_pregao, ano_pregao = partes[1].split('/')
-                
+                modalidade = f"{mod} {num_pregao}/{ano_pregao}"
                 print(f"Adicionando {chave_processo} ao widget {list_widget.objectName()}")
 
                 objeto = dados_processo['objeto']
@@ -566,9 +566,7 @@ class ProcessFlowDialog(QDialog):
                 # Assume que addFormattedTextItem é um método que você definiu
                 # para adicionar itens formatados ao list_widget
                 list_widget.addFormattedTextItem(
-                    mod=mod,
-                    num_pregao=num_pregao,
-                    ano_pregao=ano_pregao,
+                    modalidade=modalidade,
                     objeto=objeto
                 )
 

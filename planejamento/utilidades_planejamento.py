@@ -1,10 +1,11 @@
 import json
+import sqlite3
 import pandas as pd
 import os
 import re
 from bs4 import BeautifulSoup 
 from datetime import datetime
-    
+
 def inicializar_json_do_excel(caminho_excel, caminho_json):
     # Verificar se o arquivo JSON já existe
     if os.path.exists(caminho_json):
@@ -93,7 +94,7 @@ def carregar_ou_criar_arquivo_json(df_processos, caminho_json):
     else:
         print("O arquivo JSON não existe. Criando com os dados atuais do DataFrame...")
         for _, processo in df_processos.iterrows():
-            chave_processo = f"{processo['mod']} {processo['num_pregao']}/{processo['ano_pregao']}"
+            chave_processo = f"{processo['modalidade']}"
             print(f"Adicionando processo: {chave_processo} ao JSON")
             if chave_processo not in processos_json:
                 processos_json[chave_processo] = {
@@ -122,3 +123,34 @@ def extrair_chave_processo(itemText):
     if match:
         return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
     return None
+
+def carregar_dados_pregao(index, caminho_banco_dados):
+    """
+    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
+
+    Parâmetros:
+    - index: O índice da linha selecionada na QTableView.
+    - caminho_banco_dados: O caminho para o arquivo do banco de dados SQLite.
+    
+    Retorna:
+    - Um DataFrame do Pandas contendo os dados do registro selecionado.
+    """
+    connection = sqlite3.connect(caminho_banco_dados)
+    query = f"SELECT * FROM controle_processos WHERE id={index+1}"
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+    connection.close()
+    return df_registro_selecionado
+
+def carregar_dados_processos(controle_processos_path):
+    try:
+        # Conecta ao banco de dados SQLite
+        conn = sqlite3.connect(controle_processos_path)
+        # Executa a consulta SQL para selecionar todos os dados da tabela 'controle_processos'
+        df_processos = pd.read_sql_query("SELECT * FROM controle_processos", conn)
+        # Fecha a conexão com o banco de dados
+        conn.close()
+        # Aqui, você pode fazer qualquer processamento adicional necessário nos dados
+        return df_processos
+    except Exception as e:
+        print(f"Erro ao carregar dados do processo: {e}")
+        return pd.DataFrame()

@@ -1,54 +1,424 @@
 {
-    "PE 4/2023": {
+    "PE 04/2023": {
         "objeto": "Gêneros Secos",
         "historico": [
             {
-                "etapa": "Planejamento",
-                "data_inicial": "12-04-2024",
-                "data_final": "12-04-2024",
+                "etapa": "Sessão Pública",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "",
                 "sequencial": 1
             },
             {
-                "etapa": "Setor Responsável",
-                "data_inicial": "12-04-2024",
-                "data_final": "12-04-2024",
+                "etapa": "Em recurso",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
                 "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: Setor Responsável",
+                "comentario": "Movido para a etapa: Em recurso",
                 "sequencial": 2
-            },
+            }
+        ]
+    },
+    "PE 07/2023": {
+        "objeto": "Frigorificados – CFAT",
+        "historico": [
             {
-                "etapa": "IRP",
-                "data_inicial": "24-04-2024",
-                "data_final": "24-04-2024",
+                "etapa": "Homologado",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
                 "dias_na_etapa": 0,
-                "comentario": "Movido para a etapa: IRP",
-                "sequencial": 3
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 08/2023": {
+        "objeto": "Panificados",
+        "historico": [
+            {
+                "etapa": "Concluído",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 10/2023": {
+        "objeto": "Material Elétrico e Eletrônico",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
             },
             {
                 "etapa": "Edital",
-                "data_inicial": "24-04-2024",
-                "data_final": "24-04-2024",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Edital",
-                "sequencial": 4
+                "sequencial": 2
+            }
+        ]
+    },
+    "CC 01/2024": {
+        "objeto": "Nova Sede da CFB",
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 01/2024": {
+        "objeto": "Gás",
+        "historico": [
+            {
+                "etapa": "Concluído",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 02/2024": {
+        "objeto": "Transporte de Carga",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 03/2024": {
+        "objeto": "Manutenção de Elevadores",
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 04/2024": {
+        "objeto": "Cestas Básicas",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 05/2024": {
+        "objeto": "Provedor de Internet",
+        "historico": [
+            {
+                "etapa": "Edital",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Nota Técnica",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Nota Técnica",
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 06/2024": {
+        "objeto": "Telefonia Fixa",
+        "historico": [
+            {
+                "etapa": "Sessão Pública",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
             },
             {
                 "etapa": "IRP",
-                "data_inicial": "24-04-2024",
-                "data_final": "24-04-2024",
-                "dias_na_etapa": -12,
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: IRP",
-                "sequencial": 5
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 07/2024": {
+        "objeto": "Água Mineral",
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 08/2024": {
+        "objeto": "Material Permanente de Rancho",
+        "historico": [
+            {
+                "etapa": "Recomendações AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "AGU",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: AGU",
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 09/2024": {
+        "objeto": "Moto Aquática",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 10/2024": {
+        "objeto": "Material de Carpintaria",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 11/2024": {
+        "objeto": "Bebidas não-alcoólicas",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "IRP",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: IRP",
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 12/2024": {
+        "objeto": "Material Hidráulico",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 13/2024": {
+        "objeto": "Equipamento de Informática",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 14/2024": {
+        "objeto": "Material de Expediente",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
             },
             {
                 "etapa": "Edital",
-                "data_inicial": "12-04-2024",
-                "data_final": "01-04-2024",
-                "dias_na_etapa": -11,
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Edital",
-                "sequencial": 6
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 15/2024": {
+        "objeto": "Material de Higiene e Limpeza",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 2
+            }
+        ]
+    },
+    "PE 16/2024": {
+        "objeto": "Pisos e Revestimentos",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 17/2024": {
+        "objeto": "Serviço de Transporte de Pessoal ",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 18/2024": {
+        "objeto": "Material de Segurança Orgânica",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 19/2024": {
+        "objeto": "Material Esportivo (PROFESP) ",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 20/2024": {
+        "objeto": "Material Escolar",
+        "historico": [
+            {
+                "etapa": "Planejamento",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 29/2024": {
+        "objeto": "Hortifrutigranjeiros",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
+            }
+        ]
+    },
+    "PE 31/2024": {
+        "objeto": "Laticínios ",
+        "historico": [
+            {
+                "etapa": "Setor Responsável",
+                "data_inicial": "08-04-2024",
+                "data_final": "08-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "",
+                "sequencial": 1
             }
         ]
     }

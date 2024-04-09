@@ -13,13 +13,383 @@ from planejamento.popup_relatorio import ReportDialog
 from planejamento.escalacao_pregoeiro import EscalarPregoeiroDialog
 from planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
 from planejamento.fluxo_dos_processos import ProcessFlowDialog
-from planejamento.utilidades_planejamento import inicializar_json_do_excel, carregar_dados_processos, carregar_ou_criar_arquivo_json, extrair_chave_processo
+from planejamento.utilidades_planejamento import inicializar_json_do_excel, carregar_dados_processos, carregar_ou_criar_arquivo_json, extrair_chave_processo, carregar_dados_pregao
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime
+from functools import partial
+import sys
+from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
+from pathlib import Path
+import sqlite3
+
+CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
+
+class EditarDadosDialog(QDialog):
+    def __init__(self, parent=None, dados=None):
+        super().__init__(parent)
+        self.setWindowTitle("Editar Dados")
+        self.layout = QFormLayout(self)
+        self.line_edits = {}  # Dicionário para armazenar as QLineEdit
+        self.dados = dados  # DataFrame com os dados a serem editados
+        self.init_ui()
+
+    def init_ui(self):
+        # Adiciona uma QLineEdit para cada variável no DataFrame
+        for coluna, valor in self.dados.items():
+            line_edit = QLineEdit(self)
+            line_edit.setText(str(valor))  # Preenche o QLineEdit com o valor atual
+            self.line_edits[coluna] = line_edit
+            self.layout.addRow(coluna, line_edit)
+
+        # Botão para confirmar as alterações
+        confirmar_button = QPushButton("Confirmar", self)
+        confirmar_button.clicked.connect(self.confirmar_edicao)
+        self.layout.addRow(confirmar_button)
+
+    def confirmar_edicao(self):
+        # Atualiza os valores no DataFrame com os novos valores das QLineEdit
+        for coluna, line_edit in self.line_edits.items():
+            novo_valor = line_edit.text()
+            self.dados[coluna] = novo_valor
+
+        # Fecha o QDialog
+        self.accept()
+
+class CustomTableView(QTableView):
+    def __init__(self, main_app, parent=None):
+        super().__init__(parent)
+        self.main_app = main_app  # Armazena a referência ao aplicativo principal
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
+
+    def showContextMenu(self, pos):
+        index = self.indexAt(pos)
+        if index.isValid():
+            # Passa a referência correta ao aplicativo principal
+            contextMenu = TableMenu(self.main_app, index, self.model())
+            contextMenu.exec(self.viewport().mapToGlobal(pos))
+
+class TableMenu(QMenu):
+    def __init__(self, main_app, index, model=None):
+        super().__init__()
+        self.main_app = main_app
+        self.index = index
+        self.model = model
+
+        # Aplicar estilos ao menu
+        self.setStyleSheet("""
+            QMenu {
+                background-color: #333;
+                padding: 4px;
+                border: 0.5px solid #dcdcdc;
+                color: white;
+                font-size: 12pt;
+            }
+            QMenu::item {
+                background-color: transparent;
+            }
+            QMenu::item:selected {
+                background-color: #565656;
+            }
+        """)
+        # Opções do menu
+        actions = [
+            "Editar Dados do Processo",
+            "Autorização para Abertura de Licitação",
+            "Portaria de Equipe de Planejamento",
+            "Documento de Formalização de Demanda (DFD)",
+            "Declaração de Adequação Orçamentária",
+	        "Capa do Edital",
+ 	        "Comunicação Padronizada AGU",
+	        "Comunicação Padronizada Recomendações AGU",
+            "Mensagem de Divulgação de IRP",
+            "Mensagem de Publicação",
+            "Mensagem de Homologação",
+            "Escalar Pregoeiro",
+        ]
+
+        for actionText in actions:
+            action = QAction(actionText, self)
+            if actionText == "Editar Dados do Processo":
+                action.triggered.connect(self.editar_dados)
+            elif actionText == "Escalar Pregoeiro":  # Adicionando condição para "Escalar Pregoeiro"
+                action.triggered.connect(self.on_get_pregoeiro)
+            else:
+                action.triggered.connect(partial(self.openDialog, actionText))
+            self.addAction(action)
+
+    # No final da classe TableMenu:
+    def on_get_pregoeiro(self):
+        modalidade = self.df_licitacao_completo['modalidade'].iloc[0]
+        dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, modalidade, self)
+        dialog.exec()
+
+    def editar_dados(self):
+        if self.index.isValid():
+            selected_row = self.index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+                dialog = EditarDadosDialog(parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    # O usuário confirmou as alterações, os dados foram atualizados no DataFrame
+                    print("Dados atualizados:", df_registro_selecionado.iloc[0].to_dict())
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+    def openDialog(self, actionText):
+        if self.index.isValid():  # Verifica se o índice é válido
+            selected_row = self.index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            print("Valores de df_registro_selecionado:")
+            print(df_registro_selecionado.to_string())
+
+            if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+                if actionText == "Autorização para Abertura de Licitação":
+                    # Presumindo que os dados já estejam no DataFrame
+                    dialog = AutorizacaoAberturaLicitacaoDialog(
+                        main_app=self.main_app, 
+                        df_registro=df_registro_selecionado, 
+                    )
+                    dialog.exec()
+                # Adicione outras condições aqui para diferentes ações
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+class YellowTextDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def paint(self, painter, option, index):
+        # Altera a cor do texto para a cor hexadecimal #fcc200 apenas para as colunas especificadas
+        if index.column() == index.model().fieldIndex("modalidade") or index.column() == index.model().fieldIndex("objeto"):
+            painter.save()
+            # Configura a cor do pincel para amarelo #fcc200
+            painter.setPen(QColor("#fcc200"))
+            value = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+            painter.drawText(option.rect, Qt.AlignmentFlag.AlignLeft, str(value))
+            painter.restore()
+        else:
+            # Para outras colunas, usa o método padrão de pintura
+            super().paint(painter, option, index)
+
+class ApplicationUI(QMainWindow):
+    itemSelected = pyqtSignal(str) 
+
+    def __init__(self, app, icons_dir):
+        super().__init__()
+        self.app = app
+        self.icons_dir = Path(icons_dir)
+        self.database_path = Path(CONTROLE_DADOS)
+        self.selectedIndex = None 
+        self.image_cache = {}
+        self.image_cache = load_images(self.icons_dir, [
+            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png"
+        ])
+        self.ensure_database_exists()
+        self.init_ui()
+
+    def ensure_database_exists(self):
+        # Verifica se o arquivo do banco de dados existe
+        if not self.database_path.exists():
+            self.create_database()
+
+    def create_database(self):
+        # Cria o banco de dados e a tabela controle_processos com as colunas especificadas
+        connection = sqlite3.connect(self.database_path)
+        cursor = connection.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS controle_processos (
+                id INTEGER PRIMARY KEY,
+                modalidade TEXT,
+                nup TEXT,
+                objeto TEXT,
+                uasg TEXT,
+                orgao_responsavel TEXT,
+                sigla_om TEXT,
+                setor_responsavel TEXT,
+                coordenador_planejamento TEXT,
+                etapa TEXT,
+                pregoeiro TEXT,
+                item_pca TEXT,
+                portaria_PCA TEXT,
+                data_sessao TEXT
+            )
+        ''')
+        connection.commit()
+        connection.close()
+
+    def init_ui(self):
+        self.main_widget = QWidget(self)  # Widget principal
+        self.main_layout = QVBoxLayout(self.main_widget)  # Layout principal
+        self._setup_buttons_layout()
+
+        self.table_view = CustomTableView(self)
+        self.init_sql_model()
+        # Aplica o delegado personalizado para a QTableView
+        yellow_delegate = YellowTextDelegate(self.table_view)
+        self.table_view.setItemDelegateForColumn(self.model.fieldIndex("modalidade"), yellow_delegate)
+        self.table_view.setItemDelegateForColumn(self.model.fieldIndex("objeto"), yellow_delegate)
+
+        self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+
+        # Configura a seleção para ser de uma única linha por vez
+        self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+
+        # Continuação do seu código de inicialização, como configurar o modelo e estilos...
+        self.table_view.setModel(self.model)
+        header = self.table_view.horizontalHeader()
+        header.setStretchLastSection(True)
+        for column in range(self.model.columnCount()):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+
+        # Configurações visuais usando folhas de estilo (QSS)
+        self.table_view.setStyleSheet("""
+        QTableView {
+            background-color: black;
+            color: white;
+            font-size: 12pt;
+        }
+        QHeaderView::section {
+            background-color: #333;
+            padding: 4px;
+            border: 0.5px solid #dcdcdc;
+            color: white;
+            font-size: 12pt;
+        }
+        QHeaderView {
+            background-color: black;
+        }
+        QTableCornerButton::section {
+            background-color: transparent;
+        }
+        """)
+
+        # Adiciona a QTableView ao layout principal
+        self.main_layout.addWidget(self.table_view)
+
+        # Redimensiona as colunas para se ajustarem ao conteúdo
+        self.table_view.resizeColumnsToContents()
+        self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
+
+        # Configura o widget principal como o central
+        self.setCentralWidget(self.main_widget)
+
+    def linhaSelecionada(self, selected, deselected):
+        if selected.indexes():
+            selected_row = selected.indexes()[0].row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, self.database_path)
+            print(df_registro_selecionado.iloc[0].to_dict())
+
+    def _setup_buttons_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self._create_buttons()
+        self.main_layout.addLayout(self.buttons_layout)
+            
+    def _create_buttons(self):
+        self.buttons_layout = QHBoxLayout()
+        self.button_specs = [
+            # ("  Adicionar", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item"),
+            ("  Salvar", self.image_cache['save_to_drive'], self.on_edit_item, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.xlsx' ou '.odf')"),
+            ("  Excluir", self.image_cache['delete'], self.on_edit_item, "Adiciona um novo item"),
+            ("  Controle do Processo", self.image_cache['website_menu'], self.on_control_process, "Abre o painel de controle do processo"),            
+            ("  Abrir Planilha Excel", self.image_cache['excel'], self.on_edit_item, "Abre a planilha de controle"),
+            ("    Relatório", self.image_cache['website_menu'], self.on_edit_item, "Gera um relatório dos dados")
+        ]
+
+        for text, icon, callback, tooltip in self.button_specs:
+            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self)
+            self.buttons_layout.addWidget(btn)  # Adicione o botão ao layout dos botões
+
+    def on_control_process(self):
+        # Carrega os dados dos processos antes de criar o diálogo
+        df_processos = carregar_dados_processos(CONTROLE_DADOS)
+        if not df_processos.empty:
+            carregar_ou_criar_arquivo_json(df_processos, PROCESSOS_JSON_PATH)
+            
+            self.dialog = ProcessFlowDialog(etapas, df_processos, self)
+            self.dialog.show()  # Mostra o diálogo
+        else:
+            self.dialog.raise_()  # Traz o diálogo para o primeiro plano se já estiver aberto
+            self.dialog.activateWindow()
+
+    def on_edit_item(self):
+        # Implementar lógica de edição aqui
+        print("Editar item")
+
+    def carregar_tabela(self):
+        fileName, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Carregar dados", 
+            "", 
+            "Excel Files (*.xlsx);;ODF Files (*.odt)"
+        )
+        if fileName:
+            try:
+                # Lê o arquivo selecionado
+                if fileName.endswith('.xlsx'):
+                    df = pd.read_excel(fileName)
+                # Incluir elif para .odt se necessário e possível
+                else:
+                    print("Formato de arquivo não suportado.")
+                    return
+                
+                # Preparar df para inserção no SQLite
+                # Certifique-se de que todas as colunas necessárias estejam presentes no DataFrame
+                expected_columns = ["modalidade", "nup", "objeto", "uasg", "orgao_responsavel", 
+                                    "sigla_om", "setor_responsavel",  "coordenador_planejamento", 
+                                    "etapa", "pregoeiro", "item_pca", "portaria_PCA", "data_sessao"]
+                for col in expected_columns:
+                    if col not in df.columns:
+                        df[col] = ""  # Adiciona colunas faltantes como vazias
+
+                # Conecta ao banco de dados e insere os dados
+                conn = sqlite3.connect(self.database_path)
+                df.to_sql('controle_processos', conn, if_exists='append', index=False, method="multi")
+                conn.close()
+                print("Dados carregados com sucesso.")
+            except Exception as e:
+                print(f"Erro ao carregar os dados: {e}")
+                
+    def init_sql_model(self):
+        # Conexão com o banco de dados SQLite
+        self.db = QSqlDatabase.addDatabase('QSQLITE')
+        self.db.setDatabaseName(str(self.database_path))
+        if not self.db.open():
+            print("Não foi possível abrir a conexão com o banco de dados.")
+            return
+        
+        # Configuração do modelo SQL
+        self.model = QSqlTableModel(self, self.db)
+        self.model.setTable('controle_processos')
+        # Configura a estratégia de edição para submeter automaticamente as mudanças ao banco de dados
+        self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
+        
+        self.model.select()
+
+        # Especifica as colunas a serem exibidas
+        self.model.setHeaderData(1, Qt.Orientation.Horizontal, "Modalidade")
+        self.model.setHeaderData(2, Qt.Orientation.Horizontal, "NUP")
+        self.model.setHeaderData(3, Qt.Orientation.Horizontal, "Objeto")
+        self.model.setHeaderData(4, Qt.Orientation.Horizontal, "UASG")
+        self.model.setHeaderData(6, Qt.Orientation.Horizontal, "Sigla Órgão")
+        self.model.setHeaderData(9, Qt.Orientation.Horizontal, "Etapa")
+        self.model.setHeaderData(10, Qt.Orientation.Horizontal, "Pregoeiro")
+
+        # Aplica o modelo ao QTableView
+        self.table_view.setModel(self.model)
+        for column in range(self.model.columnCount()):
+            if column not in [1, 2, 3, 4, 6, 9, 10]:
+                self.table_view.hideColumn(column)  # Oculta as colunas não necessárias
 
 etapas = {
     'Planejamento': None,
@@ -73,9 +443,7 @@ class ContextMenu(QMenu):
             
     def openDialog(self, actionText):
         if actionText == "Autorização para Abertura de Licitação":
-            df_registro_selecionado = self.carregar_dados_pregao()
-            print(f"Registro salvo em {ITEM_SELECIONADO_PATH}")
-            print("Valores de df_registro_selecionado:")
+            df_registro_selecionado = carregar_dados_pregao()
             print(df_registro_selecionado.to_string())
             
             if df_registro_selecionado is not None and not df_registro_selecionado.empty:
@@ -83,11 +451,6 @@ class ContextMenu(QMenu):
                 dialog = AutorizacaoAberturaLicitacaoDialog(
                     main_app=self.main_app, 
                     df_registro=df_registro_selecionado, 
-                    mod=df_registro_selecionado['mod'].iloc[0], 
-                    num_pregao=df_registro_selecionado['num_pregao'].iloc[0], 
-                    ano_pregao=df_registro_selecionado['ano_pregao'].iloc[0], 
-                    item_pca=df_registro_selecionado['item_pca'].iloc[0], 
-                    portaria_PCA=df_registro_selecionado['portaria_PCA'].iloc[0]
                 )
                 dialog.exec()
             else:
@@ -98,7 +461,7 @@ class ContextMenu(QMenu):
             msgBox.setText(f"Ação selecionada: {actionText}")
             msgBox.exec()
 
-class ApplicationUI(QMainWindow):
+class ApplicationUI2(QMainWindow):
     itemSelected = pyqtSignal(str, str, str)  # Sinal com dois argumentos de string
 
     NOME_COLUNAS = {
@@ -149,6 +512,7 @@ class ApplicationUI(QMainWindow):
         self.df_uasg = pd.read_excel(TABELA_UASG_DIR)     
         self.columns_treeview = list(self.NOME_COLUNAS.keys())
         self.image_cache = {}
+
         inicializar_json_do_excel(CONTROLE_PROCESSOS_DIR, PROCESSOS_JSON_PATH)
 
         # Carregar os dados de licitação no início, removendo a inicialização redundante

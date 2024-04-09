@@ -152,26 +152,6 @@ class MainWindow(QMainWindow):
 
         self.main_layout.update()
 
-    def atualizar_label_selecionado(self):
-        df_registro_selecionado = self.carregar_dados_pregao()
-        if df_registro_selecionado is not None and not df_registro_selecionado.empty:
-            mod = df_registro_selecionado['mod'].iloc[0]
-            num_pregao = df_registro_selecionado['num_pregao'].iloc[0]
-            ano_pregao = df_registro_selecionado['ano_pregao'].iloc[0]
-            self.selecionado_label.setText(f"\n {mod} {num_pregao}-{ano_pregao} \n Selecionado!")  # Agora 'self.selecionado_label' é reconhecido
-        else:
-            self.selecionado_label.setText("")
-
-    def pregao_selecionado(self):
-        self.atualizar_label_selecionado()
-
-    def carregar_dados_pregao(self):
-        # Carregar o arquivo CSV com os dados do pregão selecionado
-        if ITEM_SELECIONADO_PATH.exists():
-            df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
-            return df_registro_selecionado
-        return None
-
     def setup_content_area(self):
         self.content_layout = QVBoxLayout()
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -280,8 +260,7 @@ class MainWindow(QMainWindow):
 
     def setup_planejamento(self):
         self.clear_content_area()
-        self.application_ui = ApplicationUI(self, str(ICONS_DIR), str(DATABASE_DIR), str(LV_FINAL_DIR))
-        self.application_ui.itemSelected.connect(self.pregao_selecionado)
+        self.application_ui = ApplicationUI(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
     def setup_informacoes_do_processo(self):

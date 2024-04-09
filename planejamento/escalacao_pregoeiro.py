@@ -12,13 +12,12 @@ import json
 ESCALACAO_PREGOEIROS_DIR = DATABASE_DIR / "pregoeiros.json"
 
 class EscalarPregoeiroDialog(QDialog):
-    def __init__(self, df_licitacao_completo, mod, ano_pregao, num_pregao, parent=None):
+    def __init__(self, df_licitacao_completo, modalidade, parent=None):
         super().__init__(parent)
         self.df_licitacao_completo = df_licitacao_completo
-        self.mod = mod
-        self.ano_pregao = ano_pregao
-        self.num_pregao = num_pregao
-        self.setWindowTitle(f"Escalar pregoeiro para o {self.mod} {self.num_pregao}/{self.ano_pregao}\n\n")
+        self.modalidade = modalidade  # Armazena a modalidade recebida como argumento
+
+        self.setWindowTitle(f"Escalar pregoeiro para o {self.modalidade}\n\n")
         self.setFixedSize(QSize(600, 400))
 
         # Inicializa a interface do usuário

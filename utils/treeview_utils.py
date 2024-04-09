@@ -19,9 +19,8 @@ def load_images(icons_dir, image_file_names):
         images[image_file_name.split('.')[0]] = icon
     return images
 
-def create_button(text, icon, callback, tooltip_text, parent, font_size=12):
+def create_button(text, icon, callback, tooltip_text, parent):
     from PyQt6.QtWidgets import QPushButton
-    from PyQt6.QtGui import QFont
     btn = QPushButton(text, parent)
     if icon:
         btn.setIcon(icon)
@@ -30,11 +29,27 @@ def create_button(text, icon, callback, tooltip_text, parent, font_size=12):
     if tooltip_text:
         btn.setToolTip(tooltip_text)
 
-    # Configure button font size
-    font = btn.font()
-    font.setPointSize(font_size)
-    btn.setFont(font)
+    # Aplica folhas de estilo para personalizar a aparência do botão
+    btn.setStyleSheet("""
+    QPushButton {
+        background-color: black;
+        color: white;
+        font-size: 12pt;
+        min-height: 35px;
+        padding: 5px;      
+    }
+    QPushButton:hover {
+        background-color: white;
+        color: black;
+    }
+    QPushButton:pressed {
+        background-color: #ddd;
+        color: black;
+    }
+    """)
+
     return btn
+
 
 def save_dataframe_to_excel(data_frame, file_path):
     try:
@@ -50,3 +65,4 @@ def open_folder(path):
         subprocess.Popen(['open', path])
     else:  # Para Linux e outros sistemas Unix-like
         subprocess.Popen(['xdg-open', path])
+

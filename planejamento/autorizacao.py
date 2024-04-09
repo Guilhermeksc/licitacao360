@@ -34,26 +34,14 @@ NOME_COLUNAS = {
 }
 
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
-    def __init__(self, main_app, df_registro, mod, num_pregao, ano_pregao, item_pca, portaria_PCA):
-        super().__init__()
+    def __init__(self, main_app, df_registro, parent=None):
+        super().__init__(parent)
         self.main_app = main_app
         self.df_registro = df_registro
-        self.mod = mod
-        self.num_pregao = num_pregao
-        self.ano_pregao = ano_pregao
-        self.item_pca = item_pca
-        self.portaria_PCA = portaria_PCA
-        try:
-            self.df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
-            if self.df_registro_selecionado.empty:
-                QMessageBox.warning(None, "Seleção Necessária", "O arquivo de registro selecionado está vazio. Por favor, selecione um registro antes de gerar um documento.")
-                return
-            else:
-                # Supondo que o DataFrame tenha a coluna 'item_pca' e você queira utilizar o valor da primeira linha
-                self.item_pca = self.df_registro_selecionado['item_pca'].iloc[0]
-        except Exception as e:
-            QMessageBox.warning(None, "Erro ao Carregar", f"Ocorreu um erro ao tentar carregar o registro selecionado: {e}")
-            return
+
+        self.item_pca = df_registro['item_pca'].iloc[0]
+        self.portaria_PCA = df_registro['portaria_PCA'].iloc[0]
+        self.modalidade = df_registro['modalidade'].iloc[0]
         
         self.setWindowTitle("Autorização para Abertura")
         self.setFixedSize(300, 400)
@@ -244,19 +232,18 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
     
     def gerarDocx(self):
         try:
-            df_registro_selecionado = pd.read_csv(ITEM_SELECIONADO_PATH)
-            if df_registro_selecionado.empty:
-                QMessageBox.warning(None, "Seleção Necessária", "O arquivo de registro selecionado está vazio. Por favor, selecione um registro antes de gerar um documento.")
+            # Verifica se um registro foi selecionado na tabela
+            if self.df_registro is None:
+                QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
                 return
-        except Exception as e:
-            QMessageBox.warning(None, "Erro ao Carregar", f"Ocorreu um erro ao tentar carregar o registro selecionado: {e}")
-            return
 
-        # Continua com o processo de geração do documento
-        template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
-        salvar_nome = f"{self.mod} {self.num_pregao}-{self.ano_pregao} - Autorizacao para abertura de Processo Administrativo"
+            # Continua com o processo de geração do documento
+            template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
+            # Substitui '/' por '-' na string modalidade
+            modalidade_formatada = self.df_registro['modalidade'].iloc[0].replace('/', '-')
+            # Monta o nome do arquivo utilizando a modalidade formatada
+            salvar_nome = f"{modalidade_formatada} - Autorizacao para abertura de Processo Administrativo"
 
-        try:
             temp_dir = tempfile.mkdtemp()
             temp_template_path = shutil.copy(template_path, temp_dir)
             doc = DocxTemplate(temp_template_path)
@@ -266,11 +253,24 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
             # Preparar os dados para renderizar no template
             data = {
-                **df_registro_selecionado.to_dict(orient='records')[0],  # Incorporar dados do DataFrame
-                "item_pca": self.lineEditItemPCA.text(),  # Sobrescrever com valor atual do QLineEdit de item_pca
-                "portaria_PCA": self.lineEditPortariaPCA.text(),  # Sobrescrever com valor atual do QLineEdit de portaria_PCA
+                **self.df_registro.to_dict(orient='records')[0],  # Incorporar dados do DataFrame
+                "item_pca": self.item_pca,  # Usar o valor de item_pca passado como argumento
+                "portaria_PCA": self.portaria_PCA,  # Usar o valor de portaria_PCA passado como argumento
                 'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}"  # Utilizar a string formatada
             }
+
+            # Substituições adicionais conforme especificado
+            modalidade = self.df_registro['modalidade'].iloc[0]
+            if "PE" in modalidade:
+                pregao_num = modalidade.split()[1]
+                modalidade_substituida = f"Pregão Eletrônico nº {pregao_num}"
+            elif "CC" in modalidade:
+                concorrencia_num = modalidade.split()[1]
+                modalidade_substituida = f"Concorrência nº {concorrencia_num}"
+            else:
+                modalidade_substituida = modalidade
+
+            data["modalidade"] = modalidade_substituida
 
             doc.render(data)
             save_path = os.path.join(self.pasta, f"{salvar_nome}.docx")
@@ -282,6 +282,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         except Exception as e:
             QMessageBox.warning(None, "Erro", f"Erro ao gerar documento DOCX: {e}")
+
+
 
     def gerarPdf(self):
         # Lógica para gerar documento PDF
