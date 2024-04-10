@@ -6,49 +6,19 @@ from diretorios import *
 from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
 import os
-import datetime
-from datetime import datetime
-import openpyxl
 from planejamento.popup_relatorio import ReportDialog
 from planejamento.escalacao_pregoeiro import EscalarPregoeiroDialog
 from planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
 from planejamento.fluxo_dos_processos import ProcessFlowDialog
-from planejamento.utilidades_planejamento import inicializar_json_do_excel, carregar_dados_processos, carregar_ou_criar_arquivo_json, extrair_chave_processo, carregar_dados_pregao
+from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
-from bs4 import BeautifulSoup
 import json
-from datetime import datetime
 from functools import partial
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
-from pathlib import Path
 import sqlite3
-
-CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
-
-class DatabaseManager:
-    def __init__(self, db_path):
-        self.db_path = db_path
-
-    def connect(self):
-        self.connection = sqlite3.connect(self.db_path)
-        return self.connection
-
-    def close(self):
-        if self.connection:
-            self.connection.close()
-
-    def atualizar_etapa_processo(self, modalidade, ultima_etapa):
-        with self.connect() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE controle_processos SET etapa = ? WHERE modalidade = ?",
-                (ultima_etapa, modalidade)
-            )
-            conn.commit()
 
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -119,13 +89,9 @@ class EditarDadosDialog(QDialog):
             self.scrollLayout.addRow(QLabel(coluna), line_edit)
 
     def confirmar_edicao(self):
-        # Conecta ao banco de dados SQLite usando a variável CONTROLE_DADOS
         conn = sqlite3.connect(CONTROLE_DADOS)
         cursor = conn.cursor()
-        
-        # Prepara os dados para a atualização
-        dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}
-        
+        dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}        
         # Cria a parte SET da consulta SQL dinamicamente
         set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
         
@@ -136,12 +102,8 @@ class EditarDadosDialog(QDialog):
         # Constrói e executa a consulta SQL de UPDATE
         query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
         cursor.execute(query, valores)
-        
-        # Confirma as mudanças e fecha a conexão
         conn.commit()
         conn.close()
-        
-        # Fecha o diálogo
         self.dados_atualizados.emit()
         self.accept()
 
@@ -280,109 +242,26 @@ class CustomItemDelegate(QStyledItemDelegate):
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class ApplicationUI(QMainWindow):
-    itemSelected = pyqtSignal(str) 
-
     def __init__(self, app, icons_dir):
         super().__init__()
+        # Essa parte parece ser duplicada e possivelmente está causando confusão.
         self.app = app
         self.icons_dir = Path(icons_dir)
-        self.database_path = Path(CONTROLE_DADOS)
-        self.selectedIndex = None 
+        self.database_path = Path(CONTROLE_DADOS)  # Essa é a linha importante.
+        self.selectedIndex = None
         self.image_cache = {}
         self.image_cache = load_images(self.icons_dir, [
             "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png"
         ])
+        self.database_manager = DatabaseManager(CONTROLE_DADOS)
         self.ensure_database_exists()
         self.init_ui()
 
     def ensure_database_exists(self):
-        # Verifica se o arquivo do banco de dados existe
-        if not self.database_path.exists():
-            db_manager = DatabaseManager(self.database_path)
-            connection = db_manager.connect()
-            try:
-                # Chama a função para carregar as últimas etapas
-                ultimas_etapas = self.carregar_ultimas_etapas(PROCESSOS_JSON_PATH)
-                # Cria o banco de dados passando as últimas etapas como argumento
-                self.create_database(ultimas_etapas)
-            finally:
-                db_manager.close()
-        
-        # Atualiza o banco de dados com as últimas etapas para cada processo
-        self.atualizar_etapas_processos(PROCESSOS_JSON_PATH)
-
-    def create_database(self, ultimas_etapas):
-        db_manager = DatabaseManager(self.database_path)
-        connection = db_manager.connect()
-        try:
-            cursor = connection.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS controle_processos (
-                    id INTEGER PRIMARY KEY,
-                    modalidade TEXT,
-                    nup TEXT,
-                    objeto TEXT,
-                    uasg TEXT,
-                    orgao_responsavel TEXT,
-                    sigla_om TEXT,
-                    setor_responsavel TEXT,
-                    coordenador_planejamento TEXT,
-                    etapa TEXT,
-                    pregoeiro TEXT,
-                    item_pca TEXT,
-                    portaria_PCA TEXT,
-                    data_sessao TEXT,     
-                    data_limite_entrega_tr TEXT,   
-                    nup_portaria_planejamento TEXT,   
-                    srp TEXT,   
-                    material_servico TEXT, 
-                    parecer_agu TEXT, 
-                    msg_irp TEXT, 
-                    data_limite_manifestacao_irp TEXT, 
-                    data_limite_confirmacao_irp TEXT, 
-                    num_irp TEXT, 
-                    om_participantes TEXT          
-                )
-            ''')
-            connection.commit()
-        finally:
-            db_manager.close()
-
-    def carregar_ultimas_etapas(self, processos_json_path):
-        ultimas_etapas = {}
-        
-        # Verifica se o arquivo JSON existe
-        try:
-            with open(processos_json_path, 'r', encoding='utf-8') as json_file:
-                processos_json = json.load(json_file)
-
-            # Itera sobre cada processo no arquivo JSON
-            for modalidade, info_modalidade in processos_json.items():
-                historico = info_modalidade.get('historico', [])
-                if historico:
-                    # Obtém a última etapa da lista 'historico'
-                    ultima_etapa = historico[-1]['etapa']
-                    ultimas_etapas[modalidade] = ultima_etapa
-                else:
-                    # Caso não exista 'historico', atribui um valor padrão
-                    ultimas_etapas[modalidade] = 'Sem histórico'
-
-        except FileNotFoundError:
-            print(f"Arquivo JSON não encontrado: {processos_json_path}")
-        
-        return ultimas_etapas
-
-    def salvar_ultimas_etapas(self, ultimas_etapas):
-        # Salva as últimas etapas no arquivo CONTROLE_DADOS
-        with open(CONTROLE_DADOS, 'w', encoding='utf-8') as json_file:
-            json.dump(ultimas_etapas, json_file, ensure_ascii=False, indent=4)
-
-    def atualizar_etapas_processos(self, processos_json_path):
-        db_manager = DatabaseManager(self.database_path)
-        ultimas_etapas = self.carregar_ultimas_etapas(processos_json_path)
-        for modalidade, ultima_etapa in ultimas_etapas.items():
-            db_manager.atualizar_etapa_processo(modalidade, ultima_etapa)
-                    
+        with self.database_manager as conn:
+            # Aqui conn é o objeto de conexão SQLite
+            DatabaseManager.criar_tabela_controle_prazos(conn)
+                
     def init_ui(self):
         self.main_widget = QWidget(self)  # Widget principal
         self.main_layout = QVBoxLayout(self.main_widget)  # Layout principal
@@ -467,23 +346,19 @@ class ApplicationUI(QMainWindow):
 
     def on_control_process(self):
         print("Iniciando on_control_process...")
-        # Carrega os dados dos processos antes de criar o diálogo
-        df_processos = carregar_dados_processos(CONTROLE_DADOS, PROCESSOS_JSON_PATH)
-        print("Dados dos processos carregados.")
+        df_processos = carregar_dados_processos(CONTROLE_DADOS)  # Ajuste conforme necessário para carregar os dados
         if not df_processos.empty:
-            print("DataFrame de processos não está vazio.")
-            carregar_ou_criar_arquivo_json(df_processos, PROCESSOS_JSON_PATH)
-            
-            self.dialog = ProcessFlowDialog(etapas, df_processos, self)
-            print("Diálogo criado.")
-            
-            # Conecta o sinal dialogClosed à função que atualiza as etapas dos processos
-            self.dialog.dialogClosed.connect(lambda: self.atualizar_etapas_processos(PROCESSOS_JSON_PATH))
-            
-            self.dialog.show()  # Mostra o diálogo
+            with self.database_manager as conn:  # Utilize diretamente o gerenciador de contexto aqui
+                # Ajuste a chamada para carregar_ou_criar_tabela_controle_prazos
+                self.database_manager.carregar_ou_criar_tabela_controle_prazos(df_processos, conn)
+            self.exibir_dialogo_process_flow(df_processos)
         else:
             print("DataFrame de processos está vazio.")
-            
+
+    def exibir_dialogo_process_flow(self, df_processos):
+        dialog = ProcessFlowDialog(etapas, df_processos, self.database_manager, self)  # Use self.database_manager
+        dialog.show()
+
     def on_edit_item(self):
         # Implementar lógica de edição aqui
         print("Editar item")
@@ -524,16 +399,19 @@ class ApplicationUI(QMainWindow):
                 print(f"Erro ao carregar os dados: {e}")
                 
     def init_sql_model(self):
-        # Conexão com o banco de dados SQLite
+        # Agora self.database_path já deve estar corretamente definido.
         self.db = QSqlDatabase.addDatabase('QSQLITE')
         self.db.setDatabaseName(str(self.database_path))
+
         if not self.db.open():
             print("Não foi possível abrir a conexão com o banco de dados.")
             return
-        # Configuração do modelo SQL
+        else:
+            print("Conexão com o banco de dados aberta com sucesso.")
+
+        # Configura o modelo SQL para a tabela controle_processos
         self.model = QSqlTableModel(self, self.db)
         self.model.setTable('controle_processos')
-        # Configura a estratégia de edição para submeter automaticamente as mudanças ao banco de dados
         self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
         self.model.select()
         # Especifica as colunas a serem exibidas
@@ -541,14 +419,17 @@ class ApplicationUI(QMainWindow):
         self.model.setHeaderData(2, Qt.Orientation.Horizontal, "NUP")
         self.model.setHeaderData(3, Qt.Orientation.Horizontal, "Objeto")
         self.model.setHeaderData(4, Qt.Orientation.Horizontal, "UASG")
-        self.model.setHeaderData(6, Qt.Orientation.Horizontal, "Sigla Órgão")
+        self.model.setHeaderData(6, Qt.Orientation.Horizontal, "OM")
         self.model.setHeaderData(9, Qt.Orientation.Horizontal, "Etapa")
         self.model.setHeaderData(10, Qt.Orientation.Horizontal, "Pregoeiro")
+
         # Aplica o modelo ao QTableView
         self.table_view.setModel(self.model)
+        print("Colunas disponíveis no modelo:")
         for column in range(self.model.columnCount()):
+            print(f"Índice {column}: {self.model.headerData(column, Qt.Orientation.Horizontal)}")
             if column not in [1, 2, 3, 4, 6, 9, 10]:
-                self.table_view.hideColumn(column)  # Oculta as colunas não necessárias
+                self.table_view.hideColumn(column)
 
     def atualizar_tabela(self):
         # Verifica se o modelo da tabela é um QSqlTableModel
@@ -600,15 +481,6 @@ class ContextMenu(QMenu):
             action = QAction(actionText, self)
             action.triggered.connect(lambda checked, a=actionText: self.openDialog(a))
             self.addAction(action)
-
-    def carregar_dados_pregao(self):
-        try:
-            df = pd.read_csv(ITEM_SELECIONADO_PATH)
-            return df
-        except Exception as e:
-            QMessageBox.warning(None, "Erro", f"Erro ao carregar dados: {e}")
-            # Retorna um DataFrame vazio em vez de None
-            return pd.DataFrame()
             
     def openDialog(self, actionText):
         if actionText == "Autorização para Abertura de Licitação":
@@ -681,9 +553,6 @@ class ApplicationUI2(QMainWindow):
         self.df_uasg = pd.read_excel(TABELA_UASG_DIR)     
         self.columns_treeview = list(self.NOME_COLUNAS.keys())
         self.image_cache = {}
-
-        inicializar_json_do_excel(CONTROLE_PROCESSOS_DIR, PROCESSOS_JSON_PATH)
-
         # Carregar os dados de licitação no início, removendo a inicialização redundante
         self.df_licitacao_completo = pd.read_excel(CONTROLE_PROCESSOS_DIR, converters={'num_pregao': lambda x: self.convert_to_int(x)})
         # print("Valores de índices em df_licitacao_completo:")
@@ -1081,15 +950,3 @@ class ApplicationUI2(QMainWindow):
         """Run the application."""
         self.show()
         self._adjust_column_widths()  
-
-    def on_control_process(self):
-        # Carregar os dados dos processos antes de criar a dialog
-        df_processos = carregar_dados_processos(CONTROLE_PROCESSOS_DIR)
-        if not df_processos.empty:
-            carregar_ou_criar_arquivo_json(df_processos, PROCESSOS_JSON_PATH)
-        
-            self.dialog = ProcessFlowDialog(etapas, df_processos, self)
-            self.dialog.show()  # Mostra o diálogo
-        else:
-            self.dialog.raise_()  # Traz o diálogo para o primeiro plano se já estiver aberto
-            self.dialog.activateWindow()

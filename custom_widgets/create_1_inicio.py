@@ -7,126 +7,41 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from diretorios import IMAGE_PATH
-from styles.styless import get_transparent_title_style
-from custom_widgets.create_configuracoes_button import ConfiguracoesDialog
 
-class InicioWidget(QWidget):
-    planejamentoClicked = pyqtSignal()
-    fasesProcessoClicked = pyqtSignal()
-    infoProcessoClicked = pyqtSignal()
-    documentosLicitacaoClicked = pyqtSignal()
-    controleVigenciaClicked = pyqtSignal()
-    checklistClicked = pyqtSignal()
-    escalacaoPregoeirosClicked = pyqtSignal()
-    numeradorCpClicked = pyqtSignal()
-    mensagensPadronizadasClicked = pyqtSignal()
-    registroFornecedoresClicked = pyqtSignal()
-    seleniumAutomacaoClicked = pyqtSignal()
-    
+class InicioWidget(QWidget):   
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.button_style = """
-            QPushButton {
-                font-size: 16px;
-                padding: 10px;
-                background-color: rgba(0, 0, 0, 0.2);
-                font-weight: bold;
-                color: white;
-                border-radius: 10px;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                text-decoration: none;
-            }
-            QPushButton:hover {
-                color: rgb(0, 255, 255);
-                background-color: rgba(0, 0, 0, 0.8);
-                border: 1px solid rgba(0, 255, 255, 0.8);
-                text-decoration: underline;
-            }
-        """
         self.layout = QVBoxLayout(self)
-        self.initialize_buttons()
-        self.setup_image_and_buttons()
-        self.setup_quick_access_buttons()
+        self.setMinimumWidth(800) 
 
-    def initialize_buttons(self):
-        # Inicialização dos botões
-        self.button_planejamento = self.create_button("Planejamento", self.planejamentoClicked)
-        self.button_fases_do_processo = self.create_button("Fases do\nProcesso", self.fasesProcessoClicked)
-        # self.button_info_processo = self.create_button("Informações\ndo Processo", self.infoProcessoClicked)
-        # self.button_documentos_licitacao = self.create_button("Documentos\nLicitação", self.documentosLicitacaoClicked)
-        # self.button_controle_vigencia = self.create_button("Controle de\nVigência", self.controleVigenciaClicked)
-        # self.button_checklist = self.create_button("Check-list", self.checklistClicked)
-        # self.button_escalacao_pregoeiros = self.create_button("Escalação de\nPregoeiros", self.escalacaoPregoeirosClicked)
-        # self.button_numerador_cp = self.create_button("Numerador\nde CP", self.numeradorCpClicked)
-        # self.button_mensagens_padronizadas = self.create_button("Mensagens\nPadronizadas", self.mensagensPadronizadasClicked)
-        # self.button_registro_fornecedores = self.create_button("Registro de\nFornecedores", self.registroFornecedoresClicked)
-        # self.button_slides_conges = self.create_button("Conselho de\nGestão", self.configuracoesClicked)
-        self.button_configuracoes = self.create_button("Configurações", self.configuracoesClicked)
-        # self.button_links_uteis = self.create_button("Links\nÚteis", self.configuracoesClicked)
-
-    def configuracoesClicked(self):
-        self.dialog = ConfiguracoesDialog(self)
-        self.dialog.exec()
-        
-    def create_button(self, text, signal):
-        button = QPushButton(text)
-        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        button.setStyleSheet(self.button_style)
-        button.clicked.connect(signal)  # Conectar o botão diretamente ao método
-        return button
-    
-    def setup_image_and_buttons(self):
-        v_layout = QVBoxLayout()
-
-        # # QLabel para o título
-        # self.label_title = QLabel("Intendência da Marinha do Brasil")
-        # self.label_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # self.label_title.setStyleSheet(get_transparent_title_style())
-        # v_layout.addWidget(self.label_title)
-
+        self.layout.addStretch(1)
+        # Adicionar label "Sistema de Gestão de Licitações" acima da imagem
+        label_sistema_gestao = QLabel("Sistema de Gestão de Licitações")
+        label_sistema_gestao.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centralizar texto
+        label_sistema_gestao.setStyleSheet("color: white; font-size: 50px; font-weight: bold;")  # Definir a cor do texto como branca, o tamanho da fonte como 40px, negrito e o fundo como transparente
+        self.layout.addWidget(label_sistema_gestao)  # Adicionar a label acima da imagem
+        self.layout.addStretch(2)
         # QLabel para a imagem
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap(str(IMAGE_PATH / "ceimbra2.png"))  # Verifique se o caminho está correto
-        self.image_label.setPixmap(pixmap.scaled(800, 500, Qt.AspectRatioMode.KeepAspectRatio))
-        v_layout.addWidget(self.image_label)
+        pixmap = QPixmap(str(IMAGE_PATH / "tucano_fundo.png"))  # Verifique se o caminho está correto
+        self.image_label.setPixmap(pixmap.scaled(600, 300, Qt.AspectRatioMode.KeepAspectRatio))
+        self.layout.addWidget(self.image_label)  # Adicionar a imagem ao layout principal
 
-        # Layout Horizontal para adicionar o layout vertical e os botões
-        h_layout = QHBoxLayout()
-        h_layout.addLayout(v_layout)
-        self.layout.addLayout(h_layout)
+        self.layout.addStretch(2)
+        # Criar um novo layout para os labels de contato
+        label_contato_layout = QHBoxLayout()
 
-    def setup_quick_access_buttons(self):
-        grid_layout = QGridLayout()
-        grid_layout.setSpacing(10)  # Espaçamento entre os botões
+        # Adicionar label de contato no canto inferior direito
+        label_contato = QLabel(
+            "Desenvolvido por:\n" 
+            "CC (IM) Guilherme Kirschner de Siqueira Campos\n"
+            "Contato: (61) 98264-0077\n"
+            "E-mail: siqueira.campos@marinha.mil.br"
+        )
+        label_contato.setAlignment(Qt.AlignmentFlag.AlignRight)  # Alinhar à direita
+        label_contato.setStyleSheet("color: white; font-size: 20px;")  # Definir a cor do texto como branca, o tamanho da fonte como 20px e o fundo como transparente
+        label_contato_layout.addWidget(label_contato, alignment=Qt.AlignmentFlag.AlignRight)  # Adicionar a label ao layout de labels
 
-        # # Adicionar botões ao grid layout
-        # grid_layout.addWidget(self.button_planejamento, 2, 0)
-        # grid_layout.addWidget(self.button_fases_do_processo, 2, 1)
-        #             # grid_layout.addWidget(self.button_info_processo, 0, 2)
-        #             # grid_layout.addWidget(self.button_documentos_licitacao, 0, 3)
-        #             # grid_layout.addWidget(self.button_controle_vigencia, 0, 4)
-
-        #             # grid_layout.addWidget(self.button_checklist, 1, 0)
-        #             # grid_layout.addWidget(self.button_escalacao_pregoeiros, 1, 1)
-        #             # grid_layout.addWidget(self.button_numerador_cp, 1, 2)
-        #             # grid_layout.addWidget(self.button_mensagens_padronizadas, 1, 3)
-        #             # grid_layout.addWidget(self.button_registro_fornecedores, 1, 4)
-
-        #             # grid_layout.addWidget(self.button_slides_conges, 2, 3)
-        # grid_layout.addWidget(self.button_configuracoes, 2, 4)
-        #             # grid_layout.addWidget(self.button_links_uteis, 2, 5)
-
-        # Adicionar o grid layout ao layout principal
-        self.layout.addLayout(grid_layout)
-
-    def add_buttons_to_layout(self, layout, buttons):
-        for button in buttons:
-            layout.addWidget(button)
-            # Conectar cada botão ao seu sinal correspondente
-            signal_name = button.text().replace(" ", "") + 'Clicked'
-            signal = getattr(self, signal_name, None)
-            if signal:
-                button.clicked.connect(signal.emit)
-
-
+        # Adicionar o layout de labels de contato ao layout principal
+        self.layout.addLayout(label_contato_layout)

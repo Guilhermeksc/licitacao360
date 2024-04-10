@@ -2,8 +2,6 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 import sys
-import pandas as pd
-from pathlib import Path
 from diretorios import ICONS_DIR, IMAGE_PATH, DATABASE_DIR, LV_FINAL_DIR, ITEM_SELECIONADO_PATH, BASE_DIR
 from styles.styless import (
     get_menu_button_style, get_menu_title_style, get_content_title_style, 
@@ -11,17 +9,8 @@ from styles.styless import (
 )
 from custom_widgets.create_1_inicio import InicioWidget
 from planejamento.planejamento_button import ApplicationUI
-from custom_widgets.create_3_fases_button import ProcessosWidget
-from custom_widgets.create_4_contagem_dias_button import ContagemDias
-from custom_widgets.create_5_documentos_button import DocumentosWidget
 from custom_widgets.create_7_checklist_button import ChecklistWidget
-from custom_widgets.create_8_pregoeiro_button import PregoeiroWidget
 from custom_widgets.create_9_atas_button import AtasWidget
-from custom_widgets.create_10_controle_vigencia_button import ContratosWidget
-from custom_widgets.create_11_numerador_button import NumeradorCP
-from custom_widgets.create_12_msg_button import HallResponsaveis
-from custom_widgets.create_13_registro_fornec_button import RegistroFornecedor
-from custom_widgets.create_configuracoes_button import ConfiguracoesWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.painel_contratos_novo import ControleContratosWidget
 from controle_dispensa.limite_dispensa import LimiteDispensa
@@ -47,6 +36,20 @@ class MainWindow(QMainWindow):
         self.setup_content_area()
 
         self.active_button = None
+
+    def open_initial_page(self):
+        self.clear_content_area(keep_image_label=True)
+        self.content_layout.addWidget(self.inicio_widget)        
+        # Aplicar estilo ativo ao botão 'Início'
+        if "Início" in self.buttons:
+            self.set_active_button_style(self.buttons["Início"])
+
+    def open_initial_page(self):
+        self.clear_content_area(keep_image_label=True)
+        self.content_layout.addWidget(self.inicio_widget)
+        # Aplicar estilo ativo ao botão 'Início'
+        if "Início" in self.buttons:
+            self.set_active_button_style(self.buttons["Início"])
 
     def configure_window(self):
         self.setWindowTitle("Sistema de Gestão de Licitações")
@@ -92,19 +95,11 @@ class MainWindow(QMainWindow):
         menu_buttons = [
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
-            (" Fases do Processo", ICONS_DIR / "x.png"), 
-            # (" Informações do Processo", ICONS_DIR / "x.png"), 
-            (" Documentos Licitação", ICONS_DIR / "x.png"), 
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Check-list", ICONS_DIR / "x.png"), 
-            (" Escalação de Pregoeiros", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"),
             (" Limite de Dispensa", ICONS_DIR / "x.png"), 
             (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),       
-            # (" Controle de Vigência", ICONS_DIR / "x.png"), 
-            # (" Numerador de CP", ICONS_DIR / "x.png"),
-            # (" Mensagens Padronizadas", ICONS_DIR / "x.png"),   
-            # (" Registro de Fornecedores", ICONS_DIR / "x.png"),
             (" Selenium", ICONS_DIR / "x.png"),  
         ]
 
@@ -165,43 +160,23 @@ class MainWindow(QMainWindow):
         content_widget.setObjectName("contentWidget")
         content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                background-color: black;
+                background-color: rgba(0, 0, 0, 220);
                 border: 1px solid #ffffff;
-                border-radius: 10px; 
-                }
-            """)
+                border-radius: 10px;
+            }
+        """)
         self.main_layout.addWidget(content_widget)
 
         self.inicio_widget = InicioWidget(self)
-        self.inicio_widget.planejamentoClicked.connect(lambda: self.change_content("Planejamento"))
-        self.inicio_widget.fasesProcessoClicked.connect(lambda: self.change_content("Fases do Processo"))
-        # self.inicio_widget.infoProcessoClicked.connect(lambda: self.change_content("Informações do Processo"))
-        self.inicio_widget.documentosLicitacaoClicked.connect(lambda: self.change_content("Documentos Licitação"))
-        self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Contratos"))
-        # self.inicio_widget.controleVigenciaClicked.connect(lambda: self.change_content("Controle de Vigência"))
-        self.inicio_widget.checklistClicked.connect(lambda: self.change_content("Check-list"))
-        # self.inicio_widget.escalacaoPregoeirosClicked.connect(lambda: self.change_content("Escalação de Pregoeiros"))
-        # self.inicio_widget.numeradorCpClicked.connect(lambda: self.change_content("Numerador de CP"))
-        # self.inicio_widget.mensagensPadronizadasClicked.connect(lambda: self.change_content("Mensagens Padronizadas"))
-        # self.inicio_widget.registroFornecedoresClicked.connect(lambda: self.change_content("Registro de Fornecedores"))
-        self.inicio_widget.seleniumAutomacaoClicked.connect(lambda: self.change_content("Selenium"))
 
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
-            "Fases do Processo": self.setup_fases_do_processo,
-            # "Informações do Processo": self.setup_informacoes_do_processo,
-            "Documentos Licitação": self.setup_documentos_licitacao,
             "Controle de Contratos": self.setup_controle_contratos,
-            # "Controle de Vigência": self.setup_controle_vigencia,
             "Check-list": self.setup_checklist,
             "Atas e Contratos": self.setup_atas_contratos,
             "Limite de Dispensa": self.setup_limite_dispensa,
             "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
-            "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
-            # "Numerador de CP": self.setup_numerador_cp,
-            # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
-            # "Registro de Fornecedores": self.setup_registro_fornecedores,
             "Selenium": self.setup_selenium_automacao,
         }
         action = content_actions.get(content_name)
@@ -220,20 +195,12 @@ class MainWindow(QMainWindow):
 
             button_actions = {
                 "Início": self.open_initial_page,
-                "Fases do Processo": self.setup_fases_do_processo,
                 "Planejamento": self.setup_planejamento,
-                # "Informações do Processo": self.setup_informacoes_do_processo,
-                "Documentos Licitação": self.setup_documentos_licitacao,
                 "Controle de Contratos": self.setup_controle_contratos,
-                # "Controle de Vigência": self.setup_controle_vigencia,
                 "Check-list": self.setup_checklist,
                 "Atas e Contratos": self.setup_atas_contratos,
                 "Limite de Dispensa": self.setup_limite_dispensa,
                 "Consulta CATMAT/CATSER": self.setup_controle_pdm,
-                "Escalação de Pregoeiros": self.setup_escala_pregoeiros,
-                # "Numerador de CP": self.setup_numerador_cp,
-                # "Mensagens Padronizadas": self.setup_mensagens_padronizadas,
-                # "Registro de Fornecedores": self.setup_registro_fornecedores,
                 "Selenium": self.setup_selenium_automacao,
             }
         
@@ -241,43 +208,16 @@ class MainWindow(QMainWindow):
             if action:
                 action()
 
-    def setup_controle_contratos(self):
-        self.clear_content_area()
-        self.contratos_widget = ControleContratosWidget(self)
-        self.content_layout.addWidget(self.contratos_widget)
-
-    def setup_fases_do_processo(self):
-        self.clear_content_area()
-        self.processos_widget = ProcessosWidget(self)
-        self.content_layout.addWidget(self.processos_widget)
-
-    def open_initial_page(self):
-        self.clear_content_area(keep_image_label=True)
-        self.content_layout.addWidget(self.inicio_widget)        
-        # Aplicar estilo ativo ao botão 'Início'
-        if "Início" in self.buttons:
-            self.set_active_button_style(self.buttons["Início"])
-
     def setup_planejamento(self):
         self.clear_content_area()
         self.application_ui = ApplicationUI(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
-    def setup_informacoes_do_processo(self):
+    def setup_controle_contratos(self):
         self.clear_content_area()
-        self.contagem_dias_widget = ContagemDias(self, str(DATABASE_DIR))
-        self.content_layout.addWidget(self.contagem_dias_widget)
+        self.contratos_widget = ControleContratosWidget(self)
+        self.content_layout.addWidget(self.contratos_widget)
 
-    def setup_documentos_licitacao(self):
-        self.clear_content_area()
-        self.gerar_documentos_widget = DocumentosWidget(self)
-        self.content_layout.addWidget(self.gerar_documentos_widget)
-
-    def setup_controle_vigencia(self):
-        self.clear_content_area()
-        self.controle_vigencia_widget = ContratosWidget(self)
-        self.content_layout.addWidget(self.controle_vigencia_widget)
-    
     def setup_checklist(self):
         self.clear_content_area()
         self.checklist_widget = ChecklistWidget(self, str(ICONS_DIR))
@@ -297,28 +237,6 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.limite_dispensa_widget = LimiteDispensa(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.limite_dispensa_widget)
-
-    def setup_escala_pregoeiros(self):
-        self.clear_content_area()
-        dtypes_dict = {'num_pregao': str, 'ano_pregao': str}  # Substitua com os tipos de dados corretos
-        self.escalar_pregoeiro_widget = PregoeiroWidget(self, dtypes=dtypes_dict, app=self)
-        self.escalar_pregoeiro_widget.itemSelected.connect(self.pregao_selecionado)
-        self.content_layout.addWidget(self.escalar_pregoeiro_widget)
-
-    def setup_numerador_cp(self):
-        self.clear_content_area()
-        self.numerador_cp_widget = NumeradorCP(self)
-        self.content_layout.addWidget(self.numerador_cp_widget)
-
-    def setup_mensagens_padronizadas(self):
-        self.clear_content_area()
-        self.hall_responsaveis_widget = HallResponsaveis(self)
-        self.content_layout.addWidget(self.hall_responsaveis_widget)
-    
-    def setup_registro_fornecedores(self):
-        self.clear_content_area()
-        self.registro_fornecedor_widget = RegistroFornecedor(self)
-        self.content_layout.addWidget(self.registro_fornecedor_widget)
 
     def setup_selenium_automacao(self):
         self.clear_content_area()

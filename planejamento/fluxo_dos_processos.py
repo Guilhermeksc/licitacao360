@@ -13,6 +13,7 @@ import json
 from datetime import datetime
 import json
 from pathlib import Path
+import sqlite3
 
 class ProcessosJSONManager:
     def __init__(self, arquivo_json_path):
@@ -406,30 +407,69 @@ class CustomListWidget(QListWidget):
             destinationStage = self.objectName()  # A etapa de destino é o QListWidget atual
             newItemText = itemData["text"]  # Texto do item extraído do JSON
 
-            # Log de debug
-            print(f"Item movido de {originStage} para {destinationStage}")
+            # Extrair chave do processo do texto do item
+            chave_processo = extrair_chave_processo(newItemText)
 
-            # Certifique-se de que a lógica de processamento abaixo use `newItemText`
-            # que é o texto do item, ao invés da string JSON completa
-            source = event.source()
-            if source != self:
-                if not self.findItems(newItemText, Qt.MatchFlag.MatchExactly):
-                    # Cria um novo QLabel com o texto do item
-                    label = QLabel(newItemText)
-                    label.setStyleSheet("background-color: white;")
-                    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Verificar se a chave do processo já existe na etapa de destino
+            alreadyExists = False
+            for i in range(self.count()):
+                existingItemText = self.item(i).text()
+                existingItemKey = extrair_chave_processo(existingItemText)
+                if chave_processo == existingItemKey:
+                    alreadyExists = True
+                    break
+
+            if not alreadyExists:
+                # Adiciona o item à lista de destino se não for uma duplicata
+                label = QLabel(newItemText)
+                label.setStyleSheet("background-color: white;")
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                
+                item = QListWidgetItem(newItemText)
+                self.addItem(item)
+                item.setSizeHint(QSize(0, 45))
+                self.setItemWidget(item, label)
+                
+                self.itemMoved.emit(newItemText, self.objectName())  # Emitir sinal com o texto do item e o nome da nova etapa
+                self.sortItems()  # Organizar itens, se necessário
+            else:
+                # Ação para item duplicado, por exemplo, mostrar uma mensagem ao usuário
+                print("O processo já existe na etapa de destino.")
+
+            event.acceptProposedAction()  # Confirma a ação de drop
+
+    # def dropEvent(self, event):
+    #     mimeData = event.mimeData()
+    #     if mimeData.hasText():
+    #         itemData = json.loads(mimeData.text())
+    #         originStage = itemData["origin"]
+    #         destinationStage = self.objectName()  # A etapa de destino é o QListWidget atual
+    #         newItemText = itemData["text"]  # Texto do item extraído do JSON
+
+    #         # Log de debug
+    #         print(f"Item movido de {originStage} para {destinationStage}")
+
+    #         # Certifique-se de que a lógica de processamento abaixo use `newItemText`
+    #         # que é o texto do item, ao invés da string JSON completa
+    #         source = event.source()
+    #         if source != self:
+    #             if not self.findItems(newItemText, Qt.MatchFlag.MatchExactly):
+    #                 # Cria um novo QLabel com o texto do item
+    #                 label = QLabel(newItemText)
+    #                 label.setStyleSheet("background-color: white;")
+    #                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                     
-                    # Cria um novo QListWidgetItem e adiciona o QLabel a ele
-                    item = QListWidgetItem(newItemText)
-                    self.addItem(item)
-                    item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
-                    self.setItemWidget(item, label)
+    #                 # Cria um novo QListWidgetItem e adiciona o QLabel a ele
+    #                 item = QListWidgetItem(newItemText)
+    #                 self.addItem(item)
+    #                 item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
+    #                 self.setItemWidget(item, label)
                     
-                    event.acceptProposedAction()
-                    self.itemMoved.emit(newItemText, self.objectName())  # Emitir sinal com o texto do item e o nome da nova etapa
-                    self.sortItems()  # Utiliza a ordenação padrão do QListWidget, considerar a implementação customizada se necessário
-                else:
-                    event.ignore()
+    #                 event.acceptProposedAction()
+    #                 self.itemMoved.emit(newItemText, self.objectName())  # Emitir sinal com o texto do item e o nome da nova etapa
+    #                 self.sortItems()  # Utiliza a ordenação padrão do QListWidget, considerar a implementação customizada se necessário
+    #             else:
+    #                 event.ignore()
 
     def sortListItems(self):
         items = [self.item(i).text() for i in range(self.count())]
@@ -454,12 +494,11 @@ class CustomListWidget(QListWidget):
                 self.addItem(item)  # Adiciona itens não formatados como estão
       
 class ProcessFlowDialog(QDialog):
-    dialogClosed = pyqtSignal()
-
-    def __init__(self, etapas, df_processos, parent=None):
+    def __init__(self, etapas, df_processos, database_manager, parent=None):
         super().__init__(parent)
         self.etapas = etapas
-        self.df_processos = df_processos  # Dados dos processos agora são passados como um parâmetro
+        self.df_processos = df_processos
+        self.database_manager = database_manager
         self.setWindowTitle("Painel de Fluxo dos Processos")
         self.setFixedSize(QSize(1490, 750))
         self.setStyleSheet("""
@@ -467,7 +506,6 @@ class ProcessFlowDialog(QDialog):
                 background-color: #050f41;
             }
         """)
-        self.manager_json = ProcessosJSONManager(PROCESSOS_JSON_PATH)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -539,39 +577,41 @@ class ProcessFlowDialog(QDialog):
         list_widget.setObjectName(etapa) 
         print(f"Definindo objectName para list_widget: {list_widget.objectName()}")
 
-        self._populate_list_widget(list_widget, PROCESSOS_JSON_PATH)
-        print(f"PROCESSOS_JSON_PATH: {PROCESSOS_JSON_PATH}")
+        self._populate_list_widget(list_widget)
 
         layout.addWidget(list_widget)
 
         return group_box
+    
+    def _populate_list_widget(self, list_widget):
+        print(f"Preenchendo {list_widget.objectName()}...")
 
-    def _populate_list_widget(self, list_widget, caminho_json):
-        # print(f"Populando list_widget: {list_widget.objectName()} com dados de: {caminho_json}")
-        with open(caminho_json, 'r', encoding='utf-8') as file:
-            processos_json = json.load(file)
+        with self.database_manager as conn:
+            cursor = conn.cursor()
 
-        for chave_processo, dados_processo in processos_json.items():
-            ultima_etapa = dados_processo['historico'][-1]['etapa']
-            print(f"Processo {chave_processo} na última etapa {ultima_etapa}")
-            if ultima_etapa == list_widget.objectName():
-                print(f"Adicionando {chave_processo} ao widget {list_widget.objectName()}")
+            cursor.execute('''
+                SELECT cpz.chave_processo, cp.objeto
+                FROM controle_prazos cpz
+                JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade 
+                WHERE cpz.etapa = ?
+                ORDER BY cpz.chave_processo
+            ''', (list_widget.objectName(),))
 
-                # Correção na descompactação aqui
-                partes = chave_processo.split()
-                mod = partes[0]
-                num_pregao, ano_pregao = partes[1].split('/')
-                modalidade = f"{mod} {num_pregao}/{ano_pregao}"
-                print(f"Adicionando {chave_processo} ao widget {list_widget.objectName()}")
+            processos = cursor.fetchall()
 
-                objeto = dados_processo['objeto']
-                
-                # Assume que addFormattedTextItem é um método que você definiu
-                # para adicionar itens formatados ao list_widget
-                list_widget.addFormattedTextItem(
-                    modalidade=modalidade,
-                    objeto=objeto
-                )
+        for processo in processos:
+            chave_processo, objeto = processo
+            print(f"Processo: {chave_processo}, Objeto: {objeto}")
+
+            # Supondo que a chave do processo seja suficiente para descompactar para modalidade, etc.
+            partes = chave_processo.split()
+            mod = partes[0]
+            num_pregao, ano_pregao = partes[1].split('/')
+            modalidade = f"{mod} {num_pregao}/{ano_pregao}"
+
+            # Adiciona o item formatado ao list_widget
+            list_widget.addFormattedTextItem(modalidade=modalidade, objeto=objeto)
+
 
     def _connect_item_moved_signals(self):
         # Este método conecta o sinal itemMoved de cada CustomListWidget a um slot adequado
@@ -580,21 +620,9 @@ class ProcessFlowDialog(QDialog):
 
     def onItemMoved(self, itemText, newListWidgetName):
         chave_processo = extrair_chave_processo(itemText)
-        comentario = "Movido para a etapa: " + newListWidgetName
+        comentario = f"Movido para a etapa: {newListWidgetName}"
         print(f"Item movido: {chave_processo}, para: {newListWidgetName}, comentário: {comentario}")
         if chave_processo:
-            # Instancia ProcessosJSONManager e chama atualizar_processo
-            manager = ProcessosJSONManager(PROCESSOS_JSON_PATH)
-            manager.atualizar_processo(chave_processo, newListWidgetName, comentario)
-
-        # Lógica para remover o item da lista original segue como antes
-        for listWidget in CustomListWidget.allListWidgets:
-            if listWidget.objectName() != newListWidgetName:
-                items = listWidget.findItems(itemText, Qt.MatchFlag.MatchExactly)
-                for item in items:
-                    row = listWidget.row(item)
-                    listWidget.takeItem(row)
-
-    def closeEvent(self, event):
-        self.dialogClosed.emit()
-        super().closeEvent(event)
+            # Agora usamos DatabaseManager para inserir o novo registro
+            data_atual_str = datetime.today().strftime("%Y-%m-%d")
+            self.database_manager.inserir_controle_prazo(chave_processo, newListWidgetName, data_atual_str, comentario)

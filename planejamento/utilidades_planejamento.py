@@ -5,141 +5,125 @@ import os
 import re
 from bs4 import BeautifulSoup 
 from datetime import datetime
+from pathlib import Path
 
-def inicializar_json_do_excel(caminho_excel, caminho_json):
-    # Verificar se o arquivo JSON já existe
-    if os.path.exists(caminho_json):
-        print(f"O arquivo JSON '{caminho_json}' já existe. Nenhuma ação necessária.")
-        return
+class DatabaseManager:
+    def __init__(self, db_path):
+        self.db_path = db_path
 
-    # Verificar se o caminho do Excel foi fornecido
-    if caminho_excel is None:
-        print("Caminho do arquivo Excel não fornecido.")
-        return
+    def __enter__(self):
+        self.connection = sqlite3.connect(self.db_path)
+        return self.connection  # Certifique-se de retornar a conexão aqui
 
-    # Ler os dados do arquivo Excel
-    df = pd.read_excel(caminho_excel)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.connection:
+            self.connection.close()
+            self.connection = None 
 
-    # Estrutura para armazenar os dados dos processos
-    processos_json = {}
+    def initialize_database(self):
+        with self as conn:
+            self.create_database(conn)
+            self.criar_tabela_controle_prazos(conn)
 
-    # Iterar sobre cada linha do DataFrame
-    for _, row in df.iterrows():
-        chave_processo = f"{row['mod']} {row['num_pregao']}/{row['ano_pregao']}"
-        # Inicializar a chave do processo com o objeto e um histórico inicial
-        processos_json[chave_processo] = {
-            "objeto": row["objeto"],
-            "historico": [
-                {
-                    "etapa": "Planejamento",
-                    "data_inicial": None,  # Definir conforme necessário
-                    "data_final": None,    # Definir conforme necessário
-                    "dias_na_etapa": 0,
-                    "comentario": "",
-                    "sequencial": 1
-                }
-            ]
-        }
+    def create_database(self):
+        # Não é mais necessário passar a conexão
+        cursor = self.connection.cursor()
+        # Query para criar tabela 'controle_processos'
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS controle_processos (
+                    id INTEGER PRIMARY KEY,
+                    modalidade TEXT,
+                    nup TEXT,
+                    objeto TEXT,
+                    uasg TEXT,
+                    orgao_responsavel TEXT,
+                    sigla_om TEXT,
+                    setor_responsavel TEXT,
+                    coordenador_planejamento TEXT,
+                    etapa TEXT,
+                    pregoeiro TEXT,
+                    item_pca TEXT,
+                    portaria_PCA TEXT,
+                    data_sessao TEXT,     
+                    data_limite_entrega_tr TEXT,   
+                    nup_portaria_planejamento TEXT,   
+                    srp TEXT,   
+                    material_servico TEXT, 
+                    parecer_agu TEXT, 
+                    msg_irp TEXT, 
+                    data_limite_manifestacao_irp TEXT, 
+                    data_limite_confirmacao_irp TEXT, 
+                    num_irp TEXT, 
+                    om_participantes TEXT          
+                )
+        ''')
+        self.connection.commit()
 
-    # Escrever os dados em um arquivo JSON
-    with open(caminho_json, 'w', encoding='utf-8') as file:
-        json.dump(processos_json, file, indent=4, ensure_ascii=False)
-    print(f"Arquivo JSON '{caminho_json}' criado com sucesso a partir do Excel.")
+    def atualizar_etapa_processo(self, chave_processo, nova_etapa, data_atual_str, comentario):
+        with self as conn:
+            cursor = conn.cursor()
+            # Atualizar a etapa do processo
+            cursor.execute('''
+                UPDATE controle_prazos SET etapa = ?, data_final = ?, comentario = ? 
+                WHERE chave_processo = ? AND etapa != ?
+            ''', (nova_etapa, data_atual_str, comentario, chave_processo, nova_etapa))
+            conn.commit()
 
-def ler_arquivo_json(caminho):
-    try:
-        with open(caminho, 'r', encoding='utf-8') as arquivo:
-            return json.load(arquivo)
-    except FileNotFoundError:
-        return {}
+    def ensure_database_exists(self):
+        if not Path(self.db_path).exists():
+            with self:
+                self.create_database() 
 
-def escrever_arquivo_json(caminho, dados):
-    with open(caminho, 'w', encoding='utf-8') as arquivo:
-        json.dump(dados, arquivo, indent=4, ensure_ascii=False)        
+    @staticmethod
+    def criar_tabela_controle_prazos(conn):
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS controle_prazos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chave_processo TEXT,
+                etapa TEXT,
+                data_inicial TEXT,
+                data_final TEXT,
+                dias_na_etapa INTEGER,
+                comentario TEXT,
+                sequencial INTEGER
+            )
+        ''')
+        conn.commit()
 
-def carregar_ou_criar_arquivo_json(df_processos, caminho_json):
-    print(f"Carregando ou criando o arquivo JSON: {caminho_json}")
-    
-    # Verifica se o arquivo JSON já existe
-    if caminho_json.exists():
-        print("O arquivo JSON já existe. Carregando e atualizando a data_final...")
-        with open(caminho_json, 'r', encoding='utf-8') as file:
-            processos_json = json.load(file)
-    else:
-        print("O arquivo JSON não existe. Criando com os dados atuais do DataFrame...")
-        processos_json = {}
+    @staticmethod
+    def carregar_ou_criar_tabela_controle_prazos(df_processos, conn):
+        print("Criando tabela controle_prazos e inserindo dados...")
+        DatabaseManager.criar_tabela_controle_prazos(conn)  # Já recebe conn, então está correto
+        
+        cursor = conn.cursor()
+        for _, processo in df_processos.iterrows():
+            chave_processo = f"{processo['modalidade']}"
+            etapa = processo['etapa']
+            data_inicial = datetime.today().strftime("%d-%m-%Y")
+            data_final = None  # Será atualizado quando o programa for recarregado
+            dias_na_etapa = 0
+            comentario = ""
+            sequencial = 1
+            
+            # Insere os dados na tabela 'controle_prazos'
+            cursor.execute('''
+                INSERT INTO controle_prazos (chave_processo, etapa, data_inicial, data_final, dias_na_etapa, comentario, sequencial)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (chave_processo, etapa, data_inicial, data_final, dias_na_etapa, comentario, sequencial))
+        
+        conn.commit()
+        conn.close()
+        print("Dados inseridos na tabela controle_prazos com sucesso.")
 
-    # Adiciona os dados do DataFrame ao dicionário processos_json
-    for _, processo in df_processos.iterrows():
-        chave_processo = f"{processo['modalidade']}"
-        print(f"Adicionando processo: {chave_processo} ao JSON")
-        if chave_processo not in processos_json:
-            processos_json[chave_processo] = {
-                "objeto": processo['objeto'],
-                "historico": [{
-                    "etapa": processo['etapa'],
-                    "data_inicial": datetime.today().strftime("%d-%m-%Y"),
-                    "data_final": None,  # Será atualizado quando o programa for recarregado
-                    "dias_na_etapa": 0,
-                    "comentario": "",
-                    "sequencial": 1
-                }]
-            }
-
-    # Escreve o novo arquivo JSON
-    with open(caminho_json, 'w', encoding='utf-8') as file:
-        json.dump(processos_json, file, ensure_ascii=False, indent=4)
-        print("Arquivo JSON criado com sucesso.")
-
-    # Adicione este print para verificar se o arquivo foi realmente criado
-    print(f"Arquivo JSON criado: {caminho_json}")
-
-# def carregar_ou_criar_arquivo_json(df_processos, caminho_json):
-#     print(f"Carregando ou criando o arquivo JSON: {caminho_json}")
-#     processos_json = {}
-
-#     if os.path.exists(caminho_json):
-#         print("O arquivo JSON já existe. Carregando e atualizando a data_final...")
-#         with open(caminho_json, 'r', encoding='utf-8') as file:
-#             processos_json = json.load(file)
-
-#         # Atualizar a data_final da última entrada do histórico para 'hoje' em todos os processos
-#         data_atual_str = datetime.today().strftime("%d-%m-%Y")
-#         for processo in processos_json.values():
-#             if processo['historico']:  # Verificar se há histórico
-#                 # Apenas atualizar a data_final se ela ainda não estiver definida
-#                 if processo['historico'][-1]['data_final'] is None:
-#                     processo['historico'][-1]['data_final'] = data_atual_str
-#                     # Opcionalmente, atualize dias_na_etapa se aplicável
-#                     if processo['historico'][-1]['data_inicial']:
-#                         data_inicial = datetime.strptime(processo['historico'][-1]['data_inicial'], "%d-%m-%Y")
-#                         dias_na_etapa = (datetime.today() - data_inicial).days
-#                         processo['historico'][-1]['dias_na_etapa'] = dias_na_etapa
-
-#         # Escrever as alterações de volta ao arquivo JSON
-#         with open(caminho_json, 'w', encoding='utf-8') as file:
-#             json.dump(processos_json, file, ensure_ascii=False, indent=4)
-#     else:
-#         print("O arquivo JSON não existe. Criando com os dados atuais do DataFrame...")
-#         for _, processo in df_processos.iterrows():
-#             chave_processo = f"{processo['modalidade']}"
-#             print(f"Adicionando processo: {chave_processo} ao JSON")
-#             if chave_processo not in processos_json:
-#                 processos_json[chave_processo] = {
-#                     "objeto": processo['objeto'],
-#                     "historico": [{
-#                         "etapa": processo['etapa'],
-#                         "data_inicial": datetime.today().strftime("%d-%m-%Y"),
-#                         "data_final": None,  # Será atualizado quando o programa for recarregado
-#                         "dias_na_etapa": 0,
-#                         "comentario": "",
-#                         "sequencial": 1
-#                     }]
-#                 }
-#         # Escreve o novo arquivo JSON
-#         with open(caminho_json, 'w', encoding='utf-8') as file:
-#             json.dump(processos_json, file, ensure_ascii=False, indent=4)
-#         print("Arquivo JSON criado com sucesso.")
+    def inserir_controle_prazo(self, chave_processo, etapa, data_inicial, comentario):
+        with self as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO controle_prazos (chave_processo, etapa, data_inicial, comentario, sequencial)
+                VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sequencial) + 1, 1) FROM controle_prazos WHERE chave_processo = ?))
+            ''', (chave_processo, etapa, data_inicial, comentario, chave_processo))
+            conn.commit()
 
 def extrair_chave_processo(itemText):
     # Exemplo usando BeautifulSoup para análise HTML
@@ -169,10 +153,7 @@ def carregar_dados_pregao(index, caminho_banco_dados):
     connection.close()
     return df_registro_selecionado
 
-import os
-import json
-
-def carregar_dados_processos(controle_processos_path, controle_etapa_json):
+def carregar_dados_processos(controle_processos_path):
     try:
         # Conecta ao banco de dados SQLite
         conn = sqlite3.connect(controle_processos_path)
@@ -180,25 +161,14 @@ def carregar_dados_processos(controle_processos_path, controle_etapa_json):
         df_processos = pd.read_sql_query("SELECT * FROM controle_processos", conn)
         # Fecha a conexão com o banco de dados
         conn.close()
-        
-        # Carrega os dados do arquivo JSON com a codificação UTF-8
-        with open(controle_etapa_json, 'r', encoding='utf-8') as json_file:
-            controle_etapa = json.load(json_file)
 
-        # Preenche a coluna 'etapa' com base no arquivo JSON
-        for index, row in df_processos.iterrows():
-            modalidade = row['modalidade']
-            if modalidade in controle_etapa:
-                etapa = controle_etapa[modalidade]['historico'][-1]['etapa']
-                df_processos.at[index, 'etapa'] = etapa
-            else:
-                df_processos.at[index, 'etapa'] = 'Planejamento'
+        # Define a coluna 'etapa' como 'Planejamento' para todos os registros
+        df_processos['etapa'] = 'Planejamento'
 
         return df_processos
+    
     except Exception as e:
         print(f"Erro ao carregar dados do processo: {e}")
-        # Se ocorrer um erro ao carregar os dados, chame a função para criar o arquivo JSON
-        print("Chamando a função para criar o arquivo JSON...")
-        carregar_ou_criar_arquivo_json(pd.DataFrame(), controle_etapa_json)
         return pd.DataFrame()
+
 

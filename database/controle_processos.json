@@ -87,10 +87,18 @@
             {
                 "etapa": "Nota Técnica",
                 "data_inicial": "09-04-2024",
-                "data_final": null,
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Nota Técnica",
                 "sequencial": 4
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 5
             }
         ]
     },
@@ -116,10 +124,26 @@
             {
                 "etapa": "Edital",
                 "data_inicial": "09-04-2024",
-                "data_final": null,
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Edital",
                 "sequencial": 3
+            },
+            {
+                "etapa": "IRP",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: IRP",
+                "sequencial": 4
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 5
             }
         ]
     },
@@ -161,10 +185,34 @@
             {
                 "etapa": "Nota Técnica",
                 "data_inicial": "09-04-2024",
-                "data_final": null,
+                "data_final": "09-04-2024",
                 "dias_na_etapa": 0,
                 "comentario": "Movido para a etapa: Nota Técnica",
                 "sequencial": 5
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 6
+            },
+            {
+                "etapa": "IRP",
+                "data_inicial": "09-04-2024",
+                "data_final": "09-04-2024",
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: IRP",
+                "sequencial": 7
+            },
+            {
+                "etapa": "Edital",
+                "data_inicial": "09-04-2024",
+                "data_final": null,
+                "dias_na_etapa": 0,
+                "comentario": "Movido para a etapa: Edital",
+                "sequencial": 8
             }
         ]
     },
