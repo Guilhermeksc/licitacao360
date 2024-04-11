@@ -259,8 +259,14 @@ class ApplicationUI(QMainWindow):
 
     def ensure_database_exists(self):
         with self.database_manager as conn:
-            # Aqui conn é o objeto de conexão SQLite
+            # Verifica se o banco de dados existe
+            if not DatabaseManager.database_exists(conn):
+                # Se não existir, cria o banco de dados
+                DatabaseManager.create_database(conn)
+            # Garante que a tabela de controle de prazos exista
             DatabaseManager.criar_tabela_controle_prazos(conn)
+            # Verifica e atualiza as etapas no banco de dados
+            DatabaseManager.verificar_e_atualizar_etapas(conn)
                 
     def init_ui(self):
         self.main_widget = QWidget(self)  # Widget principal
@@ -315,7 +321,6 @@ class ApplicationUI(QMainWindow):
 
         # Configura o widget principal como o central
         self.setCentralWidget(self.main_widget)
-
 
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():

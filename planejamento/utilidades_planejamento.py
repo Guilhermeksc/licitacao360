@@ -25,9 +25,15 @@ class DatabaseManager:
             self.create_database(conn)
             self.criar_tabela_controle_prazos(conn)
 
-    def create_database(self):
-        # Não é mais necessário passar a conexão
-        cursor = self.connection.cursor()
+    @staticmethod
+    def create_database(conn):
+        """
+        Cria o banco de dados e a tabela de controle de processos se não existirem.
+
+        Parameters:
+            conn (sqlite3.Connection): Conexão com o banco de dados.
+        """
+        cursor = conn.cursor()
         # Query para criar tabela 'controle_processos'
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS controle_processos (
@@ -57,7 +63,7 @@ class DatabaseManager:
                     om_participantes TEXT          
                 )
         ''')
-        self.connection.commit()
+        conn.commit()
 
     def atualizar_etapa_processo(self, chave_processo, nova_etapa, data_atual_str, comentario):
         with self as conn:
@@ -74,6 +80,22 @@ class DatabaseManager:
             with self:
                 self.create_database() 
 
+    @staticmethod
+    def database_exists(conn):
+        """
+        Verifica se o banco de dados já existe.
+
+        Parameters:
+            conn (sqlite3.Connection): Conexão com o banco de dados.
+
+        Returns:
+            bool: True se o banco de dados existe, False caso contrário.
+        """
+        cursor = conn.cursor()
+        # Verifica se a tabela controle_processos existe
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_processos';")
+        return cursor.fetchone() is not None
+    
     @staticmethod
     def criar_tabela_controle_prazos(conn):
         cursor = conn.cursor()
@@ -125,6 +147,42 @@ class DatabaseManager:
             ''', (chave_processo, etapa, data_inicial, comentario, chave_processo))
             conn.commit()
 
+    @staticmethod
+    def verificar_e_atualizar_etapas(conn):
+        # Verifica se há correspondência entre as tabelas controle_processos e controle_prazos
+        query_verificar = """
+        SELECT cp.modalidade, cp.nup, MAX(pr.sequencial) AS ultimo_sequencial
+        FROM controle_processos cp
+        LEFT JOIN controle_prazos pr ON cp.modalidade = pr.chave_processo
+        GROUP BY cp.modalidade, cp.nup;
+        """
+        cursor = conn.cursor()
+        cursor.execute(query_verificar)
+        correspondencias = cursor.fetchall()
+        
+        # Atualiza a coluna etapa com o último sequencial correspondente ou com "Planejamento"
+        for modalidade, nup, ultimo_sequencial in correspondencias:
+            if ultimo_sequencial is None:
+                nova_etapa = "Planejamento"
+            else:
+                # Consulta para obter a etapa baseada no último sequencial
+                query_etapa = """
+                SELECT etapa
+                FROM controle_prazos
+                WHERE chave_processo = ? AND sequencial = ?;
+                """
+                cursor.execute(query_etapa, (modalidade, ultimo_sequencial))
+                nova_etapa = cursor.fetchone()[0]
+            
+            # Atualiza a coluna etapa na tabela controle_processos
+            query_atualizar = """
+            UPDATE controle_processos
+            SET etapa = ?
+            WHERE modalidade = ? AND nup = ?;
+            """
+            cursor.execute(query_atualizar, (nova_etapa, modalidade, nup))
+        conn.commit()
+        
 def extrair_chave_processo(itemText):
     # Exemplo usando BeautifulSoup para análise HTML
     soup = BeautifulSoup(itemText, 'html.parser')

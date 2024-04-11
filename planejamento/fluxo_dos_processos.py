@@ -438,39 +438,6 @@ class CustomListWidget(QListWidget):
 
             event.acceptProposedAction()  # Confirma a ação de drop
 
-    # def dropEvent(self, event):
-    #     mimeData = event.mimeData()
-    #     if mimeData.hasText():
-    #         itemData = json.loads(mimeData.text())
-    #         originStage = itemData["origin"]
-    #         destinationStage = self.objectName()  # A etapa de destino é o QListWidget atual
-    #         newItemText = itemData["text"]  # Texto do item extraído do JSON
-
-    #         # Log de debug
-    #         print(f"Item movido de {originStage} para {destinationStage}")
-
-    #         # Certifique-se de que a lógica de processamento abaixo use `newItemText`
-    #         # que é o texto do item, ao invés da string JSON completa
-    #         source = event.source()
-    #         if source != self:
-    #             if not self.findItems(newItemText, Qt.MatchFlag.MatchExactly):
-    #                 # Cria um novo QLabel com o texto do item
-    #                 label = QLabel(newItemText)
-    #                 label.setStyleSheet("background-color: white;")
-    #                 label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    
-    #                 # Cria um novo QListWidgetItem e adiciona o QLabel a ele
-    #                 item = QListWidgetItem(newItemText)
-    #                 self.addItem(item)
-    #                 item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
-    #                 self.setItemWidget(item, label)
-                    
-    #                 event.acceptProposedAction()
-    #                 self.itemMoved.emit(newItemText, self.objectName())  # Emitir sinal com o texto do item e o nome da nova etapa
-    #                 self.sortItems()  # Utiliza a ordenação padrão do QListWidget, considerar a implementação customizada se necessário
-    #             else:
-    #                 event.ignore()
-
     def sortListItems(self):
         items = [self.item(i).text() for i in range(self.count())]
 
@@ -582,17 +549,23 @@ class ProcessFlowDialog(QDialog):
         layout.addWidget(list_widget)
 
         return group_box
-    
+        
     def _populate_list_widget(self, list_widget):
         print(f"Preenchendo {list_widget.objectName()}...")
 
         with self.database_manager as conn:
             cursor = conn.cursor()
 
+            # Ajuste na consulta SQL para prevenir duplicatas
             cursor.execute('''
-                SELECT cpz.chave_processo, cp.objeto
+                SELECT cpz.chave_processo, cp.objeto, cpz.sequencial
                 FROM controle_prazos cpz
-                JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade 
+                INNER JOIN (
+                    SELECT chave_processo, MAX(sequencial) AS max_sequencial
+                    FROM controle_prazos
+                    GROUP BY chave_processo
+                ) AS max_cpz ON cpz.chave_processo = max_cpz.chave_processo AND cpz.sequencial = max_cpz.max_sequencial
+                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade
                 WHERE cpz.etapa = ?
                 ORDER BY cpz.chave_processo
             ''', (list_widget.objectName(),))
@@ -600,18 +573,17 @@ class ProcessFlowDialog(QDialog):
             processos = cursor.fetchall()
 
         for processo in processos:
-            chave_processo, objeto = processo
-            print(f"Processo: {chave_processo}, Objeto: {objeto}")
+            chave_processo, objeto, ultimo_sequencial = processo
+            print(f"Processo: {chave_processo}, Objeto: {objeto}, Último Sequencial: {ultimo_sequencial}")
 
-            # Supondo que a chave do processo seja suficiente para descompactar para modalidade, etc.
+            # Processamento da chave_processo para formatá-la corretamente antes de adicionar ao list_widget
             partes = chave_processo.split()
             mod = partes[0]
             num_pregao, ano_pregao = partes[1].split('/')
             modalidade = f"{mod} {num_pregao}/{ano_pregao}"
 
-            # Adiciona o item formatado ao list_widget
+            # Adiciona o item formatado ao list_widget de forma única
             list_widget.addFormattedTextItem(modalidade=modalidade, objeto=objeto)
-
 
     def _connect_item_moved_signals(self):
         # Este método conecta o sinal itemMoved de cada CustomListWidget a um slot adequado
