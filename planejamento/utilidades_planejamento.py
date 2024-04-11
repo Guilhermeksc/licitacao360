@@ -126,8 +126,11 @@ class DatabaseManager:
             data_final = None  # Será atualizado quando o programa for recarregado
             dias_na_etapa = 0
             comentario = ""
-            sequencial = 1
-            
+            # Consulta para encontrar o maior valor de sequencial para a chave_processo
+            cursor.execute('SELECT MAX(sequencial) FROM controle_prazos WHERE chave_processo = ?', (chave_processo,))
+            max_sequencial = cursor.fetchone()[0]
+            sequencial = max_sequencial + 1 if max_sequencial else 1
+
             # Insere os dados na tabela 'controle_prazos'
             cursor.execute('''
                 INSERT INTO controle_prazos (chave_processo, etapa, data_inicial, data_final, dias_na_etapa, comentario, sequencial)
@@ -135,7 +138,6 @@ class DatabaseManager:
             ''', (chave_processo, etapa, data_inicial, data_final, dias_na_etapa, comentario, sequencial))
         
         conn.commit()
-        conn.close()
         print("Dados inseridos na tabela controle_prazos com sucesso.")
 
     def inserir_controle_prazo(self, chave_processo, etapa, data_inicial, comentario):
@@ -151,17 +153,17 @@ class DatabaseManager:
     def verificar_e_atualizar_etapas(conn):
         # Verifica se há correspondência entre as tabelas controle_processos e controle_prazos
         query_verificar = """
-        SELECT cp.modalidade, cp.nup, MAX(pr.sequencial) AS ultimo_sequencial
+        SELECT cp.modalidade, MAX(pr.sequencial) AS ultimo_sequencial
         FROM controle_processos cp
         LEFT JOIN controle_prazos pr ON cp.modalidade = pr.chave_processo
-        GROUP BY cp.modalidade, cp.nup;
+        GROUP BY cp.modalidade;
         """
         cursor = conn.cursor()
         cursor.execute(query_verificar)
         correspondencias = cursor.fetchall()
         
         # Atualiza a coluna etapa com o último sequencial correspondente ou com "Planejamento"
-        for modalidade, nup, ultimo_sequencial in correspondencias:
+        for modalidade, ultimo_sequencial in correspondencias:
             if ultimo_sequencial is None:
                 nova_etapa = "Planejamento"
             else:
@@ -172,17 +174,46 @@ class DatabaseManager:
                 WHERE chave_processo = ? AND sequencial = ?;
                 """
                 cursor.execute(query_etapa, (modalidade, ultimo_sequencial))
-                nova_etapa = cursor.fetchone()[0]
+                nova_etapa_result = cursor.fetchone()
+                nova_etapa = nova_etapa_result[0] if nova_etapa_result else "Planejamento"
             
             # Atualiza a coluna etapa na tabela controle_processos
             query_atualizar = """
             UPDATE controle_processos
             SET etapa = ?
-            WHERE modalidade = ? AND nup = ?;
+            WHERE modalidade = ?;
             """
-            cursor.execute(query_atualizar, (nova_etapa, modalidade, nup))
+            cursor.execute(query_atualizar, (nova_etapa, modalidade))
         conn.commit()
-        
+
+    def popular_controle_prazos_se_necessario(self):
+        cursor = self.connection.cursor()
+        # Verifica se existem registros na tabela controle_prazos
+        cursor.execute("SELECT COUNT(*) FROM controle_prazos")
+        registros = cursor.fetchone()[0]
+
+        if registros == 0:
+            # Se não existem registros em controle_prazos, busca os dados de controle_processos
+            cursor.execute("SELECT modalidade FROM controle_processos")
+            processos = cursor.fetchall()
+
+            # Prepara os dados iniciais para inserção baseados em controle_processos
+            dados_iniciais = []
+            for processo in processos:
+                chave_processo = processo[0]
+                etapa = "Planejamento"
+                data_inicial = datetime.today().strftime("%Y-%m-%d")
+                dados_iniciais.append((chave_processo, etapa, data_inicial, None, 0, "", 1))
+
+            # Insere os dados iniciais na tabela controle_prazos
+            cursor.executemany("""
+                INSERT INTO controle_prazos (chave_processo, etapa, data_inicial, data_final, dias_na_etapa, comentario, sequencial)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, dados_iniciais)
+
+            self.connection.commit()
+            print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
+
 def extrair_chave_processo(itemText):
     # Exemplo usando BeautifulSoup para análise HTML
     soup = BeautifulSoup(itemText, 'html.parser')

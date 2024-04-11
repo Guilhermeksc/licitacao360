@@ -15,100 +15,6 @@ import json
 from pathlib import Path
 import sqlite3
 
-class ProcessosJSONManager:
-    def __init__(self, arquivo_json_path):
-        self.arquivo_json_path = Path(arquivo_json_path)
-        self.processos_json = self.ler_arquivo_json()
-        self.revisar_datas_processos()
-        self.calcular_dias_na_etapa()
-        self.escrever_arquivo_json(self.processos_json)
-
-    def ler_arquivo_json(self):
-        try:
-            with open(self.arquivo_json_path, 'r', encoding='utf-8') as file:
-                return json.load(file)
-        except FileNotFoundError:
-            print(f"Arquivo {self.arquivo_json_path} não encontrado. Criando um novo arquivo.")
-            return {}
-
-    def escrever_arquivo_json(self, dados):
-        print(json.dumps(dados, ensure_ascii=False, indent=4))  # Para depuração
-        with open(self.arquivo_json_path, 'w', encoding='utf-8') as file:
-            json.dump(dados, file, ensure_ascii=False, indent=4)
-        print(f"Arquivo JSON {self.arquivo_json_path} atualizado com sucesso.")
-
-    def revisar_datas_processos(self):
-        formato_data = "%d-%m-%Y"
-        for processo, dados in self.processos_json.items():
-            historico = dados['historico']
-            for i in range(len(historico) - 1):
-                data_inicial_atual = datetime.strptime(historico[i]['data_inicial'], formato_data) if historico[i]['data_inicial'] else datetime.min
-                data_final_atual = datetime.strptime(historico[i]['data_final'], formato_data) if historico[i]['data_final'] else data_inicial_atual
-                data_inicial_proxima = datetime.strptime(historico[i + 1]['data_inicial'], formato_data)
-
-                if data_final_atual > data_inicial_proxima:
-                    historico[i]['data_final'] = historico[i + 1]['data_inicial']
-                
-                # Garante que data_inicial não seja maior que data_final
-                if data_inicial_atual > data_final_atual:
-                    historico[i]['data_final'] = historico[i]['data_inicial']
-                    
-                # Atualiza a data inicial da próxima etapa se necessário
-                if i < len(historico) - 2:
-                    historico[i + 1]['data_inicial'] = max(data_final_atual, data_inicial_proxima).strftime(formato_data)
-
-    def calcular_dias_na_etapa(self):
-        for processo, dados in self.processos_json.items():
-            historico = dados['historico']
-            for etapa in historico:
-                if etapa['data_inicial'] and etapa['data_final']:
-                    # Converter strings de data para objetos datetime
-                    data_inicial = datetime.strptime(etapa['data_inicial'], "%d-%m-%Y")
-                    data_final = datetime.strptime(etapa['data_final'], "%d-%m-%Y")
-                    # Calcular a diferença em dias
-                    etapa['dias_na_etapa'] = (data_final - data_inicial).days
-                else:
-                    # Se a data_inicial é None (ou seja, não definida), assumir 0 dias
-                    etapa['dias_na_etapa'] = 0
-
-        print("Atualização dos dias nas etapas concluída.")
-
-    def atualizar_processo(self, chave_processo, nova_etapa, comentario):
-        print(f"Atualizando processo {chave_processo} para a etapa {nova_etapa}")
-        processos_json = self.ler_arquivo_json()
-        data_atual_str = datetime.today().strftime("%d-%m-%Y")
-        historico = processos_json.setdefault(chave_processo, {"historico": []})["historico"]
-
-        # Ajustar data_final de cada etapa para ser igual à data_inicial da próxima etapa
-        for i in range(len(historico) - 1):
-            historico[i]["data_final"] = historico[i + 1]["data_inicial"]
-        
-        # Atualizar a data_final da última etapa para hoje se for None
-        if historico and historico[-1]["data_final"] is None:
-            historico[-1]["data_final"] = data_atual_str
-        
-        # Recalcular dias_na_etapa para todas as etapas com base nas datas ajustadas
-        for etapa in historico:
-            if etapa["data_inicial"]:
-                data_inicial = datetime.strptime(etapa["data_inicial"], "%d-%m-%Y")
-                data_final = datetime.strptime(etapa["data_final"], "%d-%m-%Y")
-                etapa["dias_na_etapa"] = (data_final - data_inicial).days
-            else:
-                etapa["dias_na_etapa"] = 0  # Caso data_inicial seja None
-
-        # Adicionar a nova etapa ao final do histórico
-        historico.append({
-            "etapa": nova_etapa,
-            "data_inicial": data_atual_str,
-            "data_final": None,
-            "dias_na_etapa": 0,
-            "comentario": comentario,
-            "sequencial": len(historico) + 1
-        })
-
-        self.escrever_arquivo_json(processos_json)
-        print(f"Processo {chave_processo} atualizado com sucesso para a etapa {nova_etapa}.")
-
 class CustomCalendarWidget(QCalendarWidget):
     def __init__(self, *args, **kwargs):
         super(CustomCalendarWidget, self).__init__(*args, **kwargs)
@@ -123,10 +29,7 @@ class AlterarDatasDialog(QDialog):
     def __init__(self, listWidget, json_path):
         super().__init__()
         self.setWindowTitle("Alterar Datas")
-        self.listWidget = listWidget
-        self.json_path = json_path
-        self.processos_json_manager = ProcessosJSONManager(json_path)  # Cria a instância de ProcessosJSONManager
-        self.processos_json = self.processos_json_manager.processos_json                
+        self.listWidget = listWidget              
         self.calendarios_inicio = []  # Lista para manter referências aos calendários de início
         self.calendarios_fim = []  # Lista para manter referências aos calendários de fim
         
@@ -407,6 +310,8 @@ class CustomListWidget(QListWidget):
             destinationStage = self.objectName()  # A etapa de destino é o QListWidget atual
             newItemText = itemData["text"]  # Texto do item extraído do JSON
 
+            print(f"Origem: {originStage}, Destino: {destinationStage}, Item: {newItemText}")
+
             # Extrair chave do processo do texto do item
             chave_processo = extrair_chave_processo(newItemText)
 
@@ -418,7 +323,7 @@ class CustomListWidget(QListWidget):
                 if chave_processo == existingItemKey:
                     alreadyExists = True
                     break
-
+                    
             if not alreadyExists:
                 # Adiciona o item à lista de destino se não for uma duplicata
                 label = QLabel(newItemText)
@@ -432,33 +337,12 @@ class CustomListWidget(QListWidget):
                 
                 self.itemMoved.emit(newItemText, self.objectName())  # Emitir sinal com o texto do item e o nome da nova etapa
                 self.sortItems()  # Organizar itens, se necessário
+                print("Item adicionado e ordenado.")
             else:
                 # Ação para item duplicado, por exemplo, mostrar uma mensagem ao usuário
                 print("O processo já existe na etapa de destino.")
 
             event.acceptProposedAction()  # Confirma a ação de drop
-
-    def sortListItems(self):
-        items = [self.item(i).text() for i in range(self.count())]
-
-        def extract_info(text):
-            parts = text.split(' ')
-            if len(parts) > 2 and '/' in parts[2]:
-                mod = parts[0]
-                number, year = parts[2].split('/')
-                return mod, int(number), year
-            return "", 0, ""  # Retorna valores padrão se o formato não for o esperado
-
-        items.sort(key=lambda x: extract_info(x)[1])  # Ordena pelo número do pregão (parte central da tupla retornada por extract_info)
-
-        self.clear()  # Limpa a lista
-        for item in items:
-            mod, number, year = extract_info(item)
-            if number > 0:
-                formatted_number = f"{mod} {int(number):02d}/{year}"
-                self.addItem(formatted_number)
-            else:
-                self.addItem(item)  # Adiciona itens não formatados como estão
       
 class ProcessFlowDialog(QDialog):
     def __init__(self, etapas, df_processos, database_manager, parent=None):
@@ -554,9 +438,12 @@ class ProcessFlowDialog(QDialog):
         print(f"Preenchendo {list_widget.objectName()}...")
 
         with self.database_manager as conn:
+            # Primeiro, atualiza as etapas na tabela controle_processos com base nas informações mais recentes de controle_prazos
+            self.database_manager.verificar_e_atualizar_etapas(conn)
+
             cursor = conn.cursor()
 
-            # Ajuste na consulta SQL para prevenir duplicatas
+            # Consulta atualizada para preencher o list_widget com base nas etapas atualizadas
             cursor.execute('''
                 SELECT cpz.chave_processo, cp.objeto, cpz.sequencial
                 FROM controle_prazos cpz
@@ -586,9 +473,11 @@ class ProcessFlowDialog(QDialog):
             list_widget.addFormattedTextItem(modalidade=modalidade, objeto=objeto)
 
     def _connect_item_moved_signals(self):
-        # Este método conecta o sinal itemMoved de cada CustomListWidget a um slot adequado
         for list_widget in CustomListWidget.allListWidgets:
-            list_widget.itemMoved.connect(self.onItemMoved)
+            if list_widget.parent() is not None:
+                list_widget.itemMoved.connect(self.onItemMoved)
+            else:
+                print("Widget não está mais válido:", list_widget)
 
     def onItemMoved(self, itemText, newListWidgetName):
         chave_processo = extrair_chave_processo(itemText)
@@ -598,3 +487,20 @@ class ProcessFlowDialog(QDialog):
             # Agora usamos DatabaseManager para inserir o novo registro
             data_atual_str = datetime.today().strftime("%Y-%m-%d")
             self.database_manager.inserir_controle_prazo(chave_processo, newListWidgetName, data_atual_str, comentario)
+
+import re
+
+def extract_info(html_text):
+    # Ajustando a expressão regular para considerar espaços e quebras de linha
+    match = re.search(r"<span style='font-weight:600; font-size:14pt;'>(.*?)</span><br/>\s*<span style='font-size:10pt;'>(.*?)</span>", html_text, re.DOTALL)
+    if match:
+        modalidade = match.group(1).strip()
+        objeto = match.group(2).strip()
+        # Extrai o número do pregão da modalidade para ordenação
+        num_match = re.search(r'\d+', modalidade)
+        number = int(num_match.group(0)) if num_match else 0
+        print(f"Modalidade: {modalidade}, Objeto: {objeto}, Número: {number}")
+        return modalidade, objeto, number
+    else:
+        print("Não foi possível extrair informações com a expressão regular.")
+    return "", "", 0
