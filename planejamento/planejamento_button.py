@@ -370,6 +370,8 @@ class ApplicationUI(QMainWindow):
         with self.database_manager as conn:
             # Atualiza etapas baseadas no último sequencial de controle_prazos
             self.database_manager.verificar_e_atualizar_etapas(conn)
+            # Atualiza a contagem dos dias na última etapa
+            self.database_manager.atualizar_dias_na_etapa(conn)
             # Verifica e popula controle_prazos se necessário
             self.database_manager.popular_controle_prazos_se_necessario()
 
@@ -382,8 +384,25 @@ class ApplicationUI(QMainWindow):
             print("DataFrame de processos está vazio.")
 
     def exibir_dialogo_process_flow(self, df_processos):
-        dialog = FluxoProcessoDialog(etapas, df_processos, self.database_manager, self)  # Use self.database_manager
-        dialog.show()
+        dialog = FluxoProcessoDialog(etapas, df_processos, self.database_manager, self)
+        dialog.dialogClosed.connect(self.atualizarTableView)
+        dialog.exec()
+
+    def atualizarTableView(self):
+        print("Atualizando TableView...")
+        with self.database_manager as conn:
+            # Atualiza etapas baseadas no último sequencial de controle_prazos
+            self.database_manager.verificar_e_atualizar_etapas(conn)
+        
+        # Depois de atualizar os dados, re-inicialize o modelo SQL para refletir as mudanças
+        self.init_sql_model()
+
+        # Verifica se os dados foram recarregados corretamente
+        if self.model.rowCount() == 0:
+            print("DataFrame de processos está vazio após a atualização.")
+        else:
+            print("Dados no TableView foram atualizados.")
+
 
     def on_edit_item(self):
         # Implementar lógica de edição aqui

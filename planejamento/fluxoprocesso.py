@@ -10,6 +10,8 @@ from datetime import datetime
 import re
 
 class FluxoProcessoDialog(QDialog):
+    dialogClosed = pyqtSignal()
+
     def __init__(self, etapas, df_processos, database_manager, parent=None):
         super().__init__(parent)
         self.etapas = etapas
@@ -21,17 +23,28 @@ class FluxoProcessoDialog(QDialog):
         self.setStyleSheet("QDialog { background-color: #050f41; }")
         self._setup_ui()
 
+    def closeEvent(self, event):
+        # Emitir sinal quando o diálogo for fechado
+        self.dialogClosed.emit()
+        super().closeEvent(event)
+        
     def _populate_list_widget(self, list_widget):
         print(f"Preenchendo {list_widget.objectName()}...")
         with self.database_manager as conn:
             self.database_manager.verificar_e_atualizar_etapas(conn)
             cursor = conn.cursor()
-            cursor.execute('''SELECT cpz.chave_processo, cp.objeto, cpz.sequencial FROM controle_prazos cpz
-                              INNER JOIN (SELECT chave_processo, MAX(sequencial) AS max_sequencial FROM controle_prazos GROUP BY chave_processo) max_cpz
-                              ON cpz.chave_processo = max_cpz.chave_processo AND cpz.sequencial = max_cpz.max_sequencial
-                              INNER JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade
-                              WHERE cpz.etapa = ? ORDER BY cpz.chave_processo''', (list_widget.objectName(),))
-            for chave_processo, objeto, _ in cursor.fetchall():
+            cursor.execute('''
+                SELECT cpz.chave_processo, cp.objeto, cpz.sequencial FROM controle_prazos cpz
+                INNER JOIN (SELECT chave_processo, MAX(sequencial) AS max_sequencial FROM controle_prazos GROUP BY chave_processo) max_cpz
+                ON cpz.chave_processo = max_cpz.chave_processo AND cpz.sequencial = max_cpz.max_sequencial
+                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade
+                WHERE cpz.etapa = ? ORDER BY cpz.chave_processo''', (list_widget.objectName(),))
+            
+            results = cursor.fetchall()
+            # Ordena os resultados por modalidade usando a função de parse
+            results.sort(key=lambda x: parse_modalidade(x[0]))
+            
+            for chave_processo, objeto, _ in results:
                 list_widget.addFormattedTextItem(chave_processo, objeto)
 
     def _setup_ui(self):
@@ -94,11 +107,14 @@ class CustomListWidget(QListWidget):
                 border-radius: 4px;
                 background-color: white;
             }
+            QListWidget::item {
+                background-color: white;
+                border: none;
+            }
             QListWidget::item:selected {
                 background-color: #a8d3ff;
             }
         """)
-
 
     def addFormattedTextItem(self, modalidade, objeto):
         formattedText = f"<html><head/><body><p style='text-align: center;'><span style='font-weight:600; font-size:14pt;'>{modalidade}</span><br/><span style='font-size:10pt;'>{objeto}</span></p></body></html>"
@@ -113,8 +129,19 @@ class CustomListWidget(QListWidget):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        if event.button() == Qt.MouseButton.LeftButton and self.currentItem():
-            self.startDrag(Qt.DropAction.MoveAction)
+        if event.button() == Qt.MouseButton.LeftButton:
+            item = self.currentItem()
+            if item:
+                self.applyClickEffect(item)
+                self.startDrag(Qt.DropAction.MoveAction)
+
+    def applyClickEffect(self, item):
+        # Encontre o QLabel associado ao QListWidgetItem e mude seu estilo
+        if item:
+            widget = self.itemWidget(item)
+            if widget:
+                # Altera a cor de fundo para amarelo e adiciona uma borda azul marinho
+                widget.setStyleSheet("background-color: #FFFF00; border: 2px solid #000080;")
 
     def startDrag(self, supportedActions):
         item = self.currentItem()
@@ -238,3 +265,15 @@ def extrair_objeto(texto_html):
     if match:
         return match.group(1)
     return None
+
+def parse_modalidade(modalidade):
+    """
+    Espera uma string no formato '{mod} {num_pregao}/{ano_pregao}' e retorna uma tupla (ano_pregao, num_pregao)
+    para ordenação.
+    """
+    try:
+        parts = modalidade.split(' ')[-1]  # Pega a parte '{num_pregao}/{ano_pregao}'
+        num_pregao, ano_pregao = parts.split('/')
+        return (int(ano_pregao), int(num_pregao))  # Retorna uma tupla para ordenação
+    except (IndexError, ValueError):
+        return (0, 0)  # Em caso de falha na parse, retorna uma tupla que coloca este item no início

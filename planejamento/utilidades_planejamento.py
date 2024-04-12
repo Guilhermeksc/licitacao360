@@ -20,6 +20,64 @@ class DatabaseManager:
             self.connection.close()
             self.connection = None 
 
+    def atualizar_ultima_etapa_data_final(self, conn):
+        """
+        Atualiza a data_final para hoje apenas para a última etapa de cada chave_processo.
+        """
+        today_str = datetime.today().strftime('%Y-%m-%d')
+        try:
+            cursor = conn.cursor()
+            # Primeiro, atualiza a data_final para hoje onde for NULL na última etapa
+            cursor.execute('''
+                UPDATE controle_prazos
+                SET data_final = (CASE WHEN data_final IS NULL THEN ? ELSE data_final END)
+                WHERE (chave_processo, sequencial) IN (
+                    SELECT chave_processo, MAX(sequencial) AS max_sequencial
+                    FROM controle_prazos
+                    GROUP BY chave_processo
+                )
+            ''', (today_str,))
+
+            # Recalcula os dias na etapa para registros que tiveram data_final atualizada para hoje
+            cursor.execute('''
+                UPDATE controle_prazos
+                SET dias_na_etapa = julianday(data_final) - julianday(data_inicial)
+                WHERE data_final = ?
+            ''', (today_str,))
+
+            conn.commit()
+        except sqlite3.Error as e:
+            print("Erro ao atualizar a última etapa:", e)
+            
+    def atualizar_dias_na_etapa(self, conn):
+        """
+        Atualiza a data_final da última etapa registrada para cada chave_processo para hoje,
+        e recalcula os dias na etapa.
+        """
+        today_str = datetime.today().strftime('%Y-%m-%d')
+        try:
+            cursor = conn.cursor()
+            # Atualizar a data_final para hoje para a última etapa de cada chave_processo
+            cursor.execute('''
+                UPDATE controle_prazos
+                SET data_final = ?
+                WHERE (chave_processo, sequencial) IN (
+                    SELECT chave_processo, MAX(sequencial)
+                    FROM controle_prazos
+                    GROUP BY chave_processo
+                ) AND data_final IS NULL
+            ''', (today_str,))
+            
+            # Recalcular os dias na etapa
+            cursor.execute('''
+                UPDATE controle_prazos
+                SET dias_na_etapa = julianday(data_final) - julianday(data_inicial)
+            ''')
+            
+            conn.commit()
+        except sqlite3.Error as e:
+            print("Erro ao atualizar dias na etapa:", e)
+
     @staticmethod
     def create_database(conn):
         """
