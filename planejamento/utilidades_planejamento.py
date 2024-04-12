@@ -20,11 +20,6 @@ class DatabaseManager:
             self.connection.close()
             self.connection = None 
 
-    def initialize_database(self):
-        with self as conn:
-            self.create_database(conn)
-            self.criar_tabela_controle_prazos(conn)
-
     @staticmethod
     def create_database(conn):
         """
@@ -64,21 +59,6 @@ class DatabaseManager:
                 )
         ''')
         conn.commit()
-
-    def atualizar_etapa_processo(self, chave_processo, nova_etapa, data_atual_str, comentario):
-        with self as conn:
-            cursor = conn.cursor()
-            # Atualizar a etapa do processo
-            cursor.execute('''
-                UPDATE controle_prazos SET etapa = ?, data_final = ?, comentario = ? 
-                WHERE chave_processo = ? AND etapa != ?
-            ''', (nova_etapa, data_atual_str, comentario, chave_processo, nova_etapa))
-            conn.commit()
-
-    def ensure_database_exists(self):
-        if not Path(self.db_path).exists():
-            with self:
-                self.create_database() 
 
     @staticmethod
     def database_exists(conn):
@@ -213,6 +193,18 @@ class DatabaseManager:
 
             self.connection.commit()
             print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
+
+
+def extrair_chave_processo(itemText):
+    # Exemplo usando BeautifulSoup para análise HTML
+    soup = BeautifulSoup(itemText, 'html.parser')
+    texto_completo = soup.get_text()
+    # Supondo que o texto completo tenha a forma 'MOD NUM_PREGAO/ANO_PREGAO Objeto'
+    # Use expressão regular para extrair a chave
+    match = re.search(r'(\w+)\s(\d+)/(\d+)', texto_completo)
+    if match:
+        return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
+    return None
 
 def extrair_chave_processo(itemText):
     # Exemplo usando BeautifulSoup para análise HTML

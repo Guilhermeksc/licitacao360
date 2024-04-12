@@ -10,6 +10,7 @@ from planejamento.popup_relatorio import ReportDialog
 from planejamento.escalacao_pregoeiro import EscalarPregoeiroDialog
 from planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
 from planejamento.fluxo_dos_processos import ProcessFlowDialog
+from planejamento.fluxoprocesso import FluxoProcessoDialog
 from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
@@ -19,6 +20,23 @@ from functools import partial
 import sys
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 import sqlite3
+
+etapas = {
+    'Planejamento': None,
+    'Setor Responsável': None,
+    'IRP': None,
+    'Edital': None,
+    'Nota Técnica': None,
+    'AGU': None,
+    'Recomendações AGU': None,
+    'Divulgado': None,
+    'Impugnado': None,
+    'Sessão Pública': None,
+    'Em recurso': None,
+    'Homologado': None,
+    'Assinatura Contrato': None,
+    'Concluído': None
+}
 
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -364,7 +382,7 @@ class ApplicationUI(QMainWindow):
             print("DataFrame de processos está vazio.")
 
     def exibir_dialogo_process_flow(self, df_processos):
-        dialog = ProcessFlowDialog(etapas, df_processos, self.database_manager, self)  # Use self.database_manager
+        dialog = FluxoProcessoDialog(etapas, df_processos, self.database_manager, self)  # Use self.database_manager
         dialog.show()
 
     def on_edit_item(self):
@@ -447,24 +465,6 @@ class ApplicationUI(QMainWindow):
         else:
             # Se não for um QSqlTableModel, talvez seja necessário realizar outras operações para atualizar a tabela
             print("O modelo da tabela não é um QSqlTableModel. Faça as operações de atualização apropriadas aqui.")
-
-
-etapas = {
-    'Planejamento': None,
-    'Setor Responsável': None,
-    'IRP': None,
-    'Edital': None,
-    'Nota Técnica': None,
-    'AGU': None,
-    'Recomendações AGU': None,
-    'Divulgado': None,
-    'Impugnado': None,
-    'Sessão Pública': None,
-    'Em recurso': None,
-    'Homologado': None,
-    'Assinatura Contrato': None,
-    'Concluído': None
-}
 
 class ContextMenu(QMenu):
     def __init__(self, main_app, index, model=None):

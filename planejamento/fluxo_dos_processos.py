@@ -221,14 +221,7 @@ class CustomListWidget(QListWidget):
         dialog = AlterarDatasDialog(self, PROCESSOS_JSON_PATH)
         dialog.exec()
 
-    def mousePressEvent(self, event):
-        # Redefinir o estilo do widget anteriormente selecionado, se houver
-        if self.previousSelectedWidget is not None:
-            self.previousSelectedWidget.setStyleSheet("""
-                background-color: white;
-                border: 0.8px solid transparent; 
-            """)
-        
+    def mousePressEvent(self, event):      
         super().mousePressEvent(event)
         currentItem = self.currentItem()
         if currentItem:
@@ -298,9 +291,6 @@ class CustomListWidget(QListWidget):
         if event.mimeData().hasText():
             event.acceptProposedAction()
 
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasText():
-            event.acceptProposedAction()
 
     def dropEvent(self, event):
         mimeData = event.mimeData()
