@@ -337,11 +337,9 @@ class PregoeiroWidget(QWidget):
             print("DataFrame está vazio.")
 
     def obter_numero_cp(self):
-        # Sugerir o próximo número de CP disponível
-        numero_cp_sugerido = self.app.numerador_cp_widget.proximo_numero_cp()
 
         numero_cp, ok_pressed = QInputDialog.getText(
-            self, "Número da CP", "Digite o número da CP:", text=numero_cp_sugerido
+            self, "Número da CP", "Digite o número da CP:", text="Dígite o número"
         )
         if ok_pressed and numero_cp != '':
             return numero_cp
@@ -437,6 +435,9 @@ class PregoeiroWidget(QWidget):
         self.processo_selecionado = index.column()
         # Aqui, você pode capturar as informações do pregão
         pregao_info = self.model.processos_info[self.processo_selecionado - 1]  # Ajuste o índice conforme necessário
+            # Imprime os valores de pregao_info no console para depuração.
+        print(f"Info do pregão selecionado: {pregao_info}")
+
         self.selected_pregao_info = {
             "num_pregao": pregao_info[0],
             "ano_pregao": pregao_info[1],
@@ -714,7 +715,6 @@ def selecionar_para_escala(nomes_pregoeiros, processo_escolhido, processos_prego
             return True
 
     return False
-
 
 class EscalaPanel(QDialog):
     def __init__(self, nomes_pregoeiros, parent=None):
