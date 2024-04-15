@@ -85,35 +85,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.grupoEdicaoTemplateLayout.addWidget(self.botaoEdicaoTemplate)
         self.layout.addWidget(self.grupoEdicaoTemplate)
 
-        # Grupo 4: Edição do Template - PCA
-        self.grupoItemPCA = QGroupBox("Plano de Contratações Anual (PCA)")
-        self.grupoItemPCALayout = QVBoxLayout(self.grupoItemPCA)
-
-        # Cria um layout horizontal para o item do PCA
-        self.itemPCALayout = QHBoxLayout()
-        self.labelItemPCA = QLabel("Item do PCA:")
-        self.lineEditItemPCA = QLineEdit()
-        self.lineEditItemPCA.setText(str(self.item_pca))
-        # Adiciona o label e o line edit ao layout horizontal
-        self.itemPCALayout.addWidget(self.labelItemPCA)
-        self.itemPCALayout.addWidget(self.lineEditItemPCA)
-        self.grupoItemPCALayout.addLayout(self.itemPCALayout)
-        self.lineEditItemPCA.editingFinished.connect(self.salvarItemPCA)
-
-        # Continuação para adicionar a Portaria e seu QLineEdit
-        self.labelPortariaPCA = QLabel("Portaria:")
-        self.lineEditPortariaPCA = QLineEdit()
-        self.lineEditPortariaPCA.setText(str(self.portaria_PCA))
-        # Carregar valor pré-definido da portaria de QSettings
-        portaria_predefinida = settings.value("portaria_PCA", f"{self.portaria_PCA}")
-        self.lineEditPortariaPCA.setPlaceholderText("Ex: 05 Ceimbra, de 26 de janeiro de 2024.")
-        # Conectar o sinal de edição concluída do QLineEdit da portaria a uma função para salvar o valor
-
-        self.lineEditPortariaPCA.editingFinished.connect(self.salvarPortariaPCA)
-
-        self.grupoItemPCALayout.addWidget(self.labelPortariaPCA)
-        self.grupoItemPCALayout.addWidget(self.lineEditPortariaPCA)
-        self.layout.addWidget(self.grupoItemPCA)
 
         # Grupo 5: Criação de Documento
         self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
@@ -142,67 +113,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.grupoAutoridade.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
-        self.grupoItemPCA.setStyleSheet(estiloBorda)
-        self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
-
-    def salvarPortariaPCA(self):
-        # Atualiza o valor de portaria_PCA em QSettings
-        self.portaria_PCA = self.lineEditPortariaPCA.text()
-        self.salvarAlteracoesExcel()
-
-    def salvarItemPCA(self):
-        # Atualiza o valor de portaria_PCA em QSettings
-        self.item_pca = self.lineEditItemPCA.text()
-        self.salvarAlteracoesExcel()
-
-        
-    def salvarAlteracoesExcel(self):
-        settings = QSettings("SuaOrganizacao", "SeuAplicativo")
-        settings.setValue("portaria_PCA", self.portaria_PCA)
-        settings.setValue("item_pca", self.item_pca)
-
-        try:
-            # Carrega a planilha Excel
-            workbook = load_workbook(filename=CONTROLE_PROCESSOS_DIR)
-            sheet = workbook.active
-
-            for row in range(2, sheet.max_row + 1):
-                if (sheet[f'A{row}'].value == self.mod and
-                    sheet[f'B{row}'].value == int(self.num_pregao) and
-                    sheet[f'C{row}'].value == int(self.ano_pregao)):
-
-                    # Atualiza as células no Excel com os novos valores
-                    sheet[f'D{row}'].value = self.item_pca
-                    sheet[f'E{row}'].value = self.portaria_PCA
-                    break
-
-            # Salva o arquivo Excel
-            workbook.save(filename=CONTROLE_PROCESSOS_DIR)
-            QMessageBox.information(self, "Sucesso", "As alterações foram salvas com sucesso.")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Erro", f"Não foi possível salvar as alterações: {e}")
-
-        # Depois de salvar, chama a função para recarregar e atualizar o QTreeView
-        self.atualizarTreeView()
-
-    def atualizarTreeView(self):
-        # Recarrega os dados do DataFrame a partir do arquivo Excel atualizado
-        self.main_app.df_licitacao_completo = pd.read_excel(CONTROLE_PROCESSOS_DIR)
-
-        # Limpa o modelo atual
-        self.main_app.model.clear()
-
-        # Reaplica os cabeçalhos das colunas
-        self.main_app.model.setHorizontalHeaderLabels([self.main_app.NOME_COLUNAS[col] for col in self.main_app.NOME_COLUNAS])
-
-        # Repopula o modelo com os dados atualizados
-        for _, row in self.main_app.df_licitacao_completo.iterrows():
-            items = [QStandardItem(str(row[col])) for col in self.main_app.columns_treeview]
-            self.main_app.model.appendRow(items)
-
-        # Ajusta a largura das colunas com base nos dados atualizados
-        self.main_app._adjust_column_widths()
 
     def editarTemplate(self):
         template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
@@ -280,8 +190,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         except Exception as e:
             QMessageBox.warning(None, "Erro", f"Erro ao gerar documento DOCX: {e}")
-
-
 
     def gerarPdf(self):
         # Lógica para gerar documento PDF

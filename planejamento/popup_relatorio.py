@@ -18,6 +18,14 @@ from datetime import datetime
 import fitz
 import sqlite3
 
+def status_sort_key(status):
+    order = [
+        'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
+        'Sessão Pública', 'Impugnado', 'Divulgado', 'Recomendações AGU',
+        'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
+    ]
+    return order.index(status) if status in order else len(order)
+
 class ReportButton(QPushButton):
     openReportDialog = pyqtSignal()
 
@@ -86,23 +94,53 @@ class ReportDialog(QDialog):
 
             # Consulta SQL para obter os dados da tabela controle_processos
             cursor.execute("SELECT id_processo, objeto, sigla_om, pregoeiro FROM controle_processos")
-            rows = cursor.fetchall()
+            process_rows = cursor.fetchall()
 
-            for row in rows:
+            for row in process_rows:
                 chave_processo = row[0]  # id_processo
                 objeto = row[1]
                 sigla_om = row[2]
                 pregoeiro = row[3]
 
+                # Buscar os dados de status e dias na tabela controle_prazos
+                cursor.execute("""
+                SELECT etapa, dias_na_etapa FROM controle_prazos 
+                WHERE chave_processo = ? 
+                ORDER BY sequencial DESC
+                """, (chave_processo,))
+                prazos_rows = cursor.fetchall()
+
+                if len(prazos_rows) >= 2:
+                    # Pegar os dados do status atual e anterior
+                    status_atual, dias_status_atual = prazos_rows[0]
+                    status_anterior, dias_status_anterior = prazos_rows[1]
+                elif len(prazos_rows) == 1:
+                    # Somente status atual está disponível
+                    status_atual, dias_status_atual = prazos_rows[0]
+                    status_anterior, dias_status_anterior = "", ""
+                else:
+                    # Nenhum status disponível
+                    status_atual, dias_status_atual = "", ""
+                    status_anterior, dias_status_anterior = "", ""
+
+                # Se o status atual for "Concluído", substituir dias_status_atual por "-"
+                if status_atual == "Concluído":
+                    dias_status_atual = "-"
+                # Se o status atual for "Planejamento", substituir dias_status_atual e dias_status_anterior por "-"
+                if status_atual == "Planejamento":
+                    dias_status_atual = "-"
+                    dias_status_anterior = "-"  # Aplicando também para o status anterior
+                if status_anterior == "Planejamento":
+                    dias_status_anterior = "-"  # Aplicando também para o status anterior
                 # Adicionar os dados ao modelo
                 self.model.appendRow([
                     QStandardItem(chave_processo),
                     QStandardItem(objeto if objeto is not None else ""),
                     QStandardItem(sigla_om if sigla_om is not None else ""),
-                    QStandardItem(""),  # Status Anterior (ainda não obtido)
-                    QStandardItem(""),  # Dias Status Anterior (ainda não obtido)
-                    QStandardItem(""),  # Etapa (ainda não obtido)
-                    QStandardItem(""),  # Dias Status Atual (ainda não obtido)
+                    QStandardItem(status_anterior),
+                    QStandardItem(str(dias_status_anterior)),
+                    QStandardItem(status_atual),
+                    QStandardItem(str(dias_status_atual)),
                     QStandardItem(pregoeiro if pregoeiro is not None else ""),
                 ])
 
@@ -112,6 +150,7 @@ class ReportDialog(QDialog):
             print(f"Erro ao acessar o banco de dados: {e}")
 
         QTimer.singleShot(10, self.adjust_column_widths)
+
 
     def _create_buttons(self):
         # Cria um layout horizontal para os botões
@@ -143,10 +182,17 @@ class ReportDialog(QDialog):
             data.append(row_data)
         df = pd.DataFrame(data, columns=[self.model.horizontalHeaderItem(i).text() for i in range(self.model.columnCount())])
         
-        # Cria o arquivo Excel com XlsxWriter
-        writer = pd.ExcelWriter(filename, engine='xlsxwriter')
-        df.to_excel(writer, sheet_name='Sheet1', startrow=4, index=False)  # A tabela começa na linha 5
+        # Adiciona uma coluna temporária com os índices de ordenação baseados em 'Status Atual'
+        df['Status Index'] = df['Status Atual'].apply(status_sort_key)
         
+        # Ordena o DataFrame pela coluna de índice e depois remove essa coluna
+        df.sort_values('Status Index', inplace=True)
+        df.drop(columns='Status Index', inplace=True)
+        
+        # Continua a criação e formatação do Excel
+        writer = pd.ExcelWriter(filename, engine='xlsxwriter')
+        df.to_excel(writer, sheet_name='Sheet1', startrow=4, index=False)
+
         workbook = writer.book
         worksheet = writer.sheets['Sheet1']
         # Configurações do formato de página e margens
@@ -267,12 +313,12 @@ class ReportDialog(QDialog):
             # Inserir imagens esquerda e direita apenas na primeira página
             if pagina_number == 0:
                 # Calcular o tamanho da imagem em pontos
-                image_size_pt = (image_size_cm[0] * 108 / 2.54, image_size_cm[1] * 108 / 2.54)
+                image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
                 
                 # Calcular o deslocamento das imagens a partir das bordas em pontos
-                offset_left_x_pt = 4 * 72 / 2.54
+                offset_left_x_pt = 5 * 72 / 2.54
                 offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
-                offset_y_pt = 0.5 * 72 / 2.54  # 1 cm do topo
+                offset_y_pt = 1.3 * 72 / 2.54  # 1 cm do topo
                 
                 # Definir os retângulos onde as imagens serão inseridas
                 left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])

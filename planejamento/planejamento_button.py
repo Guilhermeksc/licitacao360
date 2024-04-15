@@ -37,37 +37,36 @@ etapas = {
     'Concluído': None
 }
 
+
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
+    
     def __init__(self, parent=None, dados=None):
         super().__init__(parent)
         self.setWindowTitle("Editar Dados")
         self.setFixedSize(700, 600)
+        self.dados = dados
+        # Inicia a UI e a conexão com o banco de dados
+        self.init_ui()
+        self.init_combobox_data()
 
-        # Cria o QGroupBox com o título 'Índices das Variáveis'
+    def init_ui(self):
+        # Definições iniciais
         self.groupBox = QGroupBox('Índices das Variáveis', self)
-
-        # Cria a QScrollArea e o QWidget que será o conteúdo da QScrollArea
         self.scrollArea = QScrollArea()
         self.scrollContentWidget = QWidget()
         self.scrollLayout = QFormLayout(self.scrollContentWidget)
-
-        # Configura a área de rolagem
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.scrollContentWidget)
-
-        # Configura o layout do groupBox para conter a scrollArea
         self.groupBoxLayout = QVBoxLayout(self.groupBox)
         self.groupBoxLayout.addWidget(self.scrollArea)
-
-        self.line_edits = {}  # Dicionário para armazenar as QLineEdit
-        self.dados = dados  # Dicionário com os dados a serem editados
-
-        # Define o layout principal da QDialog
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.addWidget(self.groupBox)
+        self.confirmar_button = QPushButton("Confirmar")
+        self.confirmar_button.clicked.connect(self.confirmar_edicao)
+        self.mainLayout.addWidget(self.confirmar_button)
 
-        # Customização do QGroupBox, QLabel, e QLineEdit
+        # Customização do QGroupBox, QLabel, QLineEdit, e QComboBox
         self.groupBox.setStyleSheet("""
             QGroupBox {
                 font-size: 16px;
@@ -82,33 +81,97 @@ class EditarDadosDialog(QDialog):
                 padding: 0 3px;
                 background-color: transparent;
             }
-            QLabel, QLineEdit {
+            QLabel, QLineEdit, QComboBox {
                 font-size: 16px;
-            }            
+            }
             QLabel {
                 font-weight: bold;
             }
+            QLineEdit[readOnly="true"] {
+                background-color: #cccccc;
+            }
         """)
 
-        # Adiciona o botão "Confirmar" fora do QGroupBox para que ele fique fixo
-        self.confirmar_button = QPushButton("Confirmar")
-        self.confirmar_button.clicked.connect(self.confirmar_edicao)
-        self.mainLayout.addWidget(self.confirmar_button)
+        # Campos que não devem ser editáveis
+        non_editable_fields = ['uasg', 'orgao_responsavel', 'id', 'tipo', 'numero', 'ano', 'id_processo', 'etapa']
 
-        self.init_ui()
+        # Adiciona elementos de UI para cada chave em dados
+        self.line_edits = {}
+        self.combo_sigla_om = QComboBox()
+        self.line_edit_uasg = QLineEdit()
+        self.line_edit_orgao = QLineEdit()
+        self.line_edit_uasg.setReadOnly(True)
+        self.line_edit_orgao.setReadOnly(True)
+        self.combo_sigla_om.currentIndexChanged.connect(self.update_dependent_fields)
 
-    def init_ui(self):
-        # Adiciona uma QLineEdit para cada variável no dicionário de dados
+        # Itera sobre os dados e adiciona os campos ao layout
         for coluna, valor in self.dados.items():
+            if coluna in ['uasg', 'orgao_responsavel', 'sigla_om']:
+                continue  # Não adiciona esses campos agora
             line_edit = QLineEdit()
             line_edit.setText(str(valor))
             self.line_edits[coluna] = line_edit
             self.scrollLayout.addRow(QLabel(coluna), line_edit)
 
-    def confirmar_edicao(self):
+            # Se a coluna estiver na lista de campos não editáveis, torna o campo somente leitura
+            if coluna in non_editable_fields:
+                line_edit.setReadOnly(True)
+
+            # Se a linha atual é 'objeto_completo', adiciona os campos de 'sigla_om', 'uasg' e 'orgao_responsavel' logo após
+            if coluna == 'objeto_completo':
+                self.scrollLayout.addRow(QLabel('sigla_om'), self.combo_sigla_om)
+                self.scrollLayout.addRow(QLabel('uasg'), self.line_edit_uasg)
+                self.scrollLayout.addRow(QLabel('orgao_responsavel'), self.line_edit_orgao)
+
+    def init_combobox_data(self):
+        # Conecta ao banco de dados e popula o QComboBox
         conn = sqlite3.connect(CONTROLE_DADOS)
         cursor = conn.cursor()
-        dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}        
+        cursor.execute("SELECT sigla_om, uasg, orgao_responsavel FROM controle_om")
+        rows = cursor.fetchall()
+
+        # Índice inicial para definir qual item do ComboBox deve ser selecionado
+        index_to_set = 0
+
+        # Carrega os dados do banco de dados para o ComboBox
+        for index, (sigla_om, uasg, orgao) in enumerate(rows):
+            self.combo_sigla_om.addItem(sigla_om, (uasg, orgao))
+            if sigla_om == self.dados['sigla_om']:
+                index_to_set = index
+
+        # Verifica se o valor de sigla_om do df_registro_selecionado foi encontrado no banco de dados
+        if not any(sigla_om == self.dados['sigla_om'] for sigla_om, _, _ in rows):
+            self.combo_sigla_om.addItem(self.dados['sigla_om'], (self.dados['uasg'], self.dados['orgao_responsavel']))
+            index_to_set = self.combo_sigla_om.count() - 1
+
+        # Define o item padrão do ComboBox com base nos dados do DataFrame
+        self.combo_sigla_om.setCurrentIndex(index_to_set)
+
+        cursor.close()
+        conn.close()
+        self.update_dependent_fields()
+
+    def update_dependent_fields(self):
+        # Atualiza uasg e orgao_responsavel baseados na escolha de sigla_om
+        current_data = self.combo_sigla_om.currentData()
+        if current_data:
+            # Converte explicitamente os valores para strings antes de configurar o texto
+            self.line_edit_uasg.setText(str(current_data[0]))
+            self.line_edit_orgao.setText(str(current_data[1]))
+
+    def confirmar_edicao(self):
+        # Implementação da lógica para atualizar os dados
+        conn = sqlite3.connect(CONTROLE_DADOS)
+        cursor = conn.cursor()
+       
+        # Atualiza o dicionário com os valores dos line_edits regulares
+        dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}
+        
+        # Adiciona 'sigla_om', 'uasg' e 'orgao_responsavel' ao dicionário de atualizações
+        dados_atualizados['sigla_om'] = self.combo_sigla_om.currentText()
+        dados_atualizados['uasg'] = self.line_edit_uasg.text()
+        dados_atualizados['orgao_responsavel'] = self.line_edit_orgao.text()
+        
         # Cria a parte SET da consulta SQL dinamicamente
         set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
         
@@ -121,6 +184,8 @@ class EditarDadosDialog(QDialog):
         cursor.execute(query, valores)
         conn.commit()
         conn.close()
+        
+        # Emite o sinal de dados atualizados e fecha a caixa de diálogo
         self.dados_atualizados.emit()
         self.accept()
 
@@ -509,6 +574,7 @@ class ApplicationUI(QMainWindow):
         self.model.select()
         # Especifica as colunas a serem exibidas
         self.model.setHeaderData(4, Qt.Orientation.Horizontal, "ID Processo")
+        self.model.setHeaderData(15, Qt.Orientation.Horizontal, "Item PCA")
         self.model.setHeaderData(5, Qt.Orientation.Horizontal, "NUP")
         self.model.setHeaderData(6, Qt.Orientation.Horizontal, "Objeto")
         self.model.setHeaderData(8, Qt.Orientation.Horizontal, "UASG")
@@ -521,7 +587,7 @@ class ApplicationUI(QMainWindow):
         # print("Colunas disponíveis no modelo:")
         for column in range(self.model.columnCount()):
             # print(f"Índice {column}: {self.model.headerData(column, Qt.Orientation.Horizontal)}")
-            if column not in [4, 5, 6, 8, 10, 13, 14]:
+            if column not in [4, 15, 5, 6, 8, 10, 13, 14]:
                 self.table_view.hideColumn(column)
 
     def atualizar_tabela(self):
