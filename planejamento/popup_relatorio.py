@@ -11,20 +11,12 @@ import pandas as pd
 import subprocess
 import win32com.client
 import tempfile
-import json
 import os
 import sys
 import datetime
 from datetime import datetime
-import xlsxwriter
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl import load_workbook
 import fitz
-
-df_uasg = pd.read_excel(TABELA_UASG_DIR)
-global df_registro_selecionado
-df_registro_selecionado = None
+import sqlite3
 
 class ReportButton(QPushButton):
     openReportDialog = pyqtSignal()
@@ -39,8 +31,8 @@ class ReportButton(QPushButton):
 def status_sort_key(status):
     order = [
         'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
-        'Sessão Pública', 'Impugnado', 'Provisionamento', 'Recomendações AGU',
-        'CJACM', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
+        'Sessão Pública', 'Impugnado', 'Divulgado', 'Recomendações AGU',
+        'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
     ]
     try:
         return order.index(status)
@@ -87,41 +79,39 @@ class ReportDialog(QDialog):
             self.table_view.setColumnWidth(column, width)
 
     def load_data(self):
-        # Ler os dados do JSON
         try:
-            with open(PROCESSOS_JSON_PATH, 'r', encoding='utf-8') as file:
-                processos_json = json.load(file)
-        except FileNotFoundError:
-            print(f"Arquivo não encontrado: {PROCESSOS_JSON_PATH}")
-            processos_json = {}
+            # Conectar ao banco de dados SQLite
+            conn = sqlite3.connect(CONTROLE_DADOS)
+            cursor = conn.cursor()
 
-        # Ordena o DataFrame pelo 'Status Atual' usando a função de mapeamento
-        self.dataframe['SortKey'] = self.dataframe['etapa'].apply(status_sort_key)
-        self.dataframe.sort_values('SortKey', inplace=True)
-        self.dataframe.drop('SortKey', axis=1, inplace=True)  # Remove a coluna auxiliar de ordenação
+            # Consulta SQL para obter os dados da tabela controle_processos
+            cursor.execute("SELECT id_processo, objeto, sigla_om, pregoeiro FROM controle_processos")
+            rows = cursor.fetchall()
 
-        for _, row in self.dataframe.iterrows():
-            chave_processo = f"{row['mod']} {int(row['num_pregao'])}/{int(row['ano_pregao'])}"
-            chave_processo_formatado = f"{row['mod']} {str(int(row['num_pregao'])).zfill(2)}/{int(row['ano_pregao'])}"
-            processo = processos_json.get(chave_processo, {})
-            historico = processo.get('historico', [])
-            
-            # Obter Status Anterior, Dias Status Anterior e Dias Status Atual
-            status_anterior = historico[-2]['etapa'] if len(historico) >= 2 else '-'
-            dias_status_anterior = str(historico[-2]['dias_na_etapa']) if len(historico) >= 2 else '-'
-            dias_status_atual = str(historico[-1]['dias_na_etapa']) if historico else '-'
+            for row in rows:
+                chave_processo = row[0]  # id_processo
+                objeto = row[1]
+                sigla_om = row[2]
+                pregoeiro = row[3]
 
-            self.model.appendRow([
-                QStandardItem(chave_processo_formatado),
-                QStandardItem(str(row['objeto']) if not pd.isna(row['objeto']) else ""),
-                QStandardItem(str(row['sigla_om']) if not pd.isna(row['sigla_om']) else ""),
-                QStandardItem(status_anterior),
-                QStandardItem(dias_status_anterior),
-                QStandardItem(str(row['etapa']) if not pd.isna(row['etapa']) else ""),
-                QStandardItem(dias_status_atual),
-                QStandardItem(str(row['pregoeiro']) if not pd.isna(row['pregoeiro']) else ""),
-            ])
-        QTimer.singleShot(10, self.adjust_column_widths)  # 100 ms após a UI ser mostrada
+                # Adicionar os dados ao modelo
+                self.model.appendRow([
+                    QStandardItem(chave_processo),
+                    QStandardItem(objeto if objeto is not None else ""),
+                    QStandardItem(sigla_om if sigla_om is not None else ""),
+                    QStandardItem(""),  # Status Anterior (ainda não obtido)
+                    QStandardItem(""),  # Dias Status Anterior (ainda não obtido)
+                    QStandardItem(""),  # Etapa (ainda não obtido)
+                    QStandardItem(""),  # Dias Status Atual (ainda não obtido)
+                    QStandardItem(pregoeiro if pregoeiro is not None else ""),
+                ])
+
+            # Fechar a conexão com o banco de dados
+            conn.close()
+        except sqlite3.Error as e:
+            print(f"Erro ao acessar o banco de dados: {e}")
+
+        QTimer.singleShot(10, self.adjust_column_widths)
 
     def _create_buttons(self):
         # Cria um layout horizontal para os botões

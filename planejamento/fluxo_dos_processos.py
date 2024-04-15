@@ -230,12 +230,12 @@ class CustomListWidget(QListWidget):
 
                 self.startDrag(Qt.DropAction.MoveAction)
 
-    def addFormattedTextItem(self, modalidade, objeto):
+    def addFormattedTextItem(self, id_processo, objeto):
         formattedText = f"""<html>
         <head/>
         <body>
             <p style='text-align: center;'>
-                <span style='font-weight:600; font-size:14pt;'>{modalidade}</span><br/>
+                <span style='font-weight:600; font-size:14pt;'>{id_processo}</span><br/>
                 <span style='font-size:10pt;'>{objeto}</span>
             </p>
         </body>
@@ -442,7 +442,7 @@ class ProcessFlowDialog(QDialog):
                     FROM controle_prazos
                     GROUP BY chave_processo
                 ) AS max_cpz ON cpz.chave_processo = max_cpz.chave_processo AND cpz.sequencial = max_cpz.max_sequencial
-                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade
+                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.id_processo
                 WHERE cpz.etapa = ?
                 ORDER BY cpz.chave_processo
             ''', (list_widget.objectName(),))
@@ -457,10 +457,10 @@ class ProcessFlowDialog(QDialog):
             partes = chave_processo.split()
             mod = partes[0]
             num_pregao, ano_pregao = partes[1].split('/')
-            modalidade = f"{mod} {num_pregao}/{ano_pregao}"
+            id_processo = f"{mod} {num_pregao}/{ano_pregao}"
 
             # Adiciona o item formatado ao list_widget de forma única
-            list_widget.addFormattedTextItem(modalidade=modalidade, objeto=objeto)
+            list_widget.addFormattedTextItem(id_processo=id_processo, objeto=objeto)
 
     def _connect_item_moved_signals(self):
         for list_widget in CustomListWidget.allListWidgets:
@@ -484,13 +484,13 @@ def extract_info(html_text):
     # Ajustando a expressão regular para considerar espaços e quebras de linha
     match = re.search(r"<span style='font-weight:600; font-size:14pt;'>(.*?)</span><br/>\s*<span style='font-size:10pt;'>(.*?)</span>", html_text, re.DOTALL)
     if match:
-        modalidade = match.group(1).strip()
+        id_processo = match.group(1).strip()
         objeto = match.group(2).strip()
-        # Extrai o número do pregão da modalidade para ordenação
-        num_match = re.search(r'\d+', modalidade)
+        # Extrai o número do pregão da id_processo para ordenação
+        num_match = re.search(r'\d+', id_processo)
         number = int(num_match.group(0)) if num_match else 0
-        print(f"Modalidade: {modalidade}, Objeto: {objeto}, Número: {number}")
-        return modalidade, objeto, number
+        print(f"Modalidade: {id_processo}, Objeto: {objeto}, Número: {number}")
+        return id_processo, objeto, number
     else:
         print("Não foi possível extrair informações com a expressão regular.")
     return "", "", 0

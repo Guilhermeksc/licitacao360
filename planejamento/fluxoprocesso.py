@@ -8,16 +8,18 @@ import json
 import sqlite3
 from datetime import datetime
 import re
+from functools import partial
 
 class FluxoProcessoDialog(QDialog):
     dialogClosed = pyqtSignal()
 
-    def __init__(self, etapas, df_processos, database_manager, parent=None):
+    def __init__(self, etapas, df_processos, database_manager, database_path, parent=None):
         super().__init__(parent)
         self.etapas = etapas
         self.df_processos = df_processos
         self.database_manager = database_manager
-        
+        self.existing_items = {}  # Dicionário para rastrear itens adicionados por QListWidget
+        self.database_path = database_path 
         self.setWindowTitle("Painel de Fluxo dos Processos")
         self.setFixedSize(QSize(1490, 750))
         self.setStyleSheet("QDialog { background-color: #050f41; }")
@@ -31,20 +33,20 @@ class FluxoProcessoDialog(QDialog):
     def _populate_list_widget(self, list_widget):
         print(f"Preenchendo {list_widget.objectName()}...")
         with self.database_manager as conn:
-            self.database_manager.verificar_e_atualizar_etapas(conn)
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT cpz.chave_processo, cp.objeto, cpz.sequencial FROM controle_prazos cpz
+                SELECT cpz.chave_processo, cp.objeto FROM controle_prazos cpz
                 INNER JOIN (SELECT chave_processo, MAX(sequencial) AS max_sequencial FROM controle_prazos GROUP BY chave_processo) max_cpz
                 ON cpz.chave_processo = max_cpz.chave_processo AND cpz.sequencial = max_cpz.max_sequencial
-                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.modalidade
+                INNER JOIN controle_processos cp ON cpz.chave_processo = cp.id_processo
                 WHERE cpz.etapa = ? ORDER BY cpz.chave_processo''', (list_widget.objectName(),))
             
             results = cursor.fetchall()
-            # Ordena os resultados por modalidade usando a função de parse
-            results.sort(key=lambda x: parse_modalidade(x[0]))
-            
-            for chave_processo, objeto, _ in results:
+            results.sort(key=lambda x: parse_id_processo(x[0]))
+
+            list_widget.clear()  # Limpa todos os itens antes de repopular
+            for chave_processo, objeto in results:
+                # Diretamente adicionar todos os itens
                 list_widget.addFormattedTextItem(chave_processo, objeto)
 
     def _setup_ui(self):
@@ -87,15 +89,16 @@ class FluxoProcessoDialog(QDialog):
         group_box.setStyleSheet("QGroupBox { border: 1px solid white; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px; color: white; }")
         layout = QVBoxLayout(group_box)
         layout.setContentsMargins(1, 25, 1, 4)
-        list_widget = CustomListWidget(parent=self)
+        list_widget = CustomListWidget(parent=self, database_path=self.database_path)  # Passa o caminho do banco de dados aqui
         list_widget.setObjectName(etapa)
         self._populate_list_widget(list_widget)
         layout.addWidget(list_widget)
         return group_box
 
 class CustomListWidget(QListWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, database_path=None):
         super().__init__(parent)
+        self.database_path = database_path
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
@@ -116,8 +119,37 @@ class CustomListWidget(QListWidget):
             }
         """)
 
-    def addFormattedTextItem(self, modalidade, objeto):
-        formattedText = f"<html><head/><body><p style='text-align: center;'><span style='font-weight:600; font-size:14pt;'>{modalidade}</span><br/><span style='font-size:10pt;'>{objeto}</span></p></body></html>"
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
+        self.effect_timer = QTimer(self)
+        self.effect_timer.setInterval(100)  # 1 segundo
+        self.effect_timer.setSingleShot(True)
+        self.effect_timer.timeout.connect(self.clearClickEffect)
+
+    def showContextMenu(self, position):
+        contextMenu = QMenu(self)
+        alterar_datas_action = contextMenu.addAction("Alterar Datas")
+        gerar_relatorio_action = contextMenu.addAction("Gerar Relatório")
+        action = contextMenu.exec(self.mapToGlobal(position))
+        
+        if action == alterar_datas_action:
+            self.alterarDatas()
+        elif action == gerar_relatorio_action:
+            self.gerarRelatorio()
+
+    def alterarDatas(self):
+        if not self.database_path:
+            QMessageBox.warning(self, "Erro", "Caminho do banco de dados não configurado.")
+            return
+        dialog = AlterarDatasDialog(self, self.database_path)
+        dialog.exec()
+
+    def gerarRelatorio(self):
+        # Implementar a lógica de geração de relatórios aqui
+        print("Gerar Relatório acionado")
+
+    def addFormattedTextItem(self, id_processo, objeto):
+        formattedText = f"<html><head/><body><p style='text-align: center;'><span style='font-weight:600; font-size:14pt;'>{id_processo}</span><br/><span style='font-size:10pt;'>{objeto}</span></p></body></html>"
         item = QListWidgetItem()
         item.setText(formattedText)
         item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
@@ -129,11 +161,30 @@ class CustomListWidget(QListWidget):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
+        item = self.itemAt(event.position().toPoint())
+
         if event.button() == Qt.MouseButton.LeftButton:
-            item = self.currentItem()
             if item:
                 self.applyClickEffect(item)
                 self.startDrag(Qt.DropAction.MoveAction)
+
+        elif event.button() == Qt.MouseButton.RightButton:
+            if item:
+                self.setCurrentItem(item)  # Certifica-se de que o item esteja selecionado ao clicar com o botão direito
+                self.applyRightClickEffect(item)
+                self.effect_timer.start()
+
+    def applyRightClickEffect(self, item):
+        widget = self.itemWidget(item)
+        if widget:
+            widget.setStyleSheet("background-color: #00fbff; border: 1px solid #000080;")
+
+    def clearClickEffect(self):
+        item = self.currentItem()
+        if item:
+            widget = self.itemWidget(item)
+            if widget:
+                widget.setStyleSheet("background-color: white;")
 
     def applyClickEffect(self, item):
         # Encontre o QLabel associado ao QListWidgetItem e mude seu estilo
@@ -141,7 +192,7 @@ class CustomListWidget(QListWidget):
             widget = self.itemWidget(item)
             if widget:
                 # Altera a cor de fundo para amarelo e adiciona uma borda azul marinho
-                widget.setStyleSheet("background-color: #FFFF00; border: 2px solid #000080;")
+                widget.setStyleSheet("background-color: #FFFF00; border: 1px solid #000080;")
 
     def startDrag(self, supportedActions):
         item = self.currentItem()
@@ -181,17 +232,17 @@ class CustomListWidget(QListWidget):
         if event.mimeData().hasText():
             itemData = json.loads(event.mimeData().text())
             formattedText = itemData["formattedText"]  # O texto HTML completo
-            modalidade = extrair_modalidade(formattedText)  # Extrai modalidade do HTML
+            id_processo = extrair_id_processo(formattedText)  # Extrai id_processo do HTML
             objeto = extrair_objeto(formattedText)  # Extrair objeto do HTML, implementar esta função similarmente
 
             origin = itemData["origin"]
             nova_etapa = self.objectName()
 
             if origin != nova_etapa:
-                self.addFormattedTextItem(modalidade, objeto)  # Usa modalidade e objeto extraídos
+                self.addFormattedTextItem(id_processo, objeto)  # Usa id_processo e objeto extraídos
                 event.source().takeItem(event.source().currentRow())  # Remove o item da lista original
                 etapa_manager = EtapaManager(str(CONTROLE_DADOS))
-                etapa_manager.registrar_etapa(modalidade, nova_etapa, "Comentário opcional")
+                etapa_manager.registrar_etapa(id_processo, nova_etapa, "Comentário opcional")
 
             event.setDropAction(Qt.DropAction.MoveAction)
             event.accept()
@@ -252,7 +303,7 @@ class EtapaManager:
         finally:
             conn.close()
 
-def extrair_modalidade(texto_html):
+def extrair_id_processo(texto_html):
     # Usa expressão regular para extrair o texto dentro do primeiro <span> após <p>
     match = re.search(r"<p[^>]*><span[^>]*>(.*?)</span>", texto_html)
     if match:
@@ -260,20 +311,128 @@ def extrair_modalidade(texto_html):
     return None
 
 def extrair_objeto(texto_html):
-    # Extrai o texto do objeto, que aparece após a modalidade no HTML
+    # Extrai o texto do objeto, que aparece após a id_processo no HTML
     match = re.search(r"<br/><span[^>]*>(.*?)</span></p>", texto_html)
     if match:
         return match.group(1)
     return None
 
-def parse_modalidade(modalidade):
+def parse_id_processo(id_processo):
     """
     Espera uma string no formato '{mod} {num_pregao}/{ano_pregao}' e retorna uma tupla (ano_pregao, num_pregao)
     para ordenação.
     """
     try:
-        parts = modalidade.split(' ')[-1]  # Pega a parte '{num_pregao}/{ano_pregao}'
+        parts = id_processo.split(' ')[-1]  # Pega a parte '{num_pregao}/{ano_pregao}'
         num_pregao, ano_pregao = parts.split('/')
         return (int(ano_pregao), int(num_pregao))  # Retorna uma tupla para ordenação
     except (IndexError, ValueError):
         return (0, 0)  # Em caso de falha na parse, retorna uma tupla que coloca este item no início
+
+class CustomCalendarWidget(QCalendarWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setVerticalHeaderFormat(QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader)
+        self.setStyleSheet("""
+            QCalendarWidget QAbstractItemView {
+                selection-background-color: yellow;
+                selection-color: black;
+            }
+        """)
+
+class AlterarDatasDialog(QDialog):
+    def __init__(self, listWidget, db_path):
+        super().__init__()
+        self.setWindowTitle("Alterar Datas dos Processos")
+        self.setFixedSize(800, 600)
+        self.listWidget = listWidget
+        self.db_path = db_path
+        self.calendarios = []  # Lista para guardar referências aos widgets de calendário
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        scroll_area = QScrollArea(self)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        scroll_area.setWidget(scroll_widget)
+        
+        processoSelecionado = self.listWidget.currentItem().text()
+        print("Texto do processo selecionado:", processoSelecionado)
+        self.chave_processo = self.extrair_id_processo(processoSelecionado)
+        print("ID do processo extraído:", self.chave_processo)
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT etapa, data_inicial, data_final FROM controle_prazos WHERE chave_processo = ?", (self.chave_processo,))
+        etapas = cursor.fetchall()
+        self.etapas = [etapa[0] for etapa in etapas]
+
+        for i, (etapa, data_inicial, data_final) in enumerate(etapas):
+            groupBox = QGroupBox(f"Etapa: {etapa}", self)
+            vbox = QHBoxLayout(groupBox)
+
+            data_inicio_label = QLabel('Data-Início')
+            calendarWidgetInicio = CustomCalendarWidget(self)
+            if data_inicial:
+                data_inicio = QDate.fromString(data_inicial, "yyyy-MM-dd")
+                calendarWidgetInicio.setSelectedDate(data_inicio)
+                print(f"Data de início para a etapa {etapa}: {data_inicio.toString('yyyy-MM-dd')}")
+
+            data_fim_label = QLabel('Data-Fim')
+            calendarWidgetFim = CustomCalendarWidget(self)
+            if data_final:
+                data_fim = QDate.fromString(data_final, "yyyy-MM-dd")
+                calendarWidgetFim.setSelectedDate(data_fim)
+                print(f"Data de fim para a etapa {etapa}: {data_fim.toString('yyyy-MM-dd')}")
+
+            vbox.addWidget(data_inicio_label)
+            vbox.addWidget(calendarWidgetInicio)
+            vbox.addWidget(data_fim_label)
+            vbox.addWidget(calendarWidgetFim)
+            scroll_layout.addWidget(groupBox)
+
+            self.calendarios.append((etapa, calendarWidgetInicio, calendarWidgetFim))
+
+        scroll_widget.setLayout(scroll_layout)
+        scroll_area.setWidget(scroll_widget)
+        layout.addWidget(scroll_area)
+        btnSave = QPushButton("Salvar Alterações", self)
+        btnSave.clicked.connect(self.save_changes)
+        layout.addWidget(btnSave)
+
+        conn.close()
+
+    def save_changes(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            for etapa, calendar_inicio, calendar_fim in self.calendarios:
+                data_inicial = calendar_inicio.selectedDate().toString("yyyy-MM-dd")
+                data_final = calendar_fim.selectedDate().toString("yyyy-MM-dd")
+                print("Etapa:", etapa)
+                print("Data inicial:", data_inicial)  # Depurar a formatação da data
+                print("Data final:", data_final)      # Depurar a formatação da data
+                cursor.execute(
+                    "UPDATE controle_prazos SET data_inicial = ?, data_final = ? WHERE chave_processo = ? AND etapa = ?",
+                    (data_inicial, data_final, self.chave_processo, etapa)
+                )
+                print("Linhas afetadas:", cursor.rowcount)  # Verificar o número de linhas afetadas pela atualização
+            conn.commit()
+            print("Alterações salvas com sucesso!")
+        except sqlite3.Error as e:
+            print("Erro ao salvar alterações:", e)  # Imprimir qualquer erro de banco de dados
+            conn.rollback()  # Reverter transações em caso de erro
+        finally:
+            conn.close()
+        self.accept()
+
+    def extrair_id_processo(self, texto_html):
+        import re
+        match = re.search(r"<p[^>]*><span[^>]*>(.*?)</span>", texto_html)
+        if match:
+            return match.group(1)
+        return None

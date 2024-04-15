@@ -41,7 +41,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         self.item_pca = df_registro['item_pca'].iloc[0]
         self.portaria_PCA = df_registro['portaria_PCA'].iloc[0]
-        self.modalidade = df_registro['modalidade'].iloc[0]
+        self.id_processo = df_registro['id_processo'].iloc[0]
         
         self.setWindowTitle("Autorização para Abertura")
         self.setFixedSize(300, 400)
@@ -239,10 +239,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
             # Continua com o processo de geração do documento
             template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
-            # Substitui '/' por '-' na string modalidade
-            modalidade_formatada = self.df_registro['modalidade'].iloc[0].replace('/', '-')
-            # Monta o nome do arquivo utilizando a modalidade formatada
-            salvar_nome = f"{modalidade_formatada} - Autorizacao para abertura de Processo Administrativo"
+            id_processo_formatado = self.df_registro['id_processo'].iloc[0].replace('/', '-')
+            salvar_nome = f"{id_processo_formatado} - Autorizacao para abertura de Processo Administrativo"
 
             temp_dir = tempfile.mkdtemp()
             temp_template_path = shutil.copy(template_path, temp_dir)
@@ -260,17 +258,17 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             }
 
             # Substituições adicionais conforme especificado
-            modalidade = self.df_registro['modalidade'].iloc[0]
-            if "PE" in modalidade:
-                pregao_num = modalidade.split()[1]
-                modalidade_substituida = f"Pregão Eletrônico nº {pregao_num}"
-            elif "CC" in modalidade:
-                concorrencia_num = modalidade.split()[1]
-                modalidade_substituida = f"Concorrência nº {concorrencia_num}"
+            id_processo = self.df_registro['id_processo'].iloc[0]
+            if "PE" in id_processo:
+                pregao_num = id_processo.split()[1]
+                id_processo = f"Pregão Eletrônico nº {pregao_num}"
+            elif "CC" in id_processo:
+                concorrencia_num = id_processo.split()[1]
+                id_processo_substituido = f"Concorrência nº {concorrencia_num}"
             else:
-                modalidade_substituida = modalidade
+                id_processo_substituido = id_processo
 
-            data["modalidade"] = modalidade_substituida
+            data["id_processo"] = id_processo_substituido
 
             doc.render(data)
             save_path = os.path.join(self.pasta, f"{salvar_nome}.docx")
