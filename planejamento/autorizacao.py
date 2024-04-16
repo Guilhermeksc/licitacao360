@@ -149,8 +149,9 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
             # Continua com o processo de geração do documento
             template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
-            id_processo_formatado = self.df_registro['id_processo'].iloc[0].replace('/', '-')
-            salvar_nome = f"{id_processo_formatado} - Autorizacao para abertura de Processo Administrativo"
+            numero = self.df_registro['numero'].iloc[0]
+            ano = self.df_registro['ano'].iloc[0]
+            salvar_nome = f"{numero}-{ano} - Autorizacao para abertura de Processo Administrativo"
 
             temp_dir = tempfile.mkdtemp()
             temp_template_path = shutil.copy(template_path, temp_dir)
@@ -166,19 +167,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                 "portaria_PCA": self.portaria_PCA,  # Usar o valor de portaria_PCA passado como argumento
                 'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}"  # Utilizar a string formatada
             }
-
-            # Substituições adicionais conforme especificado
-            id_processo = self.df_registro['id_processo'].iloc[0]
-            if "PE" in id_processo:
-                pregao_num = id_processo.split()[1]
-                id_processo = f"Pregão Eletrônico nº {pregao_num}"
-            elif "CC" in id_processo:
-                concorrencia_num = id_processo.split()[1]
-                id_processo_substituido = f"Concorrência nº {concorrencia_num}"
-            else:
-                id_processo_substituido = id_processo
-
-            data["id_processo"] = id_processo_substituido
 
             doc.render(data)
             save_path = os.path.join(self.pasta, f"{salvar_nome}.docx")

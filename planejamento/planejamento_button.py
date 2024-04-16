@@ -24,7 +24,7 @@ etapas = {
     'Planejamento': None,
     'Setor Responsável': None,
     'IRP': None,
-    'Edital': None,
+    'Montagem do Processo': None,
     'Nota Técnica': None,
     'AGU': None,
     'Recomendações AGU': None,
@@ -323,6 +323,29 @@ class CustomItemDelegate(QStyledItemDelegate):
         # Garante que o alinhamento centralizado seja aplicado
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
+class CustomSqlTableModel(QSqlTableModel):
+    def __init__(self, parent=None, db=None):
+        super().__init__(parent, db)
+        self.etapa_order = {
+            'Concluído': 0, 'Assinatura Contrato': 1, 'Homologado': 2, 'Em recurso': 3,
+            'Sessão Pública': 4, 'Impugnado': 5, 'Pré-Publicação': 6, 'Recomendações AGU': 7,
+            'AGU': 8, 'Nota Técnica': 9, 'Montagem do Processo': 10, 'IRP': 11, 
+            'Setor Responsável': 12, 'Planejamento': 13
+        }
+
+    def sort(self, column, order):
+        if self.headerData(column, Qt.Orientation.Horizontal) == 'Etapa':
+            self.setSortRole(Qt.ItemDataRole.UserRole)
+        else:
+            self.setSortRole(Qt.ItemDataRole.DisplayRole)
+        super().sort(column, order)
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.UserRole and self.headerData(index.column(), Qt.Orientation.Horizontal) == 'Etapa':
+            etapa = super().data(index, Qt.ItemDataRole.DisplayRole)
+            return self.etapa_order.get(etapa, 999)  # Default for undefined stages
+        return super().data(index, role)
+        
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
@@ -356,6 +379,7 @@ class ApplicationUI(QMainWindow):
         self.table_view = CustomTableView(self)
         self.init_sql_model()
 
+
         # Cria e aplica o CustomItemDelegate para todas as colunas da QTableView
         custom_item_delegate = CustomItemDelegate(self.table_view)  # Instancia o delegate
         
@@ -371,6 +395,7 @@ class ApplicationUI(QMainWindow):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
 
         self.table_view.setModel(self.model)
+        self.main_layout.addWidget(self.table_view)
 
         # Configurações visuais usando folhas de estilo (QSS)
         self.table_view.setStyleSheet("""
@@ -401,6 +426,16 @@ class ApplicationUI(QMainWindow):
 
         # Configura o widget principal como o central
         self.setCentralWidget(self.main_widget)
+        # Connect header section click to a slot to handle sorting
+        header = self.table_view.horizontalHeader()
+        header.setSortIndicatorShown(True)
+        header.sectionClicked.connect(self.on_header_clicked)
+
+    def on_header_clicked(self, logicalIndex):
+        # Toggle sorting order
+        ascending = self.table_view.horizontalHeader().sortIndicatorOrder() == Qt.SortOrder.AscendingOrder
+        self.model.setSort(logicalIndex, Qt.SortOrder.DescendingOrder if ascending else Qt.SortOrder.AscendingOrder)
+        self.model.select()
 
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():

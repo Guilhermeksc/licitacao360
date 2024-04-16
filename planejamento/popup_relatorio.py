@@ -22,7 +22,7 @@ def status_sort_key(status):
     order = [
         'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
         'Sessão Pública', 'Impugnado', 'Pré-Publicação', 'Recomendações AGU',
-        'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
+        'AGU', 'Nota Técnica', 'Montagem do Processo', 'IRP', 'Setor Responsável', 'Planejamento'
     ]
     return order.index(status) if status in order else len(order)
 
@@ -40,7 +40,7 @@ def status_sort_key(status):
     order = [
         'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
         'Sessão Pública', 'Impugnado', 'Pré-Publicação', 'Recomendações AGU',
-        'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
+        'AGU', 'Nota Técnica', 'Montagem do Processo', 'IRP', 'Setor Responsável', 'Planejamento'
     ]
     try:
         return order.index(status)

@@ -95,79 +95,12 @@ class FluxoProcessoDialog(QDialog):
         layout.addWidget(list_widget)
         return group_box
 
-class RevisaoFluxoProcessoDialog(QDialog):
-    def __init__(self, chave_processo, database_path, parent=None):
-        super().__init__(parent)
-        self.chave_processo = chave_processo
-        self.database_path = database_path
-        self.setWindowTitle("Revisão de Fluxo de Processo")
-        self.setFixedSize(QSize(600, 400))  # Ajuste no tamanho para acomodar múltiplos comboboxes
-        self.initUI()
-
-    def initUI(self):
-        self.layout = QVBoxLayout(self)
-        self.combo_boxes = {}  # Dicionário para armazenar os QComboBoxes por etapa
-
-        # Date edits para data de início e data final
-        self.dataInicioEdit = QDateEdit()
-        self.dataInicioEdit.setCalendarPopup(True)
-        self.dataInicioEdit.setDate(QDate.currentDate())
-        self.layout.addWidget(self.dataInicioEdit)
-
-        self.dataFinalEdit = QDateEdit()
-        self.dataFinalEdit.setCalendarPopup(True)
-        self.dataFinalEdit.setDate(QDate.currentDate())
-        self.layout.addWidget(self.dataFinalEdit)
-
-        # Label para mostrar o valor sequencial
-        self.sequencialLabel = QLabel("Sequencial: ")
-        self.layout.addWidget(self.sequencialLabel)
-
-        # Botão de salvar
-        saveButton = QPushButton("Salvar Alterações")
-        saveButton.clicked.connect(self.saveChanges)
-        self.layout.addWidget(saveButton)
-
-        self.loadData()
-
-    def loadData(self):
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
-            # Carregar etapas distintas
-            cursor.execute("SELECT DISTINCT etapa FROM controle_prazos")
-            etapas = cursor.fetchall()
-            for etapa in etapas:
-                combo = QComboBox()
-                combo.addItem(etapa[0])
-                self.combo_boxes[etapa[0]] = combo  # Armazena o combobox por etapa
-                self.layout.addWidget(combo)  # Adiciona ao layout
-
-            # Carregar dados específicos da chave_processo
-            cursor.execute("SELECT etapa, data_inicial, data_final, sequencial FROM controle_prazos WHERE chave_processo = ?", (self.chave_processo,))
-            data = cursor.fetchone()
-            if data:
-                self.combo_boxes[data[0]].setCurrentText(data[0])
-                self.dataInicioEdit.setDate(QDate.fromString(data[1], 'yyyy-MM-dd'))
-                self.dataFinalEdit.setDate(QDate.fromString(data[2], 'yyyy-MM-dd'))
-                self.sequencialLabel.setText(f"Sequencial: {data[3]}")
-
-    def saveChanges(self):
-        # Implemente a lógica para salvar as alterações no banco de dados
-        etapa = self.etapaComboBox.currentText()
-        data_inicio = self.dataInicioEdit.date().toString('yyyy-MM-dd')
-        data_final = self.dataFinalEdit.date().toString('yyyy-MM-dd')
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE controle_prazos SET etapa = ?, data_inicial = ?, data_final = ? WHERE chave_processo = ?", (etapa, data_inicio, data_final, self.chave_processo))
-            conn.commit()
-        QMessageBox.information(self, "Sucesso", "Dados atualizados com sucesso.")
-
 class CustomListWidget(QListWidget):
     etapas = {
         'Planejamento': None,
         'Setor Responsável': None,
         'IRP': None,
-        'Edital': None,
+        'Montagem do Processo': None,
         'Nota Técnica': None,
         'AGU': None,
         'Recomendações AGU': None,
@@ -212,27 +145,14 @@ class CustomListWidget(QListWidget):
 
     def showContextMenu(self, position):
         contextMenu = QMenu(self)
-        revisar_fluxo_action = contextMenu.addAction("Revisar o Fluxo")
         alterar_datas_action = contextMenu.addAction("Alterar Datas")
         gerar_relatorio_action = contextMenu.addAction("Gerar Relatório")
         action = contextMenu.exec(self.mapToGlobal(position))
         
-        if action == revisar_fluxo_action:
-            self.revisarFluxo()  # Agora passando self.etapas diretamente
-        elif action == alterar_datas_action:
+        if action == alterar_datas_action:
             self.alterarDatas()
         elif action == gerar_relatorio_action:
             self.gerarRelatorio()
-
-    def revisarFluxo(self):
-        selected_item = self.currentItem()
-        if selected_item:
-            chave_processo = self.parseDatabaseIdFromItem(selected_item)
-            dialog = RevisaoFluxoProcessoDialog(chave_processo, self.database_path, self)
-            dialog.exec()
-        else:
-            QMessageBox.warning(self, "Seleção", "Por favor, selecione um item para revisar.")
-
 
     def parseDatabaseIdFromItem(self, item):
         # Implemente esta função conforme a necessidade de extrair o ID
@@ -446,62 +366,121 @@ class CustomCalendarWidget(QCalendarWidget):
             }
         """)
 
+def clear_layout(layout):
+    while layout.count():
+        child = layout.takeAt(0)
+        if child.widget():
+            child.widget().deleteLater()
+
 class AlterarDatasDialog(QDialog):
     def __init__(self, listWidget, db_path):
         super().__init__()
-        self.setWindowTitle("Alterar Datas dos Processos")
-        self.setFixedSize(800, 600)
+        self.setMinimumWidth(600)
+        self.setMinimumHeight(300)  # Define a altura mínima do diálogo
         self.listWidget = listWidget
         self.db_path = db_path
         self.calendarios = []  # Lista para guardar referências aos widgets de calendário
         self.setup_ui()
 
     def setup_ui(self):
+        self.setStyleSheet("""
+            QLabel, QPushButton, QComboBox, QDateEdit {
+                font-size: 16px;
+            }
+            QGroupBox {
+                font-size: 16px;
+                font-weight: bold;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 0.5em;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        if self.layout() is not None:
+            clear_layout(self.layout())  # Limpeza do layout existente
+            QWidget().setLayout(self.layout())  # Desvincula o layout antigo
+
         layout = QVBoxLayout(self)
         scroll_area = QScrollArea(self)
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
-
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         scroll_area.setWidget(scroll_widget)
-        
+
         processoSelecionado = self.listWidget.currentItem().text()
-        print("Texto do processo selecionado:", processoSelecionado)
         self.chave_processo = self.extrair_id_processo(processoSelecionado)
-        print("ID do processo extraído:", self.chave_processo)
+        self.setWindowTitle(f"Alterar Datas do {self.chave_processo}")
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT etapa, data_inicial, data_final FROM controle_prazos WHERE chave_processo = ?", (self.chave_processo,))
+        cursor.execute("SELECT sequencial, etapa, data_inicial, data_final FROM controle_prazos WHERE chave_processo = ?", (self.chave_processo,))
         etapas = cursor.fetchall()
-        self.etapas = [etapa[0] for etapa in etapas]
 
-        for i, (etapa, data_inicial, data_final) in enumerate(etapas):
-            groupBox = QGroupBox(f"Etapa: {etapa}", self)
-            vbox = QHBoxLayout(groupBox)
+        for sequencial, etapa, data_inicial, data_final in etapas:
+            groupBox = QGroupBox(f"{etapa} ({sequencial})", self)
+            hbox = QHBoxLayout(groupBox)
+            comboBox = QComboBox()
+            comboBox.addItems([
+                'Planejamento', 'Setor Responsável', 'IRP', 'Montagem do Processo',
+                'Nota Técnica', 'AGU', 'Recomendações AGU', 'Pré-Publicação', 'Impugnado',
+                'Sessão Pública', 'Em recurso', 'Homologado', 'Assinatura Contrato', 'Concluído'
+            ])
 
-            data_inicio_label = QLabel('Data-Início')
-            calendarWidgetInicio = CustomCalendarWidget(self)
-            if data_inicial:
-                data_inicio = QDate.fromString(data_inicial, "yyyy-MM-dd")
-                calendarWidgetInicio.setSelectedDate(data_inicio)
-                print(f"Data de início para a etapa {etapa}: {data_inicio.toString('yyyy-MM-dd')}")
+            comboBox.setCurrentText(etapa)
+            comboBox.currentTextChanged.connect(lambda text, gb=groupBox: self.update_groupbox_title(text, gb))
+            comboBox.currentTextChanged.connect(lambda text, seq=sequencial: self.update_current_choice(seq, text))
 
-            data_fim_label = QLabel('Data-Fim')
-            calendarWidgetFim = CustomCalendarWidget(self)
-            if data_final:
-                data_fim = QDate.fromString(data_final, "yyyy-MM-dd")
-                calendarWidgetFim.setSelectedDate(data_fim)
-                print(f"Data de fim para a etapa {etapa}: {data_fim.toString('yyyy-MM-dd')}")
+            # Vertical layouts for date labels and edits
+            vLayoutInicio = QVBoxLayout()
+            labelInicio = QLabel('Data-Início:')
+            dateEditInicio = self.create_date_edit(data_inicial)
+            dateEditInicio.dateChanged.connect(lambda date, seq=sequencial: self.update_previous_end_date(date, seq))
 
-            vbox.addWidget(data_inicio_label)
-            vbox.addWidget(calendarWidgetInicio)
-            vbox.addWidget(data_fim_label)
-            vbox.addWidget(calendarWidgetFim)
+            vLayoutInicio.addWidget(labelInicio)
+            vLayoutInicio.addWidget(dateEditInicio)
+
+            vLayoutFim = QVBoxLayout()
+            labelFim = QLabel('Data-Fim:')
+            dateEditFim = self.create_date_edit(data_final)
+            dateEditFim.dateChanged.connect(lambda date, seq=sequencial: self.update_next_start_date(date, seq))
+
+            vLayoutFim.addWidget(labelFim)
+            vLayoutFim.addWidget(dateEditFim)
+
+            # Days counter setup
+            vLayoutDias = QVBoxLayout()
+            labelContadorDias = QLabel('Contagem de Dias:')
+            labelDias = QLabel('0')  # Days count label
+            vLayoutDias.addWidget(labelContadorDias)
+            vLayoutDias.addWidget(labelDias)
+
+            def update_days_count(label, date1, date2):
+                delta = (date2.date().toPyDate() - date1.date().toPyDate()).days
+                label.setText(str(delta))
+
+            # Connect signals
+            dateEditInicio.dateChanged.connect(lambda _, lbl=labelDias, de1=dateEditInicio, de2=dateEditFim: update_days_count(lbl, de1, de2))
+            dateEditFim.dateChanged.connect(lambda _, lbl=labelDias, de1=dateEditInicio, de2=dateEditFim: update_days_count(lbl, de1, de2))
+            update_days_count(labelDias, dateEditInicio, dateEditFim)  # Initial update
+
+
+            btnDelete = QPushButton("Excluir", self)
+            btnDelete.clicked.connect(self.make_delete_handler(sequencial))  # Utiliza a função make_delete_handler
+
+            hbox.addWidget(comboBox)
+            hbox.addLayout(vLayoutInicio)
+            hbox.addLayout(vLayoutFim)
+            hbox.addLayout(vLayoutDias)
+            hbox.addWidget(btnDelete)
             scroll_layout.addWidget(groupBox)
 
-            self.calendarios.append((etapa, calendarWidgetInicio, calendarWidgetFim))
+            # Atualiza self.calendarios com os widgets corretos
+            self.calendarios.append((sequencial, comboBox, dateEditInicio, dateEditFim, etapa))  # Note que 'etapa' é a escolha inicial
 
         scroll_widget.setLayout(scroll_layout)
         scroll_area.setWidget(scroll_widget)
@@ -510,28 +489,98 @@ class AlterarDatasDialog(QDialog):
         btnSave.clicked.connect(self.save_changes)
         layout.addWidget(btnSave)
 
+
         conn.close()
+        update_days_count(labelDias, dateEditInicio, dateEditFim)
+        
+    def update_next_start_date(self, date, sequencial):
+        index = next((i for i, v in enumerate(self.calendarios) if v[0] == sequencial), None)
+        try:
+            if index is not None and index + 1 < len(self.calendarios):
+                next_date_edit = self.calendarios[index + 1][2]
+                next_date_edit.setDate(date)
+        except RuntimeError as e:
+            print(f"Erro ao tentar acessar um QDateEdit que foi deletado: {e}")
+
+    def update_previous_end_date(self, date, sequencial):
+        index = next((i for i, v in enumerate(self.calendarios) if v[0] == sequencial), None)
+        if index is not None and index > 0:
+            self.calendarios[index - 1][3].setDate(date)
+            
+    def update_current_choice(self, sequencial, text):
+        for index, entry in enumerate(self.calendarios):
+            if entry[0] == sequencial:
+                self.calendarios[index] = (entry[0], entry[1], entry[2], entry[3], text)
+                
+    def update_groupbox_title(self, text, groupBox):
+        groupBox.setTitle(f"Etapa Alterada: {text}")
+        
+    def make_delete_handler(self, sequencial):
+        def delete_handler():
+            # Cria uma mensagem de confirmação antes de proceder com a exclusão
+            response = QMessageBox.question(self, 'Confirmar Exclusão', 
+                                            f'Tem certeza de que deseja excluir o sequencial {sequencial}?',
+                                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                                            QMessageBox.StandardButton.No)
+
+            if response == QMessageBox.StandardButton.Yes:
+                print(f"Deletando etapa com sequencial: {sequencial}")
+                self.delete_etapa(sequencial)
+            else:
+                print("Exclusão cancelada.")
+
+        return delete_handler
+
+    def delete_etapa(self, sequencial):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM controle_prazos WHERE sequencial = ? AND chave_processo = ?", (sequencial, self.chave_processo))
+            if cursor.rowcount > 0:
+                self.calendarios = [entry for entry in self.calendarios if entry[0] != sequencial]
+                print("Exclusão realizada com sucesso.")
+            else:
+                print("Nenhuma linha foi alterada.")
+            conn.commit()
+        except sqlite3.Error as e:
+            print(f"Erro ao excluir etapa: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
+            self.setup_ui()  # Recria a UI após a atualização da lista
+
+    def create_date_edit(self, date_str):
+        dateEdit = QDateEdit(self)
+        dateEdit.setCalendarPopup(True)
+        dateEdit.setDisplayFormat("yyyy-MM-dd")
+        if date_str:
+            dateEdit.setDate(QDate.fromString(date_str, "yyyy-MM-dd"))
+        return dateEdit
+
+    def reorder_sequencial(self, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT sequencial FROM controle_prazos WHERE chave_processo = ? ORDER BY sequencial", (self.chave_processo,))
+        sequenciais = [seq[0] for seq in cursor.fetchall()]
+        for i, sequencial in enumerate(sequenciais, start=1):
+            if sequencial != i:
+                cursor.execute("UPDATE controle_prazos SET sequencial = ? WHERE sequencial = ? AND chave_processo = ?", (i, sequencial, self.chave_processo))
+        conn.commit()
 
     def save_changes(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
-            for etapa, calendar_inicio, calendar_fim in self.calendarios:
-                data_inicial = calendar_inicio.selectedDate().toString("yyyy-MM-dd")
-                data_final = calendar_fim.selectedDate().toString("yyyy-MM-dd")
-                print("Etapa:", etapa)
-                print("Data inicial:", data_inicial)  # Depurar a formatação da data
-                print("Data final:", data_final)      # Depurar a formatação da data
+            for sequencial, comboBox, dateEditInicio, dateEditFim, etapa_atual in self.calendarios:
+                data_inicial = dateEditInicio.date().toString("yyyy-MM-dd")
+                data_final = dateEditFim.date().toString("yyyy-MM-dd")
                 cursor.execute(
-                    "UPDATE controle_prazos SET data_inicial = ?, data_final = ? WHERE chave_processo = ? AND etapa = ?",
-                    (data_inicial, data_final, self.chave_processo, etapa)
+                    "UPDATE controle_prazos SET etapa = ?, data_inicial = ?, data_final = ? WHERE sequencial = ? AND chave_processo = ?",
+                    (etapa_atual, data_inicial, data_final, sequencial, self.chave_processo)
                 )
-                print("Linhas afetadas:", cursor.rowcount)  # Verificar o número de linhas afetadas pela atualização
             conn.commit()
-            print("Alterações salvas com sucesso!")
         except sqlite3.Error as e:
-            print("Erro ao salvar alterações:", e)  # Imprimir qualquer erro de banco de dados
-            conn.rollback()  # Reverter transações em caso de erro
+            print("Erro ao salvar alterações:", e)
+            conn.rollback()
         finally:
             conn.close()
         self.accept()
