@@ -95,7 +95,91 @@ class FluxoProcessoDialog(QDialog):
         layout.addWidget(list_widget)
         return group_box
 
+class RevisaoFluxoProcessoDialog(QDialog):
+    def __init__(self, chave_processo, database_path, parent=None):
+        super().__init__(parent)
+        self.chave_processo = chave_processo
+        self.database_path = database_path
+        self.setWindowTitle("Revisão de Fluxo de Processo")
+        self.setFixedSize(QSize(600, 400))  # Ajuste no tamanho para acomodar múltiplos comboboxes
+        self.initUI()
+
+    def initUI(self):
+        self.layout = QVBoxLayout(self)
+        self.combo_boxes = {}  # Dicionário para armazenar os QComboBoxes por etapa
+
+        # Date edits para data de início e data final
+        self.dataInicioEdit = QDateEdit()
+        self.dataInicioEdit.setCalendarPopup(True)
+        self.dataInicioEdit.setDate(QDate.currentDate())
+        self.layout.addWidget(self.dataInicioEdit)
+
+        self.dataFinalEdit = QDateEdit()
+        self.dataFinalEdit.setCalendarPopup(True)
+        self.dataFinalEdit.setDate(QDate.currentDate())
+        self.layout.addWidget(self.dataFinalEdit)
+
+        # Label para mostrar o valor sequencial
+        self.sequencialLabel = QLabel("Sequencial: ")
+        self.layout.addWidget(self.sequencialLabel)
+
+        # Botão de salvar
+        saveButton = QPushButton("Salvar Alterações")
+        saveButton.clicked.connect(self.saveChanges)
+        self.layout.addWidget(saveButton)
+
+        self.loadData()
+
+    def loadData(self):
+        with sqlite3.connect(self.database_path) as conn:
+            cursor = conn.cursor()
+            # Carregar etapas distintas
+            cursor.execute("SELECT DISTINCT etapa FROM controle_prazos")
+            etapas = cursor.fetchall()
+            for etapa in etapas:
+                combo = QComboBox()
+                combo.addItem(etapa[0])
+                self.combo_boxes[etapa[0]] = combo  # Armazena o combobox por etapa
+                self.layout.addWidget(combo)  # Adiciona ao layout
+
+            # Carregar dados específicos da chave_processo
+            cursor.execute("SELECT etapa, data_inicial, data_final, sequencial FROM controle_prazos WHERE chave_processo = ?", (self.chave_processo,))
+            data = cursor.fetchone()
+            if data:
+                self.combo_boxes[data[0]].setCurrentText(data[0])
+                self.dataInicioEdit.setDate(QDate.fromString(data[1], 'yyyy-MM-dd'))
+                self.dataFinalEdit.setDate(QDate.fromString(data[2], 'yyyy-MM-dd'))
+                self.sequencialLabel.setText(f"Sequencial: {data[3]}")
+
+    def saveChanges(self):
+        # Implemente a lógica para salvar as alterações no banco de dados
+        etapa = self.etapaComboBox.currentText()
+        data_inicio = self.dataInicioEdit.date().toString('yyyy-MM-dd')
+        data_final = self.dataFinalEdit.date().toString('yyyy-MM-dd')
+        with sqlite3.connect(self.database_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE controle_prazos SET etapa = ?, data_inicial = ?, data_final = ? WHERE chave_processo = ?", (etapa, data_inicio, data_final, self.chave_processo))
+            conn.commit()
+        QMessageBox.information(self, "Sucesso", "Dados atualizados com sucesso.")
+
 class CustomListWidget(QListWidget):
+    etapas = {
+        'Planejamento': None,
+        'Setor Responsável': None,
+        'IRP': None,
+        'Edital': None,
+        'Nota Técnica': None,
+        'AGU': None,
+        'Recomendações AGU': None,
+        'Pré-Publicação': None,
+        'Impugnado': None,
+        'Sessão Pública': None,
+        'Em recurso': None,
+        'Homologado': None,
+        'Assinatura Contrato': None,
+        'Concluído': None
+    }
+
     def __init__(self, parent=None, database_path=None):
         super().__init__(parent)
         self.database_path = database_path
@@ -122,20 +206,42 @@ class CustomListWidget(QListWidget):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
         self.effect_timer = QTimer(self)
-        self.effect_timer.setInterval(100)  # 1 segundo
+        self.effect_timer.setInterval(100)  # 1 milisegundo
         self.effect_timer.setSingleShot(True)
         self.effect_timer.timeout.connect(self.clearClickEffect)
 
     def showContextMenu(self, position):
         contextMenu = QMenu(self)
+        revisar_fluxo_action = contextMenu.addAction("Revisar o Fluxo")
         alterar_datas_action = contextMenu.addAction("Alterar Datas")
         gerar_relatorio_action = contextMenu.addAction("Gerar Relatório")
         action = contextMenu.exec(self.mapToGlobal(position))
         
-        if action == alterar_datas_action:
+        if action == revisar_fluxo_action:
+            self.revisarFluxo()  # Agora passando self.etapas diretamente
+        elif action == alterar_datas_action:
             self.alterarDatas()
         elif action == gerar_relatorio_action:
             self.gerarRelatorio()
+
+    def revisarFluxo(self):
+        selected_item = self.currentItem()
+        if selected_item:
+            chave_processo = self.parseDatabaseIdFromItem(selected_item)
+            dialog = RevisaoFluxoProcessoDialog(chave_processo, self.database_path, self)
+            dialog.exec()
+        else:
+            QMessageBox.warning(self, "Seleção", "Por favor, selecione um item para revisar.")
+
+
+    def parseDatabaseIdFromItem(self, item):
+        # Implemente esta função conforme a necessidade de extrair o ID
+        text = item.text()
+        try:
+            database_id = int(text.split(' ')[0])  # Exemplo de extração do ID
+        except ValueError:
+            database_id = None
+        return database_id
 
     def alterarDatas(self):
         if not self.database_path:

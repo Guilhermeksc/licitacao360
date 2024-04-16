@@ -21,7 +21,7 @@ import sqlite3
 def status_sort_key(status):
     order = [
         'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
-        'Sessão Pública', 'Impugnado', 'Divulgado', 'Recomendações AGU',
+        'Sessão Pública', 'Impugnado', 'Pré-Publicação', 'Recomendações AGU',
         'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
     ]
     return order.index(status) if status in order else len(order)
@@ -39,7 +39,7 @@ class ReportButton(QPushButton):
 def status_sort_key(status):
     order = [
         'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
-        'Sessão Pública', 'Impugnado', 'Divulgado', 'Recomendações AGU',
+        'Sessão Pública', 'Impugnado', 'Pré-Publicação', 'Recomendações AGU',
         'AGU', 'Nota Técnica', 'Edital', 'IRP', 'Setor Responsável', 'Planejamento'
     ]
     try:
@@ -181,14 +181,15 @@ class ReportDialog(QDialog):
                 row_data.append(item.text() if item else "")
             data.append(row_data)
         df = pd.DataFrame(data, columns=[self.model.horizontalHeaderItem(i).text() for i in range(self.model.columnCount())])
-        
-        # Adiciona uma coluna temporária com os índices de ordenação baseados em 'Status Atual'
+
+        # Adiciona colunas temporárias com os índices de ordenação baseados em 'Status Atual' e 'Status Anterior'
         df['Status Index'] = df['Status Atual'].apply(status_sort_key)
-        
-        # Ordena o DataFrame pela coluna de índice e depois remove essa coluna
-        df.sort_values('Status Index', inplace=True)
-        df.drop(columns='Status Index', inplace=True)
-        
+        df['Previous Status Index'] = df['Status Anterior'].apply(status_sort_key)
+
+        # Ordena o DataFrame pelas colunas de índice e depois remove essas colunas
+        df.sort_values(['Status Index', 'Previous Status Index'], inplace=True)
+        df.drop(columns=['Status Index', 'Previous Status Index'], inplace=True)
+
         # Continua a criação e formatação do Excel
         writer = pd.ExcelWriter(filename, engine='xlsxwriter')
         df.to_excel(writer, sheet_name='Sheet1', startrow=4, index=False)

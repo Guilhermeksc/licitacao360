@@ -8,20 +8,47 @@ from datetime import datetime
 from pathlib import Path
 from PyQt6.QtWidgets import QFileDialog
 from PyQt6.QtWidgets import QMessageBox
+import logging
 
 class DatabaseManager:
     def __init__(self, db_path):
         self.db_path = db_path
+        logging.basicConfig(level=logging.INFO, filename='app.log', filemode='a',
+                            format='%(name)s - %(levelname)s - %(message)s')
 
     def __enter__(self):
-        self.connection = sqlite3.connect(self.db_path)
-        return self.connection  # Certifique-se de retornar a conexão aqui
+        try:
+            self.connection = sqlite3.connect(self.db_path)
+            return self.connection
+        except sqlite3.Error as e:
+            logging.error(f"Failed to connect to database at {self.db_path}: {e}")
+            raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.connection:
-            self.connection.close()
-            self.connection = None 
+        try:
+            if self.connection:
+                self.connection.close()
+        except sqlite3.Error as e:
+            logging.error(f"Failed to close the database connection: {e}")
+            raise
 
+    def atualizar_ultima_etapa_data_final(self, conn):
+        today_str = datetime.today().strftime('%Y-%m-%d')
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE controle_prazos
+                SET data_final = ? WHERE (chave_processo, sequencial) IN (
+                    SELECT chave_processo, MAX(sequencial) AS max_sequencial
+                    FROM controle_prazos GROUP BY chave_processo
+                )
+            ''', (today_str,))
+            conn.commit()
+            logging.info("Data final updated successfully.")
+        except sqlite3.Error as e:
+            logging.error(f"Error updating the last stage: {e}")
+            conn.rollback()
+            
     @staticmethod
     def create_database(conn):
         """
@@ -205,10 +232,10 @@ class DatabaseManager:
         today_str = datetime.today().strftime('%Y-%m-%d')
         try:
             cursor = conn.cursor()
-            # Primeiro, atualiza a data_final para hoje onde for NULL na última etapa
+            # Consulta para atualizar a data_final para hoje para o último sequencial de cada chave_processo
             cursor.execute('''
                 UPDATE controle_prazos
-                SET data_final = (CASE WHEN data_final IS NULL THEN ? ELSE data_final END)
+                SET data_final = ?
                 WHERE (chave_processo, sequencial) IN (
                     SELECT chave_processo, MAX(sequencial) AS max_sequencial
                     FROM controle_prazos
@@ -216,22 +243,19 @@ class DatabaseManager:
                 )
             ''', (today_str,))
 
-            # Recalcula os dias na etapa para registros que tiveram data_final atualizada para hoje
+            # Recalcula os dias na etapa para todos os registros que foram atualizados
             cursor.execute('''
                 UPDATE controle_prazos
                 SET dias_na_etapa = julianday(data_final) - julianday(data_inicial)
-                WHERE data_final = ?
-            ''', (today_str,))
+            ''')
 
             conn.commit()
+            print("Data final atualizada para todos os últimos sequenciais.")
         except sqlite3.Error as e:
             print("Erro ao atualizar a última etapa:", e)
+
             
     def atualizar_dias_na_etapa(self, conn):
-        """
-        Atualiza a data_final da última etapa registrada para cada chave_processo para hoje,
-        e recalcula os dias na etapa.
-        """
         today_str = datetime.today().strftime('%Y-%m-%d')
         try:
             cursor = conn.cursor()
@@ -239,22 +263,27 @@ class DatabaseManager:
             cursor.execute('''
                 UPDATE controle_prazos
                 SET data_final = ?
-                WHERE (chave_processo, sequencial) IN (
-                    SELECT chave_processo, MAX(sequencial)
+                FROM (
+                    SELECT chave_processo, MAX(sequencial) as max_sequencial
                     FROM controle_prazos
                     GROUP BY chave_processo
-                ) AND data_final IS NULL
+                ) AS max_etapas
+                WHERE controle_prazos.chave_processo = max_etapas.chave_processo
+                AND controle_prazos.sequencial = max_etapas.max_sequencial
+                AND controle_prazos.data_final IS NULL
             ''', (today_str,))
-            
+
             # Recalcular os dias na etapa
             cursor.execute('''
                 UPDATE controle_prazos
                 SET dias_na_etapa = julianday(data_final) - julianday(data_inicial)
             ''')
-            
+
             conn.commit()
         except sqlite3.Error as e:
             print("Erro ao atualizar dias na etapa:", e)
+
+
 
     def inserir_controle_prazo(self, chave_processo, etapa, data_inicial, comentario):
         with self as conn:
@@ -329,7 +358,6 @@ class DatabaseManager:
 
             self.connection.commit()
             print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
-
 
 def extrair_chave_processo(itemText):
     # Exemplo usando BeautifulSoup para análise HTML

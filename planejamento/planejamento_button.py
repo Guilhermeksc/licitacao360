@@ -28,7 +28,7 @@ etapas = {
     'Nota Técnica': None,
     'AGU': None,
     'Recomendações AGU': None,
-    'Divulgado': None,
+    'Pré-Publicação': None,
     'Impugnado': None,
     'Sessão Pública': None,
     'Em recurso': None,
@@ -430,6 +430,15 @@ class ApplicationUI(QMainWindow):
             self.buttons_layout.addWidget(btn)  # Adicione o botão ao layout dos botões
 
     def on_report(self):
+        with self.database_manager as conn:
+            # Atualiza etapas baseadas no último sequencial de controle_prazos
+            self.database_manager.verificar_e_atualizar_etapas(conn)
+            # Atualiza a contagem dos dias na última etapa
+            self.database_manager.atualizar_dias_na_etapa(conn)
+            # Atualiza a data final para a última etapa de cada chave_processo para hoje
+            self.database_manager.atualizar_ultima_etapa_data_final(conn)
+            # Verifica e popula controle_prazos se necessário
+            self.database_manager.popular_controle_prazos_se_necessario()
         dialog = ReportDialog(self.model, self.icons_dir, parent=self)
         dialog.exec()
 
@@ -521,6 +530,8 @@ class ApplicationUI(QMainWindow):
             self.database_manager.verificar_e_atualizar_etapas(conn)
             # Atualiza a contagem dos dias na última etapa
             self.database_manager.atualizar_dias_na_etapa(conn)
+            # Atualiza a data final para a última etapa de cada chave_processo para hoje
+            self.database_manager.atualizar_ultima_etapa_data_final(conn)
             # Verifica e popula controle_prazos se necessário
             self.database_manager.popular_controle_prazos_se_necessario()
 
@@ -542,7 +553,9 @@ class ApplicationUI(QMainWindow):
         with self.database_manager as conn:
             # Atualiza etapas baseadas no último sequencial de controle_prazos
             self.database_manager.verificar_e_atualizar_etapas(conn)
-        
+            # Atualiza a data final para a última etapa de cada chave_processo para hoje
+            self.database_manager.atualizar_ultima_etapa_data_final(conn)
+
         # Depois de atualizar os dados, re-inicialize o modelo SQL para refletir as mudanças
         self.init_sql_model()
 
@@ -598,50 +611,6 @@ class ApplicationUI(QMainWindow):
         else:
             # Se não for um QSqlTableModel, talvez seja necessário realizar outras operações para atualizar a tabela
             print("O modelo da tabela não é um QSqlTableModel. Faça as operações de atualização apropriadas aqui.")
-
-class ContextMenu(QMenu):
-    def __init__(self, main_app, index, model=None):
-        super().__init__()
-        self.main_app = main_app
-        self.index = index
-        self.model = model
-
-        # Opções do menu
-        actions = [
-            "Autorização para Abertura de Licitação",
-            "Portaria de Equipe de Planejamento",
-            "Documento de Formalização de Demanda (DFD)",
-            "Declaração de Adequação Orçamentária",
-            "Mensagem de Divulgação de IRP",
-            "Mensagem de Publicação",
-            "Mensagem de Homologação",
-            "Capa do Edital"
-        ]
-
-        for actionText in actions:
-            action = QAction(actionText, self)
-            action.triggered.connect(lambda checked, a=actionText: self.openDialog(a))
-            self.addAction(action)
-            
-    def openDialog(self, actionText):
-        if actionText == "Autorização para Abertura de Licitação":
-            df_registro_selecionado = carregar_dados_pregao()
-            print(df_registro_selecionado.to_string())
-            
-            if df_registro_selecionado is not None and not df_registro_selecionado.empty:
-                # Presumindo que os dados já estejam no DataFrame
-                dialog = AutorizacaoAberturaLicitacaoDialog(
-                    main_app=self.main_app, 
-                    df_registro=df_registro_selecionado, 
-                )
-                dialog.exec()
-            else:
-                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou arquivo de dados não encontrado.")
-        else:
-            msgBox = QMessageBox()
-            msgBox.setWindowTitle(actionText)
-            msgBox.setText(f"Ação selecionada: {actionText}")
-            msgBox.exec()
 
 from datetime import datetime
 
