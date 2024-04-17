@@ -21,10 +21,10 @@ class FluxoProcessoDialog(QDialog):
         self.existing_items = {}  # Dicionário para rastrear itens adicionados por QListWidget
         self.database_path = database_path 
         self.setWindowTitle("Painel de Fluxo dos Processos")
-        self.setFixedSize(QSize(1490, 750))
         self.setStyleSheet("QDialog { background-color: #050f41; }")
         self._setup_ui()
-
+        # self.showMaximized()
+        self.showFullScreen()
     def closeEvent(self, event):
         # Emitir sinal quando o diálogo for fechado
         self.dialogClosed.emit()
@@ -375,8 +375,8 @@ def clear_layout(layout):
 class AlterarDatasDialog(QDialog):
     def __init__(self, listWidget, db_path):
         super().__init__()
-        self.setMinimumWidth(600)
-        self.setMinimumHeight(300)  # Define a altura mínima do diálogo
+        self.setFixedWidth(800)
+        self.setMinimumHeight(400)  # Define a altura mínima do diálogo
         self.listWidget = listWidget
         self.db_path = db_path
         self.calendarios = []  # Lista para guardar referências aos widgets de calendário
@@ -423,6 +423,7 @@ class AlterarDatasDialog(QDialog):
 
         for sequencial, etapa, data_inicial, data_final in etapas:
             groupBox = QGroupBox(f"{etapa} ({sequencial})", self)
+            groupBox.setFixedSize(750, 100)
             hbox = QHBoxLayout(groupBox)
             comboBox = QComboBox()
             comboBox.addItems([
@@ -456,8 +457,10 @@ class AlterarDatasDialog(QDialog):
             vLayoutDias = QVBoxLayout()
             labelContadorDias = QLabel('Contagem de Dias:')
             labelDias = QLabel('0')  # Days count label
+            labelDias.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Correção aqui para centralizar o texto horizontalmente
             vLayoutDias.addWidget(labelContadorDias)
             vLayoutDias.addWidget(labelDias)
+            vLayoutDias.addStretch(1)  # Mantém os widgets alinhados ao topo
 
             def update_days_count(label, date1, date2):
                 delta = (date2.date().toPyDate() - date1.date().toPyDate()).days

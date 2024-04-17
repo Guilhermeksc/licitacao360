@@ -45,13 +45,12 @@ class EditarDadosDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Editar Dados")
         self.setFixedSize(700, 600)
-        self.dados = dados
+        self.dados = dados or {}
         # Inicia a UI e a conexão com o banco de dados
         self.init_ui()
         self.init_combobox_data()
 
     def init_ui(self):
-        # Definições iniciais
         self.groupBox = QGroupBox('Índices das Variáveis', self)
         self.scrollArea = QScrollArea()
         self.scrollContentWidget = QWidget()
@@ -65,6 +64,21 @@ class EditarDadosDialog(QDialog):
         self.confirmar_button = QPushButton("Confirmar")
         self.confirmar_button.clicked.connect(self.confirmar_edicao)
         self.mainLayout.addWidget(self.confirmar_button)
+
+        # Adiciona RadioButton para Material ou Serviço
+        self.radio_material = QRadioButton("Material")
+        self.radio_servico = QRadioButton("Serviço")
+        radio_layout = QHBoxLayout()
+        radio_layout.addWidget(self.radio_material)
+        radio_layout.addWidget(self.radio_servico)
+        self.scrollLayout.addRow("material_servico", radio_layout)
+
+        # Define o estado padrão dos RadioButton
+        material_servico = self.dados.get('material_servico', '')  # Obtenha o valor ou uma string vazia se não estiver presente
+        if material_servico and material_servico.lower() == 'servico':
+            self.radio_servico.setChecked(True)
+        else:
+            self.radio_material.setChecked(True)
 
         # Customização do QGroupBox, QLabel, QLineEdit, e QComboBox
         self.groupBox.setStyleSheet("""
@@ -81,7 +95,7 @@ class EditarDadosDialog(QDialog):
                 padding: 0 3px;
                 background-color: transparent;
             }
-            QLabel, QLineEdit, QComboBox {
+            QLabel, QLineEdit, QComboBox, QRadioButton {
                 font-size: 16px;
             }
             QLabel {
@@ -106,7 +120,7 @@ class EditarDadosDialog(QDialog):
 
         # Itera sobre os dados e adiciona os campos ao layout
         for coluna, valor in self.dados.items():
-            if coluna in ['uasg', 'orgao_responsavel', 'sigla_om']:
+            if coluna in ['material_servico', 'uasg', 'orgao_responsavel', 'sigla_om']:
                 continue  # Não adiciona esses campos agora
             line_edit = QLineEdit()
             line_edit.setText(str(valor))
@@ -167,6 +181,10 @@ class EditarDadosDialog(QDialog):
         # Atualiza o dicionário com os valores dos line_edits regulares
         dados_atualizados = {coluna: line_edit.text() for coluna, line_edit in self.line_edits.items()}
         
+        # Determine o valor de material_servico com base no RadioButton selecionado
+        material_servico = 'servico' if self.radio_servico.isChecked() else 'material'
+        dados_atualizados['material_servico'] = material_servico
+
         # Adiciona 'sigla_om', 'uasg' e 'orgao_responsavel' ao dicionário de atualizações
         dados_atualizados['sigla_om'] = self.combo_sigla_om.currentText()
         dados_atualizados['uasg'] = self.line_edit_uasg.text()
@@ -454,7 +472,7 @@ class ApplicationUI(QMainWindow):
             ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados"),
             ("  Salvar", self.image_cache['save_to_drive'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
             ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.xlsx' ou '.odf')"),
-            ("  Excluir", self.image_cache['delete'], self.on_edit_item, "Adiciona um novo item"),
+            ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado"),
             ("  Controle do Processo", self.image_cache['website_menu'], self.on_control_process, "Abre o painel de controle do processo"),            
             ("  Abrir Planilha Excel", self.image_cache['excel'], self.on_edit_item, "Abre a planilha de controle"),
             ("    Relatório", self.image_cache['website_menu'], self.on_report, "Gera um relatório dos dados")
@@ -463,6 +481,41 @@ class ApplicationUI(QMainWindow):
         for text, icon, callback, tooltip in self.button_specs:
             btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self)
             self.buttons_layout.addWidget(btn)  # Adicione o botão ao layout dos botões
+
+    def on_delete_item(self):
+        selected_index = self.table_view.currentIndex()
+        if not selected_index.isValid():
+            QMessageBox.warning(self, "Seleção", "Nenhum item selecionado.")
+            return
+
+        # Obtém o ID do processo da linha selecionada
+        id_processo = selected_index.sibling(selected_index.row(), 4).data()  # Assumindo que a coluna 4 é 'ID Processo'
+
+        if id_processo is None:
+            QMessageBox.warning(self, "Erro", "Não foi possível obter o ID do processo.")
+            return
+
+        reply = QMessageBox.question(self, "Confirmar exclusão", 
+                                    "Você tem certeza que deseja excluir o item selecionado e todas as entradas correspondentes?",
+                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                                    QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Exclui do controle_processos
+            with self.database_manager as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM controle_processos WHERE id_processo = ?", (id_processo,))
+                conn.commit()
+
+            # Exclui do controle_prazos onde chave_processo é igual a id_processo
+            with self.database_manager as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM controle_prazos WHERE chave_processo = ?", (id_processo,))
+                conn.commit()
+
+            self.init_sql_model()  # Atualiza o modelo para refletir as mudanças
+            QMessageBox.information(self, "Exclusão", "Os registros foram excluídos com sucesso.")
+
 
     def on_report(self):
         with self.database_manager as conn:

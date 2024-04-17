@@ -3,9 +3,6 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
 import pandas as pd
-import os
-global df_registro_selecionado
-df_registro_selecionado = None
 import subprocess
 from docxtpl import DocxTemplate
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
@@ -13,25 +10,7 @@ import sys
 import shutil
 import tempfile
 import os
-from openpyxl import load_workbook
-
-NOME_COLUNAS = {
-    'mod': 'Mod.',
-    'num_pregao': 'N',
-    'ano_pregao': 'Ano',
-    'item_pca': 'Item PCA',
-    'portaria_PCA': 'Portaria_PCA',	
-    'data_sessao': 'Data Sessão',
-    'nup': 'NUP',
-    'objeto': 'Objeto',
-    'uasg': 'UASG',
-    'orgao_responsavel': 'Órgão Responsável',
-    'sigla_om': 'Sigla Órgão',
-    'setor_responsavel': 'Demandante',
-    'coordenador_planejamento': 'Coordenador',
-    'etapa': 'Etapa',
-    'pregoeiro': 'Pregoeiro',
-}
+from win32com.client import Dispatch
 
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def __init__(self, main_app, df_registro, parent=None):
@@ -39,80 +18,200 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.main_app = main_app
         self.df_registro = df_registro
 
-        self.item_pca = df_registro['item_pca'].iloc[0]
-        self.portaria_PCA = df_registro['portaria_PCA'].iloc[0]
-        self.id_processo = df_registro['id_processo'].iloc[0]
-        
+        # Certifique-se de que df_registro tem pelo menos um registro
+        if not self.df_registro.empty:
+            id_processo_original = self.df_registro['id_processo'].iloc[0]
+            self.id_processo = id_processo_original.replace('/', '-')
+            self.tipo = self.df_registro['tipo'].iloc[0]
+            self.numero = self.df_registro['numero'].iloc[0]
+            self.ano = self.df_registro['ano'].iloc[0]
+            self.objeto = self.df_registro['objeto'].iloc[0]
+            self.nup = self.df_registro['nup'].iloc[0]
+            self.item_pca = self.df_registro['item_pca'].iloc[0]
+            self.setor_responsavel = self.df_registro['setor_responsavel'].iloc[0]
+            self.coordenador_planejamento = self.df_registro['coordenador_planejamento'].iloc[0]
+            self.uasg = self.df_registro['uasg'].iloc[0]
+            self.sigla_om = self.df_registro['sigla_om'].iloc[0]
+            self.material_servico = self.df_registro['material_servico'].iloc[0]
+
         self.setWindowTitle("Autorização para Abertura")
-        self.setFixedSize(300, 400)
-        self.layout = QVBoxLayout(self)
+        self.setFixedSize(850, 410)
         self.pasta = ''
+
+        self.layoutPrincipal = QHBoxLayout()
+
+        # Criando QWidget para encapsular os layouts de esquerda e direita
+        self.widgetEsquerda = QWidget()
+        self.widgetDireita = QWidget()
+
+        # Definindo tamanhos fixos para os widgets encapsulados
+        self.widgetEsquerda.setFixedSize(330, 400)
+        self.widgetDireita.setFixedSize(500, 400)
+
+        self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)  # Layout para o lado esquerdo
+        self.layoutDireita = QVBoxLayout(self.widgetDireita)  # Layout para o lado direito
+
         self.setupUi()
+        self.setStyleSheet("""
+            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+                font-size: 16px;
+            }
+            QGroupBox {
+                font-size: 16px;
+                font-weight: bold;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 0.5em;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+
+        # Adicionar os widgets encapsulados ao layout principal
+        self.layoutPrincipal.addWidget(self.widgetEsquerda)
+        self.layoutPrincipal.addWidget(self.widgetDireita)
+
+        self.setLayout(self.layoutPrincipal)  
 
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
-        # Grupo 1: Autoridade Competente
+        self.createGroups()
+        self.addWidgetsToLeftLayout()
+        self.addWidgetsToRightLayout()
+        self.applyWidgetStyles()
+
+    def createGroups(self):
         self.grupoAutoridade = QGroupBox("Autoridade Competente")
-        self.grupoAutoridadeLayout = QVBoxLayout(self.grupoAutoridade)
+        self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
+        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo")
+        self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
+        self.grupoSIGDEM = QGroupBox("SIGDEM")
+
+        # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
+        # Por exemplo:
+        self.setupGrupoAutoridade()
+        self.setupGrupoSelecaoPasta()
+        self.setupGrupoEdicaoTemplate()
+        self.setupGrupoCriacaoDocumento()
+        self.setupGrupoSIGDEM()
+
+    def setupGrupoAutoridade(self):
+        layout = QVBoxLayout(self.grupoAutoridade)
         self.ordenadordespesasComboBox = QComboBox()
         self.carregarOrdenadorDespesas()
-        self.grupoAutoridadeLayout.addWidget(self.ordenadordespesasComboBox)
-        self.layout.addWidget(self.grupoAutoridade)
-        
-        # Grupo 2: Seleção de Pasta
-        self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
-        self.grupoSelecaoPastaLayout = QVBoxLayout(self.grupoSelecaoPasta)
-        self.labelPasta = QLabel("Selecionar pasta para salvar o arquivo:")
+        layout.addWidget(self.ordenadordespesasComboBox)
+
+    def setupGrupoSelecaoPasta(self):
+        layout = QVBoxLayout(self.grupoSelecaoPasta)
+        labelPasta = QLabel("Selecionar pasta para salvar o arquivo:")
         iconPathFolder = ICONS_DIR / "abrir_pasta.png"
+        botaoSelecionarPasta = QPushButton("  Selecionar Pasta")
+        botaoSelecionarPasta.setIcon(QIcon(str(iconPathFolder)))
+        botaoSelecionarPasta.clicked.connect(self.selecionarPasta)
+        layout.addWidget(labelPasta)
+        layout.addWidget(botaoSelecionarPasta)
 
-        self.botaoSelecionarPasta = QPushButton("  Selecionar Pasta")
-        self.botaoSelecionarPasta.setIcon(QIcon(str(iconPathFolder)))  # Converter Path para string
-        self.botaoSelecionarPasta.clicked.connect(self.selecionarPasta)
-        self.grupoSelecaoPastaLayout.addWidget(self.labelPasta)
-        self.grupoSelecaoPastaLayout.addWidget(self.botaoSelecionarPasta)
-        self.layout.addWidget(self.grupoSelecaoPasta)
-
-        # Grupo 3: Edição do Template
-        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo")
-        self.grupoEdicaoTemplateLayout = QVBoxLayout(self.grupoEdicaoTemplate)
-        self.labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
+    def setupGrupoEdicaoTemplate(self):
+        layout = QVBoxLayout(self.grupoEdicaoTemplate)
+        labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
         iconPathEdit = ICONS_DIR / "text.png"
-        
-        self.botaoEdicaoTemplate = QPushButton("  Editar Modelo")
-        self.botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))  # Converter Path para string
-        self.botaoEdicaoTemplate.clicked.connect(self.editarTemplate)
-        self.grupoEdicaoTemplateLayout.addWidget(self.labelEdicao)
-        self.grupoEdicaoTemplateLayout.addWidget(self.botaoEdicaoTemplate)
-        self.layout.addWidget(self.grupoEdicaoTemplate)
+        botaoEdicaoTemplate = QPushButton("  Editar Modelo")
+        botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))
+        botaoEdicaoTemplate.clicked.connect(self.editarTemplate)
+        layout.addWidget(labelEdicao)
+        layout.addWidget(botaoEdicaoTemplate)
 
-
-        # Grupo 5: Criação de Documento
-        self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
-        self.grupoCriacaoDocumentoLayout = QVBoxLayout(self.grupoCriacaoDocumento)
-        self.botoesLayout = QHBoxLayout()
-        # Caminhos dos ícones
+    def setupGrupoCriacaoDocumento(self):
+        layout = QVBoxLayout(self.grupoCriacaoDocumento)
+        botoesLayout = QHBoxLayout()
         iconPathDocx = ICONS_DIR / "word.png"
         iconPathPdf = ICONS_DIR / "pdf64.png"
-        # Botões com ícones
-        self.botaoDocx = QPushButton("  Docx")
-        self.botaoDocx.setIcon(QIcon(str(iconPathDocx)))  # Converter Path para string
-        self.botaoPdf = QPushButton("  Pdf")
-        self.botaoPdf.setIcon(QIcon(str(iconPathPdf)))  # Converter Path para string
-        
-        self.botaoDocx.clicked.connect(self.gerarDocx)
-        
-        self.botaoPdf.clicked.connect(self.gerarPdf)
-        self.botoesLayout.addWidget(self.botaoDocx)
-        self.botoesLayout.addWidget(self.botaoPdf)
-        self.grupoCriacaoDocumentoLayout.addLayout(self.botoesLayout)
-        self.layout.addWidget(self.grupoCriacaoDocumento)
+        botaoDocx = QPushButton("  Docx")
+        botaoDocx.setIcon(QIcon(str(iconPathDocx)))
+        botaoDocx.clicked.connect(self.gerarDocx)
+        botaoPdf = QPushButton("  Pdf")
+        botaoPdf.setIcon(QIcon(str(iconPathPdf)))
+        botaoPdf.clicked.connect(self.gerarPdf)
+        botoesLayout.addWidget(botaoDocx)
+        botoesLayout.addWidget(botaoPdf)
+        layout.addLayout(botoesLayout)
 
-        # Aplicar estilo de borda aos grupos
+    def setupGrupoSIGDEM(self):
+        layout = QVBoxLayout(self.grupoSIGDEM)
+
+        # Campo "Assunto"
+        labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
+        layout.addWidget(labelAssunto)
+        textEditAssunto = QTextEdit()
+        textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo Administrativo")
+        textEditAssunto.setMaximumHeight(50)
+        btnCopyAssunto = QPushButton("Copiar")
+        btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
+        layoutHAssunto = QHBoxLayout()
+        layoutHAssunto.addWidget(textEditAssunto)
+        layoutHAssunto.addWidget(btnCopyAssunto)
+        layout.addLayout(layoutHAssunto)
+
+        # Campo "Sinopse"
+        labelSinopse = QLabel("No campo “Sinopse”, deverá constar:")
+        layout.addWidget(labelSinopse)
+        textEditSinopse = QTextEdit()
+
+        # Definir descrição com base em material_servico
+        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        sinopse_text = (f"Termo de Abertura referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                        f"Processo Administrativo NUP: {self.nup}\n"
+                        f"Item do PCA: {self.item_pca}")
+        textEditSinopse.setPlainText(sinopse_text)
+        textEditSinopse.setMaximumHeight(100)
+        btnCopySinopse = QPushButton("Copiar")
+        btnCopySinopse.clicked.connect(lambda: self.copyToClipboard(textEditSinopse.toPlainText()))
+        layoutHSinopse = QHBoxLayout()
+        layoutHSinopse.addWidget(textEditSinopse)
+        layoutHSinopse.addWidget(btnCopySinopse)
+        layout.addLayout(layoutHSinopse)
+
+         # Campo "Observações"
+        labelObservacoes = QLabel("No campo “Observações”, deverá constar:")
+        layout.addWidget(labelObservacoes)
+        textEditObservacoes = QTextEdit()
+        textEditObservacoes.setPlainText(f"Setor Demandante: {self.setor_responsavel}\n"
+                                         f"Coordenador da Equipe de Planejamento: {self.coordenador_planejamento}\n"
+                                         f"OM Líder: {self.uasg} - {self.sigla_om}")
+        textEditObservacoes.setMaximumHeight(100)
+        btnCopyObservacoes = QPushButton("Copiar")
+        btnCopyObservacoes.clicked.connect(lambda: self.copyToClipboard(textEditObservacoes.toPlainText()))
+        layoutHObservacoes = QHBoxLayout()
+        layoutHObservacoes.addWidget(textEditObservacoes)
+        layoutHObservacoes.addWidget(btnCopyObservacoes)
+        layout.addLayout(layoutHObservacoes)
+
+    def copyToClipboard(self, text):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+        # Mostra a tooltip na posição atual do mouse
+        QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
+
+    def addWidgetsToLeftLayout(self):
+        self.layoutEsquerda.addWidget(self.grupoAutoridade)
+        self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
+        self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
+        self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
+
+    def addWidgetsToRightLayout(self):
+        self.layoutDireita.addWidget(self.grupoSIGDEM)
+
+    def applyWidgetStyles(self):
         estiloBorda = "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } " \
                       "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }"
         self.grupoAutoridade.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
+        self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
+        self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
         template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
@@ -149,36 +248,68 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
             # Continua com o processo de geração do documento
             template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
-            numero = self.df_registro['numero'].iloc[0]
-            ano = self.df_registro['ano'].iloc[0]
-            salvar_nome = f"{numero}-{ano} - Autorizacao para abertura de Processo Administrativo"
-
-            temp_dir = tempfile.mkdtemp()
-            temp_template_path = shutil.copy(template_path, temp_dir)
-            doc = DocxTemplate(temp_template_path)
+            # Substituição de '/' por '-' em 'id_processo'
+            id_processo_original = self.df_registro['id_processo'].iloc[0]
+            id_processo = id_processo_original.replace('/', '-')
+            salvar_nome = f"{id_processo} - Autorizacao para abertura de Processo Administrativo.docx"
+            save_path = os.path.join(self.pasta, salvar_nome)
+            doc = DocxTemplate(template_path)
 
             nome_selecionado = self.ordenadordespesasComboBox.currentText()
             valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
+            
+            # Lógica específica para material_servico
+            descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
 
-            # Preparar os dados para renderizar no template
             data = {
-                **self.df_registro.to_dict(orient='records')[0],  # Incorporar dados do DataFrame
-                "item_pca": self.item_pca,  # Usar o valor de item_pca passado como argumento
-                "portaria_PCA": self.portaria_PCA,  # Usar o valor de portaria_PCA passado como argumento
-                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}"  # Utilizar a string formatada
+                **self.df_registro.to_dict(orient='records')[0],
+                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}",
+                'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
             }
 
             doc.render(data)
-            save_path = os.path.join(self.pasta, f"{salvar_nome}.docx")
             doc.save(save_path)
-            shutil.rmtree(temp_dir)  # Limpar a cópia temporária ao concluir
 
-            QMessageBox.information(None, "Sucesso", "Documento DOCX gerado com sucesso no diretório selecionado.")
-            os.startfile(save_path)
+            # Abrir o arquivo DOCX gerado com o sistema operacional
+            if sys.platform == "win32":
+                os.startfile(save_path)
+            else:
+                subprocess.run(["xdg-open", save_path])
 
+            return save_path
         except Exception as e:
             QMessageBox.warning(None, "Erro", f"Erro ao gerar documento DOCX: {e}")
+            return None
 
     def gerarPdf(self):
-        # Lógica para gerar documento PDF
-        pass
+        try:
+            # Gerar o arquivo DOCX
+            docx_path = self.gerarDocx()
+            if docx_path is None:
+                raise Exception("Falha na geração do arquivo DOCX.")
+
+            # Inicializar o cliente COM do Microsoft Word
+            word = Dispatch("Word.Application")
+            word.visible = False  # Executar em background
+
+            # Abrir o documento DOCX
+            doc = word.Documents.Open(docx_path)
+
+            # Definir o caminho do PDF
+            pdf_path = docx_path.replace('.docx', '.pdf')
+
+            # Exportar para PDF
+            doc.SaveAs(pdf_path, FileFormat=17)  # FileFormat=17 para PDF
+
+            # Fechar o documento Word sem salvar
+            doc.Close(SaveChanges=0)
+
+            # Fechar o aplicativo Word
+            word.Quit()
+
+            print(f"Arquivo PDF gerado com sucesso: {pdf_path}")
+            return pdf_path
+        except Exception as e:
+            QMessageBox.warning(None, "Erro", f"Erro ao gerar documento PDF: {e}")
+            return None
+
