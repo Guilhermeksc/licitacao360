@@ -8,8 +8,9 @@ import pandas as pd
 import os
 import subprocess
 from planejamento.popup_relatorio import ReportDialog
-from planejamento.escalacao_pregoeiro import EscalarPregoeiroDialog
+from planejamento.escalar_pregoeiro import EscalarPregoeiroDialog
 from planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
+from planejamento.edital import EditalDialog
 from planejamento.fluxoprocesso import FluxoProcessoDialog
 from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
@@ -250,10 +251,11 @@ class TableMenu(QMenu):
         actions = [
             "Editar Dados do Processo",
             "Autorização para Abertura de Licitação",
-            "Portaria de Equipe de Planejamento",
-            "Documento de Formalização de Demanda (DFD)",
-            "Declaração de Adequação Orçamentária",
+            # "Portaria de Equipe de Planejamento",
+            # "Documento de Formalização de Demanda (DFD)",
+            # "Declaração de Adequação Orçamentária",
 	        "Capa do Edital",
+            "Edital",
  	        "Comunicação Padronizada AGU",
 	        "Comunicação Padronizada Recomendações AGU",
             "Mensagem de Divulgação de IRP",
@@ -266,10 +268,14 @@ class TableMenu(QMenu):
             action = QAction(actionText, self)
             if actionText == "Editar Dados do Processo":
                 action.triggered.connect(self.editar_dados)
-            elif actionText == "Escalar Pregoeiro":  # Adicionando condição para "Escalar Pregoeiro"
-                action.triggered.connect(self.on_get_pregoeiro)
+            elif actionText == "Autorização para Abertura de Licitação":
+                action.triggered.connect(partial(self.openDialogAutorizacao, actionText))
+            elif actionText == "Edital":
+                action.triggered.connect(partial(self.openDialogEdital, actionText))
+            elif actionText == "Escalar Pregoeiro":
+                action.triggered.connect(partial(self.openDialogEscalarPregoeiro, actionText))
             else:
-                action.triggered.connect(partial(self.openDialog, actionText))
+                action.triggered.connect(lambda: self.generic_action(actionText))
             self.addAction(action)
 
     # No final da classe TableMenu:
@@ -297,7 +303,28 @@ class TableMenu(QMenu):
         else:
             QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
 
-    def openDialog(self, actionText):
+    def openDialogEdital(self, actionText):
+        if self.index.isValid():  # Verifica se o índice é válido
+            selected_row = self.index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            print("Valores de df_registro_selecionado:")
+            print(df_registro_selecionado.to_string())
+
+            if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+                if actionText == "Edital":
+                    # Presumindo que os dados já estejam no DataFrame
+                    dialog = EditalDialog(
+                        main_app=self.main_app, 
+                        df_registro=df_registro_selecionado, 
+                    )
+                    dialog.exec()
+                # Adicione outras condições aqui para diferentes ações
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+    def openDialogAutorizacao(self, actionText):
         if self.index.isValid():  # Verifica se o índice é válido
             selected_row = self.index.row()
             df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
@@ -308,6 +335,27 @@ class TableMenu(QMenu):
                 if actionText == "Autorização para Abertura de Licitação":
                     # Presumindo que os dados já estejam no DataFrame
                     dialog = AutorizacaoAberturaLicitacaoDialog(
+                        main_app=self.main_app, 
+                        df_registro=df_registro_selecionado, 
+                    )
+                    dialog.exec()
+                # Adicione outras condições aqui para diferentes ações
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+    def openDialogEscalarPregoeiro(self, actionText):
+        if self.index.isValid():  # Verifica se o índice é válido
+            selected_row = self.index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            print("Valores de df_registro_selecionado:")
+            print(df_registro_selecionado.to_string())
+
+            if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+                if actionText == "Escalar Pregoeiro":
+                    # Presumindo que os dados já estejam no DataFrame
+                    dialog = EscalarPregoeiroDialog(
                         main_app=self.main_app, 
                         df_registro=df_registro_selecionado, 
                     )
@@ -371,18 +419,19 @@ class ApplicationUI(QMainWindow):
         super().__init__()
         self.app = app
         self.icons_dir = Path(icons_dir)
-
-        self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))  
-
+        
+        # Carregar configuração inicial do diretório do banco de dados
+        self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))
+        
         self.event_manager = EventManager()
         self.event_manager.controle_dir_updated.connect(self.handle_database_dir_update)
         
         self.selectedIndex = None
-        self.image_cache = {}
         self.image_cache = load_images(self.icons_dir, [
             "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png"
         ])
-        self.database_manager = DatabaseManager(CONTROLE_DADOS)
+        
+        self.database_manager = DatabaseManager(self.database_path)
         self.ensure_database_exists()
         self.init_ui()
 
@@ -403,6 +452,8 @@ class ApplicationUI(QMainWindow):
         self.table_view = CustomTableView(self)
         self.init_sql_model()
 
+        self.table_view.setModel(self.model)
+        self.main_layout.addWidget(self.table_view)
 
         # Cria e aplica o CustomItemDelegate para todas as colunas da QTableView
         custom_item_delegate = CustomItemDelegate(self.table_view)  # Instancia o delegate
@@ -417,9 +468,6 @@ class ApplicationUI(QMainWindow):
 
         for column in range(self.model.columnCount()):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-
-        self.table_view.setModel(self.model)
-        self.main_layout.addWidget(self.table_view)
 
         # Configurações visuais usando folhas de estilo (QSS)
         self.table_view.setStyleSheet("""
