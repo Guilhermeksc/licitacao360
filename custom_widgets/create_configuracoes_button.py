@@ -259,3 +259,44 @@ class ConfiguracoesWidget(QWidget):
     def on_pdf_dir_updated(self):
         # Código para atualizar qualquer parte do programa que dependa de PDF_DIR
         pass
+
+    def update_sicaf_dir(self):
+        global CONTROLE_DADOS
+        new_dir = update_dir("Selecione o novo diretório para CONTROLE_DADOS", "CONTROLE_DADOS", CONTROLE_DADOS, self)
+        if new_dir != CONTROLE_DADOS:
+            # Criar e configurar a caixa de diálogo de confirmação
+            msgBox = QMessageBox(self)
+            msgBox.setWindowTitle('Alteração de diretório')
+            msgBox.setText(f'Diretório antigo:\n{CONTROLE_DADOS}\nDiretório atualizado:\n{new_dir}\n\nDeseja alterar?')
+            msgBox.setIcon(QMessageBox.Icon.Question)
+
+            # Configurar fonte
+            font = msgBox.font()
+            font.setPointSize(14)
+            msgBox.setFont(font)
+
+            # Adicionar botões Sim e Não
+            yesButton = msgBox.addButton("Sim", QMessageBox.ButtonRole.YesRole)
+            noButton = msgBox.addButton("Não", QMessageBox.ButtonRole.NoRole)
+
+            # Exibir a caixa de diálogo e aguardar resposta
+            msgBox.exec()
+
+            # Verificar qual botão foi pressionado
+            if msgBox.clickedButton() == yesButton:
+                CONTROLE_DADOS = new_dir
+                global_event_manager.update_database_dir(CONTROLE_DADOS)
+
+                # Criar e configurar a caixa de diálogo de sucesso
+                successBox = QMessageBox(self)
+                successBox.setWindowTitle('Alteração realizada com sucesso!')
+                successBox.setText(f'Diretório atualizado:\n{new_dir}')
+                successBox.setIcon(QMessageBox.Icon.Information)
+
+                # Configurar fonte
+                font = successBox.font()
+                font.setPointSize(14)
+                successBox.setFont(font)
+
+                # Exibir a caixa de diálogo de sucesso
+                successBox.exec()

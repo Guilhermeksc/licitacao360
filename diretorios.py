@@ -146,9 +146,16 @@ class EventManager(QObject):
     pdf_dir_updated = pyqtSignal(Path)
     sicaf_dir_updated = pyqtSignal(Path)
     relatorio_path_updated = pyqtSignal(Path)
-
+    controle_dir_updated =  pyqtSignal(Path)
+    
     def __init__(self):
         super().__init__()
+
+    def update_database_dir(self, new_file):
+        global CONTROLE_DADOS
+        CONTROLE_DADOS = new_file
+        save_config("database_path", str(new_file))
+        self.controle_dir_updated.emit(new_file)
 
     def update_pdf_dir(self, new_dir):
         print(f"Emitindo sinal de atualização de PDF_DIR: {new_dir}")

@@ -6,6 +6,7 @@ from diretorios import *
 from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
 import os
+import subprocess
 from planejamento.popup_relatorio import ReportDialog
 from planejamento.escalacao_pregoeiro import EscalarPregoeiroDialog
 from planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
@@ -19,6 +20,8 @@ from functools import partial
 import sys
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 import sqlite3
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 etapas = {
     'Planejamento': None,
@@ -36,7 +39,6 @@ etapas = {
     'Assinatura Contrato': None,
     'Concluído': None
 }
-
 
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -367,10 +369,14 @@ class CustomSqlTableModel(QSqlTableModel):
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
-        # Essa parte parece ser duplicada e possivelmente está causando confusão.
         self.app = app
         self.icons_dir = Path(icons_dir)
-        self.database_path = Path(CONTROLE_DADOS)  # Essa é a linha importante.
+
+        self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))  
+
+        self.event_manager = EventManager()
+        self.event_manager.controle_dir_updated.connect(self.handle_database_dir_update)
+        
         self.selectedIndex = None
         self.image_cache = {}
         self.image_cache = load_images(self.icons_dir, [
@@ -470,11 +476,10 @@ class ApplicationUI(QMainWindow):
         self.buttons_layout = QHBoxLayout()
         self.button_specs = [
             ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados"),
-            ("  Salvar", self.image_cache['save_to_drive'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
-            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.xlsx' ou '.odf')"),
+            ("  Salvar", self.image_cache['excel'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')"),
             ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado"),
             ("  Controle do Processo", self.image_cache['website_menu'], self.on_control_process, "Abre o painel de controle do processo"),            
-            ("  Abrir Planilha Excel", self.image_cache['excel'], self.on_edit_item, "Abre a planilha de controle"),
             ("    Relatório", self.image_cache['website_menu'], self.on_report, "Gera um relatório dos dados")
         ]
 
@@ -579,37 +584,100 @@ class ApplicationUI(QMainWindow):
         self.init_sql_model()
 
     def salvar_tabela(self):
+        # Define as colunas desejadas
+        colunas_desejadas = [
+            "ID Processo", "NUP", "Objeto", "UASG", "OM", "setor_responsavel", 
+            "coordenador_planejamento", "Etapa", "Pregoeiro", "Item PCA"
+        ]
+        
         # Cria um DataFrame vazio
         column_count = self.model.columnCount()
-        row_count = self.model.rowCount()
         headers = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(column_count)]
+        filtered_headers = [header for header in headers if header in colunas_desejadas]
         data = []
 
-        # Preenche o DataFrame com os dados do modelo
-        for row in range(row_count):
+        # Preenche o DataFrame com os dados do modelo filtrando as colunas
+        for row in range(self.model.rowCount()):
             row_data = []
             for column in range(column_count):
-                index = self.model.index(row, column)
-                row_data.append(self.model.data(index))
+                if headers[column] in colunas_desejadas:
+                    index = self.model.index(row, column)
+                    row_data.append(self.model.data(index))
             data.append(row_data)
 
-        df = pd.DataFrame(data, columns=headers)
+        df = pd.DataFrame(data, columns=filtered_headers)
 
-        # Define o caminho do arquivo Excel
-        excel_path = os.path.join(os.path.expanduser("~"), "Dados_Exportados.xlsx")
+        # Define o caminho inicial com o nome do arquivo pré-definido
+        initial_path = os.path.join(os.path.expanduser("~"), "controle_processos.xlsx")
+        
+        # Abre um diálogo para que o usuário escolha o diretório e nome do arquivo
+        excel_path, _ = QFileDialog.getSaveFileName(None, 'Salvar Tabela', initial_path, 'Excel Files (*.xlsx)')
+        if not excel_path:
+            return  # Usuário cancelou o diálogo de salvar
 
-        # Salva o DataFrame como Excel
-        df.to_excel(excel_path, index=False, engine='openpyxl')
+        # Salva o DataFrame como Excel usando openpyxl para ajustar as colunas
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+            
+            # Ajusta as colunas ao conteúdo
+            for column_cells in writer.sheets['Sheet1'].columns:
+                length = max(len(str(cell.value)) for cell in column_cells)
+                writer.sheets['Sheet1'].column_dimensions[column_cells[0].column_letter].width = length
 
         # Abre o arquivo Excel
         os.startfile(excel_path)
 
-
     def carregar_tabela(self):
-        """
-        Método chamado pelo botão 'Carregar' para carregar dados do arquivo .xlsx.
-        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Opções de Carregamento")
+        layout = QVBoxLayout()
+
+        btn_carregar_arquivo = QPushButton("Carregar Tabela de Arquivo")
+        btn_carregar_arquivo.clicked.connect(self.carregar_tabela_de_arquivo)
+        layout.addWidget(btn_carregar_arquivo)
+
+        btn_atualizar_diretorio = QPushButton("Atualizar Diretório do Banco de Dados")
+        btn_atualizar_diretorio.clicked.connect(self.update_database_file)
+        layout.addWidget(btn_atualizar_diretorio)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def carregar_tabela_de_arquivo(self):
         self.database_manager.carregar_tabela(self)
+        self.sender().parent().close()  # Fecha o QDialog após a operação
+
+    def update_database_file(self):
+        # Abrir o diálogo para seleção do arquivo do banco de dados
+        fileName, _ = QFileDialog.getOpenFileName(self, 
+                                                "Selecione o arquivo do banco de dados", 
+                                                str(CONTROLE_DADOS),  # Diretório inicial
+                                                "Database Files (*.db)")
+        print(f"Debug: Seleção de arquivo iniciada. Arquivo escolhido: {fileName}")
+        
+        if fileName:
+            newPath = Path(fileName)
+            print(f"Debug: Novo caminho escolhido: {newPath}")
+
+            if newPath != CONTROLE_DADOS:
+                print(f"Debug: Atualizando o caminho do banco de dados. Antigo: {CONTROLE_DADOS}, Novo: {newPath}")
+                self.event_manager.update_database_dir(newPath)
+                print("Debug: O caminho do banco de dados foi atualizado com sucesso.")
+                QMessageBox.information(self, "Atualização bem-sucedida", "O arquivo do banco de dados foi atualizado com sucesso.")
+            else:
+                print("Debug: O arquivo escolhido é o mesmo que o atualmente configurado.")
+                QMessageBox.information(self, "Nenhuma mudança detectada", "O arquivo escolhido é o mesmo que o atualmente configurado. Nenhuma mudança foi realizada.")
+        else:
+            print("Debug: Nenhum arquivo foi escolhido.")
+            QMessageBox.warning(self, "Carregamento Cancelado", "Nenhum arquivo de banco de dados foi selecionado.")
+
+    def handle_database_dir_update(self, new_dir):
+        global CONTROLE_DADOS
+        CONTROLE_DADOS = new_dir
+        save_config("database_path", str(new_dir))
+        self.database_path = new_dir
+        self.database_manager = DatabaseManager(new_dir)
+        QMessageBox.information(self, "Atualização de Diretório", "Diretório do banco de dados atualizado para: " + str(new_dir))
 
     def on_control_process(self):
         print("Iniciando on_control_process...")

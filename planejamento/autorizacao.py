@@ -142,11 +142,23 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def setupGrupoSIGDEM(self):
         layout = QVBoxLayout(self.grupoSIGDEM)
 
+        # Mapa de abreviações
+        abrev_map = {
+            "Pregão Eletrônico": "PE",
+            "Concorrência": "CC",
+            "Dispensa Eletrônica": "DE",
+            "Termo de Justificativa de Dispensa Eletrônica": "TJDL",
+            "Termo de Justificativa de Inexigibilidade de Licitação": "TJIL"
+        }
+
+        # Obtenção da abreviação para self.tipo
+        tipo_abreviado = abrev_map.get(self.tipo, self.tipo)  # Retorna self.tipo se não houver abreviação
+
         # Campo "Assunto"
         labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
         layout.addWidget(labelAssunto)
         textEditAssunto = QTextEdit()
-        textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo Administrativo")
+        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Autorização para Abertura de Processo Administrativo")
         textEditAssunto.setMaximumHeight(50)
         btnCopyAssunto = QPushButton("Copiar")
         btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
