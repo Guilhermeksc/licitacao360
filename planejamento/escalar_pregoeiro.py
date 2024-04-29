@@ -7,10 +7,11 @@ import subprocess
 from docxtpl import DocxTemplate
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
-import shutil
-import tempfile
+from datetime import datetime
 import os
 from win32com.client import Dispatch
+import time
+import sqlite3
 
 class EscalarPregoeiroDialog(QDialog):
     def __init__(self, main_app, df_registro, parent=None):
@@ -20,6 +21,7 @@ class EscalarPregoeiroDialog(QDialog):
 
         # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
+            self.id = self.df_registro['id'].iloc[0]
             id_processo_original = self.df_registro['id_processo'].iloc[0]
             self.id_processo = id_processo_original.replace('/', '-')
             self.tipo = self.df_registro['tipo'].iloc[0]
@@ -36,7 +38,7 @@ class EscalarPregoeiroDialog(QDialog):
             self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
 
         self.setWindowTitle("Escalação de Pregoeiro")
-        self.setFixedSize(850, 410)
+        self.setFixedSize(850, 510)
         self.pasta = ''
 
         self.layoutPrincipal = QHBoxLayout()
@@ -46,7 +48,7 @@ class EscalarPregoeiroDialog(QDialog):
         self.widgetDireita = QWidget()
 
         # Definindo tamanhos fixos para os widgets encapsulados
-        self.widgetEsquerda.setFixedSize(330, 400)
+        self.widgetEsquerda.setFixedSize(330, 500)
         self.widgetDireita.setFixedSize(500, 400)
 
         self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)  # Layout para o lado esquerdo
@@ -54,7 +56,7 @@ class EscalarPregoeiroDialog(QDialog):
 
         self.setupUi()
         self.setStyleSheet("""
-            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QDateEdit {
                 font-size: 16px;
             }
             QGroupBox {
@@ -86,6 +88,7 @@ class EscalarPregoeiroDialog(QDialog):
 
     def createGroups(self):
         self.grupoNumeroCP = QGroupBox("Número da CP")
+        self.grupoDataSessao = QGroupBox("Data da Sessão Pública")
         self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
         self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo da CP")
         self.grupoCriacaoDocumento = QGroupBox("Gerar CP")
@@ -93,6 +96,7 @@ class EscalarPregoeiroDialog(QDialog):
 
         # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
         self.setupGrupoNumeroCP()
+        self.setupGrupoDataSessao()
         self.setupGrupoSelecaoPasta()
         self.setupGrupoEdicaoTemplate()
         self.setupGrupoCriacaoDocumento()
@@ -104,6 +108,69 @@ class EscalarPregoeiroDialog(QDialog):
         self.cp_input = QLineEdit()  # Widget de entrada para o número da CP
         layout.addWidget(label)
         layout.addWidget(self.cp_input)
+
+    def setupGrupoDataSessao(self):
+        layout = QVBoxLayout(self.grupoDataSessao)
+        self.dataSessaoEdit = QDateEdit(calendarPopup=True)
+        self.dataSessaoEdit.setDisplayFormat("dd/MM/yyyy")  # Configura o formato de exibição da data
+        self.dataSessaoEdit.setDate(QDate.currentDate())    
+
+        # Configurar a data inicial baseada no DataFrame
+        data_sessao_str = self.df_registro.get('data_sessao', pd.Series([QDate.currentDate().toString("yyyy-MM-dd")])).iloc[0]
+        data_sessao = QDate.fromString(data_sessao_str, "yyyy-MM-dd")
+        if data_sessao.isValid():
+            self.dataSessaoEdit.setDate(data_sessao)
+        else:
+            # Calcula 10 dias úteis a partir de hoje
+            current_date = QDate.currentDate()
+            for _ in range(10):
+                current_date = current_date.addDays(1)
+                while current_date.dayOfWeek() > 5:  # Pula fins de semana
+                    current_date = current_date.addDays(1)
+            self.dataSessaoEdit.setDate(current_date)
+        
+        # Conectar o sinal de mudança de data ao método de salvamento
+        self.dataSessaoEdit.dateChanged.connect(self.salvarDataSessao)
+
+        layout.addWidget(self.dataSessaoEdit)
+        self.grupoDataSessao.setLayout(layout)
+
+    def salvarDataSessao(self):
+        """Salva a nova data da sessão no banco de dados sempre que o QDateEdit é alterado."""
+        # Certificar-se que o ID está no tipo correto (int ou str, conforme esperado)
+        try:
+            # Tentando converter para int se for string e precisa ser int
+            process_id = int(self.id)
+            print(f"ID do processo formatado como inteiro: {process_id}")
+        except ValueError:
+            process_id = self.id  # Se falhar, usar como está
+            print(f"ID do processo usado como string: {process_id}")
+
+        data_sessao = self.dataSessaoEdit.date().toString("yyyy-MM-dd")
+        print(f"Tentando salvar a data: {data_sessao} para o processo: {process_id}")
+
+        try:
+            conn = sqlite3.connect(str(CONTROLE_DADOS))
+            cursor = conn.cursor()
+
+            query = "UPDATE controle_processos SET data_sessao = ? WHERE id = ?"
+            cursor.execute(query, (data_sessao, process_id))
+            conn.commit()
+
+            # Verifica se a atualização teve efeito
+            cursor.execute("SELECT data_sessao FROM controle_processos WHERE id = ?", (process_id,))
+            saved_date = cursor.fetchone()
+            if saved_date:
+                print(f"Data salva no banco de dados: {saved_date[0]}")
+            else:
+                print("Nenhum registro encontrado com o ID fornecido.")
+
+            conn.close()
+            QMessageBox.information(self, "Salvar Data", "Data da sessão pública atualizada com sucesso.")
+        except Exception as e:
+            print(f"Erro ao tentar salvar a data no banco de dados: {e}")
+            QMessageBox.critical(self, "Erro de Banco de Dados", f"Erro ao tentar salvar a data: {str(e)}")
+
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -210,6 +277,7 @@ class EscalarPregoeiroDialog(QDialog):
 
     def addWidgetsToLeftLayout(self):
         self.layoutEsquerda.addWidget(self.grupoNumeroCP)
+        self.layoutEsquerda.addWidget(self.grupoDataSessao)
         self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
         self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
         self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
@@ -221,6 +289,7 @@ class EscalarPregoeiroDialog(QDialog):
         estiloBorda = "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } " \
                       "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }"
         self.grupoNumeroCP.setStyleSheet(estiloBorda)
+        self.grupoDataSessao.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
         self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
@@ -243,75 +312,96 @@ class EscalarPregoeiroDialog(QDialog):
         if self.pasta:
             print(f"Pasta selecionada: {self.pasta}")
 
-    def gerarDocx(self):
-        try:
-            # Verifica se um registro foi selecionado na tabela
-            if self.df_registro is None:
-                QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-                return
+    def formatar_data_brasileira(self, data_iso):
+        """Converte data de formato ISO (AAAA-MM-DD) para formato brasileiro (DD/MM/AAAA)."""
+        data_obj = datetime.strptime(data_iso, '%Y-%m-%d')
+        return data_obj.strftime('%d/%m/%Y')
 
-            # Continua com o processo de geração do documento
-            template_path = PLANEJAMENTO_DIR / "template_cp_pregoeiro.docx"
-            # Substituição de '/' por '-' em 'id_processo'
-            id_processo_original = self.df_registro['id_processo'].iloc[0]
-            id_processo = id_processo_original.replace('/', '-')
-            salvar_nome = f"{id_processo} - Escalacao de Pregoeiro.docx"
-            save_path = os.path.join(self.pasta, salvar_nome)
-            doc = DocxTemplate(template_path)
-
-            # Lógica específica para material_servico
-            descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
-            numero_cp = self.cp_input.text().strip()
-
-            data = {
-                **self.df_registro.to_dict(orient='records')[0],
-                'numero_cp': numero_cp,
-                'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
-            }
-
-            doc.render(data)
-            doc.save(save_path)
-
-            # Abrir o arquivo DOCX gerado com o sistema operacional
-            if sys.platform == "win32":
-                os.startfile(save_path)
-            else:
-                subprocess.run(["xdg-open", save_path])
-
-            return save_path
-        except Exception as e:
-            QMessageBox.warning(None, "Erro", f"Erro ao gerar documento DOCX: {e}")
+    def gerarDocumento(self, tipo="docx"):
+        if self.df_registro is None:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
+        template_path = PLANEJAMENTO_DIR / f"template_cp_pregoeiro.{tipo}"
+
+        # Usar a data diretamente do QDateEdit em vez de df_registro
+        data_sessao = self.dataSessaoEdit.date().toString("yyyy-MM-dd")
+        data_sessao = self.formatar_data_brasileira(data_sessao)
+
+        id_processo_original = self.df_registro['id_processo'].iloc[0]
+        id_processo = id_processo_original.replace('/', '-')
+        salvar_nome = f"{id_processo} - Designacao de Pregeorio.{tipo}"
+        save_path = os.path.join(self.pasta, salvar_nome)
+        doc = DocxTemplate(template_path)
+
+        # Lógica específica para material_servico
+        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        numero_cp = self.cp_input.text().strip()
+
+        data = {
+            **self.df_registro.to_dict(orient='records')[0],
+            'numero_cp': numero_cp,
+            'data_sessao': data_sessao,  # Usando a data formatada
+            'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
+        }
+
+        doc.render(data)
+        doc.save(save_path)
+
+        return save_path
+
+    def abrirDocumento(self, path):
+        if sys.platform == "win32":
+            os.startfile(path)
+        else:
+            subprocess.run(["xdg-open", path])
+
+    def gerarDocx(self):
+        docx_path = self.gerarDocumento("docx")
+        if docx_path:
+            self.abrirDocumento(docx_path)
+        return docx_path
+
     def gerarPdf(self):
+        docx_path = self.gerarDocumento("docx")
+        if docx_path is None or not os.path.isfile(docx_path):  # Checa se o arquivo realmente existe
+            QMessageBox.warning(None, "Erro", "O arquivo DOCX não existe ou não pode ser acessado.")
+            return None
+
         try:
-            # Gerar o arquivo DOCX
-            docx_path = self.gerarDocx()
-            if docx_path is None:
-                raise Exception("Falha na geração do arquivo DOCX.")
+            # Certifica que está usando o caminho absoluto
+            absolute_docx_path = os.path.abspath(docx_path).replace('/', '\\')
+            print(f"Caminho absoluto do DOCX: {absolute_docx_path}")
 
-            # Inicializar o cliente COM do Microsoft Word
+            time.sleep(1)  # Delay para garantir que o arquivo esteja acessível
+
             word = Dispatch("Word.Application")
-            word.visible = False  # Executar em background
+            word.visible = False
 
-            # Abrir o documento DOCX
-            doc = word.Documents.Open(docx_path)
+            # Tenta abrir o documento DOCX
+            doc = word.Documents.Open(absolute_docx_path)
 
-            # Definir o caminho do PDF
-            pdf_path = docx_path.replace('.docx', '.pdf')
+            # Define o nome e caminho do PDF
+            pdf_name = f"{os.path.splitext(os.path.basename(absolute_docx_path))[0]}.pdf"
+            pdf_path = os.path.join(self.pasta, pdf_name).replace('/', '\\')
+            print(f"Caminho de destino do PDF: {pdf_path}")
 
-            # Exportar para PDF
-            doc.SaveAs(pdf_path, FileFormat=17)  # FileFormat=17 para PDF
+            # Exporta para PDF
+            doc.SaveAs(pdf_path, FileFormat=17)
 
-            # Fechar o documento Word sem salvar
             doc.Close(SaveChanges=0)
-
-            # Fechar o aplicativo Word
             word.Quit()
 
             print(f"Arquivo PDF gerado com sucesso: {pdf_path}")
+
+            # Verifica se o arquivo PDF foi criado
+            if not os.path.isfile(pdf_path):
+                raise Exception("O arquivo PDF não foi encontrado após a tentativa de criação.")
+
+            self.abrirDocumento(pdf_path)
+
             return pdf_path
         except Exception as e:
             QMessageBox.warning(None, "Erro", f"Erro ao gerar documento PDF: {e}")
+            print(f"Erro ao gerar documento PDF: {e}")
             return None
-

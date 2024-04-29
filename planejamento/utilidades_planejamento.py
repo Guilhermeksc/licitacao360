@@ -69,7 +69,8 @@ class DatabaseManager:
                     nup TEXT,
                     objeto TEXT,
                     objeto_completo TEXT,
-                    uasg TEXT,
+                    valor_total TEXT,
+                    uasg TEXT,                    
                     orgao_responsavel TEXT,
                     sigla_om TEXT,
                     setor_responsavel TEXT,
@@ -96,6 +97,26 @@ class DatabaseManager:
         conn.commit()
 
     @staticmethod
+    def verify_and_create_columns(conn, table_name, required_columns):
+        cursor = conn.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        existing_columns = {row[1]: row[2] for row in cursor.fetchall()}  # Storing column names and types
+
+        # Criar uma lista das colunas na ordem correta e criar as colunas que faltam
+        for column, column_type in required_columns.items():
+            if column not in existing_columns:
+                # Assume a default type if not specified, e.g., TEXT
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column} {column_type}")
+                logging.info(f"Column {column} added to {table_name} with type {column_type}")
+            else:
+                # Check if the type matches, if not, you might handle or log this situation
+                if existing_columns[column] != column_type:
+                    logging.warning(f"Type mismatch for {column}: expected {column_type}, found {existing_columns[column]}")
+
+        conn.commit()
+        logging.info(f"All required columns are verified/added in {table_name}")
+
+    @staticmethod
     def database_exists(conn):
         """
         Verifica se o banco de dados já existe.
@@ -111,6 +132,33 @@ class DatabaseManager:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_processos';")
         return cursor.fetchone() is not None
     
+    @staticmethod
+    def check_and_fix_id_sequence(conn):
+        cursor = conn.cursor()
+        # Buscar os IDs em ordem para verificar se há lacunas
+        cursor.execute("SELECT id FROM controle_processos ORDER BY id")
+        ids = [row[0] for row in cursor.fetchall()]
+
+        # Verificar se há lacunas nos IDs
+        expected_id = 1  # Iniciando do ID 1, ajuste conforme sua lógica se necessário
+        for actual_id in ids:
+            if actual_id != expected_id:
+                print(f"Gap before ID {actual_id}, expected {expected_id}")
+                # Opção 1: Renumerar os IDs para preencher as lacunas
+                # Este é um exemplo e pode ser perigoso se outras tabelas referenciarem esses IDs!
+                # Seria necessário atualizar todas as referências para corresponder.
+                cursor.execute("UPDATE controle_processos SET id = ? WHERE id = ?", (expected_id, actual_id))
+                conn.commit()
+            expected_id += 1
+
+        # Ajustar a sequência automática para o próximo ID disponível após o último ID usado
+        if ids:
+            last_id = ids[-1]
+            cursor.execute("PRAGMA auto_vacuum = FULL")
+            cursor.execute(f"UPDATE SQLITE_SEQUENCE SET seq = {last_id} WHERE name = 'controle_processos'")
+            cursor.execute("PRAGMA auto_vacuum = NONE")
+            conn.commit()
+                
     @staticmethod
     def criar_tabela_controle_prazos(conn):
         cursor = conn.cursor()
@@ -179,7 +227,7 @@ class DatabaseManager:
             df = pd.read_excel(fileName)
 
             # Colunas esperadas no DataFrame
-            expected_columns = ["tipo", "numero", "ano", "id_processo", "nup", "objeto", "objeto_completo", "uasg", 
+            expected_columns = ["tipo", "numero", "ano", "id_processo", "nup", "objeto", "objeto_completo", "valor_total", "uasg", 
                                 "orgao_responsavel", "sigla_om", "setor_responsavel", "coordenador_planejamento", 
                                 "etapa", "pregoeiro", "item_pca", "portaria_PCA", "data_sessao",
                                 "data_limite_entrega_tr", "nup_portaria_planejamento", "srp", 
