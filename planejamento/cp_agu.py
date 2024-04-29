@@ -7,13 +7,30 @@ import subprocess
 from docxtpl import DocxTemplate
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
-import shutil
-import tempfile
+from datetime import datetime
 import os
 from win32com.client import Dispatch
 import time
+import sqlite3
+import locale
+from num2words import num2words
+import re
 
-class AutorizacaoAberturaLicitacaoDialog(QDialog):
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+def formatar_valor_monetario(valor):
+    if pd.isna(valor):  # Verifica se o valor é NaN e ajusta para string vazia
+        valor = ''
+    # Limpa a string e converte para float
+    valor = re.sub(r'[^\d,]', '', str(valor)).replace(',', '.')
+    valor_float = float(valor) if valor else 0
+    # Formata para a moeda local
+    valor_monetario = locale.currency(valor_float, grouping=True)
+    # Converte para extenso
+    valor_extenso = num2words(valor_float, lang='pt_BR', to='currency')
+    return valor_monetario, valor_extenso
+
+class CPEncaminhamentoAGU(QDialog):
     def __init__(self, main_app, df_registro, parent=None):
         super().__init__(parent)
         self.main_app = main_app
@@ -21,6 +38,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
+            self.id = self.df_registro['id'].iloc[0]
             id_processo_original = self.df_registro['id_processo'].iloc[0]
             self.id_processo = id_processo_original.replace('/', '-')
             self.tipo = self.df_registro['tipo'].iloc[0]
@@ -34,9 +52,10 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.uasg = self.df_registro['uasg'].iloc[0]
             self.sigla_om = self.df_registro['sigla_om'].iloc[0]
             self.material_servico = self.df_registro['material_servico'].iloc[0]
+            self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
 
-        self.setWindowTitle("Autorização para Abertura")
-        self.setFixedSize(850, 410)
+        self.setWindowTitle("CP - Encaminhamento AGU")
+        self.setFixedSize(850, 510)
         self.pasta = ''
 
         self.layoutPrincipal = QHBoxLayout()
@@ -46,7 +65,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.widgetDireita = QWidget()
 
         # Definindo tamanhos fixos para os widgets encapsulados
-        self.widgetEsquerda.setFixedSize(330, 400)
+        self.widgetEsquerda.setFixedSize(330, 500)
         self.widgetDireita.setFixedSize(500, 400)
 
         self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)  # Layout para o lado esquerdo
@@ -54,7 +73,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         self.setupUi()
         self.setStyleSheet("""
-            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QDateEdit {
                 font-size: 16px;
             }
             QGroupBox {
@@ -76,8 +95,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
-        self.pasta_base = os.path.expanduser("~/Desktop")
-        
+
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
         self.createGroups()
@@ -86,25 +104,25 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.applyWidgetStyles()
 
     def createGroups(self):
-        self.grupoAutoridade = QGroupBox("Autoridade Competente")
+        self.grupoNumeroCP = QGroupBox("Número da CP")
         self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
-        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo")
-        self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
+        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo da CP")
+        self.grupoCriacaoDocumento = QGroupBox("Gerar CP")
         self.grupoSIGDEM = QGroupBox("SIGDEM")
 
         # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
-        # Por exemplo:
-        self.setupGrupoAutoridade()
+        self.setupGrupoNumeroCP()
         self.setupGrupoSelecaoPasta()
         self.setupGrupoEdicaoTemplate()
         self.setupGrupoCriacaoDocumento()
         self.setupGrupoSIGDEM()
 
-    def setupGrupoAutoridade(self):
-        layout = QVBoxLayout(self.grupoAutoridade)
-        self.ordenadordespesasComboBox = QComboBox()
-        self.carregarOrdenadorDespesas()
-        layout.addWidget(self.ordenadordespesasComboBox)
+    def setupGrupoNumeroCP(self):
+        layout = QVBoxLayout(self.grupoNumeroCP)
+        label = QLabel("Digite o número da CP:")
+        self.cp_input = QLineEdit()  # Widget de entrada para o número da CP
+        layout.addWidget(label)
+        layout.addWidget(self.cp_input)
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -118,7 +136,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
     def setupGrupoEdicaoTemplate(self):
         layout = QVBoxLayout(self.grupoEdicaoTemplate)
-        labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
+        labelEdicao = QLabel("Editar o arquivo modelo:")
         iconPathEdit = ICONS_DIR / "text.png"
         botaoEdicaoTemplate = QPushButton("  Editar Modelo")
         botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))
@@ -160,7 +178,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
         layout.addWidget(labelAssunto)
         textEditAssunto = QTextEdit()
-        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Autorização para Abertura de Processo Administrativo")
+        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Encaminhamento para AGU")
         textEditAssunto.setMaximumHeight(50)
         btnCopyAssunto = QPushButton("Copiar")
         btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
@@ -176,7 +194,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         # Definir descrição com base em material_servico
         descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
-        sinopse_text = (f"Termo de Abertura referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+        sinopse_text = (f"Encaminhamento para análise jurídica da AGU, referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
                         f"Processo Administrativo NUP: {self.nup}\n"
                         f"Item do PCA: {self.item_pca}")
         textEditSinopse.setPlainText(sinopse_text)
@@ -210,7 +228,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def addWidgetsToLeftLayout(self):
-        self.layoutEsquerda.addWidget(self.grupoAutoridade)
+        self.layoutEsquerda.addWidget(self.grupoNumeroCP)
         self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
         self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
         self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
@@ -221,14 +239,14 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def applyWidgetStyles(self):
         estiloBorda = "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } " \
                       "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }"
-        self.grupoAutoridade.setStyleSheet(estiloBorda)
+        self.grupoNumeroCP.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
         self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = PLANEJAMENTO_DIR / "template_autorizacao.docx"
+        template_path = PLANEJAMENTO_DIR / "template_cp_encaminhamento_agu.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -238,69 +256,65 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                 subprocess.run(["xdg-open", str(template_path)], check=True)
         except subprocess.CalledProcessError as e:
             QMessageBox.warning(self, "Erro", f"Não foi possível abrir o documento: {e}")
-            
-    def carregarOrdenadorDespesas(self):
-        try:
-            self.ordenador_despesas_df = pd.read_excel(ORDENADOR_DESPESAS_DIR)
-            for index, row in self.ordenador_despesas_df.iterrows():
-                texto_display = f"{row['nome']}\n{row['posto']}\n{row['od']}"
-                self.ordenadordespesasComboBox.addItem(texto_display, userData=row.to_dict())
-        except Exception as e:
-            print(f"Erro ao carregar tabela Ordenador de Despesas: {e}")
 
     def selecionarPasta(self):
-        pasta_selecionada = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
-        if pasta_selecionada:
-            self.pasta_base = pasta_selecionada
-            print(f"Pasta selecionada: {self.pasta_base}")
+        self.pasta = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
+        if self.pasta:
+            print(f"Pasta selecionada: {self.pasta}")
+
+    def formatar_data_brasileira(self, data_iso):
+        """Converte data de formato ISO (AAAA-MM-DD) para formato brasileiro (DD/MM/AAAA)."""
+        data_obj = datetime.strptime(data_iso, '%Y-%m-%d')
+        return data_obj.strftime('%d/%m/%Y')
 
     def gerarDocumento(self, tipo="docx"):
         if self.df_registro is None:
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = PLANEJAMENTO_DIR / f"template_autorizacao.{tipo}"
+        template_path = PLANEJAMENTO_DIR / f"template_cp_encaminhamento_agu.{tipo}"
 
         id_processo_original = self.df_registro['id_processo'].iloc[0]
-        id_processo_novo = id_processo_original.replace('/', '-')
-
-        nome_pasta = f"{id_processo_novo}"  
-
-        # Definir o caminho da pasta de destino
-        pasta_destino = os.path.join(self.pasta_base, nome_pasta)
-
-        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
-            os.makedirs(pasta_destino)  # Cria a pasta se não existir
-
-        # Formatar o nome do arquivo
-        nome_arquivo = f"{nome_pasta} - Autorizacao para abertura de Processo Administrativo.{tipo}"
-        save_path = os.path.join(pasta_destino, nome_arquivo)
-
-        # Carregar e renderizar o template DOCX
+        id_processo = id_processo_original.replace('/', '-')
+        salvar_nome = f"{id_processo} - Encaminhamento a AGU.{tipo}"
+        save_path = os.path.join(self.pasta, salvar_nome)
         doc = DocxTemplate(template_path)
 
-        nome_selecionado = self.ordenadordespesasComboBox.currentText()
-        valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
-        
+        # Lógica específica para material_servico
         descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        numero_cp = self.cp_input.text().strip()
+
+        # Mantém a descrição do serviço original
+        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+
+        # Define as variáveis de substituição com base na condição
+        x_material = " X " if self.material_servico == "material" else "    "
+        x_servico = " X " if self.material_servico == "servico" else "    "
+
+        valor_total = self.df_registro['valor_total'].iloc[0] if not self.df_registro['valor_total'].empty else ''
+
+        valor_monetario, valor_extenso = formatar_valor_monetario(valor_total)
+
         data = {
             **self.df_registro.to_dict(orient='records')[0],
-            'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}",
-            'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
+            'numero_cp': numero_cp,
+            'descricao_servico': descricao_servico,
+            'x_material': x_material,
+            'x_servico': x_servico,
+            'valor_total': valor_monetario,
+            'valor_total_extenso': valor_extenso
         }
+
         doc.render(data)
         doc.save(save_path)
+
         return save_path
 
     def abrirDocumento(self, path):
-        pasta_destino = os.path.dirname(path)  # Obter a pasta onde o arquivo está localizado
-
         if sys.platform == "win32":
-            os.startfile(path)  # Abrir o documento
-            os.startfile(pasta_destino)  # Abrir a pasta no Windows Explorer
+            os.startfile(path)
         else:
-            subprocess.run(["xdg-open", path])  # Abrir o documento no Linux ou MacOS
-            subprocess.run(["xdg-open", pasta_destino])  # Abrir a pasta no gerenciador de arquivos do sistema
+            subprocess.run(["xdg-open", path])
 
     def gerarDocx(self):
         docx_path = self.gerarDocumento("docx")
@@ -329,8 +343,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
             # Define o nome e caminho do PDF
             pdf_name = f"{os.path.splitext(os.path.basename(absolute_docx_path))[0]}.pdf"
-            pasta_destino = os.path.dirname(docx_path)  # Pasta onde o DOCX foi salvo
-            pdf_path = os.path.join(pasta_destino, pdf_name).replace('/', '\\')
+            pdf_path = os.path.join(self.pasta, pdf_name).replace('/', '\\')
             print(f"Caminho de destino do PDF: {pdf_path}")
 
             # Exporta para PDF

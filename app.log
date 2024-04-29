@@ -1,3 +1,74 @@
 root - ERROR - Failed to connect to database at C:\Users\User\OneDrive\Área de Trabalho\controle_dados_novo.db: unable to open database file
 root - ERROR - Failed to connect to database at C:\Users\User\OneDrive\Área de Trabalho\controle_dados_novo.db: unable to open database file
 root - ERROR - Failed to connect to database at C:\Users\User\OneDrive\Área de Trabalho\controle_dados_novo.db: unable to open database file
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - Column valor_total added to controle_processos with type TEXT
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos
+root - WARNING - Type mismatch for id: expected INTEGER PRIMARY KEY, found INTEGER
+root - INFO - All required columns are verified/added in controle_processos

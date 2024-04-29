@@ -6,6 +6,8 @@ from diretorios import *
 from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
 import os
+from planejamento.dfd import GerarDFD
+from planejamento.cp_agu import CPEncaminhamentoAGU
 from planejamento.editar_dados import EditarDadosDialog
 from planejamento.adicionar_itens import AddItemDialog
 from planejamento.popup_relatorio import ReportDialog
@@ -80,12 +82,12 @@ class TableMenu(QMenu):
             "Editar Dados do Processo",
             "Autorização para Abertura de Licitação",
             # "Portaria de Equipe de Planejamento",
-            # "Documento de Formalização de Demanda (DFD)",
+            "Documento de Formalização de Demanda (DFD)",
             # "Declaração de Adequação Orçamentária",
 	        "Capa do Edital",
             "Edital",
- 	        "Comunicação Padronizada AGU",
-	        "Comunicação Padronizada Recomendações AGU",
+ 	        "CP Encaminhamento AGU",
+	        "CP Recomendações AGU",
             "Mensagem de Divulgação de IRP",
             "Mensagem de Publicação",
             "Mensagem de Homologação",
@@ -109,11 +111,14 @@ class TableMenu(QMenu):
                     self.editar_dados(df_registro_selecionado)
                 elif actionText == "Autorização para Abertura de Licitação":
                     self.openDialogAutorizacao(df_registro_selecionado)
+                elif actionText == "Documento de Formalização de Demanda (DFD)":
+                    self.openDialogDFD(df_registro_selecionado)
                 elif actionText == "Edital":
                     self.openDialogEdital(df_registro_selecionado)
                 elif actionText == "Escalar Pregoeiro":
                     self.openDialogEscalarPregoeiro(df_registro_selecionado)
-                # Adicione outras condições aqui para diferentes ações
+                elif actionText == "CP Encaminhamento AGU":
+                    self.openDialogEncaminhamentoAGU(df_registro_selecionado)
             else:
                 QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
         else:
@@ -131,7 +136,14 @@ class TableMenu(QMenu):
         dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
         dialog.exec()
 
-    # Exemplos de implementação para as outras funções
+    def openDialogDFD(self, df_registro_selecionado):
+        dialog = GerarDFD(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
+        dialog = CPEncaminhamentoAGU(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog.exec()
+
     def openDialogAutorizacao(self, df_registro_selecionado):
         dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
         dialog.exec()
@@ -152,7 +164,7 @@ class CustomItemDelegate(QStyledItemDelegate):
         source_index = index.model().mapToSource(index)
         source_model = index.model().sourceModel()
 
-        print(f"Pintando proxy index: {index.row()}, {index.column()} -> source index: {source_index.row()}, {source_index.column()}")
+        # print(f"Pintando proxy index: {index.row()}, {index.column()} -> source index: {source_index.row()}, {source_index.column()}")
 
         if source_index.column() == source_model.fieldIndex("id_processo") or source_index.column() == source_model.fieldIndex("objeto"):
             painter.save()
