@@ -9,6 +9,7 @@ from styles.styless import (
     get_menu_button_activated_style, get_updated_background
 )
 from custom_widgets.create_1_inicio import InicioWidget
+from modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from planejamento.planejamento_button import ApplicationUI
 from custom_widgets.create_7_checklist_button import ChecklistWidget
 from custom_widgets.create_9_atas_button import AtasWidget
@@ -97,7 +98,8 @@ class MainWindow(QMainWindow):
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
-            (" Check-list", ICONS_DIR / "x.png"), 
+            (" Check-list", ICONS_DIR / "x.png"),
+            (" Atas e Contratos (novo)", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"),
             (" Limite de Dispensa", ICONS_DIR / "x.png"), 
             (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),       
@@ -175,6 +177,7 @@ class MainWindow(QMainWindow):
             "Planejamento": self.setup_planejamento,
             "Controle de Contratos": self.setup_controle_contratos,
             "Check-list": self.setup_checklist,
+            "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
             "Atas e Contratos": self.setup_atas_contratos,
             "Limite de Dispensa": self.setup_limite_dispensa,
             "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
@@ -199,6 +202,7 @@ class MainWindow(QMainWindow):
                 "Planejamento": self.setup_planejamento,
                 "Controle de Contratos": self.setup_controle_contratos,
                 "Check-list": self.setup_checklist,
+                "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
                 "Atas e Contratos": self.setup_atas_contratos,
                 "Limite de Dispensa": self.setup_limite_dispensa,
                 "Consulta CATMAT/CATSER": self.setup_controle_pdm,
@@ -228,7 +232,12 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.atas_contratos_widget = AtasWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_widget)
-        
+
+    def setup_atas_contratos_novo(self):
+        self.clear_content_area()
+        self.atas_contratos_novo_widget = GerarAtasWidget(str(ICONS_DIR), self)
+        self.content_layout.addWidget(self.atas_contratos_novo_widget)
+
     def setup_controle_pdm(self):
         self.clear_content_area()
         self.controle_pdf_catser_widget = ConsultaPDMCatser(self)

@@ -337,10 +337,16 @@ class AtasWidget(QWidget):
                 })
 
         dataframe_licitacao = pd.DataFrame(all_data)
+        
+        # Verificação da coluna 'item_num'
+        if "item_num" not in dataframe_licitacao.columns:
+            raise ValueError("A coluna 'item_num' não foi encontrada no DataFrame.")
+        
         dataframe_licitacao = dataframe_licitacao.sort_values(by="item_num")
         self.save_dataframe_as_excel(dataframe_licitacao, BASE_DIR / "excel.xlsx")
                                 
         return dataframe_licitacao
+
     
     def save_dataframe_as_excel(self, df: pd.DataFrame, output_path: str):
         df.to_excel(output_path, index=False, engine='openpyxl')
