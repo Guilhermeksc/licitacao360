@@ -54,7 +54,7 @@ class EditalDialog(QDialog):
 
         self.setupUi()
         self.setStyleSheet("""
-            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QRadioButton{
                 font-size: 16px;
             }
             QGroupBox {
@@ -76,6 +76,7 @@ class EditalDialog(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
+        self.pasta_base = os.path.expanduser("~/Desktop")  # Caminho padrão para a área de trabalho
 
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
@@ -120,18 +121,33 @@ class EditalDialog(QDialog):
         self.grupoMinuta.setLayout(layout)
 
     def setupGrupoItem(self):
-        layout = QHBoxLayout()
+        # Criação de layouts verticais e horizontais
+        layoutPrincipal = QVBoxLayout()
+        layoutItens = QHBoxLayout()
+        layoutGrupos = QHBoxLayout()
+        
+        # Criação dos RadioButtons
         self.radioItem = QRadioButton("Item")
         self.radioItemUnico = QRadioButton("Item Único")
         self.radioGrupo = QRadioButton("Grupo")
         self.radioGrupoUnico = QRadioButton("Grupo Único")
-        self.radioItem.setChecked(True)  # Define 'Item' como selecionado por padrão
         
-        layout.addWidget(self.radioItem)
-        layout.addWidget(self.radioItemUnico)
-        layout.addWidget(self.radioGrupo)
-        layout.addWidget(self.radioGrupoUnico)
-        self.grupoItemGrupo.setLayout(layout)
+        # Definindo 'Item' como selecionado por padrão
+        self.radioItem.setChecked(True)
+        
+        # Adicionando os RadioButtons aos layouts horizontais correspondentes
+        layoutItens.addWidget(self.radioItem)
+        layoutItens.addWidget(self.radioItemUnico)
+        
+        layoutGrupos.addWidget(self.radioGrupo)
+        layoutGrupos.addWidget(self.radioGrupoUnico)
+        
+        # Adicionando os layouts horizontais ao layout vertical principal
+        layoutPrincipal.addLayout(layoutItens)
+        layoutPrincipal.addLayout(layoutGrupos)
+        
+        # Configurando o layout do grupo de itens
+        self.grupoItemGrupo.setLayout(layoutPrincipal)
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -290,10 +306,21 @@ class EditalDialog(QDialog):
             return None
 
         template_path = PLANEJAMENTO_DIR / f"template_edital.{tipo}"
+
         id_processo_original = self.df_registro['id_processo'].iloc[0]
-        id_processo = id_processo_original.replace('/', '-')
-        salvar_nome = f"{id_processo} - Edital.{tipo}"
-        save_path = os.path.join(self.pasta, salvar_nome)
+        id_processo_novo = id_processo_original.replace('/', '-')
+
+        nome_pasta = f"{id_processo_novo}"  
+
+        # Definir o caminho da pasta de destino
+        pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+
+        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
+            os.makedirs(pasta_destino)  # Cria a pasta se não existir
+
+        # Formatar o nome do arquivo
+        nome_arquivo = f"{nome_pasta} - Edital.{tipo}"
+        save_path = os.path.join(pasta_destino, nome_arquivo)
         doc = DocxTemplate(template_path)
 
         nome_selecionado = self.ordenadordespesasComboBox.currentText()
@@ -317,10 +344,14 @@ class EditalDialog(QDialog):
         return save_path
 
     def abrirDocumento(self, path):
+        pasta_destino = os.path.dirname(path)  # Obter a pasta onde o arquivo está localizado
+
         if sys.platform == "win32":
-            os.startfile(path)
+            os.startfile(path)  # Abrir o documento
+            os.startfile(pasta_destino)  # Abrir a pasta no Windows Explorer
         else:
-            subprocess.run(["xdg-open", path])
+            subprocess.run(["xdg-open", path])  # Abrir o documento no Linux ou MacOS
+            subprocess.run(["xdg-open", pasta_destino])  # Abrir a pasta no gerenciador de arquivos do sistema
 
     def resolveItemOuGrupo(self):
         if self.radioItem.isChecked():
@@ -359,7 +390,8 @@ class EditalDialog(QDialog):
 
             # Define o nome e caminho do PDF
             pdf_name = f"{os.path.splitext(os.path.basename(absolute_docx_path))[0]}.pdf"
-            pdf_path = os.path.join(self.pasta, pdf_name).replace('/', '\\')
+            pasta_destino = os.path.dirname(docx_path)  # Pasta onde o DOCX foi salvo
+            pdf_path = os.path.join(pasta_destino, pdf_name).replace('/', '\\')
             print(f"Caminho de destino do PDF: {pdf_path}")
 
             # Exporta para PDF

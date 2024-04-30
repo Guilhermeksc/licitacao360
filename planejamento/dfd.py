@@ -38,7 +38,7 @@ class GerarDFD(QDialog):
             self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
 
         self.setWindowTitle("CP - Encaminhamento AGU")
-        self.setFixedSize(850, 510)
+        self.setFixedSize(850, 410)
         self.pasta = ''
 
         self.layoutPrincipal = QHBoxLayout()
@@ -48,7 +48,7 @@ class GerarDFD(QDialog):
         self.widgetDireita = QWidget()
 
         # Definindo tamanhos fixos para os widgets encapsulados
-        self.widgetEsquerda.setFixedSize(330, 500)
+        self.widgetEsquerda.setFixedSize(330, 400)
         self.widgetDireita.setFixedSize(500, 400)
 
         self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)  # Layout para o lado esquerdo
@@ -88,25 +88,16 @@ class GerarDFD(QDialog):
         self.applyWidgetStyles()
 
     def createGroups(self):
-        self.grupoNumeroCP = QGroupBox("Número da CP")
         self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
         self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo da CP")
         self.grupoCriacaoDocumento = QGroupBox("Gerar CP")
         self.grupoSIGDEM = QGroupBox("SIGDEM")
 
         # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
-        self.setupGrupoNumeroCP()
         self.setupGrupoSelecaoPasta()
         self.setupGrupoEdicaoTemplate()
         self.setupGrupoCriacaoDocumento()
         self.setupGrupoSIGDEM()
-
-    def setupGrupoNumeroCP(self):
-        layout = QVBoxLayout(self.grupoNumeroCP)
-        label = QLabel("Digite o número da CP:")
-        self.cp_input = QLineEdit()  # Widget de entrada para o número da CP
-        layout.addWidget(label)
-        layout.addWidget(self.cp_input)
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -212,7 +203,6 @@ class GerarDFD(QDialog):
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def addWidgetsToLeftLayout(self):
-        self.layoutEsquerda.addWidget(self.grupoNumeroCP)
         self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
         self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
         self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
@@ -223,7 +213,6 @@ class GerarDFD(QDialog):
     def applyWidgetStyles(self):
         estiloBorda = "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } " \
                       "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }"
-        self.grupoNumeroCP.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
         self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)

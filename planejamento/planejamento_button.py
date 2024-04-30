@@ -6,6 +6,7 @@ from diretorios import *
 from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
 import os
+from planejamento.capa_edital import CapaEdital
 from planejamento.dfd import GerarDFD
 from planejamento.cp_agu import CPEncaminhamentoAGU
 from planejamento.editar_dados import EditarDadosDialog
@@ -93,6 +94,7 @@ class TableMenu(QMenu):
             "Mensagem de Homologação",
             "Nota Técnica",
             "Escalar Pregoeiro",
+            "Gerar Relatório de Processo",
         ]
 
         for actionText in actions:
@@ -119,6 +121,9 @@ class TableMenu(QMenu):
                     self.openDialogEscalarPregoeiro(df_registro_selecionado)
                 elif actionText == "CP Encaminhamento AGU":
                     self.openDialogEncaminhamentoAGU(df_registro_selecionado)
+                elif actionText == "Capa do Edital":
+                    self.openDialogCapaEdital(df_registro_selecionado)
+
             else:
                 QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
         else:
@@ -142,6 +147,10 @@ class TableMenu(QMenu):
 
     def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
         dialog = CPEncaminhamentoAGU(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogCapaEdital(self, df_registro_selecionado):
+        dialog = CapaEdital(main_app=self.main_app, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogAutorizacao(self, df_registro_selecionado):
@@ -216,7 +225,7 @@ class ApplicationUI(QMainWindow):
         
         self.selectedIndex = None
         self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png"
+            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "website_menu.png", "report.png"
         ])
         
         self.database_manager = DatabaseManager(self.database_path)
@@ -355,18 +364,19 @@ class ApplicationUI(QMainWindow):
             
     def _create_buttons(self):
         self.buttons_layout = QHBoxLayout()
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
         self.button_specs = [
-            ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados"),
-            ("  Salvar", self.image_cache['excel'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
-            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')"),
-            ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado"),
-            ("  Controle do Processo", self.image_cache['website_menu'], self.on_control_process, "Abre o painel de controle do processo"),            
-            ("    Relatório", self.image_cache['website_menu'], self.on_report, "Gera um relatório dos dados")
+            ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados", icon_size),
+            ("  Salvar", self.image_cache['excel'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
+            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')", icon_size),
+            ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado", icon_size),
+            ("  Controle de Datas", self.image_cache['website_menu'], self.on_control_process, "Abre o painel de controle do processo", icon_size),            
+            ("    Relatório", self.image_cache['report'], self.on_report, "Gera um relatório dos dados", icon_size)
         ]
 
-        for text, icon, callback, tooltip in self.button_specs:
-            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self)
-            self.buttons_layout.addWidget(btn)  # Adicione o botão ao layout dos botões
+        for text, icon, callback, tooltip, icon_size in self.button_specs:
+            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+            self.buttons_layout.addWidget(btn)
 
     def on_delete_item(self):
         selected_index = self.table_view.currentIndex()

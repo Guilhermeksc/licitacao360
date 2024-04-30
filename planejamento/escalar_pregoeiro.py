@@ -78,6 +78,7 @@ class EscalarPregoeiroDialog(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
+        self.pasta_base = os.path.expanduser("~/Desktop")  # Caminho padrão para a área de trabalho
 
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
@@ -184,12 +185,10 @@ class EscalarPregoeiroDialog(QDialog):
 
     def setupGrupoEdicaoTemplate(self):
         layout = QVBoxLayout(self.grupoEdicaoTemplate)
-        labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
         iconPathEdit = ICONS_DIR / "text.png"
         botaoEdicaoTemplate = QPushButton("  Editar Modelo")
         botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))
         botaoEdicaoTemplate.clicked.connect(self.editarTemplate)
-        layout.addWidget(labelEdicao)
         layout.addWidget(botaoEdicaoTemplate)
 
     def setupGrupoCriacaoDocumento(self):
@@ -329,9 +328,20 @@ class EscalarPregoeiroDialog(QDialog):
         data_sessao = self.formatar_data_brasileira(data_sessao)
 
         id_processo_original = self.df_registro['id_processo'].iloc[0]
-        id_processo = id_processo_original.replace('/', '-')
-        salvar_nome = f"{id_processo} - Designacao de Pregeorio.{tipo}"
-        save_path = os.path.join(self.pasta, salvar_nome)
+        id_processo_novo = id_processo_original.replace('/', '-')
+
+        nome_pasta = f"{id_processo_novo}"  
+
+        # Definir o caminho da pasta de destino
+        pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+
+        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
+            os.makedirs(pasta_destino)  # Cria a pasta se não existir
+
+        # Formatar o nome do arquivo
+        nome_arquivo = f"{nome_pasta} - Designacao de Pregoeiro.{tipo}"
+        save_path = os.path.join(pasta_destino, nome_arquivo)
+
         doc = DocxTemplate(template_path)
 
         # Lógica específica para material_servico
@@ -383,7 +393,8 @@ class EscalarPregoeiroDialog(QDialog):
 
             # Define o nome e caminho do PDF
             pdf_name = f"{os.path.splitext(os.path.basename(absolute_docx_path))[0]}.pdf"
-            pdf_path = os.path.join(self.pasta, pdf_name).replace('/', '\\')
+            pasta_destino = os.path.dirname(docx_path)  # Pasta onde o DOCX foi salvo
+            pdf_path = os.path.join(pasta_destino, pdf_name).replace('/', '\\')
             print(f"Caminho de destino do PDF: {pdf_path}")
 
             # Exporta para PDF

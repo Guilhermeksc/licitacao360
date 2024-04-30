@@ -1,8 +1,8 @@
 # treeview_utils.py
 
-from PyQt6.QtWidgets import QTreeView
-from PyQt6.QtGui import QStandardItemModel, QStandardItem, QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
 import pandas as pd
 import os
 import subprocess
@@ -19,11 +19,11 @@ def load_images(icons_dir, image_file_names):
         images[image_file_name.split('.')[0]] = icon
     return images
 
-def create_button(text, icon, callback, tooltip_text, parent):
-    from PyQt6.QtWidgets import QPushButton
+def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(40, 40)):  # Aumente o tamanho padrão do ícone
     btn = QPushButton(text, parent)
     if icon:
-        btn.setIcon(icon)
+        btn.setIcon(QIcon(icon))
+        btn.setIconSize(icon_size)  # Define o tamanho do ícone
     if callback:
         btn.clicked.connect(callback)
     if tooltip_text:
@@ -34,7 +34,7 @@ def create_button(text, icon, callback, tooltip_text, parent):
     QPushButton {
         background-color: black;
         color: white;
-        font-size: 12pt;
+        font-size: 14pt;
         min-height: 35px;
         padding: 5px;      
     }
@@ -49,7 +49,6 @@ def create_button(text, icon, callback, tooltip_text, parent):
     """)
 
     return btn
-
 
 def save_dataframe_to_excel(data_frame, file_path):
     try:

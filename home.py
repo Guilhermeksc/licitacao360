@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
+import logging
 import sys
 from diretorios import ICONS_DIR, IMAGE_PATH, DATABASE_DIR, LV_FINAL_DIR, ITEM_SELECIONADO_PATH, BASE_DIR
 from styles.styless import (
@@ -271,9 +272,22 @@ class MainWindow(QMainWindow):
             self.set_active_button_style(self.buttons[button_name])
             self.active_buttonin = self.buttons[button_name]
 
-# Executando a aplicação
-if __name__ == "__main__":
+# # Executando a aplicação
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     window = MainWindow()
+#     window.show()
+#     app.exec()
+
+def main():
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    app.exec()
+    try:
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        logging.error("Unhandled exception", exc_info=True)
+        raise e  # Opcional: re-lance a exceção se você desejar que o programa pare completamente
+
+if __name__ == "__main__":
+    main()
