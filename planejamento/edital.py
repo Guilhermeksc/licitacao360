@@ -12,6 +12,7 @@ import tempfile
 import time
 import os
 from win32com.client import Dispatch
+from planejamento.utilidades_planejamento import remover_caracteres_especiais
 
 class EditalDialog(QDialog):
     def __init__(self, main_app, df_registro, parent=None):
@@ -306,21 +307,28 @@ class EditalDialog(QDialog):
             return None
 
         template_path = PLANEJAMENTO_DIR / f"template_edital.{tipo}"
-
+        objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
 
-        nome_pasta = f"{id_processo_novo}"  
-
-        # Definir o caminho da pasta de destino
+        nome_pasta = f"{id_processo_novo} - {objeto}"
+        subpasta_autorizacao = f"{id_processo_novo} - Edital"
+        
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+        subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
 
-        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
-            os.makedirs(pasta_destino)  # Cria a pasta se não existir
+        # Verifica se a pasta principal existe e cria se necessário
+        if not os.path.exists(pasta_destino):
+            os.makedirs(pasta_destino)
+
+        # Verifica se a subpasta existe e cria se necessário
+        if not os.path.exists(subpasta_destino):
+            os.makedirs(subpasta_destino)
 
         # Formatar o nome do arquivo
-        nome_arquivo = f"{nome_pasta} - Edital.{tipo}"
-        save_path = os.path.join(pasta_destino, nome_arquivo)
+        nome_arquivo = f"{id_processo_novo} - Edital.{tipo}"
+        save_path = os.path.join(subpasta_destino, nome_arquivo)
+
         doc = DocxTemplate(template_path)
 
         nome_selecionado = self.ordenadordespesasComboBox.currentText()

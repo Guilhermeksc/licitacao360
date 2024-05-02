@@ -12,6 +12,7 @@ import os
 from win32com.client import Dispatch
 import time
 import sqlite3
+from planejamento.utilidades_planejamento import remover_caracteres_especiais
 
 class EscalarPregoeiroDialog(QDialog):
     def __init__(self, main_app, df_registro, parent=None):
@@ -37,7 +38,7 @@ class EscalarPregoeiroDialog(QDialog):
             self.material_servico = self.df_registro['material_servico'].iloc[0]
             self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
 
-        self.setWindowTitle("Escalação de Pregoeiro")
+        self.setWindowTitle("Designação de Pregoeiro")
         self.setFixedSize(850, 510)
         self.pasta = ''
 
@@ -225,7 +226,7 @@ class EscalarPregoeiroDialog(QDialog):
         labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
         layout.addWidget(labelAssunto)
         textEditAssunto = QTextEdit()
-        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Escalação de Pregoeiro")
+        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Designação de Pregoeiro")
         textEditAssunto.setMaximumHeight(50)
         btnCopyAssunto = QPushButton("Copiar")
         btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
@@ -241,7 +242,7 @@ class EscalarPregoeiroDialog(QDialog):
 
         # Definir descrição com base em material_servico
         descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
-        sinopse_text = (f"Escalação de Pregoeiro ({self.pregoeiro}) referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+        sinopse_text = (f"Designação de Pregoeiro ({self.pregoeiro}) referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
                         f"Processo Administrativo NUP: {self.nup}\n"
                         f"Item do PCA: {self.item_pca}")
         textEditSinopse.setPlainText(sinopse_text)
@@ -322,25 +323,29 @@ class EscalarPregoeiroDialog(QDialog):
             return None
 
         template_path = PLANEJAMENTO_DIR / f"template_cp_pregoeiro.{tipo}"
-
-        # Usar a data diretamente do QDateEdit em vez de df_registro
-        data_sessao = self.dataSessaoEdit.date().toString("yyyy-MM-dd")
-        data_sessao = self.formatar_data_brasileira(data_sessao)
-
+        objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
 
-        nome_pasta = f"{id_processo_novo}"  
+        data_sessao = self.dataSessaoEdit.date().toString("yyyy-MM-dd")
+        data_sessao = self.formatar_data_brasileira(data_sessao)
 
-        # Definir o caminho da pasta de destino
+        nome_pasta = f"{id_processo_novo} - {objeto}"
+        subpasta_autorizacao = f"{id_processo_novo} - Designacao de Pregoeiro"
+        
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+        subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
 
-        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
-            os.makedirs(pasta_destino)  # Cria a pasta se não existir
+        # Verifica se a pasta principal existe e cria se necessário
+        if not os.path.exists(pasta_destino):
+            os.makedirs(pasta_destino)
 
-        # Formatar o nome do arquivo
-        nome_arquivo = f"{nome_pasta} - Designacao de Pregoeiro.{tipo}"
-        save_path = os.path.join(pasta_destino, nome_arquivo)
+        # Verifica se a subpasta existe e cria se necessário
+        if not os.path.exists(subpasta_destino):
+            os.makedirs(subpasta_destino)
+
+        nome_arquivo = f"{id_processo_novo} - Designação de Pregoeiro.{tipo}"
+        save_path = os.path.join(subpasta_destino, nome_arquivo)
 
         doc = DocxTemplate(template_path)
 

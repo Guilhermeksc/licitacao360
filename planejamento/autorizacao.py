@@ -5,6 +5,7 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
+from planejamento.utilidades_planejamento import remover_caracteres_especiais
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
 import shutil
@@ -260,21 +261,26 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             return None
 
         template_path = PLANEJAMENTO_DIR / f"template_autorizacao.{tipo}"
-
+        objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
 
-        nome_pasta = f"{id_processo_novo}"  
-
-        # Definir o caminho da pasta de destino
+        nome_pasta = f"{id_processo_novo} - {objeto}"
+        subpasta_autorizacao = f"{id_processo_novo} - Autorizacao"
+        
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+        subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
 
-        if not os.path.exists(pasta_destino):  # Verifica se a pasta existe
-            os.makedirs(pasta_destino)  # Cria a pasta se não existir
+        # Verifica se a pasta principal existe e cria se necessário
+        if not os.path.exists(pasta_destino):
+            os.makedirs(pasta_destino)
 
-        # Formatar o nome do arquivo
-        nome_arquivo = f"{nome_pasta} - Autorizacao para abertura de Processo Administrativo.{tipo}"
-        save_path = os.path.join(pasta_destino, nome_arquivo)
+        # Verifica se a subpasta existe e cria se necessário
+        if not os.path.exists(subpasta_destino):
+            os.makedirs(subpasta_destino)
+
+        nome_arquivo = f"{id_processo_novo} - Autorizacao para abertura de Processo Administrativo.{tipo}"
+        save_path = os.path.join(subpasta_destino, nome_arquivo)
 
         # Carregar e renderizar o template DOCX
         doc = DocxTemplate(template_path)

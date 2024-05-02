@@ -15,12 +15,12 @@ class InicioWidget(QWidget):
         self.setMinimumWidth(800) 
 
         self.layout.addStretch(1)
-        # Adicionar label "Sistema de Gestão de Licitações" acima da imagem
-        label_sistema_gestao = QLabel("Sistema de Gestão de Licitações")
-        label_sistema_gestao.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centralizar texto
-        label_sistema_gestao.setStyleSheet("color: white; font-size: 50px; font-weight: bold;")  # Definir a cor do texto como branca, o tamanho da fonte como 40px, negrito e o fundo como transparente
-        self.layout.addWidget(label_sistema_gestao)  # Adicionar a label acima da imagem
-        self.layout.addStretch(2)
+        # # Adicionar label "Sistema de Gestão de Licitações" acima da imagem
+        # label_sistema_gestao = QLabel("Sistema de Gestão de Licitações")
+        # label_sistema_gestao.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centralizar texto
+        # label_sistema_gestao.setStyleSheet("color: white; font-size: 50px; font-weight: bold;")  # Definir a cor do texto como branca, o tamanho da fonte como 40px, negrito e o fundo como transparente
+        # self.layout.addWidget(label_sistema_gestao)  # Adicionar a label acima da imagem
+        # self.layout.addStretch(2)
         # QLabel para a imagem
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

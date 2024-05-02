@@ -7,7 +7,6 @@ from utils.treeview_utils import load_images, create_button, save_dataframe_to_e
 import pandas as pd
 import os
 from planejamento.capa_edital import CapaEdital
-from planejamento.msg_planejamento import MSGAlertaPrazo
 from planejamento.dfd import GerarDFD
 from planejamento.cp_agu import CPEncaminhamentoAGU
 from planejamento.editar_dados import EditarDadosDialog
@@ -42,56 +41,84 @@ etapas = {
     'Concluído': None
 }
 
-
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configurações")
-        self.setFixedSize(600, 400)  # Tamanho total da janela de diálogo
-        self.parent_app = parent
+        self.setFixedSize(980, 720)  # Tamanho total da janela de diálogo
         self.setup_ui()
 
     def setup_ui(self):
+        # Aplicar CSS ao QDialog inteiro
         self.setStyleSheet("""
         QDialog {
-            font-size: 12pt;
-            color: #333;
-            background-color: #f0f0f0;
+            font-size: 12pt;  
+            color: #333;  
+            background-color: #f0f0f0;  
         }
         QGroupBox {
-            font-size: 12pt;
-            border: 2px solid #6c6c6c;
-            border-radius: 5px;
-            margin-top: 2ex;
+            font-size: 12pt;  
+            border: 2px solid #6c6c6c; 
+            border-radius: 5px;  
+            margin-top: 2ex;  
         }
         QGroupBox::title {
+            font-size: 12pt;
             subcontrol-origin: margin;
             left: 10px;
             padding: 0 3px 0 3px;
-            color: #444;
+            color: #444; 
         }
-        QLineEdit, QPushButton, QLabel, QComboBox {
+        QLineEdit {
+            font-size: 12pt;
+            border: 1px solid #ccc; 
+            padding: 2px;
+        }
+        QLabel, QComboBox{
             font-size: 12pt;
         }
         QPushButton {
-            border: 1px solid #ccc;
+            font-size: 12pt;
+            border: 1px solid #ccc;  
             border-radius: 4px;
             padding: 5px;
             background-color: #e7e7e7;
         }
         QPushButton:hover {
-            background-color: #d7d7d7;
+            font-size: 12pt;
+            background-color: #d7d7d7; 
         }
         """)
-        main_layout = QVBoxLayout(self)  # Único layout vertical para todo o diálogo
 
-        # Configurar OM/UASG
+        main_layout = QHBoxLayout(self)  # Layout principal horizontal
+        layout_left = QVBoxLayout()       # Layout para a parte esquerda
+        layout_right = QVBoxLayout()      # Layout para a parte direita
+
+        # Configurações específicas para o módulo de Planejamento na parte esquerda
+        left_group = QGroupBox("Configurações do Módulo Planejamento - Esquerda")
+        left_group.setFixedSize(QSize(480, 700))
+        left_layout = QVBoxLayout(left_group)
+        self.setup_left_content(left_layout)
+        layout_left.addWidget(left_group)
+
+        # Configurações adicionais na parte direita
+        right_group = QGroupBox("Configurações do Módulo Planejamento - Direita")
+        right_group.setFixedSize(QSize(480, 700))
+        right_layout = QVBoxLayout(right_group)
+        self.setup_right_content(right_layout)
+        layout_right.addWidget(right_group)
+
+        # Adiciona os dois layouts ao layout principal
+        main_layout.addLayout(layout_left)
+        main_layout.addLayout(layout_right)
+
+    def setup_left_content(self, left_layout):
         om_uasg_layout = QHBoxLayout()
         om_uasg_btn = QPushButton("Abrir")
         om_uasg_btn.clicked.connect(self.open_om_uasg)
         om_uasg_layout.addWidget(QLabel("Configurar OM/UASG"))
         om_uasg_layout.addWidget(om_uasg_btn)
-        main_layout.addLayout(om_uasg_layout)
+        left_layout.addLayout(om_uasg_layout)
 
         # Configurar Local de Salvamento dos Arquivos
         file_save_layout = QHBoxLayout()
@@ -99,130 +126,59 @@ class SettingsDialog(QDialog):
         file_save_btn.clicked.connect(self.define_file_save_location)
         file_save_layout.addWidget(QLabel("Local de Salvamento dos Arquivos"))
         file_save_layout.addWidget(file_save_btn)
-        main_layout.addLayout(file_save_layout)
+        left_layout.addLayout(file_save_layout)
 
         # Configurar Agentes Responsáveis
         responsaveis_layout = QHBoxLayout()
         responsaveis_btn = QPushButton("Definir Agentes")
-        responsaveis_btn.clicked.connect(self.define_agentes_responsaveis)
+        responsaveis_btn.clicked.connect(self.define_file_save_location)
         responsaveis_layout.addWidget(QLabel("Definir Agentes Responsáveis"))
         responsaveis_layout.addWidget(responsaveis_btn)
-        main_layout.addLayout(responsaveis_layout)
+        left_layout.addLayout(responsaveis_layout)
 
-        # Configurar carregamento de tabela
+        # Configurar Database
         carregar_tabela_layout = QHBoxLayout()
-        carregar_tabela_btn = QPushButton("Carregar Tabela")
-        carregar_tabela_btn.clicked.connect(self.safe_load_table)
-        carregar_tabela_layout.addWidget(QLabel("Carregar tabela excel ou libre"))
+        carregar_tabela_btn = QPushButton("Definir Agentes")
+        carregar_tabela_btn.clicked.connect(self.carregar_tabela)
+        carregar_tabela_layout.addWidget(QLabel("Definir Agentes Responsáveis"))
         carregar_tabela_layout.addWidget(carregar_tabela_btn)
-        main_layout.addLayout(carregar_tabela_layout)
+        left_layout.addLayout(carregar_tabela_layout)
 
-        # Configurar atualização de banco de dados
+        # Configurar Database
         carregar_database_layout = QHBoxLayout()
-        carregar_database_btn = QPushButton("Atualizar Banco de Dados")
-        carregar_database_btn.clicked.connect(self.safe_update_database)
-        carregar_database_layout.addWidget(QLabel("Carregar dados de um arquivo .db"))
+        carregar_database_btn = QPushButton("Definir Agentes")
+        carregar_database_btn.clicked.connect(self.update_database_file)
+        carregar_database_layout.addWidget(QLabel("Definir Agentes Responsáveis"))
         carregar_database_layout.addWidget(carregar_database_btn)
-        main_layout.addLayout(carregar_database_layout)
+        left_layout.addLayout(carregar_database_layout)
 
-    def define_agentes_responsaveis(self):
-        dialog = AgentesResponsaveisDialog(self)
-        if dialog.exec():
-            print("As alterações foram salvas com sucesso!")
-        else:
-            print("Edição cancelada.")
+        # Adiciona os GroupBoxes dos agentes responsáveis
+        left_layout.addWidget(self.posto_graduacao_layout("Ordenador de Despesas"))
+        left_layout.addWidget(self.posto_graduacao_layout("Ordenador de Despesas Substituto"))
+        left_layout.addWidget(self.posto_graduacao_layout("Agente Financeiro"))
+        left_layout.addWidget(self.posto_graduacao_layout("Agente Financeiro Substituto"))
+        left_layout.addWidget(self.posto_graduacao_layout("Encarregado da Divisão de Obtenção"))
+        left_layout.addWidget(self.posto_graduacao_layout("Ajudante do Encarregado da Divisão de Obtenção"))
 
-    def safe_load_table(self):
-        try:
-            self.parent_app.load_table()
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar a tabela: {str(e)}")
+    def setup_right_content(self, right_layout):
 
-    def safe_update_database(self):
-        try:
-            self.parent_app.update_database()
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao atualizar o banco de dados: {str(e)}")
-
-    def open_om_uasg(self):
-        print("Abrir configuração de OM/UASG")
-
-    def define_file_save_location(self):
-        file_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
-        print(f"Local de salvamento definido: {file_path}")
-
-
-class AgentesResponsaveisDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Editar Agentes Responsáveis")
-        self.setFixedSize(910, 800)  # Tamanho ajustado para melhor acomodar dois painéis
-        self.setup_ui()
-
-    def setup_ui(self):
-        main_layout = QVBoxLayout(self)  # Layout vertical principal para organizar tudo verticalmente
-
-        # Container horizontal para os grupos à esquerda e à direita
-        groups_layout = QHBoxLayout()
-        main_layout.addLayout(groups_layout)
-
-        # Layout para a parte esquerda
-        left_layout = QVBoxLayout()
-        left_group = QGroupBox("Agentes - Esquerda")
-        left_group.setLayout(left_layout)
-        self.add_left_agents(left_layout)  # Adiciona agentes à esquerda
-
-        # Layout para a parte direita
-        right_layout = QVBoxLayout()
-        right_group = QGroupBox("Agentes - Direita")
-        right_group.setLayout(right_layout)
-        self.add_right_agents(right_layout)  # Adiciona agentes à direita
-
-        # Adiciona os grupos ao layout horizontal de grupos
-        groups_layout.addWidget(left_group)
-        groups_layout.addWidget(right_group)
-
-        # Botões de ação
-        buttons_layout = QHBoxLayout()
-        save_button = QPushButton("Salvar")
-        save_button.clicked.connect(self.accept)
-        cancel_button = QPushButton("Cancelar")
-        cancel_button.clicked.connect(self.reject)
-        buttons_layout.addWidget(save_button)
-        buttons_layout.addWidget(cancel_button)
-
-        # Adiciona o layout de botões ao layout principal
-        main_layout.addLayout(buttons_layout)
-
-    def add_left_agents(self, layout):
-        # Adiciona os agentes responsáveis à esquerda
-        agents_left = [
-            "Ordenador de Despesas", "Ordenador de Despesas Substituto",
-            "Agente Financeiro", "Agente Financeiro Substituto",
-            "Encarregado da Divisão de Obtenção", "Ajudante do Encarregado da Divisão de Obtenção"
-        ]
-        for agent in agents_left:
-            layout.addWidget(self.posto_graduacao_layout(agent))
-
-    def add_right_agents(self, layout):
-        # Adiciona os agentes responsáveis à direita
-        agents_right = [
-            "Supervisor da Seção de Licitações", "Auxiliar da Seção de Licitações",
-            "Auxiliar da Seção de Licitações", "Supervisor da Seção de Contratos",
-            "Auxiliar da Seção de Contratos", "Auxiliar da Seção de Contratos"
-        ]
-        for agent in agents_right:
-            layout.addWidget(self.posto_graduacao_layout(agent))
+        # Adiciona os GroupBoxes dos agentes responsáveis
+        right_layout.addWidget(self.posto_graduacao_layout("Supervisor da Seção de Licitações"))
+        right_layout.addWidget(self.posto_graduacao_layout("Auxiliar da Seção de Licitações"))
+        right_layout.addWidget(self.posto_graduacao_layout("Auxiliar da Seção de Licitações"))
+        right_layout.addWidget(self.posto_graduacao_layout("Supervisor da Seção de Contratos"))
+        right_layout.addWidget(self.posto_graduacao_layout("Auxiliar da Seção de Contratos"))
+        right_layout.addWidget(self.posto_graduacao_layout("Auxiliar da Seção de Contratos"))
 
     def posto_graduacao_layout(self, label_text):
-        group_box = QGroupBox(label_text) 
-        layout = QVBoxLayout(group_box)  
+        group_box = QGroupBox(label_text)  # Cria um QGroupBox para cada agente
+        layout = QVBoxLayout(group_box)  # O layout é agora adicionado dentro do QGroupBox
 
         nome_layout = QHBoxLayout()
         nome_label = QLabel("Nome")
         nome_layout.addWidget(nome_label)
         nome = QLineEdit()
-        nome_layout.addWidget(nome, 1)  
+        nome_layout.addWidget(nome, 1)  # Ajuste de layout para expandir o QLineEdit
         layout.addLayout(nome_layout)
 
         posto_layout = QHBoxLayout()
@@ -232,7 +188,7 @@ class AgentesResponsaveisDialog(QDialog):
         posto_layout.addWidget(posto, 1)
         layout.addLayout(posto_layout)
 
-        return group_box  
+        return group_box  # Retorna o QGroupBox completo
 
     def create_editable_combobox(self):
         combobox = QComboBox()
@@ -243,185 +199,13 @@ class AgentesResponsaveisDialog(QDialog):
             "Capitão de Corveta (IM)"
         ])
         return combobox
-    
-class CustomTableView(QTableView):
-    def __init__(self, main_app, parent=None):
-        super().__init__(parent)
-        self.main_app = main_app  # Armazena a referência ao aplicativo principal
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.showContextMenu)
 
-    def showContextMenu(self, pos):
-        index = self.indexAt(pos)
-        if index.isValid():
-            # Passa a referência correta ao aplicativo principal
-            contextMenu = TableMenu(self.main_app, index, self.model())
-            contextMenu.exec(self.viewport().mapToGlobal(pos))
+    def open_om_uasg(self):
+        print("Abrir configuração de OM/UASG")
 
-class TableMenu(QMenu):
-    def __init__(self, main_app, index, model=None):
-        super().__init__()
-        self.main_app = main_app
-        self.index = index
-        self.model = model
-
-        # Aplicar estilos ao menu
-        self.setStyleSheet("""
-            QMenu {
-                background-color: #333;
-                padding: 4px;
-                border: 0.5px solid #dcdcdc;
-                color: white;
-                font-size: 12pt;
-            }
-            QMenu::item {
-                background-color: transparent;
-            }
-            QMenu::item:selected {
-                background-color: #565656;
-            }
-        """)
-        # Opções do menu
-        actions = [
-            "Editar Dados do Processo",
-            "Autorização para Abertura de Licitação",
-            # "Portaria de Equipe de Planejamento",
-            "Documento de Formalização de Demanda (DFD)",
-            # "Declaração de Adequação Orçamentária",
-	        "Capa do Edital",
-            "Edital",
- 	        "CP Encaminhamento AGU",
-	        "CP Recomendações AGU",
-            "Mensagem de Divulgação de IRP",
-            "Mensagem de Publicação",
-            "Mensagem de Homologação",
-            "Nota Técnica",
-            "Escalar Pregoeiro",
-            "Gerar Relatório de Processo",
-        ]
-
-        for actionText in actions:
-            action = QAction(actionText, self)
-            action.triggered.connect(partial(self.trigger_action, actionText))
-            self.addAction(action)
-
-    def trigger_action(self, actionText):
-        if self.index.isValid():
-            source_index = self.model.mapToSource(self.index)
-            selected_row = source_index.row()
-            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
-            
-            if not df_registro_selecionado.empty:
-                if actionText == "Editar Dados do Processo":
-                    self.editar_dados(df_registro_selecionado)
-                elif actionText == "Autorização para Abertura de Licitação":
-                    self.openDialogAutorizacao(df_registro_selecionado)
-                elif actionText == "Documento de Formalização de Demanda (DFD)":
-                    self.openDialogDFD(df_registro_selecionado)
-                elif actionText == "Edital":
-                    self.openDialogEdital(df_registro_selecionado)
-                elif actionText == "Escalar Pregoeiro":
-                    self.openDialogEscalarPregoeiro(df_registro_selecionado)
-                elif actionText == "CP Encaminhamento AGU":
-                    self.openDialogEncaminhamentoAGU(df_registro_selecionado)
-                elif actionText == "Capa do Edital":
-                    self.openDialogCapaEdital(df_registro_selecionado)
-                elif actionText == "Mensagem de Divulgação de IRP":
-                    self.abrirDialogoAlertaPrazo(df_registro_selecionado)
-            else:
-                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
-        else:
-            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
-
-    # No final da classe TableMenu:
-    def on_get_pregoeiro(self):
-        id_processo = self.df_licitacao_completo['id_processo'].iloc[0]
-        dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, id_processo, self)
-        dialog.exec()
-
-    def abrirDialogoAlertaPrazo(self, df_registro_selecionado):
-        if not df_registro_selecionado.empty:
-            dados = df_registro_selecionado.iloc[0].to_dict()
-            dialogo = MSGAlertaPrazo(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
-            dialogo.exec()
-        else:
-            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
-
-    # Aqui você define cada uma das funções chamadas no trigger_action
-    def editar_dados(self, df_registro_selecionado):
-        dialog = EditarDadosDialog(parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
-        dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
-        dialog.exec()
-
-    def openDialogDFD(self, df_registro_selecionado):
-        dialog = GerarDFD(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-    def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
-        dialog = CPEncaminhamentoAGU(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-    def openDialogCapaEdital(self, df_registro_selecionado):
-        dialog = CapaEdital(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-    def openDialogAutorizacao(self, df_registro_selecionado):
-        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-    def openDialogEdital(self, df_registro_selecionado):
-        dialog = EditalDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-    def openDialogEscalarPregoeiro(self, df_registro_selecionado):
-        dialog = EscalarPregoeiroDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
-        dialog.exec()
-
-class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def paint(self, painter, option, index):
-        source_index = index.model().mapToSource(index)
-        source_model = index.model().sourceModel()
-
-        # print(f"Pintando proxy index: {index.row()}, {index.column()} -> source index: {source_index.row()}, {source_index.column()}")
-
-        if source_index.column() == source_model.fieldIndex("id_processo") or source_index.column() == source_model.fieldIndex("objeto"):
-            painter.save()
-            painter.setPen(QColor("#fcc200"))
-            painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, str(source_model.data(source_index, Qt.ItemDataRole.DisplayRole)))
-            painter.restore()
-        else:
-            super().paint(painter, option, index)
-
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        # Garante que o alinhamento centralizado seja aplicado
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
-class CustomSqlTableModel(QSqlTableModel):
-    def __init__(self, parent=None, db=None):
-        super().__init__(parent, db)
-        self.etapa_order = {
-            'Concluído': 0, 'Assinatura Contrato': 1, 'Homologado': 2, 'Em recurso': 3,
-            'Sessão Pública': 4, 'Impugnado': 5, 'Pré-Publicação': 6, 'Recomendações AGU': 7,
-            'AGU': 8, 'Nota Técnica': 9, 'Montagem do Processo': 10, 'IRP': 11, 
-            'Setor Responsável': 12, 'Planejamento': 13
-        }
-
-    def sort(self, column, order):
-        if self.headerData(column, Qt.Orientation.Horizontal) == 'Etapa':
-            self.setSortRole(Qt.ItemDataRole.UserRole)
-        else:
-            self.setSortRole(Qt.ItemDataRole.DisplayRole)
-        super().sort(column, order)
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.UserRole and self.headerData(index.column(), Qt.Orientation.Horizontal) == 'Etapa':
-            etapa = super().data(index, Qt.ItemDataRole.DisplayRole)
-            return self.etapa_order.get(etapa, 999)  # Default for undefined stages
-        return super().data(index, role)
+    def define_file_save_location(self):
+        file_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
+        print(f"Local de salvamento definido: {file_path}")
         
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
@@ -589,7 +373,7 @@ class ApplicationUI(QMainWindow):
         self.button_specs = [
             ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados", icon_size),
             ("  Salvar", self.image_cache['excel'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
-            # ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')", icon_size),
+            ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')", icon_size),
             ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado", icon_size),
             ("  Controle de Datas", self.image_cache['calendar'], self.on_control_process, "Abre o painel de controle do processo", icon_size),            
             ("    Relatório", self.image_cache['report'], self.on_report, "Gera um relatório dos dados", icon_size),
@@ -883,11 +667,3 @@ class ApplicationUI(QMainWindow):
         else:
             # Se não for um QSqlTableModel, talvez seja necessário realizar outras operações para atualizar a tabela
             print("O modelo da tabela não é um QSqlTableModel. Faça as operações de atualização apropriadas aqui.")
-
-    def load_table(self):
-        # Isso agora é um método público que pode ser chamado de SettingsDialog
-        self.carregar_tabela()
-
-    def update_database(self):
-        # Isso agora é um método público que pode ser chamado de SettingsDialog
-        self.update_database_file()

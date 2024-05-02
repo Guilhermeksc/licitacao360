@@ -9,6 +9,47 @@ from pathlib import Path
 from PyQt6.QtWidgets import QFileDialog
 from PyQt6.QtWidgets import QMessageBox
 import logging
+import num2words
+import locale
+import pandas as pd
+import re
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+def formatar_valor_monetario(valor):
+    if pd.isna(valor):  # Verifica se o valor é NaN e ajusta para string vazia
+        valor = ''
+    # Limpa a string e converte para float
+    valor = re.sub(r'[^\d,]', '', str(valor)).replace(',', '.')
+    valor_float = float(valor) if valor else 0
+    # Formata para a moeda local
+    valor_monetario = locale.currency(valor_float, grouping=True)
+    # Converte para extenso
+    valor_extenso = num2words.num2words(valor_float, lang='pt_BR', to='currency')
+    return valor_monetario, valor_extenso
+
+def remover_caracteres_especiais(texto):
+    mapa_acentos = {
+        'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a', 'ä': 'a',
+        'Á': 'A', 'À': 'A', 'Ã': 'A', 'Â': 'A', 'Ä': 'A',
+        'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+        'É': 'E', 'È': 'E', 'Ê': 'E', 'Ë': 'E',
+        'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
+        'Í': 'I', 'Ì': 'I', 'Î': 'I', 'Ï': 'I',
+        'ó': 'o', 'ò': 'o', 'õ': 'o', 'ô': 'o', 'ö': 'o',
+        'Ó': 'O', 'Ò': 'O', 'Õ': 'O', 'Ô': 'O', 'Ö': 'O',
+        'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
+        'Ú': 'U', 'Ù': 'U', 'Û': 'U', 'Ü': 'U',
+        'ç': 'c', 'Ç': 'C', 'ñ': 'n', 'Ñ': 'N'
+    }
+    for caractere_original, caractere_novo in mapa_acentos.items():
+        texto = texto.replace(caractere_original, caractere_novo)
+
+    # Adicionando substituição para caracteres impeditivos em nomes de arquivos e pastas
+    caracteres_impeditivos = r'\\/:*?"<>|'
+    for caractere in caracteres_impeditivos:
+        texto = texto.replace(caractere, '-')
+
+    return texto
 
 class DatabaseManager:
     def __init__(self, db_path):

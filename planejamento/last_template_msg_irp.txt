@@ -1,0 +1,26 @@
+DE CITBRA
+PARA SETDIS
+GRNC
+BT
+
+Intenção de Registro de Preços - {{objeto}}
+
+Objeto da {{id_processo}}contratação é {{objeto}} o nup: {{nup}}
+Pode identificar o {{msg_irp}}processo com {{id_processo}}
+
+
+testes{{ano}} test {{etapa}} testes {{id}} 
+
+{{pregoeiro}}  
+
+{{sigla_om}}
+
+{{tipo}}
+
+testes {{uasg}}
+
+{{objeto}}
+testes{{nup}} 
+
+testes {{nup}}
+

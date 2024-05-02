@@ -54,7 +54,6 @@ class MainWindow(QMainWindow):
             self.set_active_button_style(self.buttons["Início"])
 
     def configure_window(self):
-        self.setWindowTitle("Sistema de Gestão de Licitações")
         self.resize(1500, 750)
 
     def setup_central_widget(self):
