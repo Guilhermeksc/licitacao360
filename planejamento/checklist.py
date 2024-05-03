@@ -578,7 +578,7 @@ def processar_pdf_na_integra_e_gerar_documentos(df_registro_selecionado):
     # Processamento do PDF e substituição de marcadores usando o TEMPLATE_AUTUACAO
     substituir_marcadores_com_relacao(TEMPLATE_AUTUACAO, GLOBAL_SPLIT_DIR, df_registro_selecionado)
     substituir_variaveis_docx(df_registro_selecionado, df_treeview)
-    # Abrir a pasta no explorador de arquivos
+    substituir_variaveis_nota_tecnica(df_registro_selecionado, df_treeview)
     open_folder(GLOBAL_SPLIT_DIR)
 
 def substituir_marcadores_com_relacao(docx_path, lv_split_final_dir, df_registro_selecionado):
@@ -615,4 +615,112 @@ def substituir_marcadores_com_relacao(docx_path, lv_split_final_dir, df_registro
     
     output_path = lv_split_final_dir / f"PE {num_pregao}-{ano_pregao} - Relação de Documentos.docx"
     doc.save(output_path)
+    return output_path
+
+def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
+    if df_registro_selecionado is None:
+        QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+        return None
+    df = load_treeview_data()
+
+    # Criação de variáveis baseadas nos dados selecionados
+    ultima_folha = df['Fim'].iloc[-1]
+    quantidade_folhas = f"{ultima_folha} ({num2words(ultima_folha, lang='pt_BR')}) folhas"
+    objeto = df_registro_selecionado['objeto'].iloc[0]
+
+    id_processo_original = df_registro_selecionado['id_processo'].iloc[0]
+    id_processo_novo = id_processo_original.replace('/', '-')
+
+    # Configuração do caminho do template e inicialização
+    template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+    doc = DocxTemplate(template_path)
+    
+    # Contexto inicial com as variáveis básicas
+    initial_context = {
+        'numero': df_registro_selecionado['numero'].iloc[0],
+        'ano': df_registro_selecionado['ano'].iloc[0],
+        'nup': df_registro_selecionado['nup'].iloc[0],
+        'tipo': df_registro_selecionado['tipo'].iloc[0],
+        'objeto_completo': df_registro_selecionado['objeto_completo'].iloc[0],
+        'quantidade_folhas': quantidade_folhas,
+        'descricao_servico': "Aquisição de" if df_registro_selecionado['material_servico'].iloc[0] == "material" else "Contratação de empresa especializada em"
+    }
+    print("Initial Context:", initial_context)
+
+    nome_pasta = f"{id_processo_novo} - {remover_caracteres_especiais(objeto)}"
+    
+    # Caminho para a pasta principal no desktop
+    desktop_path = Path.home() / 'Desktop' / nome_pasta
+    desktop_path.mkdir(parents=True, exist_ok=True)
+
+    # Definição da subpasta "Checklist"
+    subpasta_checklist = f"{id_processo_novo} - Checklist"
+    subpasta_destino = desktop_path / subpasta_checklist
+    
+    # Verifica se a subpasta existe e cria se necessário
+    subpasta_destino.mkdir(parents=True, exist_ok=True)
+        
+    # Renderização inicial
+    doc.render(initial_context)
+    
+    # Contexto adicional com informações dinâmicas de páginas
+    additional_context = {row['SAPIENS']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
+                          for index, row in df.iterrows()}
+
+    print("Additional Context:", additional_context)
+
+    # Segunda renderização com o contexto adicional
+    doc.render(additional_context)
+
+    output_path = subpasta_destino / f"{id_processo_novo} - Nota Técnica.docx"   
+
+    doc.save(output_path)
+    return output_path
+
+def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
+    if df_registro_selecionado is None:
+        QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+        return None
+    df = load_treeview_data()
+
+    ultima_folha = df['Fim'].iloc[-1]
+    quantidade_folhas = f"{ultima_folha} ({num2words(ultima_folha, lang='pt_BR')}) folhas"
+    objeto = df_registro_selecionado['objeto'].iloc[0]
+    id_processo_original = df_registro_selecionado['id_processo'].iloc[0]
+    id_processo_novo = id_processo_original.replace('/', '-')
+
+    template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+    doc = DocxTemplate(template_path)
+    
+    # Contexto inicial com as variáveis básicas
+    context = {
+        'numero': df_registro_selecionado['numero'].iloc[0],
+        'ano': df_registro_selecionado['ano'].iloc[0],
+        'nup': df_registro_selecionado['nup'].iloc[0],
+        'tipo': df_registro_selecionado['tipo'].iloc[0],
+        'objeto_completo': df_registro_selecionado['objeto_completo'].iloc[0],
+        'quantidade_folhas': quantidade_folhas,
+        'descricao_servico': "Aquisição de" if df_registro_selecionado['material_servico'].iloc[0] == "material" else "Contratação de empresa especializada em"
+    }
+    
+    # Adição de informações dinâmicas de páginas ao contexto existente
+    additional_context = {row['SAPIENS']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
+                          for index, row in df.iterrows()}
+    context.update(additional_context)
+
+    print("Unified Context:", context)
+
+    nome_pasta = f"{id_processo_novo} - {remover_caracteres_especiais(objeto)}"
+    desktop_path = Path.home() / 'Desktop' / nome_pasta
+    desktop_path.mkdir(parents=True, exist_ok=True)
+
+    subpasta_checklist = f"{id_processo_novo} - Checklist"
+    subpasta_destino = desktop_path / subpasta_checklist
+    subpasta_destino.mkdir(parents=True, exist_ok=True)
+    
+    # Renderização única com o contexto completo
+    doc.render(context)
+    output_path = subpasta_destino / f"{id_processo_novo} - Nota Técnica.docx"
+    doc.save(output_path)
+
     return output_path
