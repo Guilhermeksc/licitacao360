@@ -11,7 +11,6 @@ from styles.styless import (
 from custom_widgets.create_1_inicio import InicioWidget
 from modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from planejamento.planejamento_button import ApplicationUI
-from custom_widgets.create_7_checklist_button import ChecklistWidget
 from custom_widgets.create_9_atas_button import AtasWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.painel_contratos_novo import ControleContratosWidget
@@ -97,7 +96,6 @@ class MainWindow(QMainWindow):
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
             (" Controle de Contratos", ICONS_DIR / "x.png"), 
-            (" Check-list", ICONS_DIR / "x.png"),
             (" Atas e Contratos (novo)", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"),
             (" Limite de Dispensa", ICONS_DIR / "x.png"), 
@@ -175,7 +173,6 @@ class MainWindow(QMainWindow):
         content_actions = {
             "Planejamento": self.setup_planejamento,
             "Controle de Contratos": self.setup_controle_contratos,
-            "Check-list": self.setup_checklist,
             "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
             "Atas e Contratos": self.setup_atas_contratos,
             "Limite de Dispensa": self.setup_limite_dispensa,
@@ -200,7 +197,6 @@ class MainWindow(QMainWindow):
                 "Início": self.open_initial_page,
                 "Planejamento": self.setup_planejamento,
                 "Controle de Contratos": self.setup_controle_contratos,
-                "Check-list": self.setup_checklist,
                 "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
                 "Atas e Contratos": self.setup_atas_contratos,
                 "Limite de Dispensa": self.setup_limite_dispensa,
@@ -221,11 +217,6 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.contratos_widget = ControleContratosWidget(self)
         self.content_layout.addWidget(self.contratos_widget)
-
-    def setup_checklist(self):
-        self.clear_content_area()
-        self.checklist_widget = ChecklistWidget(self, str(ICONS_DIR))
-        self.content_layout.addWidget(self.checklist_widget)
     
     def setup_atas_contratos(self):
         self.clear_content_area()

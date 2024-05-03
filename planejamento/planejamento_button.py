@@ -7,7 +7,8 @@ from utils.treeview_utils import load_images, create_button, save_dataframe_to_e
 import pandas as pd
 import os
 from planejamento.capa_edital import CapaEdital
-from planejamento.msg_planejamento import MSGAlertaPrazo
+from planejamento.checklist import ChecklistWidget
+from planejamento.msg_planejamento import MSGIRP, MSGHomolog, MSGPublicacao
 from planejamento.dfd import GerarDFD
 from planejamento.cp_agu import CPEncaminhamentoAGU
 from planejamento.editar_dados import EditarDadosDialog
@@ -298,6 +299,7 @@ class TableMenu(QMenu):
             "Nota Técnica",
             "Escalar Pregoeiro",
             "Gerar Relatório de Processo",
+            "Check-list"  
         ]
 
         for actionText in actions:
@@ -327,7 +329,13 @@ class TableMenu(QMenu):
                 elif actionText == "Capa do Edital":
                     self.openDialogCapaEdital(df_registro_selecionado)
                 elif actionText == "Mensagem de Divulgação de IRP":
-                    self.abrirDialogoAlertaPrazo(df_registro_selecionado)
+                    self.abrirDialogoIRP(df_registro_selecionado)
+                elif actionText == "Mensagem de Publicação":
+                    self.abrirDialogoPublicacao(df_registro_selecionado)
+                elif actionText == "Mensagem de Homologação":
+                    self.abrirDialogoHomologacao(df_registro_selecionado)
+                elif actionText == "Check-list":
+                    self.openChecklistDialog(df_registro_selecionado)
             else:
                 QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
         else:
@@ -339,18 +347,46 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, id_processo, self)
         dialog.exec()
 
-    def abrirDialogoAlertaPrazo(self, df_registro_selecionado):
+    def abrirDialogoIRP(self, df_registro_selecionado):
         if not df_registro_selecionado.empty:
             dados = df_registro_selecionado.iloc[0].to_dict()
-            dialogo = MSGAlertaPrazo(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo = MSGIRP(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
             dialogo.exec()
         else:
             QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
 
-    # Aqui você define cada uma das funções chamadas no trigger_action
+    def abrirDialogoPublicacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGPublicacao(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def abrirDialogoHomologacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGHomolog(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
     def editar_dados(self, df_registro_selecionado):
         dialog = EditarDadosDialog(parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
         dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
+        dialog.exec()
+
+    def openChecklistDialog(self, df_registro_selecionado):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Check-list")
+        dialog.resize(950, 800)
+        dialog.setStyleSheet("background-color: black; color: white;")
+        
+        # Instancia o ChecklistWidget e passa o DataFrame como argumento
+        checklist_widget = ChecklistWidget(parent=dialog, icons_path=self.main_app.icons_dir, df_registro_selecionado=df_registro_selecionado)
+
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(checklist_widget)
         dialog.exec()
 
     def openDialogDFD(self, df_registro_selecionado):

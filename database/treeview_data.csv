@@ -1,20 +1,16 @@
 Nº,Identificação,SAPIENS,Início,Fim,Págs
 01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
-02,Autorização para Abertura de Processo,termo_abertura,5,6,2
-03,Documento de Formalização da Demanda (DFD),dfd,7,16,10
-04,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,17,18,2
-05,Despacho,Despacho,19,20,2
-06,Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,portaria_od,21,23,3
-07,Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,portaria_comissao,24,27,4
-08,Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,portaria_plan,28,31,4
-09,Estudo Técnico Preliminar (ETP),etp,32,48,17
-10,Matriz de Gerenciamento de Riscos,mr,49,59,11
-11,Pesquisa de Preços,pesquisa_precos,60,117,58
-12,Minuta do Edital,minuta_edital,118,144,27
-13,Minuta do Contrato,minuta_contrato,145,153,9
-14,Minuta da Ata de Registro de Preços,minuta_arp,154,163,10
-15,Lista de Verificação,checklist,164,170,7
-16,Despacho,despacho,171,172,2
-17,Nota Técnica,nota_tecnica,173,180,8
-18,Comunicação Padronizada,termo,181,182,2
-19,Despacho de Encaminhamento para AGU,termo,183,184,2
+02,Documento de Formalização da Demanda (DFD),dfd,5,14,10
+03,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,15,16,2
+04,Comunicação Padronizada,nova_variavel,17,18,2
+05,Despacho de Encaminhamento para AGU,tr,19,20,2
+06,Despacho,mr,21,22,2
+07,Nota Técnica,nota_tecnica,23,30,8
+08,Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,port_comissao,31,34,4
+09,Minuta do Edital,minuta_edital,35,61,27
+10,Lista de Verificação,checklist,62,68,7
+11,Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,port_plan,69,72,4
+12,Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,port_od,73,75,3
+13,Autorização para Abertura de Processo,termo_abertura,76,77,2
+14,Estudo Técnico Preliminar (ETP),etp,78,94,17
+15,Pesquisa de Preços,pesquisa_precos,95,152,58
