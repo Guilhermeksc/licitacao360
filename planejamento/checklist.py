@@ -164,7 +164,7 @@ class ChecklistWidget(QWidget):
         self.font.setPointSize(12)
         self.tree.setFont(self.font)
         self.tree.setColumnCount(6)
-        self.tree.setHeaderLabels(["Nº", "Identificação", "SAPIENS", "Início", "Fim", "Págs"])
+        self.tree.setHeaderLabels(["Nº", "Identificação", "Marcador", "Início", "Fim", "Págs"])
         self.header = self.tree.header()
         self.header.setFont(self.font)
         self.header.setStyleSheet(
@@ -204,7 +204,7 @@ class ChecklistWidget(QWidget):
         icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
         self.button_specs = [
             ("Sapiens", self.image_cache['sapiens'], self.abrir_link_sapiens, "Carregar o link do Sapiens", icon_size),
-            ("Atualizar", self.image_cache['rotate'], self.resetar_treeview, "Atualizar a visualização", icon_size),
+            ("Resetar Padrão", self.image_cache['rotate'], self.resetar_treeview, "Atualizar a visualização", icon_size),
             ("Numerar", self.image_cache['page'], numerar_pdf_gui, "Numerar o PDF", icon_size),
             ("Processar", self.image_cache['processing'], lambda: processar_pdf_na_integra_e_gerar_documentos(self.df_registro), "Processar o PDF", icon_size),
             ("Importar", self.image_cache['import'], self.onLoadItems, "Importar dados", icon_size),
@@ -316,19 +316,19 @@ class ChecklistWidget(QWidget):
         
         # Verificar se o arquivo TREEVIEW_DATA_PATH existe
         if os.path.exists(TREEVIEW_DATA_PATH):
-            df = pd.read_csv(TREEVIEW_DATA_PATH, usecols=['Identificação', 'SAPIENS', 'Início', 'Fim'])
+            df = pd.read_csv(TREEVIEW_DATA_PATH, usecols=['Identificação', 'Marcador', 'Início', 'Fim'])
             dados_from_file = df.values.tolist()
         else:
             dados_from_file = dados  # Use a lista padrão de dados se o arquivo não existir
         
         # Adicionar os itens ao treeview
-        for idx, (identificacao, sapiens, inicio, fim) in enumerate(dados_from_file, 1):  # Começar a contar do 1
+        for idx, (identificacao, marcador, inicio, fim) in enumerate(dados_from_file, 1):  # Começar a contar do 1
             try:
                 qnt_pag = int(fim) - int(inicio) + 1
             except ValueError:
                 # Handle the case where "fim" or "inicio" cannot be converted to integers
                 qnt_pag = 0  # or some other appropriate default value
-            item = QTreeWidgetItem([f"{idx:02}", identificacao, sapiens, str(inicio), str(fim), str(qnt_pag)])
+            item = QTreeWidgetItem([f"{idx:02}", identificacao, marcador, str(inicio), str(fim), str(qnt_pag)])
             # Não defina as colunas como editáveis aqui
             self.tree.addTopLevelItem(item)
         
@@ -364,9 +364,9 @@ class ChecklistWidget(QWidget):
         # Carrega a lista de dados padrão no treeview
         self.tree.clear()
         dados_to_load = self.get_default_data()
-        for idx, (identificacao, sapiens, inicio, fim) in enumerate(dados_to_load, 1):  # Começar a contar do 1
+        for idx, (identificacao, marcador, inicio, fim) in enumerate(dados_to_load, 1):  # Começar a contar do 1
             qnt_pag = int(fim) - int(inicio) + 1
-            item = QTreeWidgetItem([f"{idx:02}", identificacao, sapiens, str(inicio), str(fim), str(qnt_pag)])
+            item = QTreeWidgetItem([f"{idx:02}", identificacao, marcador, str(inicio), str(fim), str(qnt_pag)])
             self.tree.addTopLevelItem(item)
         self.adjust_column_sizes()
 
@@ -374,7 +374,7 @@ class ChecklistWidget(QWidget):
         # Your code here to handle the item click event
         pass   
 
-    def inserir_item(self, identificacao="Despacho", marcador_sapiens="Termo"):
+    def inserir_item(self, identificacao="Despacho", marcador="Termo"):
         tree = self.tree
         # Verifique se há uma linha selecionada
         selected_items = tree.selectedItems()
@@ -398,7 +398,7 @@ class ChecklistWidget(QWidget):
         num_paginas = 2  # This is fixed as per your requirement
 
         # Create a new QTreeWidgetItem and insert it into the tree
-        new_item = QTreeWidgetItem([str(insert_position), identificacao, marcador_sapiens, str(inicio), str(fim), str(num_paginas)])
+        new_item = QTreeWidgetItem([str(insert_position), identificacao, marcador, str(inicio), str(fim), str(num_paginas)])
         tree.insertTopLevelItem(insert_position, new_item)
         
         tree.atualizar_idx()
@@ -425,9 +425,9 @@ class ChecklistWidget(QWidget):
             view_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "search.png")), "Visualizar")
 
             # Connect actions to methods
-            despacho_action.triggered.connect(partial(self.inserir_item, identificacao="Despacho", marcador_sapiens="Termo"))
-            comunicacao_action.triggered.connect(partial(self.inserir_item, identificacao="Comunicação Padronizada nº", marcador_sapiens="Comunicação"))  
-            desmembramento_action.triggered.connect(partial(self.inserir_item, identificacao="Termo de Desentranhamento", marcador_sapiens="Termo"))
+            despacho_action.triggered.connect(partial(self.inserir_item, identificacao="Despacho", marcador="Termo"))
+            comunicacao_action.triggered.connect(partial(self.inserir_item, identificacao="Comunicação Padronizada nº", marcador="Comunicação"))  
+            desmembramento_action.triggered.connect(partial(self.inserir_item, identificacao="Termo de Desentranhamento", marcador="Termo"))
 
             add_action.triggered.connect(self.onProcessarPDF)
             edit_action.triggered.connect(self.onProcessarPDF)  
@@ -531,7 +531,7 @@ def substituir_variaveis_docx(df_registro_selecionado, df):
     doc = DocxTemplate(TEMPLATE_CHECKLIST)
 
     # Dicionário para mapear as variáveis para os valores de forma dinâmica
-    context = {row['SAPIENS']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
+    context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
                for index, row in df.iterrows()}
 
     # Substituindo as variáveis no documento
@@ -664,7 +664,7 @@ def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
     doc.render(initial_context)
     
     # Contexto adicional com informações dinâmicas de páginas
-    additional_context = {row['SAPIENS']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
+    additional_context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
                           for index, row in df.iterrows()}
 
     print("Additional Context:", additional_context)
@@ -704,7 +704,7 @@ def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
     }
     
     # Adição de informações dinâmicas de páginas ao contexto existente
-    additional_context = {row['SAPIENS']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
+    additional_context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" if row['Início'] != row['Fim'] else f"Fl. {row['Início']}"
                           for index, row in df.iterrows()}
     context.update(additional_context)
 

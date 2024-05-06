@@ -5,7 +5,7 @@ from pathlib import Path
 from gerar_atas_pasta.regex_termo_homolog import *
 from gerar_atas_pasta.regex_sicaf import *
 from gerar_atas_pasta.canvas_gerar_atas import *
-from utils.treeview_utils import open_folder
+from utils.treeview_utils import open_folder, load_images, create_button
 from diretorios import *
 import os
 import pandas as pd
@@ -19,6 +19,31 @@ GERADOR_NUMERO_ATA = None
 CSV_OUTPUT_PATH = DATABASE_DIR / "dados.csv"
 tr_variavel_df_carregado = None
 
+class DocumentTableModel(QAbstractTableModel):
+    def __init__(self, data, headers):
+        super().__init__()
+        self._data = data
+        self._headers = headers
+
+    def rowCount(self, parent=None):
+        return len(self._data)
+
+    def columnCount(self, parent=None):
+        return len(self._data.columns)
+
+    def data(self, index, role):
+        if role == Qt.ItemDataRole.DisplayRole:
+            return str(self._data.iloc[index.row(), index.column()])
+        return None
+
+    def headerData(self, section, orientation, role):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self._headers[section]
+        return None
+
+    def get_headers(self):
+        return self._headers
+
 class GerarAtasWidget(QWidget):
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
@@ -29,10 +54,18 @@ class GerarAtasWidget(QWidget):
         global_event_manager.sicaf_dir_updated.connect(self.on_sicaf_dir_updated)
 
         self.icons_dir = Path(icons_dir)
+
+        self.image_cache = load_images(self.icons_dir, [
+            "table.png", "data-processing.png", "performance.png", "data-collection.png", "data-collection2.png", "calendar.png", "report.png", "management.png"
+        ])
+
         self.tr_variavel_df_carregado = None
         self.nome_arquivo_carregado = ""
         self.botoes = []  # Inicializando a lista de botões
         self.setup_ui()
+        self.setMinimumSize(1200, 600)  # Define o tamanho mínimo da janela para 1200x600
+
+        self.tr_df_carregado = None
         arquivo_salvo = self.load_file_path()
         try:
             if arquivo_salvo:
@@ -44,7 +77,6 @@ class GerarAtasWidget(QWidget):
             self.nome_arquivo_carregado = ""
             print("Arquivo não encontrado.")
 
-        self.atualizar_label_passo1()
         self.progressDialog = None
         self.sicafDialog = None
         self.atasDialog = None
@@ -57,125 +89,166 @@ class GerarAtasWidget(QWidget):
         self.sicaf_dir = new_sicaf_dir
 
     def setup_ui(self):
-        main_layout = QVBoxLayout(self)
-
-        header_layout = QVBoxLayout()
-
-        # Criando um QHBoxLayout para o QLabel e o botão de reset
-        label_reset_layout = QHBoxLayout()
-
-        # Criando o QLabel para mostrar o arquivo carregado
-        self.label_passo1 = QLabel("Arquivo Carregado:", self)
-        fonte_label = QFont("Arial", 14, QFont.Weight.Normal)
-        self.label_passo1.setFont(fonte_label)
-        self.label_passo1.setStyleSheet(get_transparent_title_style())
-        self.label_passo1.setAlignment(Qt.AlignmentFlag.AlignTop)
-        label_reset_layout.addWidget(self.label_passo1)
-
-        # Criando o botão de reset
-        self.resetButton = QPushButton("Reset", self)
-        self.resetButton.clicked.connect(self.reset_arquivo_carregado)
-        self.resetButton.setFont(QFont("Arial", 14, QFont.Weight.Normal))
-        self.resetButton.setFixedSize(self.resetButton.sizeHint())
-        self.resetButton.hide()
-        label_reset_layout.addWidget(self.resetButton)
-
-        # Adiciona o QHBoxLayout ao QVBoxLayout do cabeçalho
-        header_layout.addLayout(label_reset_layout)
-
-        # Adiciona um espaçador para manter o cabeçalho no topo
-        header_layout.addStretch(1)  # Experimente com diferentes valores, como 0 ou 1
-        # Adiciona o QVBoxLayout do cabeçalho ao layout principal
-        main_layout.addLayout(header_layout)
-        
-        button_size = QSize(330, 140)
-
-        # Lista de funções correspondentes a cada botão
-        button_functions = [
-            self.selecionar_termo_de_referencia_e_carregar,
-            self.iniciar_processamento,
-        ]
-
-        # Textos para os botões
-        textos_botao = [
-            "Passo 1: Importar\nTermo de Referência",
-            "Passo 2: Processar\nTermo de Homologação",
-        ]
-
-        icon_paths = [
-            "import_tr.png", "production.png"
-        ]
-
-        for i, nome_botao in enumerate(textos_botao):
-            button = self.createButton(nome_botao, icon_paths[i], button_functions[i], button_size)
-            self.botoes.append(button)
-
-            h_layout = QHBoxLayout()
-            h_layout.addStretch()
-            h_layout.addWidget(button)
-            h_layout.addStretch()
-
-            main_layout.addLayout(h_layout)
-
-        main_layout.addStretch(1)  # Experimente com diferentes valores
-
-        # Carrega as configurações após a criação dos widgets
-        self.load_settings()
-
-    def createButton(self, text, icon_filename, callback, size):
-        button = QToolButton(self)
-        button.setText(text)
-        icon = QIcon(os.path.join(str(self.icons_dir), icon_filename))
-        button.setIcon(icon)
-        button.setIconSize(QSize(64, 64))
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-
-        button.clicked.connect(callback)
-        button.setFont(QFont("Arial", 14, QFont.Weight.Normal))
-        button.setFixedSize(size)
-
-        # Estilo personalizado para o botão desabilitado
-        button.setStyleSheet("""
-        QToolButton {
-            font-size: 16px;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.2);
-            font-weight: bold;
+        self.main_layout = QVBoxLayout(self)
+        self.setup_buttons_layout()
+        self.tableView = QTableView(self)
+        initial_headers = []  # A lista de cabeçalhos iniciais vazia como exemplo
+        self.model = DocumentTableModel(pd.DataFrame(), initial_headers)
+        self.tableView.setModel(self.model)
+        self.tableView.setStyleSheet("""
+        QTableView {
+            background-color: black;
             color: white;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            text-decoration: none;
+            font-size: 12pt;
+            border: 1px solid black;
         }
-        QToolButton:hover {
-            color: rgb(0, 255, 255);
-            background-color: rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(0, 255, 255, 0.8);
-            text-decoration: underline;
-        }
-        QToolButton:disabled {
-            background-color: rgba(0, 0, 0, 0.8);
-            color: gray;
+        QHeaderView::section {
+            background-color: #333;
+            padding: 4px;
+            border: 0.5px solid #dcdcdc;
+            color: white;
+            font-size: 12pt;
         }
         """)
+        QTimer.singleShot(1, self.adjust_columns)
+        self.tableView.verticalHeader().setVisible(False)
 
-        return button
+        self.main_layout.addWidget(self.tableView)
+        self.setup_buttons_down_layout()
+        self.setLayout(self.main_layout)
 
+    def adjust_columns(self):
+        """Ajusta as larguras das colunas do QTableView."""
+        header = self.tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)  # Ajusta todas as colunas ao conteúdo
+        headers = self.model.get_headers()
+
+        # Identifica o índice para a coluna "Descrição Detalhada"
+        descricao_detalhada_index = headers.index("Descrição Detalhada") if "Descrição Detalhada" in headers else -1
+        descricao_index = headers.index("Descrição") if "Descrição" in headers else -1
+
+        if descricao_detalhada_index != -1:
+            header.setSectionResizeMode(descricao_detalhada_index, QHeaderView.ResizeMode.Fixed)  # Configura a coluna para um tamanho fixo
+            self.tableView.setColumnWidth(descricao_detalhada_index, 150)  # Define a largura fixa
+        if descricao_index != -1:
+            header.setSectionResizeMode(descricao_index, QHeaderView.ResizeMode.Fixed)  # Configura a coluna para um tamanho fixo
+            self.tableView.setColumnWidth(descricao_index, 150)  # Define a largura fixa
+
+    def setup_buttons_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.create_buttons()
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def create_buttons(self):
+        self.buttons_layout = QHBoxLayout()
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
+        self.button_specs = [
+            ("Importar TR", self.image_cache['table'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size),
+            ("Processar Homologação", self.image_cache['data-collection'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
+            ("Processar SICAF", self.image_cache['data-collection2'], self.salvar_tabela, "Exclui um item selecionado", icon_size),
+            ("Configurações", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
+        ]
+
+        for text, icon, callback, tooltip, icon_size in self.button_specs:
+            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+            self.buttons_layout.addWidget(btn)
+
+    def setup_buttons_down_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.create_buttons_down()
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def create_buttons_down(self):
+        self.buttons_layout = QHBoxLayout()
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
+        self.button_specs = [
+            ("Carregar DB", self.image_cache['table'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size),
+            ("Gerar Ata/Contrato", self.image_cache['data-processing'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
+            ("Indicador NORMCEIM", self.image_cache['performance'], self.salvar_tabela, "Exclui um item selecionado", icon_size),
+            ("Itens", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
+        ]
+
+        for text, icon, callback, tooltip, icon_size in self.button_specs:
+            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+            self.buttons_layout.addWidget(btn)
+
+    def salvar_tabela(self):
+        pass    
+
+    def open_settings_dialog(self):
+        pass
+
+    def load_data(self):
+        # Retorna um DataFrame vazio para inicialização
+        return pd.DataFrame()
+    
+    def import_tr(self):
+        self.selecionar_termo_de_referencia_e_carregar()
+        if self.tr_df_carregado is not None:
+            self.atualizar_modelo_com_dados()
+
+    def selecionar_termo_de_referencia_e_carregar(self):
+        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
+        if arquivo:
+            self.tr_df_carregado = pd.read_excel(arquivo)
+            self.atualizar_modelo_com_dados()
+            
     def button_clicked(self, index):
         if index == 0:  # Primeiro botão
             self.selecionar_termo_de_referencia_e_carregar()
         elif index == 1:  # Segundo botão
             convert_pdf_to_txt(self.pdf_dir, TXT_DIR, self.progress_bar_homolog)
-        # ... (outros casos para outros botões)
 
     def selecionar_termo_de_referencia_e_carregar(self):
-        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Spreadsheet files (*.xlsx *.xls *.ods);;Excel files (*.xlsx *.xls);;LibreOffice files (*.ods)")
+        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
         if arquivo:
-            self.tr_variavel_df_carregado = pd.read_excel(arquivo)
-            nome_do_arquivo = os.path.basename(arquivo)
-            self.nome_arquivo_carregado = nome_do_arquivo
-            self.atualizar_label_passo1()
-            self.save_file_path(arquivo)  # Salva o caminho do arquivo
-            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{nome_do_arquivo}' foi carregado com sucesso!")
+            self.tr_df_carregado = pd.read_excel(arquivo)
+            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{os.path.basename(arquivo)}' foi carregado com sucesso!")
+
+    def atualizar_modelo_com_dados(self):
+        # Mapeia as colunas do DataFrame para as colunas esperadas no modelo
+        mapeamento_colunas = {
+            "Item": "item_num",
+            "Catálogo": "catalogo",
+            "Descrição": "descricao_tr",
+            "Descrição Detalhada": "descricao_detalhada_tr",
+            "UASG": "uasg",
+            "Órgão Responsável": "orgao_responsavel",
+            "Número": "num_pregao",
+            "Ano": "ano_pregao",
+            "SRP": "srp",
+            "Objeto": "objeto",
+            "Grupo": "grupo",
+            "Valor Estimado": "valor_estimado",
+            "Quantidade": "quantidade",
+            "Unidade": "unidade",
+            "Situação": "situacao",
+            "Melhor Lance": "melhor_lance",
+            "Valor Negociado": "valor_negociado",
+            "Ordenador Despesa": "ordenador_despesa",
+            "Empresa": "empresa",
+            "CNPJ": "cnpj",
+            "Marca Fabricante": "marca_fabricante",
+            "Modelo Versão": "modelo_versao",
+            "Valor Homologado do Item": "valor_homologado_item_unitario",
+            "Valor Estimado Total do Item": "valor_estimado_total_do_item",
+            "Valor Homologado Total do Item": "valor_homologado_total_item",
+            "Percentual Desconto": "percentual_desconto"
+        }
+        # Preparar o DataFrame para ter todas as colunas mapeadas, com valores vazios para colunas faltantes
+        for key, value in mapeamento_colunas.items():
+            if value not in self.tr_df_carregado.columns:
+                self.tr_df_carregado[value] = None  # Adiciona a coluna com valores vazios
+
+        # As colunas para o modelo são baseadas nas chaves do mapeamento, garantindo a ordem
+        headers = list(mapeamento_colunas.keys())
+        colunas_modelo = list(mapeamento_colunas.values())
+
+        # Cria um DataFrame apenas com as colunas mapeadas
+        dados_filtrados = self.tr_df_carregado[colunas_modelo]
+        self.model = DocumentTableModel(dados_filtrados, headers)
+        self.tableView.setModel(self.model)
+        self.adjust_columns()
 
     def save_file_path(self, file_path):
         settings = QSettings("SuaEmpresa", "SeuApp")
@@ -189,23 +262,12 @@ class GerarAtasWidget(QWidget):
     def load_settings(self):
         settings = QSettings("SuaEmpresa", "SeuApp")
         self.nome_arquivo_carregado = settings.value("termo_referencia_arquivo", "")
-        self.atualizar_label_passo1()  # Atualiza o QLabel do Passo 1
 
     def reset_arquivo_carregado(self):
         self.nome_arquivo_carregado = ""
         self.tr_variavel_df_carregado = None
-        self.atualizar_label_passo1()
         # Aqui, você também pode salvar o estado resetado nas configurações, se necessário
         self.save_file_path("")
-
-    def atualizar_label_passo1(self):
-        texto_base = "Arquivo Carregado:"
-        if self.nome_arquivo_carregado:
-            self.label_passo1.setText(f"{texto_base} {self.nome_arquivo_carregado}")
-            self.resetButton.show()  # Mostra o botão de reset
-        else:
-            self.label_passo1.setText(f"{texto_base} Nenhum Arquivo Selecionado!")
-            self.resetButton.hide()  # Oculta o botão de reset
 
     def iniciar_processamento(self):
         # Verifica se o termo de referência foi carregado
@@ -246,9 +308,6 @@ class GerarAtasWidget(QWidget):
         # Exibe uma mensagem de conclusão
         QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
 
-    def get_title(self):
-        return "Gerar Atas"
-
     def get_content_widget(self):
         return self
 
@@ -274,8 +333,6 @@ class GerarAtasWidget(QWidget):
         EXCEL_OUTPUT_PATH = DATABASE_DIR / "relatorio.xlsx"
         merged_df.to_excel(EXCEL_OUTPUT_PATH, index=False, engine='openpyxl')
         merged_df.to_csv(CSV_OUTPUT_PATH, index=False, encoding='utf-8-sig')
-        salvar_txt_cnpj_empresa(merged_df, TXT_OUTPUT_PATH)
-
         # Retorna o DataFrame combinado
         return merged_df
 
@@ -304,7 +361,6 @@ class GerarAtasWidget(QWidget):
         self.save_dataframe_as_excel(dataframe_licitacao, BASE_DIR / "excel.xlsx")
                                 
         return dataframe_licitacao
-
     
     def save_dataframe_as_excel(self, df: pd.DataFrame, output_path: str):
         df.to_excel(output_path, index=False, engine='openpyxl')
@@ -316,27 +372,6 @@ class GerarAtasWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro durante o processamento: {str(e)}")
     
-def salvar_txt_cnpj_empresa(df, output_path):
-    # Drop duplicates by CNPJ column
-    df_unique = df.drop_duplicates(subset='cnpj', keep='first')
-    
-    # Exclude rows where 'cnpj' or 'empresa' are 'N/A'
-    df_filtered = df_unique[(df_unique['cnpj'] != 'N/A') & (df_unique['empresa'] != 'N/A')]
-    
-    # Sort the dataframe by CNPJ
-    sicaf_df = df_filtered.sort_values(by='cnpj')
-    
-    # Save the CNPJ and Empresa data to a TXT file
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for _, value in sicaf_df.iterrows():
-            line = f"{value['cnpj']} - {value['empresa']}\n"
-            f.write(line)
-
-        # Writing the message about SICAF in the last line
-        f.write(f'Salve o SICAF no diretório:\n{SICAF_DIR}.')
-
-    return sicaf_df
-
 def obter_arquivos_txt(directory: str) -> list:
     """Retorna a lista de arquivos TXT em um diretório."""
     return [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.txt')]

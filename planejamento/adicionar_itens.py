@@ -14,6 +14,16 @@ class AddItemDialog(QDialog):
         super().__init__(parent)
         self.database_path = Path(CONTROLE_DADOS) 
         self.setWindowTitle("Adicionar Item")
+        # Definindo o tamanho fixo do diálogo
+        self.setFixedSize(900, 250)
+        
+        # Definindo o tamanho fixo do diálogo através de CSS
+        self.setStyleSheet("""
+            QDialog, QLabel, QComboBox, QLineEdit, QPushButton, QRadioButton {
+                font-size: 14pt;
+            }
+        """)
+
         self.layout = QVBoxLayout(self)
 
         self.options = [
@@ -56,6 +66,7 @@ class AddItemDialog(QDialog):
         hlayout3 = QHBoxLayout()
         self.objeto_le = QLineEdit()
         hlayout3.addWidget(QLabel("Objeto:"))
+        self.objeto_le.setPlaceholderText("Exemplo: 'Material de Limpeza' (Utilizar no máximo 3 palavras)") 
         hlayout3.addWidget(self.objeto_le)
         self.layout.addLayout(hlayout3)
 
@@ -63,13 +74,11 @@ class AddItemDialog(QDialog):
         hlayout4 = QHBoxLayout()
         self.nup_le = QLineEdit()
         self.sigla_om_cb = QComboBox()  # Alterado para QComboBox
-        self.update_om_btn = QPushButton("Atualizar OM")
-        self.update_om_btn.clicked.connect(self.update_om)
         hlayout4.addWidget(QLabel("Nup:"))
+        self.nup_le.setPlaceholderText("Exemplo: '00000.00000/0000-00'")       
         hlayout4.addWidget(self.nup_le)
         hlayout4.addWidget(QLabel("OM:"))
         hlayout4.addWidget(self.sigla_om_cb)  # Usando QComboBox
-        hlayout4.addWidget(self.update_om_btn)
         self.layout.addLayout(hlayout4)
 
         # Linha 5: Material/Serviço
@@ -90,7 +99,7 @@ class AddItemDialog(QDialog):
         self.material_radio.setChecked(True)
 
         # Botão de Salvar
-        self.save_btn = QPushButton("Salvar")
+        self.save_btn = QPushButton("Adicionar Item")
         self.save_btn.clicked.connect(self.accept)
         self.layout.addWidget(self.save_btn)
         self.load_sigla_om()
@@ -105,29 +114,6 @@ class AddItemDialog(QDialog):
                 self.numero_le.setText(str(next_number))
         except Exception as e:
             print(f"Erro ao carregar o próximo número: {e}")
-
-    def load_sigla_om(self):
-        try:
-            with sqlite3.connect(self.database_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT DISTINCT sigla_om, orgao_responsavel, uasg FROM controle_om ORDER BY sigla_om")
-                self.om_details = {}
-                self.sigla_om_cb.clear()
-                ceimbra_found = False  # Variável para verificar se CeIMBra está presente
-                default_index = 0  # Índice padrão se CeIMBra não for encontrado
-
-                for index, row in enumerate(cursor.fetchall()):
-                    sigla, orgao, uasg = row
-                    self.sigla_om_cb.addItem(sigla)
-                    self.om_details[sigla] = {"orgao_responsavel": orgao, "uasg": uasg}
-                    if sigla == "CeIMBra":
-                        ceimbra_found = True
-                        default_index = index  # Atualiza o índice para CeIMBra se encontrado
-
-                if ceimbra_found:
-                    self.sigla_om_cb.setCurrentIndex(default_index)  # Define CeIMBra como valor padrão
-        except Exception as e:
-            print(f"Erro ao carregar siglas de OM: {e}")
 
     def get_data(self):
         sigla_selected = self.sigla_om_cb.currentText()
@@ -166,15 +152,25 @@ class AddItemDialog(QDialog):
         with sqlite3.connect(self.database_path) as conn:
             df.to_sql('controle_om', conn, if_exists='replace', index=False)  # Use 'replace' para substituir ou 'append' para adicionar
 
-    def update_om(self):
-        # Supondo que import_uasg_to_db atualize o banco de dados corretamente
-        filename, _ = QFileDialog.getOpenFileName(
-            self,
-            "Selecione o arquivo Excel",
-            "",  # Diretório inicial, pode ser ajustado conforme necessidade
-            "Arquivos Excel (*.xlsx);;Todos os Arquivos (*)"
-        )
+    def load_sigla_om(self):
+        try:
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT DISTINCT sigla_om, orgao_responsavel, uasg FROM controle_om ORDER BY sigla_om")
+                self.om_details = {}
+                self.sigla_om_cb.clear()
+                ceimbra_found = False  # Variável para verificar se CeIMBra está presente
+                default_index = 0  # Índice padrão se CeIMBra não for encontrado
 
-        if filename:
-            self.import_uasg_to_db(filename)
-            self.load_sigla_om() 
+                for index, row in enumerate(cursor.fetchall()):
+                    sigla, orgao, uasg = row
+                    self.sigla_om_cb.addItem(sigla)
+                    self.om_details[sigla] = {"orgao_responsavel": orgao, "uasg": uasg}
+                    if sigla == "CeIMBra":
+                        ceimbra_found = True
+                        default_index = index  # Atualiza o índice para CeIMBra se encontrado
+
+                if ceimbra_found:
+                    self.sigla_om_cb.setCurrentIndex(default_index)  # Define CeIMBra como valor padrão
+        except Exception as e:
+            print(f"Erro ao carregar siglas de OM: {e}")        
