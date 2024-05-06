@@ -52,25 +52,27 @@ def esperar_invisibilidade_elemento(driver, selector, by=By.CSS_SELECTOR, timeou
     except TimeoutException:
         print(f"O elemento {selector} ainda está visível após {timeout} segundos.")
 
-def aguardar_mudanca_janela(driver, timeout=20):
+def aguardar_mudanca_janela(driver, titulo_desejado=None, timeout=20, tentativas=3):
     janelas_iniciais = driver.window_handles
     print("Janelas antes da mudança:", janelas_iniciais)
+    for janela in janelas_iniciais:
+        driver.switch_to.window(janela)
+        print(f"Título da janela inicial: {driver.title}")
 
-    try:
-        WebDriverWait(driver, timeout).until(
-            lambda d: len(d.window_handles) != len(janelas_iniciais)
-        )
-        janelas_novas = driver.window_handles
-        print("Janelas após a mudança:", janelas_novas)
+    for tentativa in range(tentativas):
+        janelas_atual = driver.window_handles
+        print("Verificando janelas disponíveis:", janelas_atual)
 
-        # Muda para a nova janela
-        for janela in janelas_novas:
-            if janela not in janelas_iniciais:
-                driver.switch_to.window(janela)
-                print("Mudou para nova janela:", driver.title)
-                break
-    except TimeoutException:
-        print("A nova janela não foi detectada no tempo esperado.")
+        for janela in janelas_atual:
+            driver.switch_to.window(janela)
+            if titulo_desejado and driver.title == titulo_desejado:
+                print(f"Mudou para a janela desejada: {driver.title}")
+                return
+        print(f"Tentativa {tentativa + 1} de encontrar a janela falhou. Tentando novamente...")
+        time.sleep(1)  # Pequena pausa antes da próxima tentativa
+
+    print("A janela com o título '{}' não foi encontrada após todas as tentativas.".format(titulo_desejado))
+
 
 def hover_sobre_elemento(driver, selector, by=By.CSS_SELECTOR, timeout=20):
     try:

@@ -172,13 +172,12 @@ class IRPDialog(QDialog):
             esperar_e_clicar(self.driver, PAGINATION_ELEMENT_XPATH, by=By.XPATH)
             
         time.sleep(0.3)
-        esperar_e_clicar(self.driver, OPTION_XPATH, by=By.XPATH) # Clicar na opção '2'
-        time.sleep(0.3)
         esperar_e_clicar(self.driver, ABRIR_JANELA_IRP) # Abrir nova janela IRP
-        aguardar_mudanca_janela(self.driver)
 
-        esperar_e_clicar(self.driver, MARKER_SELECTOR) # Clicar em Gerenciador e Participante
-        esperar_e_clicar(self.driver, CONFIRM_BUTTON_SELECTOR)
+        aguardar_mudanca_janela(self.driver, titulo_desejado="SIASGnet IRP")
+
+        # time.sleep(1)
+        # esperar_e_clicar(self.driver, CONFIRM_BUTTON_SELECTOR)
 
         hover_sobre_elemento(self.driver, HOVER_ELEMENT_SELECTOR) # Abrir menu dinâmico IRP
         esperar_e_clicar(self.driver, MENU_OPTION_SELECTOR) # Opção abrir irp existente

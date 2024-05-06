@@ -170,6 +170,29 @@ class SeleniumAutomacao(QWidget):
         if dialogo.exec() == QDialog.DialogCode.Accepted:
             self.dataframe = dialogo.dataframe  # Atualiza o DataFrame
 
+    def esperar_e_clicar(self, selector, by=By.XPATH, max_tentativas=3, timeout=20):
+        tentativas = 0
+        while tentativas < max_tentativas:
+            try:
+                elemento = WebDriverWait(self.driver, timeout).until(
+                    EC.element_to_be_clickable((By.XPATH, selector))
+                )
+                elemento.click()
+                print(f"Elemento {selector} clicado com sucesso.")
+                return
+            except TimeoutException:
+                print(f"Tentativa {tentativas + 1}: O elemento {selector} não ficou clicável após {timeout} segundos. Tentando novamente...")
+            except Exception as e:
+                print(f"Tentativa {tentativas + 1}: Erro ao tentar clicar no elemento {selector}: {e}")
+            tentativas += 1
+
+        # Se todas as tentativas normais falharem, tenta clicar via JavaScript
+        try:
+            self.driver.execute_script("arguments[0].click();", self.driver.find_element(by, selector))
+            print(f"Clique forçado via JavaScript no elemento {selector}.")
+        except Exception as e:
+            print(f"Erro ao tentar clicar via JavaScript no elemento {selector}: {e}")
+
     def esperar_e_clicar(self, selector, by=By.CSS_SELECTOR, timeout=20):
         elemento = self.esperar_elemento_clicavel(selector, by, timeout)
         if elemento:
@@ -370,10 +393,15 @@ class SeleniumAutomacao(QWidget):
                     item_erro = item_num_sequencial
                     break  # Sair do loop
 
-                valor_unitario = row['valor_unitario']
                 valor_unitario_xpath = "/html/body/div[2]/table/tbody/tr[2]/td/div[3]/form/table[1]/tbody/tr[2]/td/div[3]/table[2]/tbody/tr[2]/td[5]/input"
+                elemento_valor_unitario = self.tentar_localizar_elemento(valor_unitario_xpath)
+                if elemento_valor_unitario is None:
+                    continue  # Se não encontrou o elemento, pula para a próxima iteração
 
-                if not self.preencher_e_verificar_valor_unitario(row['valor_unitario'], valor_unitario_xpath):
+                valor_unitario = row['valor_unitario']
+                print(f"Preparando para inserir o valor unitário: {valor_unitario}")
+
+                if not self.preencher_e_verificar_valor_unitario(valor_unitario, valor_unitario_xpath):
                     continue  # Pula para a próxima iteração se não for bem-sucedido
 
                 # Selecionar a opção "Não" em 'valor_sigiloso'
@@ -453,6 +481,28 @@ class SeleniumAutomacao(QWidget):
             QMessageBox.critical(None, "Erro de Alteração", mensagem_erro)
         self.driver.quit()  # Fecha o navegador   
 
+    def tentar_localizar_elemento(self, xpath, max_tentativas=3):
+        tentativas = 0
+        while tentativas < max_tentativas:
+            try:
+                elemento = WebDriverWait(self.driver, 10).until(
+                    EC.visibility_of_element_located((By.XPATH, xpath))
+                )
+                return elemento
+            except TimeoutException:
+                print(f"Tentativa {tentativas + 1}: Não foi possível localizar o elemento {xpath}. Tentando novamente...")
+                tentativas += 1
+                if tentativas == max_tentativas:
+                    print("Não foi possível localizar o elemento após várias tentativas.")
+                    return None
+            except Exception as e:
+                print(f"Tentativa {tentativas + 1}: Erro ao tentar localizar o elemento: {e}")
+                tentativas += 1
+                if tentativas == max_tentativas:
+                    print("Erro na localização do elemento após várias tentativas.")
+                    return None
+        return None
+    
     def verificar_mudanca_esperada_apos_clique(self):
         try:
             # Aguarda a presença do elemento específico na página
@@ -499,32 +549,27 @@ class SeleniumAutomacao(QWidget):
         tentativas = 0
         while tentativas < max_tentativas:
             try:
-                # Formatando o valor_unitario
-                if isinstance(valor_unitario, float):
-                    valor_unitario_formatado = "{:.4f}".format(valor_unitario).replace('.', ',')
-                elif isinstance(valor_unitario, (int, np.int64)):
-                    valor_unitario_formatado = "{:.4f}".format(float(valor_unitario)).replace('.', ',')
-                else:
-                    valor_unitario_formatado = valor_unitario.replace('R$', '').replace(' ', '').replace(',', '.')
-                    valor_unitario_formatado = "{:.4f}".format(float(valor_unitario_formatado)).replace('.', ',')
+                valor_unitario_formatado = "{:.4f}".format(float(valor_unitario)).replace('.', ',')
+                print(f"valor_unitario: {valor_unitario}, valor_unitario_xpath: {xpath}, valor_unitario_formatado: {valor_unitario_formatado}")
 
-                # Esperando até que o campo esteja pronto para ser preenchido e preenchendo o campo
                 elemento = WebDriverWait(self.driver, 10).until(
                     EC.visibility_of_element_located((By.XPATH, xpath))
                 )
                 elemento.clear()
                 elemento.send_keys(valor_unitario_formatado)
+                time.sleep(2)  # Aumentando o delay para permitir a atualização do campo
 
-                # Verificação e confirmação do valor inserido
+                # Captura e verificação do valor inserido
                 valor_inserido = elemento.get_attribute('value')
-                valor_inserido_formatado = valor_inserido.replace('.', '').replace(',', '.')
+                print(f"Valor lido do campo após inserção: '{valor_inserido}'")
 
-                if abs(float(valor_inserido_formatado) - float(valor_unitario)) < 0.0001:
+                valor_inserido_formatado = valor_inserido.replace('.', '').replace(',', '.')
+                if valor_inserido and abs(float(valor_inserido_formatado) - float(valor_unitario)) < 0.0001:
                     print(f"Valor {valor_unitario_formatado} inserido com sucesso.")
                     return True
                 else:
                     print(f"Tentativa {tentativas + 1}: Valor inserido difere do esperado. Esperado: {valor_unitario_formatado}, Inserido: {valor_inserido}")
-            
+
             except Exception as e:
                 print(f"Tentativa {tentativas + 1}: Não foi possível verificar o valor inserido: {e}")
 
@@ -532,6 +577,7 @@ class SeleniumAutomacao(QWidget):
 
         print(f"Não foi possível inserir o valor corretamente após {max_tentativas} tentativas.")
         return False
+
 
     def determinar_seletor_paginacao(self, numero_item):
         # Cada página contém 20 itens, então determinar o número da página
@@ -728,13 +774,11 @@ class SeleniumAutomacao(QWidget):
             esperar_e_clicar(self.driver, PAGINATION_ELEMENT_XPATH, by=By.XPATH)
             
         time.sleep(0.3)
-        esperar_e_clicar(self.driver, OPTION_XPATH, by=By.XPATH) # Clicar na opção '2'
-        time.sleep(0.3)
         esperar_e_clicar(self.driver, ABRIR_JANELA_IRP) # Abrir nova janela IRP
-        aguardar_mudanca_janela(self.driver)
 
-        esperar_e_clicar(self.driver, MARKER_SELECTOR) # Clicar em Gerenciador e Participante
-        esperar_e_clicar(self.driver, CONFIRM_BUTTON_SELECTOR)
+        aguardar_mudanca_janela(self.driver, titulo_desejado="SIASGnet IRP")
+        # time.sleep(1)
+        # esperar_e_clicar(self.driver, CONFIRM_BUTTON_SELECTOR)
 
         hover_sobre_elemento(self.driver, HOVER_ELEMENT_SELECTOR) # Abrir menu dinâmico IRP
         esperar_e_clicar(self.driver, MENU_OPTION_SELECTOR) # Opção abrir irp existente

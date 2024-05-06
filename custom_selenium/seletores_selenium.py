@@ -13,10 +13,11 @@ GOVERNO_BUTTON_SELECTOR = "button.governo"
 OVERLAY_SELECTOR = "div.ui-blockui.ui-widget-overlay.ui-blockui-document"
 # PAGINATION_ELEMENT_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/p-paginator/div/span"
 
-PAGINATION_ELEMENT_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/p-paginator/div/span/a[2]"
+PAGINATION_ELEMENT_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/p-paginator/div/span/button[2]"
 
 OPTION_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/p-paginator/div/span/a[2]"
 ABRIR_JANELA_IRP = "div.col-xl-2:nth-child(2) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1) > p:nth-child(1) > img:nth-child(1)"
+
 ABRIR_JANELA_PESQUISA_PRECOS = "div.col-xl-2:nth-child(3) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1) > p:nth-child(1) > img:nth-child(1)"
 
 MARKER_SELECTOR = ".conteudoSemAbas > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(1) > input:nth-child(1)"
