@@ -28,6 +28,90 @@ class DraggableTreeWidget(QTreeWidget):
         self.previous_values = {}  # Dicionário para armazenar os valores anteriores
         self.itemChanged.connect(self.onItemChanged)
         self.itemDoubleClicked.connect(self.onItemDoubleClicked)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_context_menu)
+
+    def open_context_menu(self, position):
+        menu = QMenu(self)
+        add_item_action = QAction("Adicionar item", self)
+        delete_item_action = QAction("Excluir item", self)
+
+        add_item_action.triggered.connect(self.inserir_item)
+        delete_item_action.triggered.connect(self.delete_selected_rows)
+
+        menu.addAction(add_item_action)
+        menu.addAction(delete_item_action)
+
+        menu.exec(self.viewport().mapToGlobal(position))
+
+    def inserir_item(self, identificacao="Despacho", marcador_sapiens="Termo"):
+        selected_items = self.selectedItems()
+        if selected_items:
+            last_item = selected_items[-1]
+            insert_position = self.indexOfTopLevelItem(last_item) + 1
+            last_fim_value = int(last_item.text(4))
+        else:
+            if self.topLevelItemCount() > 0:
+                last_item = self.topLevelItem(self.topLevelItemCount() - 1)
+                last_fim_value = int(last_item.text(4))
+                insert_position = self.topLevelItemCount()
+            else:
+                last_fim_value = 0
+                insert_position = 0
+
+        inicio = last_fim_value + 1
+        fim = inicio + 1
+        num_paginas = fim - inicio + 1
+
+        # Creating a new tree widget item with the correct data types for each column
+        new_item = QTreeWidgetItem([
+            str(insert_position),  # This is likely causing an error because 'insert_position' is not needed here
+            identificacao,
+            marcador_sapiens,
+            str(inicio),
+            str(fim),
+            str(num_paginas)
+        ])
+        self.insertTopLevelItem(insert_position, new_item)
+
+        # Reorder and update
+        self.reordenar_treeview()
+
+    def delete_selected_rows(self):
+        selected_items = self.selectedItems()
+        for item in selected_items:
+            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+
+        # Reordenar os índices e ajustar os dados
+        self.reordenar_treeview()
+        
+    def reordenar_treeview(self):
+        df = self.save_treeview_to_dataframe()
+        df = self.ajustar_dataframe(df)
+        self.atualizar_tree_from_dataframe(df)
+
+    def ajustar_dataframe(self, df):
+        inicio_atual = 1
+        for index, row in df.iterrows():
+            df.at[index, 'Início'] = inicio_atual
+            fim_atual = inicio_atual + int(row['qnt_pag']) - 1
+            df.at[index, 'Fim'] = fim_atual
+            inicio_atual = fim_atual + 1
+        return df
+
+    def atualizar_tree_from_dataframe(self, df):
+        self.clear()
+        for idx, (_, row) in enumerate(df.iterrows(), 1):
+            self.insert("", "end", text=f"{idx:02}", values=(row["Identificação"], row["Marcador"], row["Início"], row["Fim"], row["qnt_pag"]))
+
+    def save_treeview_to_dataframe(self):
+        items = [self.topLevelItem(i) for i in range(self.topLevelItemCount())]
+        data = [(item.text(1), item.text(2), item.text(3), item.text(4), item.text(5)) for item in items]
+        df = pd.DataFrame(data, columns=["Identificação", "Marcador", "Início", "Fim", "qnt_pag"])
+        # Aqui você deve definir o TREEVIEW_DATA_PATH se ainda não foi definido
+        df.to_csv(TREEVIEW_DATA_PATH, index=False)
+        return df
+
 
     def onItemChanged(self, item, column):
         # Verificar se a coluna editada é a coluna "Fim"
@@ -150,9 +234,10 @@ class DraggableTreeWidget(QTreeWidget):
         df.to_csv(TREEVIEW_DATA_PATH, index=False)
 
 class ChecklistWidget(QWidget):
-    def __init__(self, parent, icons_path, df_registro_selecionado):
+    def __init__(self, parent, config_manager, icons_path, df_registro_selecionado):
         super().__init__(parent)
         self.icons_dir = icons_path
+        self.config_manager = config_manager 
         self.df_registro = df_registro_selecionado
         self.image_cache = load_images(self.icons_dir, [
             "sapiens.png", "processing.png", "rotate.png", "save.png", "page.png", "import.png",
@@ -174,9 +259,126 @@ class ChecklistWidget(QWidget):
         self.layout.addWidget(self.tree)
         self.setupBottomButtons()
         self.load_data()
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self.on_context_menu)
+
         self.lv_split_final_dir = None
+        self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+        
+    def update_save_location(self, key, new_path):
+        if key == 'save_location':
+            self.pasta_base = new_path
+            print(f"Local de salvamento atualizado para: {self.pasta_base}")
+
+    def load_treeview_data(self):
+        # Supondo que TREEVIEW_DATA_PATH seja um atributo ou esteja globalmente acessível
+        return pd.read_csv(TREEVIEW_DATA_PATH)
+    
+    def processar_pdf_na_integra_e_gerar_documentos(self):
+        # Abrir caixa de diálogo para selecionar o arquivo PDF numerado
+        arquivo_numerado, _ = QFileDialog.getOpenFileName(caption="Selecione o arquivo PDF numerado", filter="PDF Files (*.pdf)")
+        if not arquivo_numerado:
+            return
+
+        # Processamento do ID do processo e criação do nome da pasta principal
+        id_processo_original = self.df_registro['id_processo'].iloc[0]
+        id_processo_novo = id_processo_original.replace('/', '-')  # Substituir '/' por '-' para compatibilidade de nome de pasta
+        objeto = self.df_registro['objeto'].iloc[0]
+        nome_pasta = f"{id_processo_novo} - {remover_caracteres_especiais(objeto)}"
+        
+        # Caminho para a pasta principal usando self.pasta_base
+        pasta_destino = self.pasta_base / nome_pasta
+        pasta_destino.mkdir(parents=True, exist_ok=True)
+
+        # Definição da subpasta "Checklist"
+        subpasta_checklist = f"{id_processo_novo} - Checklist"
+        subpasta_destino = pasta_destino / subpasta_checklist
+        
+        # Verifica se a subpasta existe e cria se necessário
+        subpasta_destino.mkdir(parents=True, exist_ok=True)
+
+        # Chamada para processar o PDF e substituir marcadores
+        split_pdf_using_dataframe(arquivo_numerado, self.pasta_base, subpasta_destino)
+        
+        # Carrega os dados necessários para a substituição de variáveis
+        df_treeview = self.load_treeview_data()
+        self.substituir_variaveis_docx(df_treeview)
+        self.substituir_variaveis_nota_tecnica()  # Corrigido para refletir a nova assinatura do método
+        
+        # Abre a pasta no gerenciador de arquivos
+        open_folder(subpasta_destino)
+
+    def substituir_variaveis_nota_tecnica(self):
+        if self.df_registro is None:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+            return None
+        
+        # Carrega os dados de TREEVIEW_DATA_PATH diretamente na classe
+        df = self.load_treeview_data()
+
+        ultima_folha = df['Fim'].iloc[-1]
+        quantidade_folhas = f"{ultima_folha} ({num2words(ultima_folha, lang='pt_BR')}) folhas"
+        objeto = self.df_registro['objeto'].iloc[0]
+        id_processo_original = self.df_registro['id_processo'].iloc[0]
+        id_processo_novo = id_processo_original.replace('/', '-')
+
+        template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+        doc = DocxTemplate(template_path)
+        
+        context = {
+            'numero': self.df_registro['numero'].iloc[0],
+            'ano': self.df_registro['ano'].iloc[0],
+            'nup': self.df_registro['nup'].iloc[0],
+            'tipo': self.df_registro['tipo'].iloc[0],
+            'objeto_completo': self.df_registro['objeto_completo'].iloc[0],
+            'quantidade_folhas': quantidade_folhas,
+            'descricao_servico': "Aquisição de" if self.df_registro['material_servico'].iloc[0] == "material" else "Contratação de empresa especializada em"
+        }
+
+        # Adição de informações dinâmicas de páginas ao contexto
+        additional_context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" for _, row in df.iterrows()}
+        context.update(additional_context)
+
+        nome_pasta = f"{id_processo_novo} - {remover_caracteres_especiais(objeto)}"
+        desktop_path = self.pasta_base / nome_pasta
+        desktop_path.mkdir(parents=True, exist_ok=True)
+
+        subpasta_destino = desktop_path / f"{id_processo_novo} -Nota Técnica"
+        subpasta_destino.mkdir(parents=True, exist_ok=True)
+        
+        doc.render(context)
+        output_path = subpasta_destino / f"{id_processo_novo} - Nota Técnica.docx"
+        doc.save(output_path)
+
+        return output_path
+    
+    def substituir_variaveis_docx(self, df_treeview):
+        num_pregao = self.df_registro['numero'].iloc[0]
+        ano_pregao = self.df_registro['ano'].iloc[0]
+        id_processo_original = self.df_registro['id_processo'].iloc[0]
+        id_processo_novo = id_processo_original.replace('/', '-')
+        objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
+        nome_pasta = f"{id_processo_novo} - {objeto}"
+
+        # Caminho para a pasta principal usando pasta_base atualizada
+        pasta_destino = self.pasta_base / nome_pasta
+        pasta_destino.mkdir(parents=True, exist_ok=True)
+
+        # Definição da subpasta "Checklist"
+        subpasta_checklist = f"{id_processo_novo} - Checklist"
+        subpasta_final = pasta_destino / subpasta_checklist
+        subpasta_final.mkdir(parents=True, exist_ok=True)
+
+        # Caminho para o template e inicialização do DocxTemplate
+        template_path = PLANEJAMENTO_DIR / "template_checklist.docx"
+        doc = DocxTemplate(template_path)
+
+        context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" for index, row in df_treeview.iterrows()}
+        doc.render(context)
+
+        output_path = subpasta_final / f"PE {num_pregao}-{ano_pregao} - Checklist.docx"
+        doc.save(output_path)
+        print(f"Documento salvo em: {output_path}")
 
     def process_pdf(self, arquivo_numerado):
         try:
@@ -206,8 +408,7 @@ class ChecklistWidget(QWidget):
             ("Sapiens", self.image_cache['sapiens'], self.abrir_link_sapiens, "Carregar o link do Sapiens", icon_size),
             ("Resetar Padrão", self.image_cache['rotate'], self.resetar_treeview, "Atualizar a visualização", icon_size),
             ("Numerar", self.image_cache['page'], numerar_pdf_gui, "Numerar o PDF", icon_size),
-            ("Processar", self.image_cache['processing'], lambda: processar_pdf_na_integra_e_gerar_documentos(self.df_registro), "Processar o PDF", icon_size),
-            ("Importar", self.image_cache['import'], self.onLoadItems, "Importar dados", icon_size),
+            ("Processar", self.image_cache['processing'], lambda: self.processar_pdf_na_integra_e_gerar_documentos(), "Processar o PDF", icon_size),            ("Importar", self.image_cache['import'], self.onLoadItems, "Importar dados", icon_size),
             ("Salvar", self.image_cache['save'], self.onSaveItems, "Salvar as alterações", icon_size),
         ]
 
@@ -373,69 +574,7 @@ class ChecklistWidget(QWidget):
     def _on_item_click(self, index):
         # Your code here to handle the item click event
         pass   
-
-    def inserir_item(self, identificacao="Despacho", marcador="Termo"):
-        tree = self.tree
-        # Verifique se há uma linha selecionada
-        selected_items = tree.selectedItems()
-        
-        if selected_items:
-            last_item = selected_items[-1]  # Get the last selected item
-        elif tree.topLevelItemCount() > 0:
-            last_item = tree.topLevelItem(tree.topLevelItemCount() - 1)
-        else:
-            last_item = None
-
-        if last_item:
-            last_fim_value = int(last_item.text(4)) if last_item.text(4) else 0
-            insert_position = tree.indexOfTopLevelItem(last_item) + 1
-        else:
-            last_fim_value = 0
-            insert_position = 0
-
-        inicio = last_fim_value + 1
-        fim = inicio + 1  # Since you want to add 2 pages
-        num_paginas = 2  # This is fixed as per your requirement
-
-        # Create a new QTreeWidgetItem and insert it into the tree
-        new_item = QTreeWidgetItem([str(insert_position), identificacao, marcador, str(inicio), str(fim), str(num_paginas)])
-        tree.insertTopLevelItem(insert_position, new_item)
-        
-        tree.atualizar_idx()
-        tree.save_data_to_csv()
-        tree.ajustar_itens()
  
-    def on_context_menu(self, point):
-        index = self.tree.indexAt(point)
-        if not index.isValid():
-            return
-
-        if index.isValid():
-            context_menu = QMenu(self.tree)
-            context_menu.setStyleSheet("QMenu { font-size: 12pt; }")
-
-            # Add other actions to the menu
-            despacho_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "plus.png")), "Despacho")
-            comunicacao_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "plus.png")), "Comunicação Padronizada")
-            desmembramento_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "plus.png")), "Termo de Desmembramento")
-
-            add_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "plus.png")), "Adicionar outro ")
-            edit_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "engineering.png")), "Editar")
-            delete_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "delete.png")), "Excluir")
-            view_action = context_menu.addAction(QIcon(os.path.join(self.icons_dir, "search.png")), "Visualizar")
-
-            # Connect actions to methods
-            despacho_action.triggered.connect(partial(self.inserir_item, identificacao="Despacho", marcador="Termo"))
-            comunicacao_action.triggered.connect(partial(self.inserir_item, identificacao="Comunicação Padronizada nº", marcador="Comunicação"))  
-            desmembramento_action.triggered.connect(partial(self.inserir_item, identificacao="Termo de Desentranhamento", marcador="Termo"))
-
-            add_action.triggered.connect(self.onProcessarPDF)
-            edit_action.triggered.connect(self.onProcessarPDF)  
-            delete_action.triggered.connect(self.onProcessarPDF)
-            view_action.triggered.connect(self.onProcessarPDF)  
-
-            # Execute the context menu at the cursor's position
-            context_menu.exec(self.tree.viewport().mapToGlobal(point))
 
 import webbrowser
 

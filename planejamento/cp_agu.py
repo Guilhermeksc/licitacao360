@@ -15,6 +15,7 @@ import sqlite3
 import locale
 from num2words import num2words
 import re
+from planejamento.utilidades_planejamento import remover_caracteres_especiais
 
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
@@ -31,9 +32,10 @@ def formatar_valor_monetario(valor):
     return valor_monetario, valor_extenso
 
 class CPEncaminhamentoAGU(QDialog):
-    def __init__(self, main_app, df_registro, parent=None):
+    def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
         self.main_app = main_app
+        self.config_manager = config_manager 
         self.df_registro = df_registro
 
         # Certifique-se de que df_registro tem pelo menos um registro
@@ -95,6 +97,14 @@ class CPEncaminhamentoAGU(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
+        self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+        
+    def update_save_location(self, key, new_path):
+        if key == 'save_location':
+            self.pasta_base = new_path
+            print(f"Local de salvamento atualizado para: {self.pasta_base}")
 
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
@@ -274,10 +284,27 @@ class CPEncaminhamentoAGU(QDialog):
 
         template_path = PLANEJAMENTO_DIR / f"template_cp_encaminhamento_agu.{tipo}"
 
+        objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
-        id_processo = id_processo_original.replace('/', '-')
-        salvar_nome = f"{id_processo} - Encaminhamento a AGU.{tipo}"
-        save_path = os.path.join(self.pasta, salvar_nome)
+        id_processo_novo = id_processo_original.replace('/', '-')
+
+        nome_pasta = f"{id_processo_novo} - {objeto}"
+        subpasta_autorizacao = f"{id_processo_novo} - Encaminhamento a AGU"
+
+        pasta_destino = os.path.join(self.pasta_base, nome_pasta)
+        subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
+
+        # Verifica se a pasta principal existe e cria se necessário
+        if not os.path.exists(pasta_destino):
+            os.makedirs(pasta_destino)
+
+        # Verifica se a subpasta existe e cria se necessário
+        if not os.path.exists(subpasta_destino):
+            os.makedirs(subpasta_destino)
+
+        nome_arquivo = f"{id_processo_novo} - Encaminhamento a AGU.{tipo}"
+        save_path = os.path.join(subpasta_destino, nome_arquivo)
+
         doc = DocxTemplate(template_path)
 
         # Lógica específica para material_servico

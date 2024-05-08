@@ -32,9 +32,10 @@ def formatar_valor_monetario(valor):
     return valor_monetario, valor_extenso
 
 class CapaEdital(QDialog):
-    def __init__(self, main_app, df_registro, parent=None):
+    def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
         self.main_app = main_app
+        self.config_manager = config_manager 
         self.df_registro = df_registro
 
         # Inicializando as variáveis de seleção
@@ -101,7 +102,14 @@ class CapaEdital(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
-        self.pasta_base = os.path.expanduser("~/Desktop")  # Caminho padrão para a área de trabalho
+        self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+        
+    def update_save_location(self, key, new_path):
+        if key == 'save_location':
+            self.pasta_base = new_path
+            print(f"Local de salvamento atualizado para: {self.pasta_base}")
 
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")

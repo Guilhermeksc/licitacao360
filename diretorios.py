@@ -130,14 +130,16 @@ class ConfigManager(QObject):
         except (FileNotFoundError, json.JSONDecodeError):
             return {}
 
-    def save_config(self):
+    def save_config(self, key, value):
+        self.config[key] = value
         with open(self.config_file, 'w') as f:
             json.dump(self.config, f)
-
+        self.config_updated.emit(key, Path(value))
+        
     def update_config(self, key, value):
-        self.config[key] = value
-        self.save_config()
-        self.config_updated.emit(key, value)
+        # Aqui garantimos que ambos os parâmetros sejam passados corretamente para save_config
+        self.save_config(key, value)
+        self.config_updated.emit(key, Path(value))
 
     def get_config(self, key, default_value):
         return self.config.get(key, default_value)

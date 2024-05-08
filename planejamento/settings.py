@@ -132,9 +132,12 @@ class EditDataDialog(QDialog):
         self.model.select()
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, config_manager, parent=None):
         super().__init__(parent)
-        self.database_path = Path(CONTROLE_DADOS) 
+        self.config_manager = config_manager
+        self.database_path = Path(CONTROLE_DADOS)
+        self.config_file = CONFIG_FILE
+        self.pasta_base = Path(self.load_config('save_location', str(Path.home() / 'Desktop')))
         self.setWindowTitle("Configurações")
         self.setFixedSize(600, 400)  # Tamanho total da janela de diálogo
         self.parent_app = parent
@@ -229,6 +232,32 @@ class SettingsDialog(QDialog):
         carregar_database_layout.addWidget(carregar_database_btn)
         main_layout.addLayout(carregar_database_layout)
 
+    def load_config(self, key, default_value):
+        try:
+            with open(self.config_file, 'r') as f:
+                config = json.load(f)
+                return config.get(key, default_value)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return default_value
+
+    def save_config(self, key, value):
+        config = {}
+        try:
+            with open(self.config_file, 'r') as f:
+                config = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        config[key] = value
+        with open(self.config_file, 'w') as f:
+            json.dump(config, f)
+
+    def define_file_save_location(self):
+        file_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
+        if file_path:
+            self.pasta_base = Path(file_path)
+            self.config_manager.update_config('save_location', str(self.pasta_base))
+            print(f"Local de salvamento definido: {self.pasta_base}")
+
     def edit_data(self):
         # Abrir o QDialog para editar os dados, passando o modelo como argumento
         dialog = EditDataDialog(ICONS_DIR, self.model, self)
@@ -259,9 +288,6 @@ class SettingsDialog(QDialog):
     def open_om_uasg(self):
         print("Abrir configuração de OM/UASG")
 
-    def define_file_save_location(self):
-        file_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
-        print(f"Local de salvamento definido: {file_path}")
 
     def generate_table(self):
         # Criar DataFrame com os dados

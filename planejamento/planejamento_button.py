@@ -45,24 +45,25 @@ etapas = {
 }
     
 class CustomTableView(QTableView):
-    def __init__(self, main_app, parent=None):
+    def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
         self.main_app = main_app  # Armazena a referência ao aplicativo principal
+        self.config_manager = config_manager  # Armazena a referência ao gerenciador de configurações
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
 
     def showContextMenu(self, pos):
         index = self.indexAt(pos)
         if index.isValid():
-            # Passa a referência correta ao aplicativo principal
-            contextMenu = TableMenu(self.main_app, index, self.model())
+            contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
             contextMenu.exec(self.viewport().mapToGlobal(pos))
 
 class TableMenu(QMenu):
-    def __init__(self, main_app, index, model=None):
+    def __init__(self, main_app, index, model=None, config_manager=None):
         super().__init__()
         self.main_app = main_app
         self.index = index
+        self.config_manager = config_manager 
         self.model = model
 
         # Configuração do estilo do menu
@@ -101,6 +102,8 @@ class TableMenu(QMenu):
         opcoes_irp = [
             ("4.1. Manifesto de IRP da OM participante", self.openDialogIRPManifesto),
             ("4.2. Mensagem de Divulgação de IRP", self.abrirDialogoIRP),
+            ("4.3. Lançar o IRP", self.abrirDialogoIRP),
+            ("4.4. Conformidade do IRP (Local, R$, etc)", self.abrirDialogoIRP),
         ]
         for texto, funcao in opcoes_irp:
             sub_action = QAction(texto, submenu_irp)
@@ -178,13 +181,13 @@ class TableMenu(QMenu):
                     self.abrirDialogoIRP(df_registro_selecionado)
                 elif actionText == "Escalar Pregoeiro":
                     self.openDialogEscalarPregoeiro(df_registro_selecionado)
-                elif actionText == "CP Encaminhamento AGU":
+                elif actionText == "12. CP Encaminhamento AGU":
                     self.openDialogEncaminhamentoAGU(df_registro_selecionado)
                 elif actionText == "Mensagem de Publicação":
                     self.abrirDialogoPublicacao(df_registro_selecionado)
                 elif actionText == "Mensagem de Homologação":
                     self.abrirDialogoHomologacao(df_registro_selecionado)
-                elif actionText == "Check-list":
+                elif actionText == "10. Check-list":
                     self.openChecklistDialog(df_registro_selecionado)
             else:
                 QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
@@ -236,30 +239,30 @@ class TableMenu(QMenu):
         dialog.setStyleSheet("background-color: black; color: white;")
         
         # Instancia o ChecklistWidget e passa o DataFrame como argumento
-        checklist_widget = ChecklistWidget(parent=dialog, icons_path=self.main_app.icons_dir, df_registro_selecionado=df_registro_selecionado)
+        checklist_widget = ChecklistWidget(parent=dialog, config_manager=self.config_manager, icons_path=self.main_app.icons_dir, df_registro_selecionado=df_registro_selecionado)
 
         layout = QVBoxLayout(dialog)
         layout.addWidget(checklist_widget)
         dialog.exec()
 
     def openDialogDFD(self, df_registro_selecionado):
-        dialog = GerarDFD(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = GerarDFD(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
-        dialog = CPEncaminhamentoAGU(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = CPEncaminhamentoAGU(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogCapaEdital(self, df_registro_selecionado):
-        dialog = CapaEdital(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = CapaEdital(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogAutorizacao(self, df_registro_selecionado):
-        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogEdital(self, df_registro_selecionado):
-        dialog = EditalDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = EditalDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogContrato(self, df_registro_selecionado):
@@ -269,7 +272,7 @@ class TableMenu(QMenu):
         pass
 
     def openDialogEscalarPregoeiro(self, df_registro_selecionado):
-        dialog = EscalarPregoeiroDialog(main_app=self.main_app, df_registro=df_registro_selecionado)
+        dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
 class CustomItemDelegate(QStyledItemDelegate):
@@ -327,7 +330,7 @@ class ApplicationUI(QMainWindow):
         super().__init__()
         self.app = app
         self.icons_dir = Path(icons_dir)
-        
+        self.config_manager = ConfigManager(BASE_DIR / "config.json")
         # Carregar configuração inicial do diretório do banco de dados
         self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))
         
@@ -385,7 +388,7 @@ class ApplicationUI(QMainWindow):
         """)
         self.main_layout.addWidget(self.search_bar)
         self._setup_buttons_layout()
-        self.table_view = CustomTableView(self)
+        self.table_view = CustomTableView(main_app=self, config_manager=self.config_manager, parent=self)
         self.init_sql_model()
 
         # Configurando o QSortFilterProxyModel
@@ -500,9 +503,9 @@ class ApplicationUI(QMainWindow):
             self.buttons_layout.addWidget(btn)
 
     def open_settings_dialog(self):
-        dialog = SettingsDialog(self)
+        dialog = SettingsDialog(config_manager=self.config_manager, parent=self)
         dialog.exec()
-        
+
     def on_delete_item(self):
         selected_index = self.table_view.currentIndex()
         if not selected_index.isValid():

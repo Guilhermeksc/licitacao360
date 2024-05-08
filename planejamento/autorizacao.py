@@ -15,10 +15,11 @@ from win32com.client import Dispatch
 import time
 
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
-    def __init__(self, main_app, df_registro, parent=None):
+    def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
         self.main_app = main_app
         self.df_registro = df_registro
+        self.config_manager = config_manager 
 
         # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
@@ -77,8 +78,15 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
-        self.pasta_base = os.path.expanduser("~/Desktop")
-        
+        self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+
+    def update_save_location(self, key, new_path):
+        if key == 'save_location':
+            self.pasta_base = new_path
+            print(f"Local de salvamento atualizado para: {self.pasta_base}")
+                    
     def setupUi(self):
         settings = QSettings("SuaOrganizacao", "SeuAplicativo")
         self.createGroups()
