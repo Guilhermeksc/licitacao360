@@ -44,7 +44,7 @@ class DraggableTreeWidget(QTreeWidget):
 
         menu.exec(self.viewport().mapToGlobal(position))
 
-    def inserir_item(self, identificacao="Despacho", marcador_sapiens="Termo"):
+    def inserir_item(self, identificacao="-------Definir o novo documento--------", marcador_sapiens="Termo"):
         selected_items = self.selectedItems()
         if selected_items:
             last_item = selected_items[-1]
@@ -63,9 +63,8 @@ class DraggableTreeWidget(QTreeWidget):
         fim = inicio + 1
         num_paginas = fim - inicio + 1
 
-        # Creating a new tree widget item with the correct data types for each column
         new_item = QTreeWidgetItem([
-            str(insert_position),
+            f"{insert_position:02}",  # Formatação com dois dígitos
             str(identificacao),
             str(marcador_sapiens),
             str(inicio),
@@ -74,9 +73,8 @@ class DraggableTreeWidget(QTreeWidget):
         ])
 
         self.insertTopLevelItem(insert_position, new_item)
-
-        # Reorder and update
         self.reordenar_treeview()
+
 
     def delete_selected_rows(self):
         selected_items = self.selectedItems()
