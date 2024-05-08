@@ -65,13 +65,14 @@ class DraggableTreeWidget(QTreeWidget):
 
         # Creating a new tree widget item with the correct data types for each column
         new_item = QTreeWidgetItem([
-            str(insert_position),  # This is likely causing an error because 'insert_position' is not needed here
-            identificacao,
-            marcador_sapiens,
+            str(insert_position),
+            str(identificacao),
+            str(marcador_sapiens),
             str(inicio),
             str(fim),
             str(num_paginas)
         ])
+
         self.insertTopLevelItem(insert_position, new_item)
 
         # Reorder and update
@@ -100,9 +101,19 @@ class DraggableTreeWidget(QTreeWidget):
         return df
 
     def atualizar_tree_from_dataframe(self, df):
-        self.clear()
-        for idx, (_, row) in enumerate(df.iterrows(), 1):
-            self.insert("", "end", text=f"{idx:02}", values=(row["Identificação"], row["Marcador"], row["Início"], row["Fim"], row["qnt_pag"]))
+        self.clear()  # Limpar todos os itens existentes antes de adicionar novos
+        for idx, (_, row) in enumerate(df.iterrows(), start=1):
+            # Criar um novo QTreeWidgetItem com os valores corretos
+            item = QTreeWidgetItem([
+                str(idx),  # Índice do item, presumindo que seja uma coluna desejada
+                str(row["Identificação"]),
+                str(row["Marcador"]),
+                str(row["Início"]),
+                str(row["Fim"]),
+                str(row["qnt_pag"])
+            ])
+            # Adicionar o novo item ao QTreeWidget
+            self.addTopLevelItem(item)
 
     def save_treeview_to_dataframe(self):
         items = [self.topLevelItem(i) for i in range(self.topLevelItemCount())]

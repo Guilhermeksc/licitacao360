@@ -1,16 +1,18 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
 01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
-02,Autorização para Abertura de Processo,termo_abertura,5,7,3
-03,Documento de Formalização da Demanda (DFD),dfd,8,12,5
-04,Estudo Técnico Preliminar (ETP),etp,13,22,10
-05,Matriz de Riscos,mr,23,27,5
-06,Termo de Referência,tr,28,82,55
-07,Pesquisa de Preços,pesquisa_precos,83,88,6
-08,Minuta do Edital,minuta_edital,89,125,37
-09,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,126,127,2
-10,Comunicação Padronizada,segreg_func,128,129,2
-11,Nota Técnica,nota_tecnica,130,137,8
-12,Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,port_comissao,138,141,4
-13,Lista de Verificação,checklist,142,148,7
-14,Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,port_plan,149,152,4
-15,Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,port_od,153,167,15
+02,False,t3,5,6,2
+03,Autorização para Abertura de Processo,termo_abertura,7,9,3
+04,Documento de Formalização da Demanda (DFD),dfd,10,14,5
+05,Estudo Técnico Preliminar (ETP),etp,15,24,10
+06,Matriz de Riscos,mr,25,29,5
+07,Termo de Referência,tr,30,84,55
+08,Pesquisa de Preços,pesquisa_precos,85,90,6
+09,Minuta do Edital,minuta_edital,91,110,20
+10,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,111,112,2
+11,Comunicação Padronizada,segreg_func,113,114,2
+12,teste novo,Termo,115,116,2
+13,Nota Técnica,nota_tecnica,117,124,8
+14,Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,port_comissao,125,128,4
+15,Lista de Verificação,checklist,129,135,7
+16,Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,port_plan,136,139,4
+17,Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,port_od,140,154,15
