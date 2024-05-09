@@ -1,26 +1,28 @@
-DE CITBRA
-PARA SETDIS
-GRNC
-BT
+DE CITBRA 
+PARA CFATOC CFGOIA TNESTA 
+GRNC 
+BT 
 
-Intenção de Registro de Preços - {{objeto}}
+Intenção de Registro de Preços para {{material_servico}} {{objeto}}.
 
-Objeto da {{id_processo}}contratação é {{objeto}} o nup: {{nup}}
-Pode identificar o {{msg_irp}}processo com {{id_processo}}
+PTC que este CeIM (UASG 787010), divulgou a Intenção de Registro de Preços (IRP) nº {{num_irp}}, para {{material_servico}} {{objeto}}. Diante do exposto, CNS PSB:
 
+ALFA - As OM interessadas deverão acessar o site https://www.gov.br/compras/pt-br, no módulo IRP do SIASG, e observar os seguintes prazos: 
 
-testes{{ano}} test {{etapa}} testes {{id}} 
+UNO - Prazo para manifestação de interesse: {{data_limite_manifestacao_irp}}; e 
 
-{{pregoeiro}}  
+DOIS - Prazo para confirmação: {{data_limite_confirmacao_irp}}. 
 
-{{sigla_om}}
+BRAVO - Devido a limitações do sistema Comprasnet, a CFAT e a CFGO poderão participar desde que o local de entrega indicado seja Brasília/DF. Nesse caso, a OM interessada ficará responsável pelas tratativas relacionadas à execução do transporte do material até a respectiva sede; 
 
-{{tipo}}
+CHARLIE - A fim de proporcionar a tramitação eletrônica do processo, a manifestação deverá ser assinada digitalmente pelo Ordenador de Despesa, pelo ICP-Brasil (tipo III - assinatura eletrônica qualificada), CFM previsto no art. 12. inciso VI da lei 14.133/2021, c/c Item 4.4, alínea “b”, da SGM-105-6ªREV; 
 
-testes {{uasg}}
+DELTA - A minuta da manifestação e a Tabela de Quantidade (Anexo B) encontram-se disponíveis no referido módulo;
 
-{{objeto}}
-testes{{nup}} 
+ECHO - Após a realização do procedimento descrito acima, será aberto um novo prazo no sistema para que as OM confirmem suas manifestações. Sendo assim, todas as OM necessitam confirmar suas manifestações no sistema dentro dos prazos citados nos itens ALFA; 
 
-testes {{nup}}
+FOXTROT - Caso a manifestação não seja confirmada, o sistema cancelará a manifestação automaticamente e inviabilizará as OM de utilizarem o REF processo licitatório para aquisição dos itens em tela; 
 
+GOLF - Visando auxiliar as OM na realização dos procedimentos, encontram-se na página https://www.gov.br/compras/pt-br/centrais-de-conteudo/manuais/ manual-siasgnet/manual_irp=1.pdf o manual do SIASG, apresentando o passo a passo para a manifestação na IRP; e 
+
+HOTEL - IND como POC o CC (IM) SIQUEIRA CAMPOS, Encarregado da Divisão de Obtenção do CeIMBra, Retelma 8910-4157, e-mail siqueira.campos@marinha.mil.br BT

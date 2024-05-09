@@ -1,22 +1,20 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
 01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
 02,Autorização para Abertura de Processo,termo_abertura,5,6,2
-03,Documento de Formalização da Demanda (DFD),dfd,7,16,10
-04,-------Definir o novo documento--------,definir_marcador,17,18,2
-05,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,17,18,2
-06,Despacho,Despacho,19,20,2
-07,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,21,23,3
-08,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,24,27,4
-09,Portaria XXXX de Designação de Equipe de Planejamento,portaria_plan,28,31,4
-10,Termo de Referência,tr,32,51,20
-11,Estudo Técnico Preliminar (ETP),etp,52,68,17
-12,Matriz de Gerenciamento de Riscos,mr,69,79,11
-13,Pesquisa de Preços,pesquisa_precos,80,137,58
-14,Minuta do Edital,minuta_edital,138,164,27
-15,Minuta do Contrato,minuta_contrato,165,173,9
-16,Minuta da Ata de Registro de Preços,minuta_arp,174,183,10
-17,Lista de Verificação,checklist,184,190,7
-18,Despacho,despacho,191,192,2
-19,Nota Técnica,nota_tecnica,193,200,8
-20,Comunicação Padronizada,termo,201,202,2
-21,Despacho de Encaminhamento para AGU,termo,203,204,2
+03,PCA,definir_marcador,7,8,2
+04,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,9,11,3
+05,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,12,15,4
+06,Portaria XXXX de Designação de Equipe de Planejamento,portaria_plan,16,19,4
+07,Documento de Formalização da Demanda (DFD),dfd,20,29,10
+08,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,30,31,2
+09,Consolidação da IRP - OM Participantes,Despacho,32,33,2
+10,Estudo Técnico Preliminar (ETP),etp,34,50,17
+11,Matriz de Gerenciamento de Riscos,mr,51,61,11
+12,Pesquisa de Preços,pesquisa_precos,62,119,58
+13,Termo de Referência,tr,120,139,20
+14,Minuta do Edital,minuta_edital,140,166,27
+15,Minuta do Contrato,minuta_contrato,167,175,9
+16,Minuta da Ata de Registro de Preços,minuta_arp,176,185,10
+17,Lista de Verificação,checklist,186,192,7
+18,Nota Técnica,nota_tecnica,193,200,8
+19,Despacho de Encaminhamento para AGU,termo,201,202,2

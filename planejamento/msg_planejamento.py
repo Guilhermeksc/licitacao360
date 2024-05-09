@@ -7,6 +7,7 @@ from planejamento.utilidades_planejamento import formatar_valor_monetario
 import re
 import os
 from utils.treeview_utils import load_images, create_button
+import datetime
 
 class MSGIRP(QDialog):
     def __init__(self, dados, icons_dir, parent=None):
@@ -138,17 +139,54 @@ class MSGIRP(QDialog):
             QMessageBox.warning(self, "Erro ao salvar template", str(e))
         super().closeEvent(event)
         
+    # def renderTemplate(self, template, data):
+    #     mes_atual = datetime.now().strftime("%b").upper()
+    #     ano_atual = datetime.now().strftime('%Y')
+    #     header = f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
+    #     # Substitui quebras de linha por <br> para HTML
+    #     template = template.replace('\n', '<br>')
+
+    #     rendered_text = header + template
+    #     for key, value in data.items():
+    #         rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='color: blue;'>{value}</span>", rendered_text)
+    #     return rendered_text
+    
     def renderTemplate(self, template, data):
-        mes_atual = datetime.now().strftime("%b").upper()
-        ano_atual = datetime.now().strftime('%Y')
+        # Método atualizado para incluir a lógica de descrição de serviço e conversão de datas
+        tipo_servico = data.get("material_servico", "").lower()
+
+        if tipo_servico == "material":
+            descricao_servico = "aquisição de"
+        else:
+            descricao_servico = "contratação de empresa especializada em"
+        
+        data['material_servico'] = descricao_servico
+
+        data['data_limite_manifestacao_irp'] = self.format_date(data.get('data_limite_manifestacao_irp', ''))
+        data['data_limite_confirmacao_irp'] = self.format_date(data.get('data_limite_confirmacao_irp', ''))
+
+        now = datetime.datetime.now()
+        mes_atual = now.strftime("%b").upper()
+        ano_atual = now.strftime('%Y')
         header = f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
-        # Substitui quebras de linha por <br> para HTML
+
         template = template.replace('\n', '<br>')
 
         rendered_text = header + template
         for key, value in data.items():
             rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='color: blue;'>{value}</span>", rendered_text)
         return rendered_text
+
+    def format_date(self, date_str):
+        # Converter a data de 'YYYY-MM-DD' para 'DDMMMYYYY', tratando dados nulos ou incorretos
+        if date_str:
+            try:
+                date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+                return date_obj.strftime('%d%b%Y').upper()
+            except ValueError:
+                # Log the error or handle it as needed
+                print(f"Data incorreta fornecida: {date_str}")
+        return None  # Retorna None ou qualquer valor padrão que deseje
 
     def copyTextToClipboard(self):
         text = self.textViewer.toPlainText()
