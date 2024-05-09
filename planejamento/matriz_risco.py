@@ -5,24 +5,24 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
-from planejamento.utilidades_planejamento import remover_caracteres_especiais
 import sys
-import shutil
-import tempfile
+from datetime import datetime
 import os
 from win32com.client import Dispatch
 import time
 import sqlite3
+from planejamento.utilidades_planejamento import remover_caracteres_especiais
 
-class AutorizacaoAberturaLicitacaoDialog(QDialog):
+class GerarMR(QDialog):
     def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
         self.main_app = main_app
-        self.df_registro = df_registro
         self.config_manager = config_manager 
+        self.df_registro = df_registro
 
         # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
+            self.id = self.df_registro['id'].iloc[0]
             id_processo_original = self.df_registro['id_processo'].iloc[0]
             self.id_processo = id_processo_original.replace('/', '-')
             self.tipo = self.df_registro['tipo'].iloc[0]
@@ -36,8 +36,9 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.uasg = self.df_registro['uasg'].iloc[0]
             self.sigla_om = self.df_registro['sigla_om'].iloc[0]
             self.material_servico = self.df_registro['material_servico'].iloc[0]
+            self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
 
-        self.setWindowTitle("Autorização para Abertura")
+        self.setWindowTitle("Portaria de Equipe de Planejamento")
         self.setFixedSize(850, 410)
         self.pasta = ''
 
@@ -56,7 +57,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         self.setupUi()
         self.setStyleSheet("""
-            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QDateEdit {
                 font-size: 16px;
             }
             QGroupBox {
@@ -78,6 +79,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.layoutPrincipal.addWidget(self.widgetDireita)
 
         self.setLayout(self.layoutPrincipal)  
+        # Conectar sinal de atualização de configuração
         self.config_manager.config_updated.connect(self.update_save_location)
 
         self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
@@ -95,25 +97,16 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.applyWidgetStyles()
 
     def createGroups(self):
-        self.grupoAutoridade = QGroupBox("Autoridade Competente")
         self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
-        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo")
-        self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
+        self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo da CP")
+        self.grupoCriacaoDocumento = QGroupBox("Gerar CP")
         self.grupoSIGDEM = QGroupBox("SIGDEM")
 
         # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
-        # Por exemplo:
-        self.setupGrupoAutoridade()
         self.setupGrupoSelecaoPasta()
         self.setupGrupoEdicaoTemplate()
         self.setupGrupoCriacaoDocumento()
         self.setupGrupoSIGDEM()
-
-    def setupGrupoAutoridade(self):
-        layout = QVBoxLayout(self.grupoAutoridade)
-        self.ordenadordespesasComboBox = QComboBox()
-        self.carregarOrdenadorDespesas()
-        layout.addWidget(self.ordenadordespesasComboBox)
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -127,7 +120,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
     def setupGrupoEdicaoTemplate(self):
         layout = QVBoxLayout(self.grupoEdicaoTemplate)
-        labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
+        labelEdicao = QLabel("Editar o arquivo modelo:")
         iconPathEdit = ICONS_DIR / "text.png"
         botaoEdicaoTemplate = QPushButton("  Editar Modelo")
         botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))
@@ -169,7 +162,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
         layout.addWidget(labelAssunto)
         textEditAssunto = QTextEdit()
-        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Autorização para Abertura de Processo Administrativo")
+        textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Matriz de Riscos")
         textEditAssunto.setMaximumHeight(50)
         btnCopyAssunto = QPushButton("Copiar")
         btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
@@ -185,7 +178,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         # Definir descrição com base em material_servico
         descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
-        sinopse_text = (f"Termo de Abertura referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+        sinopse_text = (f"Matriz de Riscos referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
                         f"Processo Administrativo NUP: {self.nup}\n"
                         f"Item do PCA: {self.item_pca}")
         textEditSinopse.setPlainText(sinopse_text)
@@ -219,7 +212,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def addWidgetsToLeftLayout(self):
-        self.layoutEsquerda.addWidget(self.grupoAutoridade)
         self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
         self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
         self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
@@ -230,14 +222,13 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def applyWidgetStyles(self):
         estiloBorda = "QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; } " \
                       "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }"
-        self.grupoAutoridade.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
         self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_autorizacao.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_matriz.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -247,34 +238,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                 subprocess.run(["xdg-open", str(template_path)], check=True)
         except subprocess.CalledProcessError as e:
             QMessageBox.warning(self, "Erro", f"Não foi possível abrir o documento: {e}")
-            
-    def carregarOrdenadorDespesas(self):
-        # Tentar conectar ao banco de dados e carregar a tabela controle_agentes_responsaveis
-        try:
-            with sqlite3.connect(CONTROLE_DADOS) as conn:
-                # Verificar se a tabela existe
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_agentes_responsaveis'")
-                exists = cursor.fetchone()
-
-                if not exists:
-                    raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesas no Módulo 'Configurações'.")
-
-                # Carregar apenas os dados relevantes da tabela em um DataFrame
-                sql_query = """
-                SELECT * FROM controle_agentes_responsaveis
-                WHERE funcao LIKE 'Ordenador de Despesas%' OR funcao LIKE 'Ordenador de Despesas Substituto%'
-                """
-                self.ordenador_despesas_df = pd.read_sql_query(sql_query, conn)
-
-            # Adicionar os itens ao comboBox
-            self.ordenadordespesasComboBox.clear()  # Limpar o comboBox antes de adicionar novos itens
-            for index, row in self.ordenador_despesas_df.iterrows():
-                texto_display = f"{row['nome']}\n{row['funcao']}\n{row['posto']}"
-                self.ordenadordespesasComboBox.addItem(texto_display, userData=row.to_dict())
-
-        except Exception as e:
-            print(f"Erro ao carregar Ordenadores de Despesas: {e}")
 
     def selecionarPasta(self):
         pasta_selecionada = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
@@ -282,18 +245,23 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.pasta_base = pasta_selecionada
             print(f"Pasta selecionada: {self.pasta_base}")
 
+    def formatar_data_brasileira(self, data_iso):
+        """Converte data de formato ISO (AAAA-MM-DD) para formato brasileiro (DD/MM/AAAA)."""
+        data_obj = datetime.strptime(data_iso, '%Y-%m-%d')
+        return data_obj.strftime('%d/%m/%Y')
+
     def gerarDocumento(self, tipo="docx"):
         if self.df_registro is None:
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_autorizacao.{tipo}"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_matriz.{tipo}"
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
 
         nome_pasta = f"{id_processo_novo} - {objeto}"
-        subpasta_autorizacao = f"{id_processo_novo} - Autorizacao"
+        subpasta_autorizacao = f"{id_processo_novo} - Matriz de Riscos"
         
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
         subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
@@ -306,20 +274,16 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         if not os.path.exists(subpasta_destino):
             os.makedirs(subpasta_destino)
 
-        nome_arquivo = f"{id_processo_novo} - Autorizacao para abertura de Processo Administrativo.{tipo}"
+        # Formatar o nome do arquivo
+        nome_arquivo = f"{id_processo_novo} - Matriz de Riscos.{tipo}"
         save_path = os.path.join(subpasta_destino, nome_arquivo)
-
+        
         # Carregar e renderizar o template DOCX
         doc = DocxTemplate(template_path)
-
-        nome_selecionado = self.ordenadordespesasComboBox.currentText()
-        valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
-        
-        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        descricao_servico = "Aquisição de" if self.material_servico == "material" else "Contratação de empresa especializada em"
         data = {
             **self.df_registro.to_dict(orient='records')[0],
-            'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['funcao']}\n{valor_completo['posto']}",
-            'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
+            'descricao_servico': descricao_servico,
         }
         doc.render(data)
         doc.save(save_path)

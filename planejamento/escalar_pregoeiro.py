@@ -5,7 +5,6 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
 from datetime import datetime
 import os
@@ -305,7 +304,7 @@ class EscalarPregoeiroDialog(QDialog):
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = PLANEJAMENTO_DIR / "template_cp_pregoeiro.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_cp_pregoeiro.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -331,7 +330,7 @@ class EscalarPregoeiroDialog(QDialog):
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = PLANEJAMENTO_DIR / f"template_cp_pregoeiro.{tipo}"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_cp_pregoeiro.{tipo}"
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')

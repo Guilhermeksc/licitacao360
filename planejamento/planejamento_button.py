@@ -10,7 +10,10 @@ from planejamento.settings import SettingsDialog
 from planejamento.capa_edital import CapaEdital
 from planejamento.checklist import ChecklistWidget
 from planejamento.msg_planejamento import MSGIRP, MSGHomolog, MSGPublicacao
-from planejamento.dfd import GerarDFD
+from planejamento.dfd import GerarDFD, GerarManifestoIRP
+from planejamento.etp import GerarETP
+from planejamento.matriz_risco import GerarMR
+from planejamento.portaria_planejamento import GerarPortariaPlanejamento
 from planejamento.cp_agu import CPEncaminhamentoAGU
 from planejamento.editar_dados import EditarDadosDialog
 from planejamento.adicionar_itens import AddItemDialog
@@ -175,17 +178,23 @@ class TableMenu(QMenu):
                     self.editar_dados(df_registro_selecionado)
                 elif actionText == "1. Autorização para Abertura de Licitação":
                     self.openDialogAutorizacao(df_registro_selecionado)
+                elif actionText == "2. Portaria de Equipe de Planejamento":
+                    self.openDialogPortariaPlanejamento(df_registro_selecionado)
                 elif actionText == "3. Documento de Formalização de Demanda (DFD)":
                     self.openDialogDFD(df_registro_selecionado)
                 elif actionText == "5. Mensagem de Divulgação de IRP":
                     self.abrirDialogoIRP(df_registro_selecionado)
-                elif actionText == "Escalar Pregoeiro":
-                    self.openDialogEscalarPregoeiro(df_registro_selecionado)
+                elif actionText == "6. Estudo Técnico Preliminar (ETP)":
+                    self.openDialogETP(df_registro_selecionado)
+                elif actionText == "8. Matriz de Riscos":
+                    self.openDialogMatrizRiscos(df_registro_selecionado)
                 elif actionText == "12. CP Encaminhamento AGU":
                     self.openDialogEncaminhamentoAGU(df_registro_selecionado)
-                elif actionText == "Mensagem de Publicação":
+                elif actionText == "14. Escalar Pregoeiro":
+                    self.openDialogEscalarPregoeiro(df_registro_selecionado)
+                elif actionText == "15. Mensagem de Publicação":
                     self.abrirDialogoPublicacao(df_registro_selecionado)
-                elif actionText == "Mensagem de Homologação":
+                elif actionText == "16. Mensagem de Homologação":
                     self.abrirDialogoHomologacao(df_registro_selecionado)
                 elif actionText == "10. Check-list":
                     self.openChecklistDialog(df_registro_selecionado)
@@ -200,8 +209,9 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, id_processo, self)
         dialog.exec()
 
-    def openDialogIRPManifesto(self):
-        pass
+    def openDialogIRPManifesto(self, df_registro_selecionado):
+        dialog = GerarManifestoIRP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
     def abrirDialogoIRP(self, df_registro_selecionado):
         if not df_registro_selecionado.empty:
@@ -247,6 +257,18 @@ class TableMenu(QMenu):
 
     def openDialogDFD(self, df_registro_selecionado):
         dialog = GerarDFD(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogPortariaPlanejamento(self, df_registro_selecionado):
+        dialog = GerarPortariaPlanejamento(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogETP(self, df_registro_selecionado):
+        dialog = GerarETP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogMatrizRiscos(self, df_registro_selecionado):
+        dialog = GerarMR(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
     def openDialogEncaminhamentoAGU(self, df_registro_selecionado):

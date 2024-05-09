@@ -5,7 +5,6 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
 from datetime import datetime
 import os
@@ -299,7 +298,7 @@ class CapaEdital(QDialog):
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = PLANEJAMENTO_DIR / "template_capa_edital.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_capa_edital.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -350,7 +349,7 @@ class CapaEdital(QDialog):
             QMessageBox.warning(None, "Formato de Data Inválido", f"O valor da data ('{data_sessao_iso}') não está no formato esperado 'AAAA-MM-DD'. Por favor, corrija e tente novamente.")
             return None
 
-        template_path = PLANEJAMENTO_DIR / f"template_capa_edital.{tipo}"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_capa_edital.{tipo}"
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')

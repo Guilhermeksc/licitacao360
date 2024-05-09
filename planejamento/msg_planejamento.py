@@ -2,7 +2,6 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 from datetime import datetime
 from planejamento.utilidades_planejamento import formatar_valor_monetario
 import re

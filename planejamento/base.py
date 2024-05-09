@@ -5,7 +5,6 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
 from datetime import datetime
 import os

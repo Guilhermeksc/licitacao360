@@ -3,12 +3,11 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
 import pandas as pd
-import subprocess
 from docxtpl import DocxTemplate
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
-import sys
 from datetime import datetime
 import os
+import subprocess
+import sys
 from win32com.client import Dispatch
 import time
 import sqlite3
@@ -256,7 +255,7 @@ class CPEncaminhamentoAGU(QDialog):
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = PLANEJAMENTO_DIR / "template_cp_encaminhamento_agu.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_cp_encaminhamento_agu.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -282,7 +281,7 @@ class CPEncaminhamentoAGU(QDialog):
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = PLANEJAMENTO_DIR / f"template_cp_encaminhamento_agu.{tipo}"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_cp_encaminhamento_agu.{tipo}"
 
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]

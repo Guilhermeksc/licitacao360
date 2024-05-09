@@ -1,19 +1,22 @@
-Identificação,Marcador,Início,Fim,qnt_pag
-Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
-False,t3,5,6,2
-Autorização para Abertura de Processo,termo_abertura,7,9,3
-Documento de Formalização da Demanda (DFD),dfd,10,14,5
-Estudo Técnico Preliminar (ETP),etp,15,24,10
-Matriz de Riscos,mr,25,29,5
-Termo de Referência,tr,30,84,55
-False,Termo,85,86,2
-Pesquisa de Preços,pesquisa_precos,85,90,6
-Minuta do Edital,minuta_edital,91,110,20
-Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,111,112,2
-Comunicação Padronizada,segreg_func,113,114,2
-teste novo,Termo,115,116,2
-Nota Técnica,nota_tecnica,117,124,8
-Portaria nº 92-2023 Com7°DN de Designação de Militares para Comissão de Licitação,port_comissao,125,128,4
-Lista de Verificação,checklist,129,135,7
-Portaria nº XX-2023 Com7°DN de Designação de Equipe de Planejamento,port_plan,136,139,4
-Portaria nº 221-2023 Com7°DN de Designação de Ordenador de Despesas,port_od,140,154,15
+Nº,Identificação,Marcador,Início,Fim,Págs
+01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
+02,Autorização para Abertura de Processo,termo_abertura,5,6,2
+03,Documento de Formalização da Demanda (DFD),dfd,7,16,10
+04,-------Definir o novo documento--------,definir_marcador,17,18,2
+05,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,17,18,2
+06,Despacho,Despacho,19,20,2
+07,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,21,23,3
+08,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,24,27,4
+09,Portaria XXXX de Designação de Equipe de Planejamento,portaria_plan,28,31,4
+10,Termo de Referência,tr,32,51,20
+11,Estudo Técnico Preliminar (ETP),etp,52,68,17
+12,Matriz de Gerenciamento de Riscos,mr,69,79,11
+13,Pesquisa de Preços,pesquisa_precos,80,137,58
+14,Minuta do Edital,minuta_edital,138,164,27
+15,Minuta do Contrato,minuta_contrato,165,173,9
+16,Minuta da Ata de Registro de Preços,minuta_arp,174,183,10
+17,Lista de Verificação,checklist,184,190,7
+18,Despacho,despacho,191,192,2
+19,Nota Técnica,nota_tecnica,193,200,8
+20,Comunicação Padronizada,termo,201,202,2
+21,Despacho de Encaminhamento para AGU,termo,203,204,2

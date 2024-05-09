@@ -5,7 +5,6 @@ from diretorios import *
 import pandas as pd
 import subprocess
 from docxtpl import DocxTemplate
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 import sys
 import shutil
 import tempfile
@@ -13,6 +12,8 @@ import time
 import os
 from win32com.client import Dispatch
 from planejamento.utilidades_planejamento import remover_caracteres_especiais
+import sqlite3
+
 
 class EditalDialog(QDialog):
     def __init__(self, main_app, config_manager, df_registro, parent=None):
@@ -285,7 +286,7 @@ class EditalDialog(QDialog):
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
 
     def editarTemplate(self):
-        template_path = PLANEJAMENTO_DIR / "template_edital.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_edital.docx"
         try:
             if sys.platform == "win32":
                 subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
@@ -297,13 +298,32 @@ class EditalDialog(QDialog):
             QMessageBox.warning(self, "Erro", f"Não foi possível abrir o documento: {e}")
             
     def carregarOrdenadorDespesas(self):
+        # Tentar conectar ao banco de dados e carregar a tabela controle_agentes_responsaveis
         try:
-            self.ordenador_despesas_df = pd.read_excel(ORDENADOR_DESPESAS_DIR)
+            with sqlite3.connect(CONTROLE_DADOS) as conn:
+                # Verificar se a tabela existe
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_agentes_responsaveis'")
+                exists = cursor.fetchone()
+
+                if not exists:
+                    raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesas no Módulo 'Configurações'.")
+
+                # Carregar apenas os dados relevantes da tabela em um DataFrame
+                sql_query = """
+                SELECT * FROM controle_agentes_responsaveis
+                WHERE funcao LIKE 'Ordenador de Despesas%' OR funcao LIKE 'Ordenador de Despesas Substituto%'
+                """
+                self.ordenador_despesas_df = pd.read_sql_query(sql_query, conn)
+
+            # Adicionar os itens ao comboBox
+            self.ordenadordespesasComboBox.clear()  # Limpar o comboBox antes de adicionar novos itens
             for index, row in self.ordenador_despesas_df.iterrows():
-                texto_display = f"{row['nome']}\n{row['posto']}\n{row['od']}"
+                texto_display = f"{row['nome']}\n{row['funcao']}\n{row['posto']}"
                 self.ordenadordespesasComboBox.addItem(texto_display, userData=row.to_dict())
+
         except Exception as e:
-            print(f"Erro ao carregar tabela Ordenador de Despesas: {e}")
+            print(f"Erro ao carregar Ordenadores de Despesas: {e}")
 
     def selecionarPasta(self):
         self.pasta = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
@@ -315,7 +335,7 @@ class EditalDialog(QDialog):
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = PLANEJAMENTO_DIR / f"template_edital.{tipo}"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_edital.{tipo}"
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
@@ -349,7 +369,7 @@ class EditalDialog(QDialog):
 
         data = {
             **self.df_registro.to_dict(orient='records')[0],
-            'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['od']}",
+            'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['funcao']}\n{valor_completo['posto']}",
             'descricao_servico': descricao_servico,
             'minuta': minuta,
             'item_ou_grupo': item_ou_grupo

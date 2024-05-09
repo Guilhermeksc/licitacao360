@@ -35,6 +35,7 @@ def update_dir(title, key, default_value, parent=None):
     return default_value
 
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
+TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
 ICONS_DIR = DATABASE_DIR / "icons"
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))

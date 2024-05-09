@@ -19,6 +19,9 @@ from datetime import datetime
 from num2words import num2words
 import webbrowser
 from planejamento.utilidades_planejamento import remover_caracteres_especiais
+from functools import partial
+import subprocess
+import sys
 
 class DraggableTreeWidget(QTreeWidget):
     def __init__(self, parent=None):
@@ -36,7 +39,7 @@ class DraggableTreeWidget(QTreeWidget):
         add_item_action = QAction("Adicionar item", self)
         delete_item_action = QAction("Excluir item", self)
 
-        add_item_action.triggered.connect(self.inserir_item)
+        add_item_action.triggered.connect(partial(self.inserir_item))
         delete_item_action.triggered.connect(self.delete_selected_rows)
 
         menu.addAction(add_item_action)
@@ -44,7 +47,11 @@ class DraggableTreeWidget(QTreeWidget):
 
         menu.exec(self.viewport().mapToGlobal(position))
 
-    def inserir_item(self, identificacao="-------Definir o novo documento--------", marcador_sapiens="Termo"):
+    def inserir_item(self, identificacao=None, marcador_sapiens="definir_marcador"):
+        if identificacao is None or isinstance(identificacao, bool):
+            identificacao = "-------Definir o novo documento--------"
+        
+        print(f"Valores recebidos - Identificação: {identificacao}, Marcador Sapiens: {marcador_sapiens}")
         selected_items = self.selectedItems()
         if selected_items:
             last_item = selected_items[-1]
@@ -63,8 +70,11 @@ class DraggableTreeWidget(QTreeWidget):
         fim = inicio + 1
         num_paginas = fim - inicio + 1
 
+        formatted_position = f"{insert_position:02}"
+        print(f"Insert Position Formatado: {formatted_position}")  # Debug para ver o valor formatado
+
         new_item = QTreeWidgetItem([
-            f"{insert_position:02}",  # Formatação com dois dígitos
+            formatted_position,
             str(identificacao),
             str(marcador_sapiens),
             str(inicio),
@@ -73,8 +83,43 @@ class DraggableTreeWidget(QTreeWidget):
         ])
 
         self.insertTopLevelItem(insert_position, new_item)
+        print(f"Valor no Item: {self.topLevelItem(insert_position).text(0)}")  # Debug para verificar o valor no widget
+
         self.reordenar_treeview()
 
+    # def inserir_item(self, identificacao="Despacho", marcador_sapiens="Termo"):
+    #     selected_items = self.selectedItems()
+    #     if selected_items:
+    #         last_item = selected_items[-1]
+    #         insert_position = self.indexOfTopLevelItem(last_item) + 1
+    #         last_fim_value = int(last_item.text(4))
+    #     else:
+    #         if self.topLevelItemCount() > 0:
+    #             last_item = self.topLevelItem(self.topLevelItemCount() - 1)
+    #             last_fim_value = int(last_item.text(4))
+    #             insert_position = self.topLevelItemCount()
+    #         else:
+    #             last_fim_value = 0
+    #             insert_position = 0
+
+    #     inicio = last_fim_value + 1
+    #     fim = inicio + 1
+    #     num_paginas = fim - inicio + 1
+
+    #     # Creating a new tree widget item with the correct data types for each column
+    #     new_item = QTreeWidgetItem([
+    #         str(insert_position),
+    #         str(identificacao),
+    #         str(marcador_sapiens),
+    #         str(inicio),
+    #         str(fim),
+    #         str(num_paginas)
+    #     ])
+
+    #     self.insertTopLevelItem(insert_position, new_item)
+
+    #     # Reorder and update
+    #     self.reordenar_treeview()
 
     def delete_selected_rows(self):
         selected_items = self.selectedItems()
@@ -103,7 +148,7 @@ class DraggableTreeWidget(QTreeWidget):
         for idx, (_, row) in enumerate(df.iterrows(), start=1):
             # Criar um novo QTreeWidgetItem com os valores corretos
             item = QTreeWidgetItem([
-                str(idx),  # Índice do item, presumindo que seja uma coluna desejada
+                f"{idx:02}",  # Formatação explícita como texto com dois dígitos
                 str(row["Identificação"]),
                 str(row["Marcador"]),
                 str(row["Início"]),
@@ -112,6 +157,7 @@ class DraggableTreeWidget(QTreeWidget):
             ])
             # Adicionar o novo item ao QTreeWidget
             self.addTopLevelItem(item)
+
 
     def save_treeview_to_dataframe(self):
         items = [self.topLevelItem(i) for i in range(self.topLevelItemCount())]
@@ -249,7 +295,7 @@ class ChecklistWidget(QWidget):
         self.config_manager = config_manager 
         self.df_registro = df_registro_selecionado
         self.image_cache = load_images(self.icons_dir, [
-            "sapiens.png", "processing.png", "rotate.png", "save.png", "page.png", "import.png",
+            "sapiens.png", "processing.png", "word.png", "rotate.png", "save.png", "page.png", "import.png",
         ])
         self.layout = QVBoxLayout(self)
 
@@ -263,7 +309,7 @@ class ChecklistWidget(QWidget):
         self.header.setFont(self.font)
         self.header.setStyleSheet(
             "QHeaderView::section { font-size: 12pt; background-color: #333; color: white; }")
-        self.tree.setColumnWidth(1, 600)
+        self.tree.setColumnWidth(1, 700)
         self.tree.setColumnWidth(2, 300)
         self.layout.addWidget(self.tree)
         self.setupBottomButtons()
@@ -331,7 +377,7 @@ class ChecklistWidget(QWidget):
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')
 
-        template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
         doc = DocxTemplate(template_path)
         
         context = {
@@ -379,7 +425,7 @@ class ChecklistWidget(QWidget):
         subpasta_final.mkdir(parents=True, exist_ok=True)
 
         # Caminho para o template e inicialização do DocxTemplate
-        template_path = PLANEJAMENTO_DIR / "template_checklist.docx"
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_checklist.docx"
         doc = DocxTemplate(template_path)
 
         context = {row['Marcador']: f"Fls. {row['Início']} a {row['Fim']}" for index, row in df_treeview.iterrows()}
@@ -416,6 +462,7 @@ class ChecklistWidget(QWidget):
         self.button_specs = [
             ("Sapiens", self.image_cache['sapiens'], self.abrir_link_sapiens, "Carregar o link do Sapiens", icon_size),
             ("Resetar Padrão", self.image_cache['rotate'], self.resetar_treeview, "Atualizar a visualização", icon_size),
+            ("Editar Modelo", self.image_cache['word'], self.editarTemplate, "Editar o Checklist da AGU", icon_size),
             ("Numerar", self.image_cache['page'], numerar_pdf_gui, "Numerar o PDF", icon_size),
             ("Processar", self.image_cache['processing'], lambda: self.processar_pdf_na_integra_e_gerar_documentos(), "Processar o PDF", icon_size),            ("Importar", self.image_cache['import'], self.onLoadItems, "Importar dados", icon_size),
             ("Salvar", self.image_cache['save'], self.onSaveItems, "Salvar as alterações", icon_size),
@@ -429,6 +476,17 @@ class ChecklistWidget(QWidget):
         url = "https://supersapiens.agu.gov.br/auth/login"
         webbrowser.open(url)
 
+    def editarTemplate(self):
+        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_checklist.docx"
+        try:
+            if sys.platform == "win32":
+                subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
+            elif sys.platform == "darwin":  # macOS
+                subprocess.run(["open", str(template_path)], check=True)
+            else:  # linux variants
+                subprocess.run(["xdg-open", str(template_path)], check=True)
+        except subprocess.CalledProcessError as e:
+            QMessageBox.warning(self, "Erro", f"Não foi possível abrir o documento: {e}")
 
     def onSaveItems(self):
         # Pedir ao usuário para escolher o local e o nome do arquivo para salvar
@@ -780,7 +838,7 @@ def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
     id_processo_novo = id_processo_original.replace('/', '-')
 
     # Configuração do caminho do template e inicialização
-    template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+    template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
     doc = DocxTemplate(template_path)
     
     # Contexto inicial com as variáveis básicas
@@ -837,7 +895,7 @@ def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
     id_processo_original = df_registro_selecionado['id_processo'].iloc[0]
     id_processo_novo = id_processo_original.replace('/', '-')
 
-    template_path = PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
+    template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_nota_tecnica.docx"
     doc = DocxTemplate(template_path)
     
     # Contexto inicial com as variáveis básicas
