@@ -70,7 +70,14 @@ class EditarDadosDialog(QDialog):
             }
         """)
 
-            
+    def handle_database_dir_update(self, new_dir):
+        global CONTROLE_DADOS
+        CONTROLE_DADOS = new_dir
+        save_config("database_path", str(new_dir))
+        self.database_path = new_dir
+        self.database_manager = DatabaseManager(new_dir)
+        QMessageBox.information(self, "Atualização de Diretório", "Diretório do banco de dados atualizado para: " + str(new_dir))
+
     def initialize_fields(self):
         # Grupo de RadioButton para Material ou Serviço
         self.group_material_servico = QButtonGroup(self)
@@ -231,9 +238,10 @@ class EditarDadosDialog(QDialog):
 
     def init_combobox_data(self):
         # Conecta ao banco de dados e popula o QComboBox
-        with self.database_manager as cursor:
+        with self.database_manager as connection:  # agora connection é uma instância de sqlite3.Connection
+            cursor = connection.cursor()  # criação do cursor
             cursor.execute("SELECT sigla_om, uasg, orgao_responsavel FROM controle_om")
-            rows = cursor.fetchall()
+            rows = cursor.fetchall()  # agora fetchall é chamado no cursor
 
         # Índice inicial para definir qual item do ComboBox deve ser selecionado
         index_to_set = 0
@@ -262,13 +270,15 @@ class EditarDadosDialog(QDialog):
             self.line_edit_orgao.setText(str(current_data[1]))
 
     def confirmar_edicao(self):
+        print(f"Confirmando edição usando banco de dados em: {self.database_path}")  # Debug para verificar o caminho do banco
         # Implementação da lógica para atualizar os dados
-        with self.database_manager as cursor:
-        
+        with self.database_manager as connection:  # Assegurar que 'connection' é a conexão, não o cursor
+            cursor = connection.cursor()
+            
             # Atualiza o dicionário com os valores dos line_edits regulares
             dados_atualizados = {coluna: line_edit.text().strip() for coluna, line_edit in self.line_edits.items()}
-
             dados_atualizados.update({date_col: date_edit.date().toString("yyyy-MM-dd").strip() for date_col, date_edit in self.date_edits.items()})
+            
             # Determine o valor de material_servico com base no RadioButton selecionado
             material_servico = 'servico' if self.radio_servico.isChecked() else 'material'
             dados_atualizados['material_servico'] = material_servico.strip()
@@ -289,7 +299,9 @@ class EditarDadosDialog(QDialog):
             # Constrói e executa a consulta SQL de UPDATE
             query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
             cursor.execute(query, valores)
+            connection.commit()  # Garante que a transação seja confirmada
 
         # Emite o sinal de dados atualizados e fecha a caixa de diálogo
         self.dados_atualizados.emit()
         self.accept()
+

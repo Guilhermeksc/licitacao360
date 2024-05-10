@@ -10,6 +10,8 @@ def build_executable():
         (DATABASE_DIR, "database"),
         (ICONS_DIR, "database/icons"),
         (IMAGE_PATH, "database/image"),
+        (PLANEJAMENTO_DIR, "planejamento"),
+        (TEMPLATE_PLANEJAMENTO_DIR, "planejamento/template"),
         # (PDF_DIR, "database/pasta_pdf"),
         # (SICAF_DIR, "database/pasta_sicaf"),
         (PASTA_TEMPLATE, "database/template"),
