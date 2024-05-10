@@ -700,14 +700,11 @@ class ApplicationUI(QMainWindow):
             newPath = Path(fileName)
             print(f"Debug: Novo caminho escolhido: {newPath}")
 
-            if newPath != CONTROLE_DADOS:
-                print(f"Debug: Atualizando o caminho do banco de dados. Antigo: {CONTROLE_DADOS}, Novo: {newPath}")
-                self.event_manager.update_database_dir(newPath)
-                print("Debug: O caminho do banco de dados foi atualizado com sucesso.")
-                QMessageBox.information(self, "Atualização bem-sucedida", "O arquivo do banco de dados foi atualizado com sucesso.")
-            else:
-                print("Debug: O arquivo escolhido é o mesmo que o atualmente configurado.")
-                QMessageBox.information(self, "Nenhuma mudança detectada", "O arquivo escolhido é o mesmo que o atualmente configurado. Nenhuma mudança foi realizada.")
+            # Sempre atualiza, independente se o novo caminho é igual ao antigo
+            print(f"Debug: Atualizando o caminho do banco de dados. Antigo: {CONTROLE_DADOS}, Novo: {newPath}")
+            self.event_manager.update_database_dir(newPath)  # Chama a atualização mesmo se o caminho for o mesmo
+            print("Debug: O caminho do banco de dados foi atualizado com sucesso.")
+            QMessageBox.information(self, "Atualização bem-sucedida", "O arquivo do banco de dados foi atualizado com sucesso.")
         else:
             print("Debug: Nenhum arquivo foi escolhido.")
             QMessageBox.warning(self, "Carregamento Cancelado", "Nenhum arquivo de banco de dados foi selecionado.")

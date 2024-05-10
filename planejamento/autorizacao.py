@@ -238,16 +238,12 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
     def editarTemplate(self):
         template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_autorizacao.docx"
-        try:
-            if sys.platform == "win32":
-                subprocess.run(["start", "winword", str(template_path)], check=True, shell=True)
-            elif sys.platform == "darwin":  # macOS
-                subprocess.run(["open", str(template_path)], check=True)
-            else:  # linux variants
-                subprocess.run(["xdg-open", str(template_path)], check=True)
-        except subprocess.CalledProcessError as e:
-            QMessageBox.warning(self, "Erro", f"Não foi possível abrir o documento: {e}")
-            
+
+        if sys.platform == "win32":
+            os.startfile(template_path)  # Abrir o documento
+        else:
+            subprocess.run(["xdg-open", str(template_path)])  # Abrir o documento no Linux ou MacOS
+
     def carregarOrdenadorDespesas(self):
         # Tentar conectar ao banco de dados e carregar a tabela controle_agentes_responsaveis
         try:

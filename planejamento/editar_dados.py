@@ -9,6 +9,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import locale
 import re
 from datetime import datetime
+from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
 
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -19,6 +20,11 @@ class EditarDadosDialog(QDialog):
         self.setFixedSize(900, 700)
         self.dados = dados or {}
         locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Configura o locale para português do Brasil
+        self.config_manager = ConfigManager(BASE_DIR / "config.json")
+        self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))
+        self.event_manager = EventManager()
+        self.event_manager.controle_dir_updated.connect(self.handle_database_dir_update)
+        self.database_manager = DatabaseManager(self.database_path)
         self.init_ui()
         self.init_combobox_data()
 
@@ -225,10 +231,9 @@ class EditarDadosDialog(QDialog):
 
     def init_combobox_data(self):
         # Conecta ao banco de dados e popula o QComboBox
-        conn = sqlite3.connect(CONTROLE_DADOS)
-        cursor = conn.cursor()
-        cursor.execute("SELECT sigla_om, uasg, orgao_responsavel FROM controle_om")
-        rows = cursor.fetchall()
+        with self.database_manager as cursor:
+            cursor.execute("SELECT sigla_om, uasg, orgao_responsavel FROM controle_om")
+            rows = cursor.fetchall()
 
         # Índice inicial para definir qual item do ComboBox deve ser selecionado
         index_to_set = 0
@@ -246,9 +251,6 @@ class EditarDadosDialog(QDialog):
 
         # Define o item padrão do ComboBox com base nos dados do DataFrame
         self.combo_sigla_om.setCurrentIndex(index_to_set)
-
-        cursor.close()
-        conn.close()
         self.update_dependent_fields()
 
     def update_dependent_fields(self):
@@ -261,36 +263,33 @@ class EditarDadosDialog(QDialog):
 
     def confirmar_edicao(self):
         # Implementação da lógica para atualizar os dados
-        conn = sqlite3.connect(CONTROLE_DADOS)
-        cursor = conn.cursor()
-       
-        # Atualiza o dicionário com os valores dos line_edits regulares
-        dados_atualizados = {coluna: line_edit.text().strip() for coluna, line_edit in self.line_edits.items()}
-
-        dados_atualizados.update({date_col: date_edit.date().toString("yyyy-MM-dd").strip() for date_col, date_edit in self.date_edits.items()})
-        # Determine o valor de material_servico com base no RadioButton selecionado
-        material_servico = 'servico' if self.radio_servico.isChecked() else 'material'
-        dados_atualizados['material_servico'] = material_servico.strip()
-
-        # Adiciona 'sigla_om', 'uasg' e 'orgao_responsavel' ao dicionário de atualizações
-        dados_atualizados['valor_total'] = self.line_edit_valor_total.text().strip()
-        dados_atualizados['sigla_om'] = self.combo_sigla_om.currentText().strip()
-        dados_atualizados['uasg'] = self.line_edit_uasg.text().strip()
-        dados_atualizados['orgao_responsavel'] = self.line_edit_orgao.text().strip()
-
-        # Cria a parte SET da consulta SQL dinamicamente
-        set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
+        with self.database_manager as cursor:
         
-        # Prepara a lista de valores para a consulta (inclui os valores seguidos pelo id no final)
-        valores = list(dados_atualizados.values())
-        valores.append(self.dados['id'])  # Assume que 'self.dados' contém um campo 'id' com o ID do registro a ser atualizado
-        
-        # Constrói e executa a consulta SQL de UPDATE
-        query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
-        cursor.execute(query, valores)
-        conn.commit()
-        conn.close()
-        
+            # Atualiza o dicionário com os valores dos line_edits regulares
+            dados_atualizados = {coluna: line_edit.text().strip() for coluna, line_edit in self.line_edits.items()}
+
+            dados_atualizados.update({date_col: date_edit.date().toString("yyyy-MM-dd").strip() for date_col, date_edit in self.date_edits.items()})
+            # Determine o valor de material_servico com base no RadioButton selecionado
+            material_servico = 'servico' if self.radio_servico.isChecked() else 'material'
+            dados_atualizados['material_servico'] = material_servico.strip()
+
+            # Adiciona 'sigla_om', 'uasg' e 'orgao_responsavel' ao dicionário de atualizações
+            dados_atualizados['valor_total'] = self.line_edit_valor_total.text().strip()
+            dados_atualizados['sigla_om'] = self.combo_sigla_om.currentText().strip()
+            dados_atualizados['uasg'] = self.line_edit_uasg.text().strip()
+            dados_atualizados['orgao_responsavel'] = self.line_edit_orgao.text().strip()
+
+            # Cria a parte SET da consulta SQL dinamicamente
+            set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
+            
+            # Prepara a lista de valores para a consulta (inclui os valores seguidos pelo id no final)
+            valores = list(dados_atualizados.values())
+            valores.append(self.dados['id'])  # Assume que 'self.dados' contém um campo 'id' com o ID do registro a ser atualizado
+            
+            # Constrói e executa a consulta SQL de UPDATE
+            query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
+            cursor.execute(query, valores)
+
         # Emite o sinal de dados atualizados e fecha a caixa de diálogo
         self.dados_atualizados.emit()
         self.accept()

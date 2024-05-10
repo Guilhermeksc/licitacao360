@@ -271,13 +271,6 @@ class MainWindow(QMainWindow):
             self.set_active_button_style(self.buttons[button_name])
             self.active_buttonin = self.buttons[button_name]
 
-# # Executando a aplicação
-# if __name__ == "__main__":
-#     app = QApplication(sys.argv)
-#     window = MainWindow()
-#     window.show()
-#     app.exec()
-
 def main():
     app = QApplication(sys.argv)
     try:
