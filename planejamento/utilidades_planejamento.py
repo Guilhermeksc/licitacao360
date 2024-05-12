@@ -489,18 +489,11 @@ def carregar_dados_pregao(index, caminho_banco_dados):
 
 def carregar_dados_processos(controle_processos_path):
     try:
-        # Conecta ao banco de dados SQLite
-        conn = sqlite3.connect(controle_processos_path)
-        # Executa a consulta SQL para selecionar todos os dados da tabela 'controle_processos'
+        conn = sqlite3.connect(str(controle_processos_path))
         df_processos = pd.read_sql_query("SELECT * FROM controle_processos", conn)
-        # Fecha a conexão com o banco de dados
-        conn.close()
-
-        # Define a coluna 'etapa' como 'Planejamento' para todos os registros
         df_processos['etapa'] = 'Planejamento'
-
+        conn.close()
         return df_processos
-    
     except Exception as e:
         print(f"Erro ao carregar dados do processo: {e}")
         return pd.DataFrame()

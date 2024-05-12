@@ -298,6 +298,7 @@ class ComboBoxDelegate(QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 class SettingsDialog(QDialog):
+    controle_dados_dir_updated = pyqtSignal(Path)
     def __init__(self, config_manager, parent=None):
         super().__init__(parent)
         self.config_manager = config_manager
@@ -393,10 +394,51 @@ class SettingsDialog(QDialog):
         # Configurar atualização de banco de dados
         carregar_database_layout = QHBoxLayout()
         carregar_database_btn = QPushButton("Atualizar Banco de Dados")
-        carregar_database_btn.clicked.connect(self.safe_update_database)
+        carregar_database_btn.clicked.connect(self.update_controle_processos_dir)    
         carregar_database_layout.addWidget(QLabel("Carregar dados de um arquivo .db"))
         carregar_database_layout.addWidget(carregar_database_btn)
         main_layout.addLayout(carregar_database_layout)
+
+    def update_controle_processos_dir(self):
+        global CONTROLE_DADOS
+        new_file = update_file_path("Selecione o novo arquivo para CONTROLE_DADOS", "CONTROLE_DADOS", CONTROLE_DADOS, self, "Database files (*.db)")
+        if new_file != CONTROLE_DADOS:
+            # Criar e configurar a caixa de diálogo de confirmação
+            msgBox = QMessageBox(self)
+            msgBox.setWindowTitle('Alteração de diretório')
+            msgBox.setText(f'Diretório antigo:\n{CONTROLE_DADOS}\nDiretório atualizado:\n{new_file}\n\nDeseja alterar?')
+            msgBox.setIcon(QMessageBox.Icon.Question)
+
+            # Configurar fonte
+            font = msgBox.font()
+            font.setPointSize(14)
+            msgBox.setFont(font)
+
+            # Adicionar botões Sim e Não
+            yesButton = msgBox.addButton("Sim", QMessageBox.ButtonRole.YesRole)
+            noButton = msgBox.addButton("Não", QMessageBox.ButtonRole.NoRole)
+
+            # Exibir a caixa de diálogo e aguardar resposta
+            msgBox.exec()
+
+            # Verificar qual botão foi pressionado
+            if msgBox.clickedButton() == yesButton:
+                CONTROLE_DADOS = new_file
+                global_event_manager.update_controle_dados_dir(CONTROLE_DADOS)
+
+                # Criar e configurar a caixa de diálogo de sucesso
+                successBox = QMessageBox(self)
+                successBox.setWindowTitle('Alteração realizada com sucesso!')
+                successBox.setText(f'Diretório atualizado:\n{new_file}')
+                successBox.setIcon(QMessageBox.Icon.Information)
+
+                # Configurar fonte
+                font = successBox.font()
+                font.setPointSize(14)
+                successBox.setFont(font)
+
+                # Exibir a caixa de diálogo de sucesso
+                successBox.exec()
 
     def edit_data_agentes_responsaveis(self):
         # Conectar ao banco de dados

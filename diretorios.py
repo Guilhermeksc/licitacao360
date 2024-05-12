@@ -6,7 +6,7 @@ import json
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 CONFIG_FILE = BASE_DIR / "config.json"
-CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
+# CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
 
 def load_config(key, default_value):
     try:
@@ -34,9 +34,19 @@ def update_dir(title, key, default_value, parent=None):
         return Path(new_dir)
     return default_value
 
+# Função atualizada para escolher arquivos
+def update_file_path(title, key, default_value, parent=None, file_type="All Files (*)"):
+    new_file, _ = QFileDialog.getOpenFileName(parent, title, str(default_value), file_type)
+    if new_file:
+        save_config(key, new_file)
+        return Path(new_file)
+    return default_value
+
+
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
 ICONS_DIR = DATABASE_DIR / "icons"
+CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))
 SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
@@ -146,6 +156,7 @@ class ConfigManager(QObject):
         return self.config.get(key, default_value)
 
 class EventManager(QObject):
+    controle_dados_dir_updated = pyqtSignal(Path)
     pdf_dir_updated = pyqtSignal(Path)
     sicaf_dir_updated = pyqtSignal(Path)
     relatorio_path_updated = pyqtSignal(Path)
@@ -157,12 +168,20 @@ class EventManager(QObject):
     def update_database_dir(self, new_file):
         global CONTROLE_DADOS
         CONTROLE_DADOS = new_file
-        save_config("database_path", str(new_file))
+        save_config("CONTROLE_DADOS", str(new_file))
         self.controle_dir_updated.emit(new_file)
 
     def update_pdf_dir(self, new_dir):
         print(f"Emitindo sinal de atualização de PDF_DIR: {new_dir}")
         self.pdf_dir_updated.emit(new_dir)
+
+    def update_controle_dados_dir(self, new_file):
+        global CONTROLE_DADOS
+        if new_file != CONTROLE_DADOS:
+            CONTROLE_DADOS = new_file
+            save_config("CONTROLE_DADOS", str(new_file))
+            self.controle_dados_dir_updated.emit(new_file)
+            print(f"CONTROLE_DADOS atualizado para {new_file}")
 
     def update_sicaf_dir(self, new_dir):
         self.sicaf_dir_updated.emit(new_dir)

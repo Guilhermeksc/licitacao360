@@ -57,12 +57,39 @@ class ReportDialog(QDialog):
         self.layout().addWidget(self.table_view)
         self.model = QStandardItemModel()
         self.table_view.setModel(self.model)
-        self.table_view.setStyleSheet("""
-            QTableView {
-                background-color: black;     
+        self.setObjectName("ReportDialog")
+        self.setStyleSheet("""
+            #ReportDialog {
+                background-color: black;
                 color: white;
-            }
-        """)
+                font-size: 12pt;
+                }
+                QTableView {
+                    border: 1px solid #d3d3d3;
+                    gridline-color: #d3d3d3;
+                    background-color: #f0f0f0;
+                    font-size: 12pt;
+                }
+                QTableView::item:selected {
+                    background-color: #a8a8a8;
+                    color: white;
+                    font-size: 12pt;
+                }
+                QTableView::item:hover {
+                    background-color: #f5f5f5;
+                    color: black;
+                }
+                QHeaderView::section {
+                    background-color: #e0e0e0;
+                    padding: 4px;
+                    border: 1px solid #d3d3d3;
+                    font-size: 12pt;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    border: none;
+                    background: none;
+                }
+            """)
         self.dataframe = dataframe  # Armazena o DataFrame passado como argumento
         self.icons_dir = Path(icons_dir)
         self.image_cache = {}
@@ -71,20 +98,45 @@ class ReportDialog(QDialog):
         ])
         # Configura os cabeçalhos das colunas
         self.model.setHorizontalHeaderLabels(["Número", "Objeto", "OM", "Status Anterior", "Dias", "Status Atual", "Dias", "Pregoeiro"])
-
+        # Definir o tamanho da fonte do cabeçalho da tabela
+        header = self.table_view.horizontalHeader()
+        font = header.font()
+        font.setPointSize(12)
+        header.setFont(font)
+    
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)  # Ajustar todas as colunas para preencher o espaço
+        self.table_view.resizeColumnsToContents()  # Ajusta as colunas ao conteúdo
+        self.table_view.verticalHeader().setVisible(False)
         self.load_data()
         self._create_buttons()  # Cria os botões
 
+        QTimer.singleShot(1, self.adjustColumnWidth) 
+
+    def adjustColumnWidth(self):
+        header = self.table_view.horizontalHeader()
+        # Configurar outras colunas para ter tamanhos fixos
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)  
+
+        # Ajusta o tamanho de colunas fixas
+        header.resizeSection(0, 110)
+        header.resizeSection(2, 110)
+        header.resizeSection(4, 60)
+        header.resizeSection(6, 60)
+
+        # # Configura a coluna 6 para ser expansível e define o tamanho mínimo
+        # header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        # header.resizeSection(6, 220)  # Define o tamanho inicial
+        # header.setMinimumSectionSize(110)  # Define o tamanho mínimo
+
     def showEvent(self, event):
         super().showEvent(event)
-        self.adjust_column_widths()
-
-    def adjust_column_widths(self):
-        # Larguras fixas para as colunas conforme especificado
-        column_widths = [75, 220, 80, 140, 30, 140, 30, 100]
-
-        for column, width in enumerate(column_widths):
-            self.table_view.setColumnWidth(column, width)
 
     def load_data(self):
         try:
@@ -148,9 +200,6 @@ class ReportDialog(QDialog):
             conn.close()
         except sqlite3.Error as e:
             print(f"Erro ao acessar o banco de dados: {e}")
-
-        QTimer.singleShot(10, self.adjust_column_widths)
-
 
     def _create_buttons(self):
         # Cria um layout horizontal para os botões

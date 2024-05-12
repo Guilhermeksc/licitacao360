@@ -171,8 +171,7 @@ class TableMenu(QMenu):
         if self.index.isValid():
             source_index = self.model.mapToSource(self.index)
             selected_row = source_index.row()
-            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
-            
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
             if not df_registro_selecionado.empty:
                 if actionText == "Editar Dados do Processo":
                     self.editar_dados(df_registro_selecionado)
@@ -354,10 +353,10 @@ class ApplicationUI(QMainWindow):
         self.icons_dir = Path(icons_dir)
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         # Carregar configuração inicial do diretório do banco de dados
-        self.database_path = Path(load_config("database_path", str(CONTROLE_DADOS)))
+        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         
         self.event_manager = EventManager()
-        self.event_manager.controle_dir_updated.connect(self.handle_database_dir_update)
+        self.event_manager.controle_dados_dir_updated.connect(self.handle_database_dir_update)
         
         self.selectedIndex = None
         self.image_cache = load_images(self.icons_dir, [
@@ -385,7 +384,7 @@ class ApplicationUI(QMainWindow):
                 "pregoeiro": "TEXT", "item_pca": "TEXT", "portaria_PCA": "TEXT", "data_sessao": "TEXT", "data_limite_entrega_tr": "TEXT",
                 "nup_portaria_planejamento": "TEXT", "srp": "TEXT", "material_servico": "TEXT", "parecer_agu": "TEXT", "msg_irp": "TEXT",
                 "data_limite_manifestacao_irp": "TEXT", "data_limite_confirmacao_irp": "TEXT", "num_irp": "TEXT", "om_participantes": "TEXT",
-                "link_pncp": "TEXT", "link_portal_marinha": "TEXT"
+                "link_pncp": "TEXT", "link_portal_marinha": "TEXT", "comentarios": "TEXT"
             }
             DatabaseManager.verify_and_create_columns(conn, 'controle_processos', required_columns)
             DatabaseManager.check_and_fix_id_sequence(conn)
@@ -710,11 +709,11 @@ class ApplicationUI(QMainWindow):
             QMessageBox.warning(self, "Carregamento Cancelado", "Nenhum arquivo de banco de dados foi selecionado.")
 
     def handle_database_dir_update(self, new_dir):
-        global CONTROLE_DADOS
-        CONTROLE_DADOS = new_dir
-        save_config("database_path", str(new_dir))
+        # Atualiza o caminho do banco de dados
         self.database_path = new_dir
         self.database_manager = DatabaseManager(new_dir)
+        # Reinicialize quaisquer funções ou métodos que dependem do database_path
+        self.init_sql_model()  # Por exemplo, reinicialize o modelo SQL
         QMessageBox.information(self, "Atualização de Diretório", "Diretório do banco de dados atualizado para: " + str(new_dir))
 
     def on_control_process(self):
@@ -730,18 +729,19 @@ class ApplicationUI(QMainWindow):
             self.database_manager.popular_controle_prazos_se_necessario()
 
         # Carrega os dados de processos já com as etapas atualizadas
-        df_processos = carregar_dados_processos(CONTROLE_DADOS)
+        df_processos = carregar_dados_processos(self.database_path)
 
         if not df_processos.empty:
-            self.exibir_dialogo_process_flow(df_processos)
+            self.exibir_dialogo_process_flow()
         else:
             print("DataFrame de processos está vazio.")
 
-    def exibir_dialogo_process_flow(self, df_processos):
+    def exibir_dialogo_process_flow(self):
+        df_processos = carregar_dados_processos(self.database_path)
         dialog = FluxoProcessoDialog(etapas, df_processos, self.database_manager, self.database_path, self)
-        dialog.dialogClosed.connect(self.atualizarTableView)
+        dialog.updateRequired.connect(self.atualizarTableView)  # Conectar ao método de atualização
         dialog.exec()
-
+        
     def atualizarTableView(self):
         print("Atualizando TableView...")
         with self.database_manager as conn:

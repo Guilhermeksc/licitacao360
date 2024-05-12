@@ -117,6 +117,13 @@ class ConfiguracoesWidget(QWidget):
         self.btn_lista_diretorios.setFont(font)
         self.btn_lista_diretorios.clicked.connect(self.mostrar_diretorios_atuais)
         self.layout.addWidget(self.btn_lista_diretorios)
+        # Criar botões com ícones
+        self.btn_update_pdf_dir = QPushButton("Atualizar Pasta - 'Database'")
+        self.btn_update_pdf_dir.setFont(font)  # Aplicando a fonte ao botão
+        self.btn_update_pdf_dir.setIcon(icons[1])
+        self.btn_update_pdf_dir.setIconSize(QSize(32, 32)) 
+        self.btn_update_pdf_dir.clicked.connect(self.update_pdf_dir)    
+        self.layout.addWidget(self.btn_update_pdf_dir)
 
     def mostrar_diretorios_atuais(self):
         dialog = DiretoriosDialog(self)
@@ -132,7 +139,7 @@ class ConfiguracoesWidget(QWidget):
         self.btn_update_pdf_dir = QPushButton("Atualizar Pasta 'Termos de Homologação'")
         self.btn_update_pdf_dir.clicked.connect(self.update_pdf_dir)
         self.layout.addWidget(self.btn_update_pdf_dir)
-            
+
     def update_pdf_dir(self):
         global PDF_DIR
         new_dir = update_dir("Selecione o novo diretório para PDF_DIR", "PDF_DIR", PDF_DIR, self)

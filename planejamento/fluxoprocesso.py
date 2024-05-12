@@ -11,7 +11,7 @@ import re
 from functools import partial
 
 class FluxoProcessoDialog(QDialog):
-    dialogClosed = pyqtSignal()
+    updateRequired = pyqtSignal()  # Sinal para notificar a ApplicationUI
 
     def __init__(self, etapas, df_processos, database_manager, database_path, parent=None):
         super().__init__(parent)
@@ -25,9 +25,9 @@ class FluxoProcessoDialog(QDialog):
         self._setup_ui()
         # self.showMaximized()
         self.showFullScreen()
+
     def closeEvent(self, event):
         # Emitir sinal quando o diálogo for fechado
-        self.dialogClosed.emit()
         super().closeEvent(event)
         
     def _populate_list_widget(self, list_widget):
@@ -89,13 +89,15 @@ class FluxoProcessoDialog(QDialog):
         group_box.setStyleSheet("QGroupBox { border: 1px solid white; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px; color: white; }")
         layout = QVBoxLayout(group_box)
         layout.setContentsMargins(1, 25, 1, 4)
-        list_widget = CustomListWidget(parent=self, database_path=self.database_path)  # Passa o caminho do banco de dados aqui
+        list_widget = CustomListWidget(parent=self, database_path=self.database_path)
         list_widget.setObjectName(etapa)
         self._populate_list_widget(list_widget)
+        list_widget.updateRequired.connect(self.updateRequired.emit)  # Conecta o sinal ao método que emite o sinal do diálogo
         layout.addWidget(list_widget)
         return group_box
-
+    
 class CustomListWidget(QListWidget):
+    updateRequired = pyqtSignal()
     etapas = {
         'Planejamento': None,
         'Setor Responsável': None,
@@ -269,7 +271,7 @@ class CustomListWidget(QListWidget):
                 event.source().takeItem(event.source().currentRow())  # Remove o item da lista original
                 etapa_manager = EtapaManager(str(CONTROLE_DADOS))
                 etapa_manager.registrar_etapa(id_processo, nova_etapa, "Comentário opcional")
-
+                self.updateRequired.emit()
             event.setDropAction(Qt.DropAction.MoveAction)
             event.accept()
         else:
