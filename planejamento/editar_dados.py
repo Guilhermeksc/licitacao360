@@ -11,17 +11,43 @@ import locale
 import re
 from datetime import datetime
 from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
+from utils.treeview_utils import load_images, create_button_2
+
+class TextEditDelegate(QItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QTextEdit(parent)
+        editor.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        return editor
+
+    def setEditorData(self, editor, index):
+        text = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+        editor.setText(text.split(": ", 1)[1])
+
+    def setModelData(self, editor, model, index):
+        edited_text = editor.toPlainText().strip()
+        original_text = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+        comment_number = original_text.split(":")[0].strip()
+        model.setData(index, f"{comment_number}: {edited_text}", Qt.ItemDataRole.DisplayRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
 
 class EditarDadosDialog(QDialog):
     dados_atualizados = pyqtSignal()
 
-    def __init__(self, parent=None, dados=None):
+    def __init__(self, icons_dir, parent=None, dados=None):
         super().__init__(parent)
         self.dados = dados or {}
+        self.uasg = ''  # Valor inicial padrão
+        self.orgao_responsavel = ''  # Valor inicial padrão
+        self.line_edits = {}
+        self.date_edits = {} 
         locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Configura o locale para português do Brasil
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
+        self.icons_dir = Path(icons_dir)
+        self.image_cache = load_images(self.icons_dir, ["confirm.png", "report.png"])
         self.setupUI()
         self.init_combobox_data()
 
@@ -33,7 +59,7 @@ class EditarDadosDialog(QDialog):
         self.titleLabel = QLabel()
         self.update_title_label(self.dados.get('orgao_responsavel', ''), self.dados.get('uasg', ''))
         self.createFormLayout()
-        self.createButtons()
+        self.setupButtonsLayout()
         self.applyStyleSheet()
 
     def update_title_label(self, orgao_responsavel, uasg):
@@ -46,17 +72,9 @@ class EditarDadosDialog(QDialog):
     def createFormLayout(self):
         self.layout = QVBoxLayout(self)  
         self.layout.addLayout(self._create_header_layout(self.dados['tipo'], self.dados['numero'], self.dados['ano'], self.dados['id_processo']))        
-        self.groupBox = QGroupBox('Índices das Variáveis')
-        self.layout.addWidget(self.groupBox)
-
         # Layout principal dentro do groupBox deve ser um QVBoxLayout para gerenciar o conteúdo verticalmente
         self.mainLayout = QVBoxLayout()
-        self.groupBox.setLayout(self.mainLayout)
-
-        # Criar QVBoxLayout para organizar as linhas de QHBoxLayouts
         self.boxLayout = QVBoxLayout()
-
-        # Criar o primeiro QHBoxLayout para conter os primeiros dois QFrames
         self.boxLinha1 = QHBoxLayout()
 
         # Criar os QFrames e definir suas propriedades de borda para frame1 e frame2
@@ -122,7 +140,7 @@ class EditarDadosDialog(QDialog):
         self.boxLayout.addLayout(self.boxLinha2)
 
         # Adicionar o boxLayout completo ao mainLayout
-        self.mainLayout.addLayout(self.boxLayout)
+        self.layout.addLayout(self.boxLayout)
 
         # Adicionar métodos de componentes aos layouts verticais
         self.identificar_processo()
@@ -133,8 +151,9 @@ class EditarDadosDialog(QDialog):
         self.inserir_valor_total()
         self.combo_uasg_om()
         self.definir_irp()
+        self.definir_links()
         self.definir_comentarios()
-        self.definir_pregoeiro_data_sessao()
+        self.definir_pregoeiro_data_sessao_parecerAGU()
         
         # Spacer para manter tudo alinhado ao topo
         self.spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
@@ -149,7 +168,7 @@ class EditarDadosDialog(QDialog):
         
         # Configuração da imagem (se necessário)
         pixmap = QPixmap(str(MARINHA_PATH))
-        pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel()
         image_label.setPixmap(pixmap)
         header_layout.addWidget(image_label)
@@ -168,18 +187,19 @@ class EditarDadosDialog(QDialog):
         id_processo_edit = QLineEdit()
         id_processo_edit.setText(self.dados.get('id_processo', ''))
         id_processo_edit.setReadOnly(True)
-        id_processo_edit.setFixedWidth(200)
+        id_processo_edit.setFixedWidth(205)
         id_layout.addWidget(id_processo_label)
         id_layout.addWidget(id_processo_edit)
 
         nup_layout = QVBoxLayout()
         nup_label = QLabel("NUP:")
-        nup_edit = QLineEdit()
-        nup_edit.setText(self.dados.get('nup', ''))
-        nup_edit.setReadOnly(False)
-        nup_edit.setFixedWidth(180)
+        self.nup_edit = QLineEdit()
+        self.nup_edit.setText(self.dados.get('nup', ''))
+        self.nup_edit.setReadOnly(False)
+        self.nup_edit.setFixedWidth(220)
         nup_layout.addWidget(nup_label)
-        nup_layout.addWidget(nup_edit)
+        nup_layout.addWidget(self.nup_edit)
+        self.line_edits['nup'] = self.nup_edit 
 
         detalhes_layout.addLayout(id_layout)
         detalhes_layout.addLayout(nup_layout)
@@ -200,22 +220,22 @@ class EditarDadosDialog(QDialog):
         item_pca_layout = QVBoxLayout()
 
         item_pca_label = QLabel("Item PCA:")
-        item_pca_edit = QLineEdit()
-        item_pca_edit.setText(self.dados.get('item_pca', ''))
-        item_pca_edit.setReadOnly(False)
-        item_pca_edit.setFixedWidth(70)
+        self.item_pca_edit = QLineEdit()
+        self.item_pca_edit.setText(self.dados.get('item_pca', ''))
+        self.item_pca_edit.setReadOnly(False)
+        self.item_pca_edit.setFixedWidth(70)
         item_pca_layout.addWidget(item_pca_label)
-        item_pca_layout.addWidget(item_pca_edit)
-
+        item_pca_layout.addWidget(self.item_pca_edit)
+        self.line_edits['item_pca'] = self.item_pca_edit
         portaria_pca_layout = QVBoxLayout()
 
         portaria_pca_label = QLabel("Portaria PCA:")
-        portaria_pca_edit = QLineEdit()
-        portaria_pca_edit.setText(self.dados.get('portaria_pca', ''))
-        portaria_pca_edit.setReadOnly(False)
+        self.portaria_pca_edit = QLineEdit()
+        self.portaria_pca_edit.setText(self.dados.get('portaria_PCA', ''))
+        self.portaria_pca_edit.setReadOnly(False)
         portaria_pca_layout.addWidget(portaria_pca_label)
-        portaria_pca_layout.addWidget(portaria_pca_edit)
-
+        portaria_pca_layout.addWidget(self.portaria_pca_edit)
+        self.line_edits['portaria_PCA'] = self.portaria_pca_edit
         pca_layout.addLayout(item_pca_layout)
         pca_layout.addLayout(portaria_pca_layout)
 
@@ -278,12 +298,16 @@ class EditarDadosDialog(QDialog):
         # Adicionando o layout horizontal ao QVBoxLayout principal
         self.vBoxLayout1.addLayout(line_layout)
 
-        # Define o estado padrão dos RadioButton para 'srp' com base no valor de 'tipo'
-        tipo = self.dados.get('tipo', '')
-        if tipo == 'Pregão Eletrônico':
+        # Define o estado padrão dos RadioButton para 'srp' com base no valor existente
+        srp = self.dados.get('srp', '').strip().lower()
+        if srp == 'sim':
             self.radio_srp_sim.setChecked(True)
-        else:
+        elif srp == 'não':
             self.radio_srp_nao.setChecked(True)
+        else:
+            # Nenhuma opção selecionada se não houver dados claros ou deixar uma opção padrão
+            self.radio_srp_nao.setChecked(False)
+            self.radio_srp_sim.setChecked(False)
 
     def inserir_valor_total(self):
         self.line_edit_valor_total = QLineEdit()
@@ -317,26 +341,38 @@ class EditarDadosDialog(QDialog):
 
         # Criando e configurando o QLineEdit para 'objeto'
         label_objeto = QLabel("Objeto:")
-        line_edit_objeto = QLineEdit()
-        line_edit_objeto.setText(self.dados.get('objeto', ''))
-        line_edit_objeto.setReadOnly(False)
+        self.line_edit_objeto = QLineEdit()
+        self.line_edit_objeto.setText(self.dados.get('objeto', ''))
+        self.line_edit_objeto.setReadOnly(False)
         # Aplicar estilo específico para o campo 'objeto'
-        line_edit_objeto.setStyleSheet("QLineEdit { color: darkblue; font-weight: bold; }")
+        self.line_edit_objeto.setStyleSheet("QLineEdit { color: darkblue; font-weight: bold; }")
         layout.addWidget(label_objeto)
-        layout.addWidget(line_edit_objeto)
+        layout.addWidget(self.line_edit_objeto)
+        self.line_edits['objeto'] = self.line_edit_objeto
 
         # Criando e configurando o QTextEdit para 'objeto_completo'
         label_objeto_completo = QLabel("Objeto Completo:")
-        text_edit_objeto_completo = QTextEdit()
-        text_edit_objeto_completo.setText(self.dados.get('objeto_completo', ''))
-        text_edit_objeto_completo.setReadOnly(False)
-        text_edit_objeto_completo.setFixedHeight(50)  # Define a altura para aproximadamente 2 linhas
+        self.text_edit_objeto_completo = QTextEdit()
+        self.text_edit_objeto_completo.setText(self.dados.get('objeto_completo', ''))
+        self.text_edit_objeto_completo.setReadOnly(False)
+        self.text_edit_objeto_completo.setFixedHeight(50)  # Define a altura para aproximadamente 2 linhas
         layout.addWidget(label_objeto_completo)
-        layout.addWidget(text_edit_objeto_completo)
+        layout.addWidget(self.text_edit_objeto_completo)
+        self.line_edits['objeto_completo'] = self.text_edit_objeto_completo
 
         # Adicionar o layout ao layout principal da janela/dialogo
         self.vBoxLayout4.addLayout(layout)
-        
+
+    def connect_data_signals(self):
+        # Conecte sinais de mudança relevantes ao slot handle_data_change
+        self.nup_edit.textChanged.connect(self.handle_data_change)
+        self.item_pca_edit.textChanged.connect(self.handle_data_change)
+        self.portaria_pca_edit.textChanged.connect(self.handle_data_change)
+
+    def handle_data_change(self):
+        # Marca que os dados foram alterados e habilita o botão de salvar, por exemplo
+        self.dados_modificados = True
+
     def combo_uasg_om(self):
         # Configuração dos campos sigla_om, uasg e orgao_responsavel
         self.combo_sigla_om = QComboBox()
@@ -370,10 +406,12 @@ class EditarDadosDialog(QDialog):
         self.line_edit_setor_responsavel = QLineEdit(self.dados.get('setor_responsavel', ''))
         self.vBoxLayout2.addWidget(QLabel('Setor Responsável pelo Planejamento:'))
         self.vBoxLayout2.addWidget(self.line_edit_setor_responsavel)
+        self.line_edits['setor_responsavel'] = self.line_edit_setor_responsavel 
 
         self.line_edit_coordenador_planejamento = QLineEdit(self.dados.get('coordenador_planejamento', ''))
         self.vBoxLayout2.addWidget(QLabel('Coordenador da Equipe de Planejamento:'))
         self.vBoxLayout2.addWidget(self.line_edit_coordenador_planejamento)
+        self.line_edits['coordenador_planejamento'] = self.line_edit_coordenador_planejamento 
 
         # Inicializar os dados do ComboBox após adicionar ao layout
         self.init_combobox_data()
@@ -388,20 +426,22 @@ class EditarDadosDialog(QDialog):
         # QVBoxLayout para 'msg_irp'
         msg_irp_layout = QVBoxLayout()
         label_msg_irp = QLabel("Mensagem IRP:")
-        line_edit_msg_irp = QLineEdit()
-        line_edit_msg_irp.setText(self.dados.get('msg_irp', ''))
+        self.line_edit_msg_irp = QLineEdit()
+        self.line_edit_msg_irp.setText(self.dados.get('msg_irp', ''))
         msg_irp_layout.addWidget(label_msg_irp)
-        msg_irp_layout.addWidget(line_edit_msg_irp)
+        msg_irp_layout.addWidget(self.line_edit_msg_irp)
         irp_text_layout.addLayout(msg_irp_layout)
+        self.line_edits['msg_irp'] = self.line_edit_msg_irp
 
         # QVBoxLayout para 'num_irp'
         num_irp_layout = QVBoxLayout()
         label_num_irp = QLabel("Número IRP:")
-        line_edit_num_irp = QLineEdit()
-        line_edit_num_irp.setText(self.dados.get('num_irp', ''))
+        self.line_edit_num_irp = QLineEdit()
+        self.line_edit_num_irp.setText(self.dados.get('num_irp', ''))
         num_irp_layout.addWidget(label_num_irp)
-        num_irp_layout.addWidget(line_edit_num_irp)
+        num_irp_layout.addWidget(self.line_edit_num_irp)
         irp_text_layout.addLayout(num_irp_layout)
+        self.line_edits['num_irp'] = self.line_edit_num_irp
 
         # Adicionar o QHBoxLayout de textos ao layout principal
         layout.addLayout(irp_text_layout)
@@ -425,12 +465,11 @@ class EditarDadosDialog(QDialog):
             if valid_date:
                 date_edit.setDate(valid_date)
             else:
-                date_edit.setDate(QDate.currentDate())  # Define para hoje se a data for inválida
-
+                date_edit.setDate(QDate.currentDate())
             date_layout.addWidget(label)
             date_layout.addWidget(date_edit)
             irp_date_layout.addLayout(date_layout)
-            # self.date_edits[field] = date_edit  # Store date edit for future reference
+            self.date_edits[field] = date_edit  
 
         # Adicionar o QHBoxLayout de datas ao layout principal
         layout.addLayout(irp_date_layout)
@@ -438,42 +477,67 @@ class EditarDadosDialog(QDialog):
         # Adicionando campo para OM Participantes
         om_participantes_layout = QVBoxLayout()
         label_om_participantes = QLabel("Organizações Participantes:")
-        line_edit_om_participantes = QLineEdit()
-        line_edit_om_participantes.setText(self.dados.get('om_participantes', ''))
-        line_edit_om_participantes.setPlaceholderText("Exemplo: CeIMBra, CIAB, Com7ºDN, ERMB, HNBra, etc")
+        self.line_edit_om_participantes = QLineEdit()
+        valor_om_participantes = self.dados.get('om_participantes', None) or ''
+        self.line_edit_om_participantes.setText(valor_om_participantes)
+        self.line_edit_om_participantes.setPlaceholderText("Exemplo: CeIMBra, CIAB, Com7ºDN, ERMB, HNBra, etc")
+
         om_participantes_layout.addWidget(label_om_participantes)
-        om_participantes_layout.addWidget(line_edit_om_participantes)
+        om_participantes_layout.addWidget(self.line_edit_om_participantes)
 
         # Adicionar layout de OM Participantes ao layout principal
         layout.addLayout(om_participantes_layout)
         
         # Adicionar o layout completo ao layout principal da janela/dialogo
         self.vBoxLayout3.addLayout(layout)
-            
-    def definir_pregoeiro_data_sessao(self):
+
+    def definir_links(self):
         layout = QVBoxLayout()  # Layout principal para os componentes desta seção
 
+        label_link_pncp = QLabel("Link PNCP:")
+        self.line_edit_link_pncp = QLineEdit()
+        self.line_edit_link_pncp.setText(self.dados.get('link_pncp', ''))
+        layout.addWidget(label_link_pncp)
+        layout.addWidget(self.line_edit_link_pncp)
+
+        label_link_portal_marinha = QLabel("Link Portal de Licitações da Marinha:")
+        self.line_edit_link_portal_marinha = QLineEdit()
+        self.line_edit_link_portal_marinha.setText(self.dados.get('link_portal_marinha', ''))
+        layout.addWidget(label_link_portal_marinha)
+        layout.addWidget(self.line_edit_link_portal_marinha)
+        # Adicionar o layout ao layout principal da janela/dialogo
+        self.vBoxLayout5.addLayout(layout)
+
+    def definir_pregoeiro_data_sessao_parecerAGU(self):
+        layout = QVBoxLayout()  # Layout principal para os componentes desta seção
+
+        label_parecer = QLabel("Parecer AGU:")
+        self.line_edit_parecer = QLineEdit()
+        self.line_edit_parecer.setText(self.dados.get('parecer_agu', ''))
+        layout.addWidget(label_parecer)
+        layout.addWidget(self.line_edit_parecer)
+        
         # Criando e configurando QLineEdit para 'Pregoeiro'
         label_pregoeiro = QLabel("Pregoeiro:")
-        line_edit_pregoeiro = QLineEdit()
-        line_edit_pregoeiro.setText(self.dados.get('pregoeiro', ''))
+        self.line_edit_pregoeiro = QLineEdit()
+        self.line_edit_pregoeiro.setText(self.dados.get('pregoeiro', ''))
         layout.addWidget(label_pregoeiro)
-        layout.addWidget(line_edit_pregoeiro)
+        layout.addWidget(self.line_edit_pregoeiro)
 
         # Criando e configurando QDateEdit para 'data_sessao'
         label_data_sessao = QLabel("Data da Sessão:")
-        date_sessao_edit = QDateEdit()
-        date_sessao_edit.setCalendarPopup(True)
+        self.date_sessao_edit = QDateEdit()
+        self.date_sessao_edit.setCalendarPopup(True)
         date_sessao_str = self.dados.get('data_sessao', '')
         valid_date = self.validate_and_convert_date(date_sessao_str)
         if valid_date:
-            date_sessao_edit.setDate(valid_date)
+            self.date_sessao_edit.setDate(valid_date)
         else:
-            date_sessao_edit.setDate(QDate.currentDate())  # Define para hoje se a data for inválida
-
+            self.date_sessao_edit.setDate(QDate.currentDate())  # Define para hoje se a data for inválida
+        self.date_edits['data_sessao'] = self.date_sessao_edit
+    
         layout.addWidget(label_data_sessao)
-        layout.addWidget(date_sessao_edit)
-
+        layout.addWidget(self.date_sessao_edit)
         # Adicionar o layout ao layout principal da janela/dialogo
         self.vBoxLayout4.addLayout(layout)
 
@@ -483,26 +547,60 @@ class EditarDadosDialog(QDialog):
 
         self.listWidget_comentarios = QListWidget()
         self.listWidget_comentarios.setFont(QFont("Arial", 12))
+        self.listWidget_comentarios.setWordWrap(True)
+        self.listWidget_comentarios.setFixedWidth(430)
+
+        delegate = TextEditDelegate()
+        self.listWidget_comentarios.setItemDelegate(delegate)
+        self.listWidget_comentarios.itemChanged.connect(self.salvar_comentarios_editados)
 
         comentarios = self.carregar_comentarios()
         for i, comentario in enumerate(comentarios, start=1):
-            self.listWidget_comentarios.addItem(f"{i}º comentário: {comentario}")
+            item = QListWidgetItem(f"{i}º comentário: {comentario}")
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+            self.listWidget_comentarios.addItem(item)
 
+        label_novo_comentario = QLabel("Campo de edição de Comentário:")
+        label_novo_comentario.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         self.textEdit_novo_comentario = QTextEdit()
         self.textEdit_novo_comentario.setPlaceholderText("Adicione um novo comentário aqui...")
         self.textEdit_novo_comentario.setFont(QFont("Arial", 12))
 
-        self.button_adicionar_comentario = QPushButton("Adicionar Comentário")
-        self.button_adicionar_comentario.clicked.connect(self.adicionar_comentario)
+        buttonsLayout = QHBoxLayout()
 
+        # Caminhos para os ícones
+        icon_add = QIcon(str(ICONS_DIR / "add_comment.png"))
+
+        icon_exclude = QIcon(str(ICONS_DIR / "delete_comment.png")) 
+
+        self.button_adicionar_comentario = QPushButton("Adicionar Comentário")
+        self.button_adicionar_comentario.setIcon(icon_add)
         self.button_excluir_comentario = QPushButton("Excluir Comentário")
+        self.button_excluir_comentario.setIcon(icon_exclude)
+
+        buttonsLayout.addWidget(self.button_adicionar_comentario)
+        buttonsLayout.addWidget(self.button_excluir_comentario)
+
+        button_font = QFont("Arial", 12)
+        self.button_adicionar_comentario.setFont(button_font)
+        self.button_excluir_comentario.setFont(button_font)
+        
+        self.button_adicionar_comentario.clicked.connect(self.adicionar_comentario)
         self.button_excluir_comentario.clicked.connect(self.excluir_comentario)
 
-        self.vBoxLayout5.addWidget(label)
-        self.vBoxLayout5.addWidget(self.listWidget_comentarios)
+        self.vBoxLayout5.addWidget(label_novo_comentario)
         self.vBoxLayout5.addWidget(self.textEdit_novo_comentario)
-        self.vBoxLayout5.addWidget(self.button_adicionar_comentario)
-        self.vBoxLayout5.addWidget(self.button_excluir_comentario)
+        self.vBoxLayout5.addLayout(buttonsLayout)
+        self.vBoxLayout6.addWidget(label)
+        self.vBoxLayout6.addWidget(self.listWidget_comentarios)
+
+    def salvar_comentarios_editados(self):
+        comentarios = [self.listWidget_comentarios.item(i).text().split(": ", 1)[1] if ": " in self.listWidget_comentarios.item(i).text() else self.listWidget_comentarios.item(i).text() for i in range(self.listWidget_comentarios.count())]
+        comentarios_str = "|||".join(comentarios)  # Usa "|||" para separar os comentários
+        with DatabaseManager(self.database_path) as connection:
+            cursor = connection.cursor()
+            cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id = ?", (comentarios_str, self.dados['id']))
+            connection.commit()
 
     def adicionar_comentario(self):
         novo_comentario = self.textEdit_novo_comentario.toPlainText().strip()
@@ -522,32 +620,45 @@ class EditarDadosDialog(QDialog):
                 item.setText(f"{index + 1}º comentário: {item.text().split(': ', 1)[1]}")
             self.salvar_comentarios()
 
-    def salvar_comentarios(self):
-        comentarios = [self.listWidget_comentarios.item(i).text().split(': ', 1)[1] for i in range(self.listWidget_comentarios.count())]
-        comentarios_str = '\n'.join(comentarios)
-        with DatabaseManager(self.database_path) as connection:
-            cursor = connection.cursor()
-            cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id = ?", (comentarios_str, self.dados['comentarios']))
-            connection.commit()  # Garante que as mudanças sejam salvas
-
     def carregar_comentarios(self):
         with DatabaseManager(self.database_path) as connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT comentarios FROM controle_processos WHERE id = ?", (self.dados['comentarios'],))
+            cursor.execute("SELECT comentarios FROM controle_processos WHERE id = ?", (self.dados['id'],))
             row = cursor.fetchone()
             if row and row[0]:
-                return row[0].split('\n')  # Assume que os comentários estão separados por nova linha
-        return []  # Retorna uma lista vazia se não houver comentários ou a consulta falhar
+                # Divide os comentários com base no delimitador "|||"
+                return row[0].split("|||")
+            return []
+
+    def salvar_comentarios(self):
+        # Esta função deve salvar apenas o texto dos comentários, sem os números.
+        comentarios = [self.listWidget_comentarios.item(i).text().split(": ", 1)[1] for i in range(self.listWidget_comentarios.count())]
+        comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com uma nova linha sem prefixos
+        print(f"Salvando os seguintes comentários no banco de dados {self.database_path}: {comentarios_str}")
+
+        with DatabaseManager(self.database_path) as connection:
+            cursor = connection.cursor()
+            cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id = ?", (comentarios_str, self.dados['id']))
+            connection.commit()
+            print("Comentários salvos com sucesso.")
+
+    def setupButtonsLayout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.createButtons()
+        self.layout.addLayout(self.buttons_layout) 
 
     def createButtons(self):
-        self.btnConfirmar = QPushButton("Confirmar")
-        self.btnConfirmar.clicked.connect(self.confirmarEdicao)
-        
-        # Adiciona o botão ao mainLayout, abaixo do QHBoxLayout
-        self.mainLayout.addWidget(self.btnConfirmar)
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
+        self.button_specs = [
+            ("Confirmar", self.image_cache['confirm'], self.confirmar_edicao, "Confirmar Edição", icon_size),
+            ("Relatório", self.image_cache['report'], self.gerar_relatorio, "Gerar Relatório", icon_size),
+        ]
+
+        for text, icon, callback, tooltip, icon_size in self.button_specs:
+            btn = create_button_2(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+            self.buttons_layout.addWidget(btn)
 
     def applyStyleSheet(self):
-
         style = """
             #frame1, #frame2, #frame3, #frame4, #frame5, #frame6 {
                 border: 1px solid black;
@@ -591,10 +702,10 @@ class EditarDadosDialog(QDialog):
         self.database_manager = DatabaseManager(new_dir)
         QMessageBox.information(self, "Atualização de Diretório", "Diretório do banco de dados atualizado para: " + str(new_dir))
 
-    def confirmarEdicao(self):
-        # Implemente a lógica para confirmar a edição aqui
-        pass
-
+    def gerar_relatorio(self):
+        # Aqui você pode definir a lógica para gerar um relatório
+        print("Gerando relatório...")  # Substitua por sua lógica de relatório
+        
     def validate_and_convert_date(self, date_str):
         """Valida e converte uma string de data para QDate."""
         try:
@@ -624,117 +735,96 @@ class EditarDadosDialog(QDialog):
     def on_combo_change(self, index):
         current_data = self.combo_sigla_om.itemData(index)
         if current_data:
-            self.update_title_label(current_data[1], current_data[0])  # Atualiza o título conforme seleção
+            self.uasg = current_data[0]  # Armazenar UASG
+            self.orgao_responsavel = current_data[1]  # Armazenar Órgão Responsável
+            self.update_title_label(self.orgao_responsavel, self.uasg)  # Atualiza o título conforme seleção
 
+    def confirmar_edicao(self):
+        print(f"Confirmando edição usando banco de dados em: {self.database_path}")
+        with self.database_manager as connection:
+            cursor = connection.cursor()
 
-#     def confirmar_edicao(self):
-#         print(f"Confirmando edição usando banco de dados em: {self.database_path}")  # Debug para verificar o caminho do banco
-#         # Implementação da lógica para atualizar os dados
-#         with self.database_manager as connection:  # Assegurar que 'connection' é a conexão, não o cursor
-#             cursor = connection.cursor()
+            # Diretamente coletar os valores dos QLineEdit
+            dados_atualizados = {
+                'nup': self.nup_edit.text().strip(),
+                'objeto': self.line_edit_objeto.text().strip(),
+                'objeto_completo': self.text_edit_objeto_completo.toPlainText().strip(),
+                'valor_total': self.line_edit_valor_total.text().strip(),
+                'uasg': self.uasg,
+                'orgao_responsavel': self.orgao_responsavel,
+                'sigla_om': self.combo_sigla_om.currentText().strip(),
+                'msg_irp': self.line_edit_msg_irp.text().strip(),
+                'num_irp': self.line_edit_num_irp.text().strip(),
+                'item_pca': self.item_pca_edit.text().strip(),
+                'portaria_PCA': self.portaria_pca_edit.text().strip(),
+                'om_participantes': self.line_edit_om_participantes.text().strip(),
+                'link_pncp': self.line_edit_link_pncp.text().strip(),
+                'link_portal_marinha': self.line_edit_link_portal_marinha.text().strip(),
+                'parecer_agu': self.line_edit_parecer.text().strip(),
+                'pregoeiro': self.line_edit_pregoeiro.text().strip(),
+                'setor_responsavel': self.line_edit_setor_responsavel.text().strip(),
+                'coordenador_planejamento': self.line_edit_coordenador_planejamento.text().strip()
+            }
+
+            # Atualizações de data
+            dados_atualizados.update({date_field: self.date_edits[date_field].date().toString("yyyy-MM-dd") for date_field in self.date_edits})
+            dados_atualizados['material_servico'] = 'servico' if self.radio_servico.isChecked() else 'material'
+            dados_atualizados['srp'] = 'Sim' if self.radio_srp_sim.isChecked() else 'Não'
             
-#             # Atualiza o dicionário com os valores dos line_edits regulares
-#             dados_atualizados = {coluna: line_edit.text().strip() for coluna, line_edit in self.line_edits.items()}
-#             dados_atualizados.update({date_col: date_edit.date().toString("yyyy-MM-dd").strip() for date_col, date_edit in self.date_edits.items()})
+            # Preparação da consulta SQL
+            set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
+            valores = list(dados_atualizados.values())
+            valores.append(self.dados['id'])  # ID do registro a ser atualizado
+
+            query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
+            cursor.execute(query, valores)
+            connection.commit()
+
+        self.dados_atualizados.emit()
+        self.accept()
+        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+
+    # def confirmar_edicao(self):
+    #     print(f"Confirmando edição usando banco de dados em: {self.database_path}")
+    #     with self.database_manager as connection:
+    #         cursor = connection.cursor()
+
+    #         # Diretamente coletar os valores dos QLineEdit
+    #         dados_atualizados = {
+    #             'nup': self.nup_edit.text().strip(),
+    #             'objeto': self.line_edit_objeto.text().strip(),
+    #             'objeto_completo': self.text_edit_objeto_completo.toPlainText().strip(),
+    #             'valor_total': self.line_edit_valor_total.text().strip(),
+    #             'uasg': self.line_edit_uasg.text().strip(),
+    #             'orgao_responsavel': self.line_edit_orgao.text().strip(),
+    #             'sigla_om': self.combo_sigla_om.currentText().strip(),
+    #             'msg_irp': self.line_edit_msg_irp.text().strip(),
+    #             'num_irp': self.line_edit_num_irp.text().strip(),
+    #             'item_pca': self.item_pca_edit.text().strip(),
+    #             'portaria_PCA': self.portaria_pca_edit.text().strip(),
+    #             'om_participantes': self.line_edit_om_participantes.text().strip(),
+    #             'link_pncp': self.line_edit_link_pncp.text().strip(),
+    #             'link_portal_marinha': self.line_edit_link_portal_marinha.text().strip(),
+    #             'parecer_agu': self.line_edit_parecer.text().strip(),
+    #             'pregoeiro': self.line_edit_pregoeiro.text().strip(),
+    #             'setor_responsavel': self.line_edit_setor_responsavel.text().strip(),
+    #             'coordenador_planejamento': self.line_edit_coordenador_planejamento.text().strip()
+    #         }
+
+    #         # Atualizações de data
+    #         dados_atualizados.update({date_field: self.date_edits[date_field].date().toString("yyyy-MM-dd") for date_field in self.date_edits})
+    #         dados_atualizados['material_servico'] = 'servico' if self.radio_servico.isChecked() else 'material'
+    #         dados_atualizados['srp'] = 'Sim' if self.radio_srp_sim.isChecked() else 'Não'
             
-#             # Determine o valor de material_servico com base no RadioButton selecionado
-#             material_servico = 'servico' if self.radio_servico.isChecked() else 'material'
-#             dados_atualizados['material_servico'] = material_servico.strip()
+    #         # Preparação da consulta SQL
+    #         set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
+    #         valores = list(dados_atualizados.values())
+    #         valores.append(self.dados['id'])  # ID do registro a ser atualizado
 
-#             # Adiciona 'sigla_om', 'uasg' e 'orgao_responsavel' ao dicionário de atualizações
-#             dados_atualizados['valor_total'] = self.line_edit_valor_total.text().strip()
-#             dados_atualizados['sigla_om'] = self.combo_sigla_om.currentText().strip()
-#             dados_atualizados['uasg'] = self.line_edit_uasg.text().strip()
-#             dados_atualizados['orgao_responsavel'] = self.line_edit_orgao.text().strip()
+    #         query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
+    #         cursor.execute(query, valores)
+    #         connection.commit()
 
-#             # Cria a parte SET da consulta SQL dinamicamente
-#             set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
-            
-#             # Prepara a lista de valores para a consulta (inclui os valores seguidos pelo id no final)
-#             valores = list(dados_atualizados.values())
-#             valores.append(self.dados['id'])  # Assume que 'self.dados' contém um campo 'id' com o ID do registro a ser atualizado
-            
-#             # Constrói e executa a consulta SQL de UPDATE
-#             query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
-#             cursor.execute(query, valores)
-#             connection.commit()  # Garante que a transação seja confirmada
-
-#         # Emite o sinal de dados atualizados e fecha a caixa de diálogo
-#         self.dados_atualizados.emit()
-#         self.accept()
-
-# class EditarDadosDialog(QDialog):
-#     dados_atualizados = pyqtSignal()
-    
-#     def __init__(self, parent=None, dados=None):
-#         super().__init__(parent)
-#         self.setWindowTitle("Editar Dados")
-#         self.setFixedSize(900, 700)
-#         self.dados = dados or {}
-#         locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Configura o locale para português do Brasil
-#         self.config_manager = ConfigManager(BASE_DIR / "config.json")
-#         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
-#         self.event_manager = EventManager()
-#         self.event_manager.controle_dir_updated.connect(self.handle_database_dir_update)
-#         self.database_manager = DatabaseManager(self.database_path)
-#         self.init_ui()
-#         self.init_combobox_data()
-
-#     def init_ui(self):
-#         self.groupBox = QGroupBox('Índices das Variáveis', self)
-#         self.scrollArea = QScrollArea()
-#         self.scrollContentWidget = QWidget()
-#         self.scrollLayout = QFormLayout(self.scrollContentWidget)
-#         self.scrollArea.setWidgetResizable(True)
-#         self.scrollArea.setWidget(self.scrollContentWidget)
-#         self.groupBoxLayout = QVBoxLayout(self.groupBox)
-#         self.groupBoxLayout.addWidget(self.scrollArea)
-#         self.mainLayout = QVBoxLayout(self)
-#         self.mainLayout.addWidget(self.groupBox)
-#         self.confirmar_button = QPushButton("Confirmar")
-#         self.confirmar_button.clicked.connect(self.confirmar_edicao)
-#         self.mainLayout.addWidget(self.confirmar_button)
-
-#         self.initialize_fields()
-
-
-#         # Criação de sub-layouts para esquerda e direita
-#         self.date_edits = {}  # Dicionário para guardar os QDateEdit
-#         leftLayout = QFormLayout()
-#         rightLayout = QFormLayout()
-
-#         # Campos à esquerda incluindo 'objeto' com estilo específico
-        # leftFields = ["tipo", "numero", "ano", "id_processo", "nup", "objeto", "objeto_completo", "pregoeiro"]
-        # for field in leftFields:
-        #     line_edit = QLineEdit()
-        #     value = self.dados.get(field, '')
-        #     line_edit.setText(value)
-        #     if field in ["tipo", "numero", "ano", "id_processo"]:  # Estes campos são ReadOnly
-        #         line_edit.setReadOnly(True)
-            # if field == "objeto":  # Aplica estilo específico para o campo 'objeto'
-            #     line_edit.setStyleSheet("QLineEdit { color: darkblue; font-weight: bold; }")
-            # self.line_edits[field] = line_edit
-#             leftLayout.addRow(QLabel(field), line_edit)
-
-#         # Data da sessão à esquerda
-#         date_sessao_edit = QDateEdit()
-#         date_sessao_edit.setCalendarPopup(True)
-#         date_sessao_str = self.dados.get('data_sessao')
-#         valid_date = self.validate_and_convert_date(date_sessao_str)
-#         if valid_date:
-#             date_sessao_edit.setDate(valid_date)
-#         else:
-#             date_sessao_edit.setDate(QDate.currentDate())  # Somente define para hoje se a data for inválida
-#         leftLayout.addRow(QLabel('data_sessao'), date_sessao_edit)
-#         self.date_edits['data_sessao'] = date_sessao_edit
-
-#         # Campos à direita
-#         rightFields = ["item_pca", "portaria_PCA", 
-#                     "parecer_agu", "msg_irp", "num_irp", "om_participantes", 
-#                     "link_pncp", "link_portal_marinha"]
-#         for field in rightFields:
-#             line_edit = QLineEdit()
-#             value = self.dados.get(field, '')
-#             line_edit.setText(value)
-#             self.line_edits[field] = line_edit
-#             rightLayout.addRow(QLabel(field), line_edit)
+    #     self.dados_atualizados.emit()
+    #     self.accept()
+    #     QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")

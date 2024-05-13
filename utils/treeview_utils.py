@@ -50,6 +50,38 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(40
 
     return btn
 
+
+def create_button_2(text, icon, callback, tooltip_text, parent, icon_size=QSize(40, 40)):  # Aumente o tamanho padrão do ícone
+    btn = QPushButton(text, parent)
+    if icon:
+        btn.setIcon(QIcon(icon))
+        btn.setIconSize(icon_size)  # Define o tamanho do ícone
+    if callback:
+        btn.clicked.connect(callback)
+    if tooltip_text:
+        btn.setToolTip(tooltip_text)
+
+    # Aplica folhas de estilo para personalizar a aparência do botão
+    btn.setStyleSheet("""
+    QPushButton {
+        background-color: #050f41;
+        color: white;
+        font-size: 14pt;
+        min-height: 35px;
+        padding: 5px;      
+    }
+    QPushButton:hover {
+        background-color: white;
+        color: black;
+    }
+    QPushButton:pressed {
+        background-color: #ddd;
+        color: black;
+    }
+    """)
+
+    return btn
+
 def save_dataframe_to_excel(data_frame, file_path):
     try:
         data_frame.to_excel(file_path, index=False)

@@ -237,7 +237,7 @@ class TableMenu(QMenu):
             QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
 
     def editar_dados(self, df_registro_selecionado):
-        dialog = EditarDadosDialog(parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
+        dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
         dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
         dialog.exec()
 

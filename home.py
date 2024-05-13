@@ -135,7 +135,7 @@ class MainWindow(QMainWindow):
         menu_layout.addStretch(1) 
 
         # Load da Imagem
-        caminho_imagem = IMAGE_PATH / "tucano.png" 
+        caminho_imagem = IMAGE_PATH / "logo.png" 
         tucano_pixmap = QPixmap(str(caminho_imagem))  
         tucano_pixmap = tucano_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
