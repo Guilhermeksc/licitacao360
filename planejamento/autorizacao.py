@@ -39,6 +39,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         self.setWindowTitle("Autorização para Abertura")
         self.setFixedSize(850, 410)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)  # Janela sempre no topo
+
         self.pasta = ''
 
         self.layoutPrincipal = QHBoxLayout()
@@ -290,36 +292,49 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
         nome_pasta = f"{id_processo_novo} - {objeto}"
         subpasta_autorizacao = f"{id_processo_novo} - Autorizacao"
-        
+
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
         subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
 
-        # Verifica se a pasta principal existe e cria se necessário
+        # Verifica e cria a pasta principal se necessário
         if not os.path.exists(pasta_destino):
-            os.makedirs(pasta_destino)
+            try:
+                os.makedirs(pasta_destino)
+            except Exception as e:
+                QMessageBox.warning(None, "Erro", f"Não foi possível criar a pasta destino: {e}")
+                return None
 
-        # Verifica se a subpasta existe e cria se necessário
+        # Verifica e cria a subpasta se necessário
         if not os.path.exists(subpasta_destino):
-            os.makedirs(subpasta_destino)
+            try:
+                os.makedirs(subpasta_destino)
+            except Exception as e:
+                QMessageBox.warning(None, "Erro", f"Não foi possível criar a subpasta de autorização: {e}")
+                return None
 
         nome_arquivo = f"{id_processo_novo} - Autorizacao para abertura de Processo Administrativo.{tipo}"
         save_path = os.path.join(subpasta_destino, nome_arquivo)
 
         # Carregar e renderizar o template DOCX
-        doc = DocxTemplate(template_path)
+        try:
+            doc = DocxTemplate(template_path)
+            nome_selecionado = self.ordenadordespesasComboBox.currentText()
+            valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
 
-        nome_selecionado = self.ordenadordespesasComboBox.currentText()
-        valor_completo = self.ordenadordespesasComboBox.currentData(Qt.ItemDataRole.UserRole)
-        
-        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
-        data = {
-            **self.df_registro.to_dict(orient='records')[0],
-            'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['funcao']}\n{valor_completo['posto']}",
-            'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
-        }
-        doc.render(data)
-        doc.save(save_path)
+            descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+            data = {
+                **self.df_registro.to_dict(orient='records')[0],
+                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['funcao']}\n{valor_completo['posto']}",
+                'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
+            }
+            doc.render(data)
+            doc.save(save_path)
+        except Exception as e:
+            QMessageBox.warning(None, "Erro", f"Erro ao gerar ou salvar o documento: {e}")
+            return None
+
         return save_path
+
 
     def abrirDocumento(self, path):
         pasta_destino = os.path.dirname(path)  # Obter a pasta onde o arquivo está localizado

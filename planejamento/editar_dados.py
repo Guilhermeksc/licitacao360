@@ -41,7 +41,7 @@ class EditarDadosDialog(QDialog):
         self.uasg = ''  # Valor inicial padrão
         self.orgao_responsavel = ''  # Valor inicial padrão
         self.line_edits = {}
-        self.date_edits = {} 
+        self.date_edits = {}
         locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Configura o locale para português do Brasil
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
@@ -50,6 +50,8 @@ class EditarDadosDialog(QDialog):
         self.image_cache = load_images(self.icons_dir, ["confirm.png", "report.png"])
         self.setupUI()
         self.init_combobox_data()
+        self.move(0, 0)
+        self.setModal(False)  # Definir o diálogo como não modal
 
     def setupUI(self):
         self.setWindowTitle("Editar Dados")
@@ -299,7 +301,12 @@ class EditarDadosDialog(QDialog):
         self.vBoxLayout1.addLayout(line_layout)
 
         # Define o estado padrão dos RadioButton para 'srp' com base no valor existente
-        srp = self.dados.get('srp', '').strip().lower()
+        srp = self.dados.get('srp')
+        if srp is not None:
+            srp = srp.strip().lower()  # Certifique-se de que o srp é uma string e não None antes de chamar strip
+        else:
+            srp = ''  # Defina srp como string vazia se for None
+
         if srp == 'sim':
             self.radio_srp_sim.setChecked(True)
         elif srp == 'não':
@@ -308,6 +315,7 @@ class EditarDadosDialog(QDialog):
             # Nenhuma opção selecionada se não houver dados claros ou deixar uma opção padrão
             self.radio_srp_nao.setChecked(False)
             self.radio_srp_sim.setChecked(False)
+
 
     def inserir_valor_total(self):
         self.line_edit_valor_total = QLineEdit()

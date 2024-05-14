@@ -169,7 +169,11 @@ class TableMenu(QMenu):
 
     def trigger_action(self, actionText):
         if self.index.isValid():
-            source_index = self.model.mapToSource(self.index)
+            if isinstance(self.model, QSortFilterProxyModel):
+                source_index = self.model.mapToSource(self.index)
+            else:
+                source_index = self.index
+            
             selected_row = source_index.row()
             df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
             if not df_registro_selecionado.empty:
@@ -239,7 +243,7 @@ class TableMenu(QMenu):
     def editar_dados(self, df_registro_selecionado):
         dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
         dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
-        dialog.exec()
+        dialog.show()
 
     def openChecklistDialog(self, df_registro_selecionado):
         dialog = QDialog(self)
@@ -515,7 +519,7 @@ class ApplicationUI(QMainWindow):
             # ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')", icon_size),
             ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado", icon_size),
             ("  Controle de Datas", self.image_cache['calendar'], self.on_control_process, "Abre o painel de controle do processo", icon_size),            
-            ("    Relatório", self.image_cache['report'], self.on_report, "Gera um relatório dos dados", icon_size),
+            # ("    Relatório", self.image_cache['report'], self.on_report, "Gera um relatório dos dados", icon_size),
             ("Configurações", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
         ]
 
@@ -560,7 +564,6 @@ class ApplicationUI(QMainWindow):
 
             self.init_sql_model()  # Atualiza o modelo para refletir as mudanças
             QMessageBox.information(self, "Exclusão", "Os registros foram excluídos com sucesso.")
-
 
     def on_report(self):
         with self.database_manager as conn:
@@ -738,7 +741,7 @@ class ApplicationUI(QMainWindow):
 
     def exibir_dialogo_process_flow(self):
         df_processos = carregar_dados_processos(self.database_path)
-        dialog = FluxoProcessoDialog(etapas, df_processos, self.database_manager, self.database_path, self)
+        dialog = FluxoProcessoDialog(ICONS_DIR, etapas, df_processos, self.database_manager, self.database_path, self)
         dialog.updateRequired.connect(self.atualizarTableView)  # Conectar ao método de atualização
         dialog.exec()
         
@@ -751,7 +754,12 @@ class ApplicationUI(QMainWindow):
             self.database_manager.atualizar_ultima_etapa_data_final(conn)
 
         # Depois de atualizar os dados, re-inicialize o modelo SQL para refletir as mudanças
-        self.init_sql_model()
+        self.resetModels()
+
+    def resetModels(self):
+        """Reseta o modelo de tabela SQL e o modelo de filtro proxy."""
+        self.init_sql_model()  # Reinicializa o modelo SQL
+        self.proxy_model.setSourceModel(self.model)
 
         # Verifica se os dados foram recarregados corretamente
         if self.model.rowCount() == 0:

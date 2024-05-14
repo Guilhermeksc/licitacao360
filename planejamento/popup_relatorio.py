@@ -130,11 +130,6 @@ class ReportDialog(QDialog):
         header.resizeSection(4, 60)
         header.resizeSection(6, 60)
 
-        # # Configura a coluna 6 para ser expansível e define o tamanho mínimo
-        # header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
-        # header.resizeSection(6, 220)  # Define o tamanho inicial
-        # header.setMinimumSectionSize(110)  # Define o tamanho mínimo
-
     def showEvent(self, event):
         super().showEvent(event)
 
