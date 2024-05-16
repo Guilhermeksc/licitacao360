@@ -549,15 +549,17 @@ class SeleniumAutomacao(QWidget):
         tentativas = 0
         while tentativas < max_tentativas:
             try:
+                time.sleep(0.2)
                 valor_unitario_formatado = "{:.4f}".format(float(valor_unitario)).replace('.', ',')
                 print(f"valor_unitario: {valor_unitario}, valor_unitario_xpath: {xpath}, valor_unitario_formatado: {valor_unitario_formatado}")
-
+                time.sleep(0.2)
                 elemento = WebDriverWait(self.driver, 10).until(
                     EC.visibility_of_element_located((By.XPATH, xpath))
                 )
                 elemento.clear()
+                time.sleep(0.2)
                 elemento.send_keys(valor_unitario_formatado)
-                time.sleep(2)  # Aumentando o delay para permitir a atualização do campo
+                time.sleep(0.2)  # Aumentando o delay para permitir a atualização do campo
 
                 # Captura e verificação do valor inserido
                 valor_inserido = elemento.get_attribute('value')
@@ -577,7 +579,6 @@ class SeleniumAutomacao(QWidget):
 
         print(f"Não foi possível inserir o valor corretamente após {max_tentativas} tentativas.")
         return False
-
 
     def determinar_seletor_paginacao(self, numero_item):
         # Cada página contém 20 itens, então determinar o número da página
