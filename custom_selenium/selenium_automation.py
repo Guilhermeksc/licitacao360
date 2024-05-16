@@ -438,13 +438,14 @@ class SeleniumAutomacao(QWidget):
                 self.driver.switch_to.window(janela_principal)
 
                 self.aguardar_e_mudar_para_popup()
-
+                time.sleep(0.2)
                 # Clicar no botão "Salvar Item" para finalizar a alteração
                 botao_salvar_item = "//*[@id='alterar']"
+                time.sleep(0.2)
                 self.esperar_e_clicar(botao_salvar_item, By.XPATH)
-
+                time.sleep(0.2)
                 self.clicar_botao_ok_popup()
-
+                time.sleep(0.2)
                 self.aguardar_e_mudar_para_popup()
 
                 tentativas = 0
@@ -452,11 +453,14 @@ class SeleniumAutomacao(QWidget):
                     try:
                         # Clicar no botão "Salvar Item" para finalizar a alteração
                         botao_itens_relacao = "//*[@id='itens']"
+                        time.sleep(0.2)
                         self.esperar_e_clicar(botao_itens_relacao, By.XPATH)
+                        time.sleep(0.2)
                         print(f"Tentativa {tentativas + 1}: Clicou no botão 'Salvar Item'.")
 
                         # Verificar se a mudança esperada ocorreu na página
                         if self.verificar_mudanca_esperada_apos_clique():
+                            time.sleep(0.2)
                             print("Mudança confirmada após clique no botão 'Salvar Item'.")
                             break  # Sair do loop de tentativas
                         else:
