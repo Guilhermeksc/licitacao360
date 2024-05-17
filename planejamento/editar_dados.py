@@ -12,6 +12,7 @@ import re
 from datetime import datetime
 from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
 from utils.treeview_utils import load_images, create_button_2
+from pathlib import Path
 
 class TextEditDelegate(QItemDelegate):
     def createEditor(self, parent, option, index):
@@ -21,13 +22,11 @@ class TextEditDelegate(QItemDelegate):
 
     def setEditorData(self, editor, index):
         text = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        editor.setText(text.split(": ", 1)[1])
+        editor.setText(text)  # Apenas define o texto completo no editor
 
     def setModelData(self, editor, model, index):
         edited_text = editor.toPlainText().strip()
-        original_text = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        comment_number = original_text.split(":")[0].strip()
-        model.setData(index, f"{comment_number}: {edited_text}", Qt.ItemDataRole.DisplayRole)
+        model.setData(index, edited_text, Qt.ItemDataRole.DisplayRole)  # Define apenas o texto editado no modelo
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
@@ -433,7 +432,7 @@ class EditarDadosDialog(QDialog):
         
         # QVBoxLayout para 'msg_irp'
         msg_irp_layout = QVBoxLayout()
-        label_msg_irp = QLabel("Mensagem IRP:")
+        label_msg_irp = QLabel("Data/Hora MSG:")
         self.line_edit_msg_irp = QLineEdit()
         self.line_edit_msg_irp.setText(self.dados.get('msg_irp', ''))
         msg_irp_layout.addWidget(label_msg_irp)
@@ -563,8 +562,9 @@ class EditarDadosDialog(QDialog):
         self.listWidget_comentarios.itemChanged.connect(self.salvar_comentarios_editados)
 
         comentarios = self.carregar_comentarios()
-        for i, comentario in enumerate(comentarios, start=1):
-            item = QListWidgetItem(f"{i}º comentário: {comentario}")
+        for comentario in comentarios:
+            item = QListWidgetItem(comentario)
+            item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
             self.listWidget_comentarios.addItem(item)
 
@@ -578,8 +578,7 @@ class EditarDadosDialog(QDialog):
 
         # Caminhos para os ícones
         icon_add = QIcon(str(ICONS_DIR / "add_comment.png"))
-
-        icon_exclude = QIcon(str(ICONS_DIR / "delete_comment.png")) 
+        icon_exclude = QIcon(str(ICONS_DIR / "delete_comment.png"))
 
         self.button_adicionar_comentario = QPushButton("Adicionar Comentário")
         self.button_adicionar_comentario.setIcon(icon_add)
@@ -603,18 +602,23 @@ class EditarDadosDialog(QDialog):
         self.vBoxLayout6.addWidget(self.listWidget_comentarios)
 
     def salvar_comentarios_editados(self):
-        comentarios = [self.listWidget_comentarios.item(i).text().split(": ", 1)[1] if ": " in self.listWidget_comentarios.item(i).text() else self.listWidget_comentarios.item(i).text() for i in range(self.listWidget_comentarios.count())]
-        comentarios_str = "|||".join(comentarios)  # Usa "|||" para separar os comentários
+        comentarios = [self.listWidget_comentarios.item(i).text() for i in range(self.listWidget_comentarios.count())]
+        comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com "|||"
+        print(f"Salvando os seguintes comentários no banco de dados {self.database_path}: {comentarios_str}")
+
         with DatabaseManager(self.database_path) as connection:
             cursor = connection.cursor()
             cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id = ?", (comentarios_str, self.dados['id']))
             connection.commit()
+            print("Comentários salvos com sucesso.")
 
     def adicionar_comentario(self):
         novo_comentario = self.textEdit_novo_comentario.toPlainText().strip()
         if novo_comentario:
-            num_comentarios = self.listWidget_comentarios.count()
-            self.listWidget_comentarios.addItem(f"{num_comentarios + 1}º comentário: {novo_comentario}")
+            item = QListWidgetItem(novo_comentario)
+            item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+            self.listWidget_comentarios.addItem(item)
             self.textEdit_novo_comentario.clear()
             self.salvar_comentarios()
 
@@ -622,10 +626,11 @@ class EditarDadosDialog(QDialog):
         item = self.listWidget_comentarios.currentItem()
         if item:
             self.listWidget_comentarios.takeItem(self.listWidget_comentarios.row(item))
-            # Reordenar comentários
+            # Reordenar comentários (neste caso, apenas manter os ícones e textos dos comentários)
             for index in range(self.listWidget_comentarios.count()):
                 item = self.listWidget_comentarios.item(index)
-                item.setText(f"{index + 1}º comentário: {item.text().split(': ', 1)[1]}")
+                # Manter o ícone e o texto do comentário
+                item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
             self.salvar_comentarios()
 
     def carregar_comentarios(self):
@@ -640,8 +645,8 @@ class EditarDadosDialog(QDialog):
 
     def salvar_comentarios(self):
         # Esta função deve salvar apenas o texto dos comentários, sem os números.
-        comentarios = [self.listWidget_comentarios.item(i).text().split(": ", 1)[1] for i in range(self.listWidget_comentarios.count())]
-        comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com uma nova linha sem prefixos
+        comentarios = [self.listWidget_comentarios.item(i).text() for i in range(self.listWidget_comentarios.count())]
+        comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com "|||"
         print(f"Salvando os seguintes comentários no banco de dados {self.database_path}: {comentarios_str}")
 
         with DatabaseManager(self.database_path) as connection:

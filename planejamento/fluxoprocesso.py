@@ -12,13 +12,16 @@ from functools import partial
 from utils.treeview_utils import load_images, create_button_2
 from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
+import os
+import sys
 import subprocess
 import win32com.client
 import tempfile
-import os
-import sys
 import fitz
 from planejamento.utilidades_planejamento import DatabaseManager
+import time
+from win32com.client import Dispatch, DispatchEx
+import traceback
 
 class FluxoProcessoDialog(QDialog):
     updateRequired = pyqtSignal()  # Sinal para notificar a ApplicationUI
@@ -942,7 +945,7 @@ class ReportDialog(QDialog):
         worksheet.set_row(2, 30)
         worksheet.set_row(3, 20)  # Ajuste de altura para a linha da data
             # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
-        col_widths = [12, 30, 15, 10, 20, 5, 20, 5, 15]
+        col_widths = [11, 29, 15, 9, 20, 4, 20, 4, 15]
         for i, width in enumerate(col_widths):
             worksheet.set_column(i, i, width)
         # Aplicar formatação de conteúdo centralizado a partir da linha 5
@@ -1048,23 +1051,8 @@ class ReportDialog(QDialog):
         filename = self.create_excel()  # Cria o arquivo Excel
         self.open_excel_file(filename)  # Abre o arquivo Excel criado
 
-    def excel_to_pdf(self, excel_file_path, pdf_file_path):
-        """
-        Converte um arquivo Excel em PDF.
-        """
-        excel = win32com.client.Dispatch("Excel.Application")
-        excel.Visible = False  # Executa em background
-        try:
-            doc = excel.Workbooks.Open(excel_file_path)
-            doc.ExportAsFixedFormat(0, pdf_file_path)  # 0 indica que estamos exportando para PDF
-        except Exception as e:
-            print(f"Erro: {e}")
-        finally:
-            if doc is not None:
-                doc.Close(False)
-            excel.Quit()
-
     def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
+        print("Iniciando a adição de imagens ao PDF...")
         pdf_path = str(pdf_path)
         left_image_path = str(left_image_path)
         right_image_path = str(right_image_path)
@@ -1072,7 +1060,8 @@ class ReportDialog(QDialog):
 
         doc = fitz.open(pdf_path)
         numero_total_paginas = len(doc)  # Obter o número total de páginas
-     
+        print(f"PDF aberto. Total de páginas: {numero_total_paginas}")  
+
         for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
             page_width = pagina.rect.width
             page_height = pagina.rect.height
@@ -1101,7 +1090,7 @@ class ReportDialog(QDialog):
                 
                 # Calcular o deslocamento das imagens a partir das bordas em pontos
                 offset_left_x_pt = 2 * 72 / 2.54
-                offset_right_x_pt = page_width - (2 * 72 / 2.54) - image_size_pt[0]
+                offset_right_x_pt = page_width - (2.9 * 72 / 2.54) - image_size_pt[0]
                 offset_y_pt = 0.9 * 72 / 2.54  # 1 cm do topo
                 
                 # Definir os retângulos onde as imagens serão inseridas
@@ -1127,32 +1116,99 @@ class ReportDialog(QDialog):
             print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
 
     def on_export_pdf(self):
-        """
-        Exporta os dados para um arquivo PDF e abre o arquivo.
-        """
-        # Cria um arquivo Excel temporário
-        temp_excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-        excel_file_path = self.create_excel(temp_excel_file.name)
-        
-        # Define o caminho para o arquivo PDF de saída
-        pdf_file_path = excel_file_path.replace('.xlsx', '.pdf')
-        
-        # Converte o arquivo Excel em PDF
-        self.excel_to_pdf(excel_file_path, pdf_file_path)
-        self.adicionar_imagem_ao_pdf(str(pdf_file_path), str(TUCANO_PATH), str(MARINHA_PATH), str(CEIMBRA_BG))
-        # Tenta remover o arquivo Excel temporário
-        try:
-            os.remove(excel_file_path)
-        except PermissionError as e:
-            print(f"Não foi possível remover o arquivo temporário: {e}. O arquivo pode ainda estar sendo usado.")
-        except Exception as e:
-            print(f"Erro ao tentar remover o arquivo temporário: {e}")
+        xlsx_path = self.create_excel()
 
-        # Abre o arquivo PDF gerado
-        if sys.platform == "win32":
-            os.startfile(pdf_file_path)
+        if xlsx_path is None or not os.path.isfile(xlsx_path):
+            self.show_message("Erro", "O arquivo XLSX não existe ou não pode ser acessado.")
+            return
+
+        absolute_xlsx_path = os.path.abspath(xlsx_path).replace('/', '\\')
+        pdf_path = f"{os.path.splitext(absolute_xlsx_path)[0]}.pdf"
+
+        if os.path.exists(pdf_path):
+            reply = self.show_custom_message("Arquivo Existente", "Um arquivo PDF já existe. Deseja substituí-lo?")
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+        # Inicia a thread e o progress dialog
+        self.progress_dialog = QProgressDialog("Exportando PDF...", "Cancelar", 0, 100, self)
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)  # Começa imediatamente
+        self.progress_dialog.setStyleSheet("QProgressDialog, QProgressBar, QPushButton { font-size: 16pt; background: none; color: none; }")  # Ajusta o tamanho da fonte para todos os componentes relevantes, removendo estilos específicos de cores
+
+        self.thread = ExportPdfThread(absolute_xlsx_path, pdf_path)
+        self.thread.progress.connect(self.progress_dialog.setValue)
+        self.thread.finished.connect(self.on_pdf_exported)
+        self.thread.start()
+        # Conecta o cancelamento do progress dialog com uma ação
+        self.progress_dialog.canceled.connect(self.thread.terminate)  # Encerra a thread se o usuário cancelar
+
+    def on_pdf_exported(self, pdf_path, error):
+        if error:
+            self.show_message("Erro", f"Erro ao gerar documento PDF: {error}")
+        else:
+            self.show_message("Sucesso", f"Arquivo PDF gerado com sucesso: {pdf_path}")
+            # Definir os caminhos das imagens
+            left_image_path = str(TUCANO_PATH)
+            right_image_path = str(MARINHA_PATH)
+            watermark_image_path = str(CEIMBRA_BG)
+            # Chamar a função para adicionar imagens ao PDF e obter o novo caminho do PDF
+            novo_pdf_path = self.adicionar_imagem_ao_pdf(pdf_path, left_image_path, right_image_path, watermark_image_path)
+            if novo_pdf_path:
+                self.open_pdf_document(novo_pdf_path)
+            else:
+                print("Falha ao obter o caminho do novo PDF.")
+
+    def show_message(self, title, text):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle(title)
+        msg_box.setText(text)
+        msg_box.setStyleSheet("QMessageBox { font-size: 16pt; }")  # Define o estilo diretamente no QMessageBox
+        msg_box.exec()
+
+    def show_custom_message(self, title, text):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle(title)
+        msg_box.setText(text)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        msg_box.setStyleSheet("QMessageBox { font-size: 16pt; }")  # Ajusta o tamanho da fonte para 16
+        return msg_box.exec()
+
+    def open_pdf_document(self, pdf_path):
+        if sys.platform == 'win32':
+            os.startfile(pdf_path)
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.call([opener, pdf_file_path])
+            subprocess.call([opener, pdf_path])
+            
+class ExportPdfThread(QThread):
+    finished = pyqtSignal(str, str)  # Sinal para informar o resultado
+    progress = pyqtSignal(int)  # Sinal para atualizar o progresso
 
-        print(f"Arquivo PDF exportado e aberto: {pdf_file_path}")
+    def __init__(self, xlsx_path, pdf_path):
+        super().__init__()
+        self.xlsx_path = xlsx_path
+        self.pdf_path = pdf_path
+
+    def run(self):
+        try:
+            self.progress.emit(10)  # Inicia o progresso
+            excel = DispatchEx('Excel.Application')
+            excel.Visible = False
+            excel.DisplayAlerts = False
+
+            wb = excel.Workbooks.Open(self.xlsx_path)
+            self.progress.emit(50)  # Meio do progresso
+            wb.SaveAs(self.pdf_path, FileFormat=57)
+
+            wb.Close(SaveChanges=0)
+            excel.Quit()
+            self.progress.emit(100)  # Completa o progresso
+
+            self.finished.emit(self.pdf_path, '')
+        except Exception as e:
+            self.finished.emit('', str(e))
+            if 'excel' in locals():
+                excel.Quit()

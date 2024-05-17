@@ -478,15 +478,15 @@ class ApplicationUI(QMainWindow):
         
         # Ajusta o tamanho de colunas fixas
         header.resizeSection(4, 110)
-        header.resizeSection(5, 220)
-        header.resizeSection(8, 110)
+        header.resizeSection(5, 200)
+        header.resizeSection(8, 100)
         header.resizeSection(10, 110)
         header.resizeSection(13, 170)
         header.resizeSection(14, 110)
 
         # Configura a coluna 6 para ser expansível e define o tamanho mínimo
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
-        header.resizeSection(6, 220)  # Define o tamanho inicial
+        header.resizeSection(6, 260)  # Define o tamanho inicial
         header.setMinimumSectionSize(110)  # Define o tamanho mínimo
 
 
