@@ -324,7 +324,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
             data = {
                 **self.df_registro.to_dict(orient='records')[0],
-                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['funcao']}\n{valor_completo['posto']}",
+                'ordenador_de_despesas': f"{valor_completo['nome']}\n{valor_completo['posto']}\n{valor_completo['funcao']}",
                 'descricao_servico': descricao_servico  # Adicionando a descrição do serviço
             }
             doc.render(data)
@@ -334,7 +334,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             return None
 
         return save_path
-
 
     def abrirDocumento(self, path):
         pasta_destino = os.path.dirname(path)  # Obter a pasta onde o arquivo está localizado
