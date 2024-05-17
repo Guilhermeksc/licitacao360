@@ -717,7 +717,9 @@ class ReportDialog(QDialog):
             "pdf64.png", "excel.png"
         ])
         # Configura os cabeçalhos das colunas
-        self.model.setHorizontalHeaderLabels(["Número", "Objeto", "OM", "Status Anterior", "Dias", "Status Atual", "Dias", "Pregoeiro", "Comentário"])
+        self.model.setHorizontalHeaderLabels(["Número", "Objeto", "Valor Estimado", "OM", "Status Anterior", 
+                                              "Dias", "Status Atual", "Dias", "Pregoeiro", "data_limite_manifestacao_irp", "data_limite_confirmacao_irp",
+                                              "num_irp", "data_sessao", "Comentário"])
         # Definir o tamanho da fonte do cabeçalho da tabela
         header = self.table_view.horizontalHeader()
         font = header.font()
@@ -731,27 +733,37 @@ class ReportDialog(QDialog):
         self._create_buttons()  # Cria os botões
 
         QTimer.singleShot(1, self.adjustColumnWidth) 
-        self.table_view.hideColumn(8)
-        
+
+        self.table_view.hideColumn(9)
+        self.table_view.hideColumn(10)
+        self.table_view.hideColumn(11)
+        self.table_view.hideColumn(12)
+        self.table_view.hideColumn(13)
+
     def adjustColumnWidth(self):
         header = self.table_view.horizontalHeader()
         # Configurar outras colunas para ter tamanhos fixos
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)  
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
-
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)  
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(11, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(12, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
         # Ajusta o tamanho de colunas fixas
         header.resizeSection(0, 110)
         header.resizeSection(2, 110)
-        header.resizeSection(4, 60)
+        header.resizeSection(3, 110)
+        header.resizeSection(5, 60)
         header.resizeSection(6, 60)
-        header.resizeSection(8, 100)
+
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -763,16 +775,21 @@ class ReportDialog(QDialog):
             cursor = conn.cursor()
 
             # Consulta SQL para obter os dados da tabela controle_processos
-            cursor.execute("SELECT id_processo, objeto, sigla_om, pregoeiro, comentarios FROM controle_processos")
+            cursor.execute("SELECT id_processo, objeto, valor_total, sigla_om, pregoeiro, data_limite_manifestacao_irp, data_limite_confirmacao_irp, num_irp, data_sessao, comentarios FROM controle_processos")
             process_rows = cursor.fetchall()
 
             for row in process_rows:
                 chave_processo = row[0]  # id_processo
                 objeto = row[1]
-                sigla_om = row[2]
-                pregoeiro = row[3]
-                comentarios = row[4]
-
+                valor_total = row[2]
+                sigla_om = row[3]
+                pregoeiro = row[4]
+                data_limite_manifestacao_irp = row[5]
+                data_limite_confirmacao_irp = row[6]
+                num_irp = row[7]
+                data_sessao = row[8]
+                comentarios = row[9]
+                
                 # Buscar os dados de status e dias na tabela controle_prazos
                 cursor.execute("""
                 SELECT etapa, dias_na_etapa FROM controle_prazos 
@@ -793,6 +810,12 @@ class ReportDialog(QDialog):
                     # Nenhum status disponível
                     status_atual, dias_status_atual = "", ""
                     status_anterior, dias_status_anterior = "", ""
+                
+                if valor_total == "R$ 0,00":
+                    valor_total = ""
+
+                if status_anterior == "":
+                    status_anterior = "-"
 
                 # Se o status atual for "Concluído", substituir dias_status_atual por "-"
                 if status_atual == "Concluído":
@@ -808,12 +831,17 @@ class ReportDialog(QDialog):
                 self.model.appendRow([
                     QStandardItem(chave_processo),
                     QStandardItem(objeto if objeto is not None else ""),
+                    QStandardItem(str(valor_total) if valor_total is not None else ""),
                     QStandardItem(sigla_om if sigla_om is not None else ""),
                     QStandardItem(status_anterior),
                     QStandardItem(str(dias_status_anterior)),
                     QStandardItem(status_atual),
                     QStandardItem(str(dias_status_atual)),
                     QStandardItem(pregoeiro if pregoeiro is not None else ""),
+                    QStandardItem(data_limite_manifestacao_irp if data_limite_manifestacao_irp is not None else ""),
+                    QStandardItem(data_limite_confirmacao_irp if data_limite_confirmacao_irp is not None else ""),
+                    QStandardItem(num_irp if num_irp is not None else ""),
+                    QStandardItem(data_sessao if data_sessao is not None else ""),
                     QStandardItem(comentarios if comentarios is not None else "")
                 ])
 
@@ -844,16 +872,17 @@ class ReportDialog(QDialog):
         """
         # Cria um DataFrame dos dados
         data = []
+        columns_to_omit = {9, 10, 11, 12, 13}
         for row in range(self.model.rowCount()):
             row_data = []
             for column in range(self.model.columnCount()):
-                if column != 8:  # Ignorar a coluna de comentários
+                if column not in columns_to_omit:
                     item = self.model.item(row, column)
                     row_data.append(item.text() if item else "")
             data.append(row_data)
-        
-        # Definir colunas sem a coluna "Comentário"
-        columns = [self.model.horizontalHeaderItem(i).text() for i in range(self.model.columnCount()) if i != 8]
+
+        # Definir colunas omitindo as colunas 9, 10, 11, 12 e 13
+        columns = [self.model.horizontalHeaderItem(i).text() for i in range(self.model.columnCount()) if i not in columns_to_omit]
         df = pd.DataFrame(data, columns=columns)
 
         # Adiciona colunas temporárias com os índices de ordenação baseados em 'Status Atual' e 'Status Anterior'
@@ -872,7 +901,7 @@ class ReportDialog(QDialog):
         worksheet = writer.sheets['Sheet1']
         # Configurações do formato de página e margens
         worksheet.set_landscape()  # Define o layout de página para paisagem
-        worksheet.set_margins(left=0.79, right=0.39, top=0.39, bottom=0.39)  # Margens em polegadas (1 cm ≈ 0.39 inches, 2 cm ≈ 0.79 inches)
+        worksheet.set_margins(left=0.05, right=0.05, top=0.3, bottom=0.39)  # Margens em polegadas (1 cm ≈ 0.39 inches, 2 cm ≈ 0.79 inches)
         worksheet.set_header('', options={'margin': 0})  # Cabeçalho com margem 0
         worksheet.set_footer('', options={'margin': 0})  # Rodapé com margem 0
                 
@@ -902,23 +931,23 @@ class ReportDialog(QDialog):
         comment_format = workbook.add_format({'align': 'left', 'valign': 'top', 'text_wrap': True})
  
         # Configurações do cabeçalho e data
-        worksheet.merge_range('A1:H1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
-        worksheet.merge_range('A2:H2', '"Prontidão e Efetividade no Planalto Central"', cabecalho2_format)
-        worksheet.merge_range('A3:H3', 'Controle do Plano de Contratações Anual (PCA) 2024', cabecalho_format)
+        worksheet.merge_range('A1:I1', 'Centro de Intendência da Marinha em Brasília', cabecalho_format)
+        worksheet.merge_range('A2:I2', '"Prontidão e Efetividade no Planalto Central"', cabecalho2_format)
+        worksheet.merge_range('A3:I3', 'Controle do Plano de Contratações Anual (PCA) 2024', cabecalho_format)
         data_atual = datetime.now().strftime("%d/%m/%Y")
-        worksheet.merge_range('A4:H4', f"Atualizado em: {data_atual}", date_format)
+        worksheet.merge_range('A4:I4', f"Atualizado em: {data_atual}", date_format)
         
         # Configurações de altura das linhas para o cabeçalho
         worksheet.set_row(0, 20)
         worksheet.set_row(2, 30)
         worksheet.set_row(3, 20)  # Ajuste de altura para a linha da data
             # Ajustar a largura das colunas, considerando a nova coluna 'Nº'
-        col_widths = [12, 30, 10, 20, 5, 20, 5, 15]
+        col_widths = [12, 30, 15, 10, 20, 5, 20, 5, 15]
         for i, width in enumerate(col_widths):
             worksheet.set_column(i, i, width)
         # Aplicar formatação de conteúdo centralizado a partir da linha 5
         for row_num in range(5, 5 + len(df)):
-            for col_num in range(8):  # Colunas A a H
+            for col_num in range(9):  # Colunas A a I
                 cell_format = light_gray_format if (row_num % 2 == 0) else white_format
                 worksheet.write(row_num, col_num, df.iloc[row_num - 5, col_num], cell_format)
 
@@ -929,18 +958,75 @@ class ReportDialog(QDialog):
             'font_size': 14,
             'top': 2  # Borda superior espessa
         })
-
+        
+        # Adicionar "Informações Relevantes"
         last_row = 5 + len(df)
-        worksheet.merge_range(f'A{last_row+1}:H{last_row+1}', 'Comentários', comentario_format)
+        last_row += 1
+        worksheet.merge_range(f'A{last_row+1}:I{last_row+1}', 'Informações Relevantes', comentario_format)
+
+        for row in range(self.model.rowCount()):
+            chave_processo = self.model.item(row, 0).text()
+            objeto = self.model.item(row, 1).text()
+            data_limite_manifestacao_irp = self.model.item(row, 9).text()
+            data_limite_confirmacao_irp = self.model.item(row, 10).text()
+            num_irp = self.model.item(row, 11).text()
+            data_sessao = self.model.item(row, 12).text()
+
+            if data_limite_manifestacao_irp:
+                try:
+                    data_limite_manifestacao_irp = datetime.strptime(data_limite_manifestacao_irp, "%Y-%m-%d").strftime("%d/%m/%Y")
+                except ValueError:
+                    data_limite_manifestacao_irp = None  # Ignora datas inválidas
+
+            # Lógica para data_limite_confirmacao_irp
+            if data_limite_confirmacao_irp:
+                try:
+                    data_limite_confirmacao_irp_dt = datetime.strptime(data_limite_confirmacao_irp, "%Y-%m-%d")
+                    data_limite_confirmacao_irp = data_limite_confirmacao_irp_dt.strftime("%d/%m/%Y")
+                    if data_limite_confirmacao_irp_dt > datetime.now():
+                        last_row += 1
+                        worksheet.write(last_row, 0, chave_processo, comment_format)
+                        worksheet.merge_range(last_row, 1, last_row, 8, 
+                                            f"IRP nº {num_irp} ({objeto}) | Data limite para manifestação: {data_limite_manifestacao_irp} | Data final para confirmação: {data_limite_confirmacao_irp}", 
+                                            comment_format)
+                except ValueError:
+                    pass  # Ignora datas inválidas
+
+        last_row += 1
+
+        # Lógica para data_sessao
+        for row in range(self.model.rowCount()):
+            chave_processo = self.model.item(row, 0).text()
+            data_sessao = self.model.item(row, 12).text()
+
+            if data_sessao:
+                try:
+                    data_sessao_dt = datetime.strptime(data_sessao, "%Y-%m-%d")
+                    data_sessao = data_sessao_dt.strftime("%d/%m/%Y")
+                    if data_sessao_dt > datetime.now():
+                        last_row += 1
+                        worksheet.write(last_row, 0, chave_processo, comment_format)
+                        worksheet.merge_range(last_row, 1, last_row, 8, 
+                                            f"Data da abertura da sessão pública: {data_sessao}", 
+                                            comment_format)
+                except ValueError:
+                    pass  # Ignora datas inválidas
+
+        # Pular uma linha após "Informações Relevantes"
+        last_row += 1
+
+        # Adicionar "Comentários"
+        last_row += 1
+        worksheet.merge_range(f'A{last_row+1}:I{last_row+1}', 'Comentários Adicionais', comentario_format)
 
         # Iterar sobre os dados e adicionar comentários
         for row in range(self.model.rowCount()):
             chave_processo = self.model.item(row, 0).text()
-            comentarios = self.model.item(row, 8).text().replace('|||', '\n')  # Substituir "|||" por "\n" para quebra de linha
+            comentarios = self.model.item(row, 13).text().replace('|||', '\n')  # Substituir "|||" por "\n" para quebra de linha
             if comentarios:
                 last_row += 1
                 worksheet.write(last_row, 0, chave_processo, comment_format)
-                worksheet.merge_range(last_row, 1, last_row, 7, comentarios, comment_format)
+                worksheet.merge_range(last_row, 1, last_row, 8, comentarios, comment_format)
                 num_lines = comentarios.count('\n') + 1  # Número de linhas de comentários
                 worksheet.set_row(last_row, 15 * num_lines, comment_format)  # Ajustar altura da linha para o número de linhas de comentários
 
@@ -1014,9 +1100,9 @@ class ReportDialog(QDialog):
                 image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
                 
                 # Calcular o deslocamento das imagens a partir das bordas em pontos
-                offset_left_x_pt = 5 * 72 / 2.54
-                offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
-                offset_y_pt = 1.3 * 72 / 2.54  # 1 cm do topo
+                offset_left_x_pt = 2 * 72 / 2.54
+                offset_right_x_pt = page_width - (2 * 72 / 2.54) - image_size_pt[0]
+                offset_y_pt = 0.9 * 72 / 2.54  # 1 cm do topo
                 
                 # Definir os retângulos onde as imagens serão inseridas
                 left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
