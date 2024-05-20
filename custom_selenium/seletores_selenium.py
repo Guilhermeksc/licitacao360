@@ -18,12 +18,15 @@ PAGINATION_ELEMENT_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub
 OPTION_XPATH = "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/p-paginator/div/span/a[2]"
 ABRIR_JANELA_IRP = "div.col-xl-2:nth-child(2) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1) > p:nth-child(1) > img:nth-child(1)"
 
-ABRIR_JANELA_PESQUISA_PRECOS = "div.col-xl-2:nth-child(3) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1) > p:nth-child(1) > img:nth-child(1)"
-
+ABRIR_JANELA_PESQUISA_PRECOS = "div.col-xl-2:nth-child(3) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1)"
+                               
 MARKER_SELECTOR = ".conteudoSemAbas > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(1) > input:nth-child(1)"
 CONFIRM_BUTTON_SELECTOR = "#confirmar"
 HOVER_ELEMENT_SELECTOR = "#mi_0_5 > div:nth-child(1)"
 MENU_OPTION_SELECTOR = "#mi_0_7 > div:nth-child(1)"
+ANALISE_IRP_SELECTOR = "#mi_0_15"
+BOX_SELETOR = ".conteudoSemAbas > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(3) > select"
+
 SPECIFIC_ELEMENT_SELECTOR = "table.dados:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > input:nth-child(1)"
 
 INPUT_FIELD_SELECTOR = "input.field"

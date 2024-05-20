@@ -12,11 +12,7 @@ def build_executable():
         (IMAGE_PATH, "database/image"),
         (PLANEJAMENTO_DIR, "planejamento"),
         (TEMPLATE_PLANEJAMENTO_DIR, "planejamento/template"),
-        # (PDF_DIR, "database/pasta_pdf"),
-        # (SICAF_DIR, "database/pasta_sicaf"),
         (PASTA_TEMPLATE, "database/template"),
-        # (SICAF_TXT_DIR, "database/pasta_sicaf/sicaf_txt"),
-        # (TXT_DIR, "database/pasta_pdf/homolog_txt"),
         (RELATORIO_PATH, "database"),
         (LV_FINAL_DIR, "database/Nova pasta"),
         (LV_BASE_DIR, "database/Nova pasta"),
@@ -28,14 +24,12 @@ def build_executable():
         (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
         (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")
     ]
-
-
     pyinstaller_args = [
         "pyinstaller",
         "--noconfirm",
-        # "--windowed",
-        # Se necessário, descomente a linha abaixo e ajuste o caminho para o ícone do seu aplicativo
-        # "--icon=seu_icone.ico",
+        "--name=licitacao360",
+        f"--icon={ICONE}",  # Especifique o caminho para o seu ícone aqui
+        "--windowed",  # Se você quiser que o programa rode sem console
     ]
 
    # Adicionando importações ocultas
@@ -47,7 +41,6 @@ def build_executable():
 
     # Adicionando recursos com o separador correto
     for src, dest in resources:
-        # Aqui é verificado se 'src' é uma instância de Path, e caso seja, é convertido para string
         src_str = str(src) if isinstance(src, Path) else src
         data_string = f"{src_str};{dest}" if os.name == 'nt' else f"{src_str}:{dest}"
         pyinstaller_args.extend(["--add-data", data_string])

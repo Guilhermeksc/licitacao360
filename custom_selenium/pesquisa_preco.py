@@ -21,6 +21,7 @@ from custom_selenium.seletores_selenium import *
 from custom_selenium.utils_selenium import *
 import re
 import json
+from selenium.webdriver import FirefoxOptions, FirefoxProfile
 
 class PesquisaPrecos(QDialog):
     def __init__(self, parent=None):
@@ -129,7 +130,8 @@ class PesquisaPrecos(QDialog):
             print("Ação cancelada pelo usuário.")
 
     def abrir_comprasnet_pesquisa_precos(self):
-        options = Options()
+
+        options = FirefoxOptions()
         options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
@@ -139,6 +141,7 @@ class PesquisaPrecos(QDialog):
         # self.driver = webdriver.Firefox(service=service, options=options)
     
         self.driver = webdriver.Firefox()
+        self.driver.maximize_window()
         self.driver.get("https://www.comprasnet.gov.br/seguro/loginPortal.asp")
 
         esperar_e_clicar(self.driver, "button.governo")
@@ -146,17 +149,30 @@ class PesquisaPrecos(QDialog):
         esperar_e_preencher(self.driver, PASSWORD_FIELD_SELECTOR, self.password)
         esperar_e_clicar(self.driver, LOGIN_BUTTON_SELECTOR)
 
-        # # Aguardar até que o overlay desapareça
         esperar_invisibilidade_elemento(self.driver, OVERLAY_SELECTOR)
         time.sleep(0.5)  # Necessário para carregar a página
 
-        # Localizar e clicar no elemento desejado usando XPath
-        esperar_e_clicar(self.driver, PAGINATION_ELEMENT_XPATH, by=By.XPATH)
-        time.sleep(0.3)
-        esperar_e_clicar(self.driver, OPTION_XPATH, by=By.XPATH) # Clicar na opção '2'
-        time.sleep(0.3)
-        esperar_e_clicar(self.driver, ABRIR_JANELA_PESQUISA_PRECOS) # Abrir nova janela IRP
+        timeout = 2
 
+        # Espera até que o overlay desapareça
+        WebDriverWait(self.driver, timeout).until(
+            EC.invisibility_of_element_located((By.CSS_SELECTOR, ".ui-blockui.ui-widget-overlay.ui-blockui-document"))
+        )
+        # Localizar e clicar no elemento desejado usando XPath
+        try:
+            # Tenta clicar
+            esperar_e_clicar(self.driver, PAGINATION_ELEMENT_XPATH, by=By.XPATH)
+        except ElementClickInterceptedException:
+            # Espera um pouco e tenta novamente
+            time.sleep(1)
+            esperar_e_clicar(self.driver, PAGINATION_ELEMENT_XPATH, by=By.XPATH)
+
+        selectors_with_types = [
+            (By.CSS_SELECTOR, "div.col-xl-2:nth-child(3) > app-redirect-sistemas:nth-child(1) > span:nth-child(1)"),
+            (By.XPATH, "/html/body/app-root/div/app-area-governo/div/app-hub-acesso-sistemas/div[2]/div/div/p-dataview/div/div/div/div[3]/app-redirect-sistemas/span/span/div/p[1]/img")
+        ]
+
+        esperar_rolar_e_clicar(self.driver, selectors_with_types, tentativas=3)
         # Aguarde um momento para garantir que a nova janela seja aberta
         time.sleep(1)  # Ajuste este tempo conforme necessário
 
@@ -346,7 +362,7 @@ class PesquisaPrecos(QDialog):
         try:
             # Esperar até que o spinner desapareça
             WebDriverWait(self.driver, 20).until(EC.invisibility_of_element_located((By.ID, "spinner")))
-            time.sleep(0.5)  # Pequena pausa adicional para garantir que tudo esteja carregado
+            time.sleep(0.2)  # Pequena pausa adicional para garantir que tudo esteja carregado
 
             # Esperar até que o dropdown esteja visível
             dropdown = WebDriverWait(self.driver, 20).until(
@@ -355,7 +371,7 @@ class PesquisaPrecos(QDialog):
 
             # Scroll até o dropdown para garantir que está na tela
             self.driver.execute_script("arguments[0].scrollIntoView(true);", dropdown)
-            time.sleep(0.5)  # Pequena pausa após o scroll
+            time.sleep(0.2)  # Pequena pausa após o scroll
 
             try:
                 dropdown.click()
@@ -466,13 +482,17 @@ class PesquisaPrecos(QDialog):
     def converter_unidade(self, unidade):
         unidade = unidade.strip()
         
+        # Verificar se é abreviação de Mililitro
+        if re.search(r'(\d+)\s*ML\b', unidade, re.IGNORECASE):
+            return re.sub(r'(\d+)\s*ML\b', r'\1 Mililitro', unidade, flags=re.IGNORECASE)
+        
+        # Verificar se é abreviação de Metro
+        elif re.search(r'(\d+)\s*M\b', unidade, re.IGNORECASE):
+            return re.sub(r'(\d+)\s*M\b', r'\1 Metro', unidade, flags=re.IGNORECASE)
+        
         # Verificar se é abreviação de Grama
         if re.search(r'(\d+)\s*G\b', unidade, re.IGNORECASE):
             return re.sub(r'(\d+)\s*G\b', r'\1 Grama', unidade, flags=re.IGNORECASE)
-        
-        # Verificar se é abreviação de Mililitro
-        elif re.search(r'(\d+)\s*ML\b', unidade, re.IGNORECASE):
-            return re.sub(r'(\d+)\s*ML\b', r'\1 Mililitro', unidade, flags=re.IGNORECASE)
         
         # Verificar se é "Unidade"
         elif unidade.lower() == "unidade":
@@ -520,3 +540,7 @@ def verificar_modal(driver):
         print("Modal não encontrado ou já desapareceu.")
     except NoSuchElementException:
         print("Botão de fechar não encontrado no modal.")
+
+def rolar_para_baixo(driver, pixels=300):
+    """ Rola a tela para baixo pela quantidade de pixels especificada. """
+    driver.execute_script(f"window.scrollBy(0, {pixels});")

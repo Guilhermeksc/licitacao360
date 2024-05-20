@@ -15,7 +15,7 @@ from selenium.common.exceptions import TimeoutException, WebDriverException, NoS
 from diretorios import WEBDRIVER_FIREFOX_PATH, ICONS_DIR
 from custom_selenium.gui_module import (
     JSONDialog, AlteracaoIRPDialog, DivulgacaoComprasDialog,
-    ParticipantesIRPDialog
+    ParticipantesIRPDialog, AnaliseParticipantesIRPDialog
 )
 from custom_selenium.seletores_selenium import *
 from custom_selenium.utils_selenium import *
@@ -134,7 +134,7 @@ class SeleniumAutomacao(QWidget):
         self.btn_tratar_dados_json = self.createButton("megaphone_branco.svg", "megaphone_ciano.svg", "Divulgação\nIRP", self.divulgacao_compras.abrir_fluxo_divulgacao_compras)
         grid_layout.addWidget(self.btn_tratar_dados_json, 5, 0)
 
-        self.btn_analisar_participantes = self.createButton("confirmation_branco.svg", "confirmation_ciano.svg", "Analisar\nParticipantes", self.fluxo_alteracao_irp)
+        self.btn_analisar_participantes = self.createButton("confirmation_branco.svg", "confirmation_ciano.svg", "Analisar\nParticipantes", self.fluxo_analise_participantes)
         grid_layout.addWidget(self.btn_analisar_participantes, 5, 1)
 
         self.btn_om_participantes = self.createButton("planilha_branco.svg", "planilha_ciano.svg", "Planilha de\nConsolidação", self.fluxo_participantes_irp)
@@ -194,11 +194,24 @@ class SeleniumAutomacao(QWidget):
             print(f"Erro ao tentar clicar via JavaScript no elemento {selector}: {e}")
 
     def esperar_e_clicar(self, selector, by=By.CSS_SELECTOR, timeout=20):
-        elemento = self.esperar_elemento_clicavel(selector, by, timeout)
-        if elemento:
-            elemento.click()
-        else:
-            print(f"Não foi possível clicar no elemento: {selector}")
+        try:
+            elemento = WebDriverWait(self.driver, timeout).until(
+                EC.element_to_be_clickable((by, selector))
+            )
+            if elemento:
+                elemento.click()
+                print(f"Clicado com sucesso no elemento: {selector}")
+        except TimeoutException:
+            print(f"Timeout: O elemento {selector} não ficou clicável após {timeout} segundos.")
+        except NoSuchElementException:
+            print(f"Elemento não encontrado: {selector}")
+        except Exception as e:
+            print(f"Erro ao clicar no elemento {selector}: {e}")
+
+    def esperar_elemento_clicavel(self, selector, by=By.CSS_SELECTOR, timeout=10):
+        return WebDriverWait(self.driver, timeout).until(
+            EC.element_to_be_clickable((by, selector))
+        )
 
     def esperar_e_preencher(self, selector, texto, by=By.CSS_SELECTOR, timeout=20):
         elemento = self.esperar_elemento_visivel(selector, by, timeout)
@@ -215,15 +228,6 @@ class SeleniumAutomacao(QWidget):
             )
         except TimeoutException:
             print(f"Timeout: O elemento {selector} não ficou visível após {timeout} segundos.")
-            return None
-
-    def esperar_elemento_clicavel(self, selector, by=By.CSS_SELECTOR, timeout=10):
-        try:
-            return WebDriverWait(self.driver, timeout).until(
-                EC.element_to_be_clickable((by, selector))
-            )
-        except TimeoutException:
-            print(f"Timeout: O elemento {selector} não ficou clicável após {timeout} segundos.")
             return None
 
     def esperar_elemento_estado(self, selector, by, estado_esperado, timeout=10):
@@ -630,6 +634,42 @@ class SeleniumAutomacao(QWidget):
                 print("Dados da tabela não carregados.")
         else:
             print("Ação cancelada pelo usuário.")
+
+    def fluxo_analise_participantes(self):
+        analise_participantes_dialog = AnaliseParticipantesIRPDialog(self)
+        if analise_participantes_dialog.exec() == QDialog.DialogCode.Accepted:
+            irp_number = analise_participantes_dialog.get_irp_number()
+            item_inicio = int(analise_participantes_dialog.get_item_inicio())
+            pagina_inicial = (item_inicio - 1) // 20 + 1
+
+            print(f"Iniciando a partir do item: {item_inicio} na página {pagina_inicial}")
+            self.table_data = analise_participantes_dialog.table_data
+            if self.table_data is not None:
+                self.load_credentials_from_json()
+                self.driver = create_driver(WEBDRIVER_FIREFOX_PATH)
+                abrir_comprasnet(self.driver, self.username, self.password)
+                selecionar_analise_irp(self.driver)
+                selecionar_irp(self.driver, irp_number)
+
+                # Navega até a página inicial necessária
+                for i in range(1, pagina_inicial):
+                    sucesso, msg = navegar_para_pagina(self.driver, i + 1)
+                    if not sucesso:
+                        print(f"Falha na navegação: {msg}")
+                        self.driver.quit()
+                        return
+
+                try:
+                    # Chamando a função analisar_itens com o item de início e os dados da tabela
+                    analisar_itens(self.driver, item_inicio, self.table_data)
+                    print("Todos os itens foram processados.")
+                except Exception as e:
+                    print(f"Erro ao analisar itens: {e}")
+            else:
+                print("Dados da tabela não carregados.")
+        else:
+            print("Ação cancelada pelo usuário.")
+
 
     def fluxo_participantes_irp(self):
         participantes_irp_dialog = ParticipantesIRPDialog(self)

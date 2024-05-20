@@ -151,10 +151,80 @@ class JSONDialog(QDialog):
         else:
             return unidade  # Retorna o valor original se não houver unidade para converter
 
-
 class AlteracaoIRPDialog(QDialog):
     def __init__(self, parent=None):
         super(AlteracaoIRPDialog, self).__init__(parent)
+        self.layout = QVBoxLayout(self)
+
+        # Layout horizontal para Nº da IRP e Ano
+        self.irp_num_layout = QHBoxLayout()
+        self.irp_num_input = QLineEdit(self)
+        self.irp_num_input.setPlaceholderText("Nº da IRP")
+        self.irp_num_layout.addWidget(self.irp_num_input)
+
+        self.ano_irp_input = QLineEdit(self)
+        self.ano_irp_input.setText(str(datetime.now().year))  # Ano atual
+        self.irp_num_layout.addWidget(self.ano_irp_input)
+        self.layout.addLayout(self.irp_num_layout)
+
+        # Botão para carregar o arquivo da tabela
+        self.load_table_button = QPushButton("Carregar Tabela", self)
+        self.load_table_button.clicked.connect(self.load_table)
+        self.layout.addWidget(self.load_table_button)
+
+        # Modelo e TableView para exibir dados
+        self.model = QStandardItemModel(self)  
+        self.tableView = QTableView(self)
+        self.tableView.setModel(self.model)
+        self.tableView.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # Correção aplicada aqui
+        self.layout.addWidget(self.tableView)
+
+        # ComboBox para o número inicial do item
+        self.item_inicio_combo = QComboBox(self)
+        self.layout.addWidget(self.item_inicio_combo)  # Adiciona a ComboBox ao layout
+
+        # Botão para confirmar a entrada
+        self.ok_button = QPushButton("OK", self)
+        self.ok_button.clicked.connect(self.accept)
+        self.layout.addWidget(self.ok_button)
+
+        self.table_data = None  # DataFrame para armazenar dados da tabela
+        self.setWindowTitle("Carregue a table para atualizar o IRP")
+        
+    def load_table(self):
+        file_name, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.ods)")
+        if file_name:
+            self.table_data = pd.read_excel(file_name)
+            self.model.clear()
+            self.model.setHorizontalHeaderLabels(self.table_data.columns)
+
+            for index, row in self.table_data.iterrows():
+                items = [QStandardItem(str(cell)) for cell in row]
+                self.model.appendRow(items)
+
+            # Preencher a ComboBox com os números dos itens
+            self.item_inicio_combo.clear()  # Limpa os itens antigos
+            item_nums = self.table_data['item_num'].astype(str).tolist()  # Converte os números dos itens para string
+            self.item_inicio_combo.addItems(item_nums)  # Adiciona os números dos itens à ComboBox
+
+            QMessageBox.information(self, "Carregamento Concluído", "Tabela carregada com sucesso!")
+
+    def get_irp_number(self):
+        irp_num = self.irp_num_input.text().strip()
+        ano_irp = self.ano_irp_input.text()
+        return irp_num + ano_irp
+
+    def get_item_inicio(self):
+        return self.item_inicio_combo.currentText()  # Retorna o item selecionado na ComboBox
+
+    def accept(self):
+        super().accept()
+        item_selecionado = self.get_item_inicio()
+        print(f"Item selecionado: {item_selecionado}")
+
+class AnaliseParticipantesIRPDialog(QDialog):
+    def __init__(self, parent=None):
+        super(AnaliseParticipantesIRPDialog, self).__init__(parent)
         self.layout = QVBoxLayout(self)
 
         # Layout horizontal para Nº da IRP e Ano

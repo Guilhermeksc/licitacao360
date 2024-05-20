@@ -25,7 +25,7 @@ class InicioWidget(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pixmap = QPixmap(str(IMAGE_PATH / "ceimbra.png"))  # Verifique se o caminho está correto
-        self.image_label.setPixmap(pixmap.scaled(600, 300, Qt.AspectRatioMode.KeepAspectRatio))
+        self.image_label.setPixmap(pixmap.scaled(900, 450, Qt.AspectRatioMode.KeepAspectRatio))
         self.layout.addWidget(self.image_label)  # Adicionar a imagem ao layout principal
 
         self.layout.addStretch(2)
