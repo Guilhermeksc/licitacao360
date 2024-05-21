@@ -299,7 +299,7 @@ def analisar_itens(driver, item_inicio, table_data):
             button.click()  # Clique no botão de análise
 
             marcar_checkboxes_para_brasilia(driver)
-            time.sleep(0.2)
+            time.sleep(2)
             marcar_checkboxes_para_outros(driver)
 
             WebDriverWait(driver, 10).until(
@@ -356,7 +356,7 @@ def marcar_checkboxes_para_brasilia(driver):
             print("Popup inicial tratado com sucesso.")
             # Trata o segundo popup com o botão #btOk
             if aguardar_e_confirmar_popup(driver, elemento_distintivo="#btOk"):
-                print("Popup de confirmação tratado com sucesso.")
+                print("Popup de confirmação de brasília tratado com sucesso.")
             else:
                 print("Falha ao tratar o popup de confirmação #btOk.")
         else:
@@ -413,12 +413,10 @@ def marcar_checkboxes_para_outros(driver):
         )
         botao_confirmar.click()
         print("Botão Confirmar clicado, confirmando a ação.")
-
-        if aguardar_e_confirmar_popup_recusa(driver, elemento_distintivo="#btOk"):
+        if aguardar_e_confirmar_popup(driver, elemento_distintivo="#btOk"):
             print("Popup de confirmação tratado com sucesso.")
     else:
         print("Nenhum item fora de 'BRASÍLIA/DF' com status 'Manifestado' encontrado. Continuando com o fluxo atual.")
-
 
 def navegar_para_pagina(driver, pagina_desejada):
     if pagina_desejada == 1:
@@ -517,19 +515,21 @@ def listar_titulos_janelas(driver, titulo_desejado=None, elemento_distintivo="#b
     return False
 
 def aguardar_e_confirmar_popup(driver, elemento_distintivo="#btOk", timeout=20):
-    janela_controle_principal = driver.current_window_handle  # Referência da janela principal
-    janelas_abertas_inicialmente = driver.window_handles  # Estado inicial das janelas
-    print("Janelas antes da mudança:", janelas_abertas_inicialmente)
+    janela_principal = driver.current_window_handle  # Guarda a referência da janela principal antes de qualquer mudança
+    print("Janela principal antes de qualquer operação:", janela_principal)
+    
+    janelas_iniciais = driver.window_handles
+    print("Janelas abertas antes da mudança:", janelas_iniciais)
 
     for tentativa in range(timeout):
-        janelas_disponiveis = driver.window_handles
-        print("Verificando janelas disponíveis:", janelas_disponiveis)
+        janelas_atual = driver.window_handles
+        print("Verificando janelas disponíveis:", janelas_atual)
 
-        # Identificar se novas janelas foram abertas
-        janelas_novas = [j for j in janelas_disponiveis if j not in janelas_abertas_inicialmente]
-        if janelas_novas:
-            for janela in janelas_novas:
-                driver.switch_to.window(janela)
+        # Identificar se novas janelas foram abertas ou se já estão disponíveis
+        for janela in janelas_atual:
+            driver.switch_to.window(janela)
+            print(f"Atualmente na janela: {driver.title}")
+            if driver.find_elements(By.CSS_SELECTOR, elemento_distintivo):
                 try:
                     WebDriverWait(driver, 10).until(
                         EC.visibility_of_element_located((By.CSS_SELECTOR, elemento_distintivo)),
@@ -538,21 +538,21 @@ def aguardar_e_confirmar_popup(driver, elemento_distintivo="#btOk", timeout=20):
                     botao_ok = driver.find_element(By.CSS_SELECTOR, elemento_distintivo)
                     botao_ok.click()
                     print("Botão #btOk clicado para confirmar.")
-                    driver.switch_to.window(janela_controle_principal)
-                    print("Retornando à janela principal...")
-
-                    # Agora verifique se estamos na janela correta
-                    WebDriverWait(driver, 10).until(
-                        EC.visibility_of_element_located((By.CSS_SELECTOR, "#analisarirp")),
-                        message="Esperando o elemento #analisarirp estar visível."
-                    )
-                    print("Elemento #analisarirp encontrado, confirmação de estar na janela correta.")
+                    
+                    # Após clicar em #btOk, garantir que o driver retorne à janela principal
+                    driver.switch_to.window(janela_principal)
+                    print("Retorno à janela principal após clicar em #btOk.")
+                    
+                    # Verificar se o elemento #analisarirp está disponível para confirmar que está na janela correta
+                    if driver.find_elements(By.CSS_SELECTOR, "#analisarirp"):
+                        print("Elemento #analisarirp encontrado, confirmação de estar na janela correta.")
                     return True
                 except NoSuchElementException:
                     print("Elemento distintivo não encontrado nesta janela.")
-                    driver.switch_to.window(janela_controle_principal)
                 except TimeoutException:
-                    print("Timeout esperando o elemento após clicar em #btOk.")
+                    print("Timeout ao tentar clicar no botão #btOk.")
+            else:
+                print("Botão #btOk não encontrado nesta janela.")
 
         print(f"Tentativa {tentativa + 1} de encontrar o popup de confirmação falhou. Tentando novamente...")
         time.sleep(1)
