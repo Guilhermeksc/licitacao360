@@ -498,4 +498,16 @@ def carregar_dados_processos(controle_processos_path):
         print(f"Erro ao carregar dados do processo: {e}")
         return pd.DataFrame()
 
+ABREV_MAP = {
+    "Pregão Eletrônico": "PE",
+    "Concorrência": "CC",
+    "Dispensa Eletrônica": "DE",
+    "Termo de Justificativa de Dispensa de Licitação": "TJDL",
+    "Termo de Justificativa de Inexigibilidade de Licitação": "TJIL"
+}
+
+STYLE_BORDER = """
+    QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; }
+    QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }
+"""
 

@@ -17,19 +17,14 @@ import sqlite3
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
-        self.setup_atributos(main_app, config_manager, df_registro)
-        self.initUI()
-
-    def setup_atributos(self, main_app, config_manager, df_registro):
         self.main_app = main_app
         self.df_registro = df_registro
-        self.config_manager = config_manager
-        self.extrair_registro_df()
-        self.setup_pasta_base()
+        self.config_manager = config_manager 
 
-    def extrair_registro_df(self):
+        # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
-            self.id_processo = self.df_registro['id_processo'].iloc[0].replace('/', '-')
+            id_processo_original = self.df_registro['id_processo'].iloc[0]
+            self.id_processo = id_processo_original.replace('/', '-')
             self.tipo = self.df_registro['tipo'].iloc[0]
             self.numero = self.df_registro['numero'].iloc[0]
             self.ano = self.df_registro['ano'].iloc[0]
@@ -42,93 +37,26 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.sigla_om = self.df_registro['sigla_om'].iloc[0]
             self.material_servico = self.df_registro['material_servico'].iloc[0]
 
-    def setup_pasta_base(self):
-        default_path = str(Path.home() / 'Desktop')  # Define o caminho padrão
-        save_location = self.config_manager.get_config('save_location', default_path)
-        self.pasta_base = Path(save_location)  
-        
-    def initUI(self):
-        self.setWindowTitle("Autorização para abertura de processo administrativo")
-        self.setFixedSize(1250, 550)
-        self.layoutPrincipal = QVBoxLayout()
-        self.layoutPrincipal.addLayout(self.cabecalho_layout())
-        self.criar_layouts()
-        self.setupUi()
-        self.aplicar_estilos()
-        self.setLayout(self.layoutPrincipal)
-        self.config_manager.config_updated.connect(self.update_save_location)
+        self.setWindowTitle("Autorização para Abertura")
+        self.setFixedSize(850, 410)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)  # Janela sempre no topo
 
-    def cabecalho_layout(self):
-        header_layout = QHBoxLayout()
-        title_text = f"{self.tipo} nº {self.numero}/{self.ano}"
-        objeto_text = f"Objeto: {self.objeto}"
-        title_label = QLabel(f"<div style='font-size: 32px; font-weight: bold; color: navy;'>{title_text}</div>"
-                            f"<div style='font-size: 22px; color: navy; font-style: italic;'>{objeto_text}</div>")
-        header_layout.addWidget(title_label)
-        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        self.add_action_buttons(header_layout)
-        pixmap = QPixmap(str(MARINHA_PATH))
-        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        image_label = QLabel()
-        image_label.setPixmap(pixmap)
-        header_layout.addWidget(image_label)
-        return header_layout
+        self.pasta = ''
 
-    def criar_layouts(self):
-        horizontal_layout = QHBoxLayout()
+        self.layoutPrincipal = QHBoxLayout()
+
+        # Criando QWidget para encapsular os layouts de esquerda e direita
         self.widgetEsquerda = QWidget()
         self.widgetDireita = QWidget()
 
-        self.widgetEsquerda.setFixedSize(430, 420)
-        self.widgetDireita.setFixedSize(800, 420)
+        # Definindo tamanhos fixos para os widgets encapsulados
+        self.widgetEsquerda.setFixedSize(330, 400)
+        self.widgetDireita.setFixedSize(500, 400)
 
-        # Configurando os layouts de esquerda e direita
-        self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)
-        self.layoutDireita = QVBoxLayout(self.widgetDireita)
+        self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)  # Layout para o lado esquerdo
+        self.layoutDireita = QVBoxLayout(self.widgetDireita)  # Layout para o lado direito
 
-        # Adicionando os widgets ao layout horizontal
-        horizontal_layout.addWidget(self.widgetEsquerda)
-        horizontal_layout.addWidget(self.widgetDireita)
-
-        # Adicionando o layout horizontal ao layout principal
-        self.layoutPrincipal.addLayout(horizontal_layout)  # Adiciona abaixo do cabeçalho
-
-    def setupUi(self):
-        settings = QSettings("SuaOrganizacao", "SeuAplicativo")
-        self.createGroups()
-        self.addWidgetsToLeftLayout()
-        self.addWidgetsToRightLayout()
-        self.applyWidgetStyles()
-
-    def add_action_buttons(self, layout):
-        # Caminhos para os ícones
-        icon_word = QIcon(str(ICONS_DIR / "word.png"))  # Caminho para o ícone de Word
-        icon_pdf = QIcon(str(ICONS_DIR / "pdf64.png"))  # Caminho para o ícone de PDF
-
-        # Botões
-        button_gerar_word = self.create_button("  Gerar DOCX  ", icon_word, self.gerarDocx, "Gerar arquivo Word")
-        button_gerar_pdf = self.create_button("  Gerar PDF  ", icon_pdf, self.gerarPdf, "Gerar arquivo PDF")
-
-        # Conectando os botões aos métodos correspondentes
-        button_gerar_word.clicked.connect(self.gerarDocx)
-        button_gerar_pdf.clicked.connect(self.gerarPdf)  # Conexão correta para geração de PDF
-
-        # Adicionando os botões ao layout
-        layout.addWidget(button_gerar_word)
-        layout.addWidget(button_gerar_pdf)
-
-    def create_button(self, text, icon, callback, tooltip_text, icon_size=None):
-        btn = QPushButton(text)
-        btn.setIcon(icon)
-        # Define o tamanho do ícone com um valor padrão de QSize(40, 40) se nenhum tamanho for especificado
-        if icon_size is None:
-            icon_size = QSize(40, 40)
-        btn.setIconSize(icon_size)
-        btn.clicked.connect(callback)
-        btn.setToolTip(tooltip_text)
-        return btn
-
-    def aplicar_estilos(self):
+        self.setupUi()
         self.setStyleSheet("""
             QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
                 font-size: 16px;
@@ -147,15 +75,32 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             }
         """)
 
+        # Adicionar os widgets encapsulados ao layout principal
+        self.layoutPrincipal.addWidget(self.widgetEsquerda)
+        self.layoutPrincipal.addWidget(self.widgetDireita)
+
+        self.setLayout(self.layoutPrincipal)  
+        self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+
     def update_save_location(self, key, new_path):
         if key == 'save_location':
             self.pasta_base = new_path
             print(f"Local de salvamento atualizado para: {self.pasta_base}")
+                    
+    def setupUi(self):
+        settings = QSettings("SuaOrganizacao", "SeuAplicativo")
+        self.createGroups()
+        self.addWidgetsToLeftLayout()
+        self.addWidgetsToRightLayout()
+        self.applyWidgetStyles()
 
     def createGroups(self):
         self.grupoAutoridade = QGroupBox("Autoridade Competente")
         self.grupoSelecaoPasta = QGroupBox("Local de Salvamento do Arquivo")
         self.grupoEdicaoTemplate = QGroupBox("Edição do Modelo")
+        self.grupoCriacaoDocumento = QGroupBox("Criação de Documento")
         self.grupoSIGDEM = QGroupBox("SIGDEM")
 
         # Aqui, você pode configurar o layout de cada grupo e adicionar os widgets específicos.
@@ -163,49 +108,50 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.setupGrupoAutoridade()
         self.setupGrupoSelecaoPasta()
         self.setupGrupoEdicaoTemplate()
+        self.setupGrupoCriacaoDocumento()
         self.setupGrupoSIGDEM()
 
     def setupGrupoAutoridade(self):
         layout = QVBoxLayout(self.grupoAutoridade)
-        labelOD = QLabel("Selecionar o Ordenador de Despesa:")
         self.ordenadordespesasComboBox = QComboBox()
         self.carregarOrdenadorDespesas()
-        layout.addWidget(labelOD)
-        vertical_spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(vertical_spacer)
         layout.addWidget(self.ordenadordespesasComboBox)
-        layout.addItem(vertical_spacer)
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
         labelPasta = QLabel("Selecionar pasta para salvar o arquivo:")
+        iconPathFolder = ICONS_DIR / "abrir_pasta.png"
+        botaoSelecionarPasta = QPushButton("  Selecionar Pasta")
+        botaoSelecionarPasta.setIcon(QIcon(str(iconPathFolder)))
+        botaoSelecionarPasta.clicked.connect(self.selecionarPasta)
         layout.addWidget(labelPasta)
-
-        button_layout = QHBoxLayout()
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        icon_folder = QIcon(str(ICONS_DIR / "folder128.png"))  # Ajuste o ícone conforme necessário
-        botaoSelecionarPasta = self.create_button("  Selecionar Pasta  ", icon_folder, self.selecionarPasta, "Escolha uma pasta para salvar os arquivos")
-        button_layout.addWidget(botaoSelecionarPasta)
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        layout.addLayout(button_layout)
-        vertical_spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(vertical_spacer)
+        layout.addWidget(botaoSelecionarPasta)
 
     def setupGrupoEdicaoTemplate(self):
         layout = QVBoxLayout(self.grupoEdicaoTemplate)
         labelEdicao = QLabel("Editar o arquivo modelo de Autorização:")
+        iconPathEdit = ICONS_DIR / "text.png"
+        botaoEdicaoTemplate = QPushButton("  Editar Modelo")
+        botaoEdicaoTemplate.setIcon(QIcon(str(iconPathEdit)))
+        botaoEdicaoTemplate.clicked.connect(self.editarTemplate)
         layout.addWidget(labelEdicao)
+        layout.addWidget(botaoEdicaoTemplate)
 
-        button_layout = QHBoxLayout()
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        iconPathEdit = QIcon(str(ICONS_DIR / "text.png"))  # Caminho para o ícone de Word
-        botaoEdicaoTemplate = self.create_button("    Editar Modelo   ", iconPathEdit, self.editarTemplate, "Clique para abrir o arquivo modelo de Autorização para edição")
-        button_layout.addWidget(botaoEdicaoTemplate)
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+    def setupGrupoCriacaoDocumento(self):
+        layout = QVBoxLayout(self.grupoCriacaoDocumento)
+        botoesLayout = QHBoxLayout()
+        iconPathDocx = ICONS_DIR / "word.png"
+        iconPathPdf = ICONS_DIR / "pdf64.png"
+        botaoDocx = QPushButton("  Docx")
+        botaoDocx.setIcon(QIcon(str(iconPathDocx)))
+        botaoDocx.clicked.connect(self.gerarDocx)
+        botaoPdf = QPushButton("  Pdf")
+        botaoPdf.setIcon(QIcon(str(iconPathPdf)))
+        botaoPdf.clicked.connect(self.gerarPdf)
+        botoesLayout.addWidget(botaoDocx)
+        botoesLayout.addWidget(botaoPdf)
+        layout.addLayout(botoesLayout)
 
-        layout.addLayout(button_layout)
-        vertical_spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(vertical_spacer)
     def setupGrupoSIGDEM(self):
         layout = QVBoxLayout(self.grupoSIGDEM)
 
@@ -214,7 +160,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             "Pregão Eletrônico": "PE",
             "Concorrência": "CC",
             "Dispensa Eletrônica": "DE",
-            "Termo de Justificativa de Dispensa de Licitação": "TJDL",
+            "Termo de Justificativa de Dispensa Eletrônica": "TJDL",
             "Termo de Justificativa de Inexigibilidade de Licitação": "TJIL"
         }
 
@@ -227,10 +173,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         textEditAssunto = QTextEdit()
         textEditAssunto.setPlainText(f"{tipo_abreviado} {self.numero}/{self.ano} – Autorização para Abertura de Processo Administrativo")
         textEditAssunto.setMaximumHeight(50)
-
-        icon_copy = QIcon(str(ICONS_DIR / "copy_1.png"))  # Caminho para o ícone de Word
-        btnCopyAssunto = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditAssunto.toPlainText()), "Copiar texto para a área de transferência", QSize(25, 25))
-
+        btnCopyAssunto = QPushButton("Copiar")
+        btnCopyAssunto.clicked.connect(lambda: self.copyToClipboard(textEditAssunto.toPlainText()))
         layoutHAssunto = QHBoxLayout()
         layoutHAssunto.addWidget(textEditAssunto)
         layoutHAssunto.addWidget(btnCopyAssunto)
@@ -248,7 +192,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                         f"Item do PCA: {self.item_pca}")
         textEditSinopse.setPlainText(sinopse_text)
         textEditSinopse.setMaximumHeight(100)
-        btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(25, 25))
+        btnCopySinopse = QPushButton("Copiar")
+        btnCopySinopse.clicked.connect(lambda: self.copyToClipboard(textEditSinopse.toPlainText()))
         layoutHSinopse = QHBoxLayout()
         layoutHSinopse.addWidget(textEditSinopse)
         layoutHSinopse.addWidget(btnCopySinopse)
@@ -262,25 +207,24 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                                          f"Coordenador da Equipe de Planejamento: {self.coordenador_planejamento}\n"
                                          f"OM Líder: {self.uasg} - {self.sigla_om}")
         textEditObservacoes.setMaximumHeight(100)
-        btnCopyObservacoes = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditObservacoes.toPlainText()), "Copiar texto para a área de transferência", QSize(25, 25))
+        btnCopyObservacoes = QPushButton("Copiar")
+        btnCopyObservacoes.clicked.connect(lambda: self.copyToClipboard(textEditObservacoes.toPlainText()))
         layoutHObservacoes = QHBoxLayout()
         layoutHObservacoes.addWidget(textEditObservacoes)
         layoutHObservacoes.addWidget(btnCopyObservacoes)
         layout.addLayout(layoutHObservacoes)
 
-         # Campo "Temporalidade"
-        labelTemporalidade = QLabel("Temporalidade: 004")
-        layout.addWidget(labelTemporalidade)  
-
-        labelTramitacao = QLabel("Tramitação: 30>02>MSG>30>Setor Demandante")
-        layout.addWidget(labelTramitacao)  
-
+    def copyToClipboard(self, text):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+        # Mostra a tooltip na posição atual do mouse
+        QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def addWidgetsToLeftLayout(self):
         self.layoutEsquerda.addWidget(self.grupoAutoridade)
         self.layoutEsquerda.addWidget(self.grupoSelecaoPasta)
         self.layoutEsquerda.addWidget(self.grupoEdicaoTemplate)
-        # self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
+        self.layoutEsquerda.addWidget(self.grupoCriacaoDocumento)
 
     def addWidgetsToRightLayout(self):
         self.layoutDireita.addWidget(self.grupoSIGDEM)
@@ -291,14 +235,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.grupoAutoridade.setStyleSheet(estiloBorda)
         self.grupoSelecaoPasta.setStyleSheet(estiloBorda)
         self.grupoEdicaoTemplate.setStyleSheet(estiloBorda)
-        # self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
+        self.grupoCriacaoDocumento.setStyleSheet(estiloBorda)
         self.grupoSIGDEM.setStyleSheet(estiloBorda)
-
-    def copyToClipboard(self, text):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(text)
-        # Mostra a tooltip na posição atual do mouse
-        QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def editarTemplate(self):
         template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_autorizacao.docx"
@@ -353,7 +291,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         id_processo_novo = id_processo_original.replace('/', '-')
 
         nome_pasta = f"{id_processo_novo} - {objeto}"
-        subpasta_autorizacao = "1. Autorizacao para abertura de Processo Administrativo"
+        subpasta_autorizacao = f"{id_processo_novo} - Autorizacao"
 
         pasta_destino = os.path.join(self.pasta_base, nome_pasta)
         subpasta_destino = os.path.join(pasta_destino, subpasta_autorizacao)
