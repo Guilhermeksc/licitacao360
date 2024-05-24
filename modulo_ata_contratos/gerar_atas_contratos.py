@@ -20,9 +20,15 @@ CSV_OUTPUT_PATH = DATABASE_DIR / "dados.csv"
 tr_variavel_df_carregado = None
 
 class DocumentTableModel(QAbstractTableModel):
-    def __init__(self, data, headers):
+    def __init__(self, headers, dados_filtrados=None):
         super().__init__()
-        self._data = data
+        if dados_filtrados is not None:
+            if isinstance(dados_filtrados, list):
+                self._data = pd.DataFrame(dados_filtrados, columns=headers)
+            else:
+                self._data = dados_filtrados
+        else:
+            self._data = pd.DataFrame(columns=headers)
         self._headers = headers
 
     def rowCount(self, parent=None):
@@ -32,7 +38,7 @@ class DocumentTableModel(QAbstractTableModel):
         return len(self._data.columns)
 
     def data(self, index, role):
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole and not self._data.empty:
             return str(self._data.iloc[index.row(), index.column()])
         return None
 
@@ -41,173 +47,21 @@ class DocumentTableModel(QAbstractTableModel):
             return self._headers[section]
         return None
 
+    def flags(self, index):
+        default_flags = super().flags(index)
+        # Removendo a possibilidade de os itens serem 'checkable'
+        if self._headers[index.column()] == "Descrição Detalhada":
+            return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+        return default_flags & ~Qt.ItemFlag.ItemIsUserCheckable
+
     def get_headers(self):
         return self._headers
 
 class GerarAtasWidget(QWidget):
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
-        self.pdf_dir = PDF_DIR  # Já existente para PDF_DIR
-        self.sicaf_dir = SICAF_DIR  # Adicionando para SICAF_DIR
 
-        global_event_manager.pdf_dir_updated.connect(self.on_pdf_dir_updated)
-        global_event_manager.sicaf_dir_updated.connect(self.on_sicaf_dir_updated)
-
-        self.icons_dir = Path(icons_dir)
-
-        self.image_cache = load_images(self.icons_dir, [
-            "table.png", "data-processing.png", "performance.png", "data-collection.png", "data-collection2.png", "calendar.png", "report.png", "management.png"
-        ])
-
-        self.tr_variavel_df_carregado = None
-        self.nome_arquivo_carregado = ""
-        self.botoes = []  # Inicializando a lista de botões
-        self.setup_ui()
-        self.setMinimumSize(1200, 600)  # Define o tamanho mínimo da janela para 1200x600
-
-        self.tr_df_carregado = None
-        arquivo_salvo = self.load_file_path()
-        try:
-            if arquivo_salvo:
-                self.tr_variavel_df_carregado = pd.read_excel(arquivo_salvo)
-                self.nome_arquivo_carregado = os.path.basename(arquivo_salvo)
-            else:
-                raise FileNotFoundError
-        except FileNotFoundError:
-            self.nome_arquivo_carregado = ""
-            print("Arquivo não encontrado.")
-
-        self.progressDialog = None
-        self.sicafDialog = None
-        self.atasDialog = None
-
-    def on_pdf_dir_updated(self, new_pdf_dir):
-        # Atualiza a variável local com o novo caminho do diretório PDF
-        self.pdf_dir = new_pdf_dir
-
-    def on_sicaf_dir_updated(self, new_sicaf_dir):
-        self.sicaf_dir = new_sicaf_dir
-
-    def setup_ui(self):
-        self.main_layout = QVBoxLayout(self)
-        self.setup_buttons_layout()
-        self.tableView = QTableView(self)
-        initial_headers = []  # A lista de cabeçalhos iniciais vazia como exemplo
-        self.model = DocumentTableModel(pd.DataFrame(), initial_headers)
-        self.tableView.setModel(self.model)
-        self.tableView.setStyleSheet("""
-        QTableView {
-            background-color: black;
-            color: white;
-            font-size: 12pt;
-            border: 1px solid black;
-        }
-        QHeaderView::section {
-            background-color: #333;
-            padding: 4px;
-            border: 0.5px solid #dcdcdc;
-            color: white;
-            font-size: 12pt;
-        }
-        """)
-        QTimer.singleShot(1, self.adjust_columns)
-        self.tableView.verticalHeader().setVisible(False)
-
-        self.main_layout.addWidget(self.tableView)
-        self.setup_buttons_down_layout()
-        self.setLayout(self.main_layout)
-
-    def adjust_columns(self):
-        """Ajusta as larguras das colunas do QTableView."""
-        header = self.tableView.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)  # Ajusta todas as colunas ao conteúdo
-        headers = self.model.get_headers()
-
-        # Identifica o índice para a coluna "Descrição Detalhada"
-        descricao_detalhada_index = headers.index("Descrição Detalhada") if "Descrição Detalhada" in headers else -1
-        descricao_index = headers.index("Descrição") if "Descrição" in headers else -1
-
-        if descricao_detalhada_index != -1:
-            header.setSectionResizeMode(descricao_detalhada_index, QHeaderView.ResizeMode.Fixed)  # Configura a coluna para um tamanho fixo
-            self.tableView.setColumnWidth(descricao_detalhada_index, 150)  # Define a largura fixa
-        if descricao_index != -1:
-            header.setSectionResizeMode(descricao_index, QHeaderView.ResizeMode.Fixed)  # Configura a coluna para um tamanho fixo
-            self.tableView.setColumnWidth(descricao_index, 150)  # Define a largura fixa
-
-    def setup_buttons_layout(self):
-        self.buttons_layout = QHBoxLayout()
-        self.create_buttons()
-        self.main_layout.addLayout(self.buttons_layout)
-
-    def create_buttons(self):
-        self.buttons_layout = QHBoxLayout()
-        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
-        self.button_specs = [
-            ("Importar TR", self.image_cache['table'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size),
-            ("Processar Homologação", self.image_cache['data-collection'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
-            ("Processar SICAF", self.image_cache['data-collection2'], self.salvar_tabela, "Exclui um item selecionado", icon_size),
-            ("Configurações", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
-        ]
-
-        for text, icon, callback, tooltip, icon_size in self.button_specs:
-            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
-            self.buttons_layout.addWidget(btn)
-
-    def setup_buttons_down_layout(self):
-        self.buttons_layout = QHBoxLayout()
-        self.create_buttons_down()
-        self.main_layout.addLayout(self.buttons_layout)
-
-    def create_buttons_down(self):
-        self.buttons_layout = QHBoxLayout()
-        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
-        self.button_specs = [
-            ("Carregar DB", self.image_cache['table'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size),
-            ("Gerar Ata/Contrato", self.image_cache['data-processing'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
-            ("Indicador NORMCEIM", self.image_cache['performance'], self.salvar_tabela, "Exclui um item selecionado", icon_size),
-            ("Itens", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
-        ]
-
-        for text, icon, callback, tooltip, icon_size in self.button_specs:
-            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
-            self.buttons_layout.addWidget(btn)
-
-    def salvar_tabela(self):
-        pass    
-
-    def open_settings_dialog(self):
-        pass
-
-    def load_data(self):
-        # Retorna um DataFrame vazio para inicialização
-        return pd.DataFrame()
-    
-    def import_tr(self):
-        self.selecionar_termo_de_referencia_e_carregar()
-        if self.tr_df_carregado is not None:
-            self.atualizar_modelo_com_dados()
-
-    def selecionar_termo_de_referencia_e_carregar(self):
-        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
-        if arquivo:
-            self.tr_df_carregado = pd.read_excel(arquivo)
-            self.atualizar_modelo_com_dados()
-            
-    def button_clicked(self, index):
-        if index == 0:  # Primeiro botão
-            self.selecionar_termo_de_referencia_e_carregar()
-        elif index == 1:  # Segundo botão
-            convert_pdf_to_txt(self.pdf_dir, TXT_DIR, self.progress_bar_homolog)
-
-    def selecionar_termo_de_referencia_e_carregar(self):
-        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
-        if arquivo:
-            self.tr_df_carregado = pd.read_excel(arquivo)
-            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{os.path.basename(arquivo)}' foi carregado com sucesso!")
-
-    def atualizar_modelo_com_dados(self):
-        # Mapeia as colunas do DataFrame para as colunas esperadas no modelo
-        mapeamento_colunas = {
+        self.mapeamento_colunas = {
             "Item": "item_num",
             "Catálogo": "catalogo",
             "Descrição": "descricao_tr",
@@ -235,20 +89,314 @@ class GerarAtasWidget(QWidget):
             "Valor Homologado Total do Item": "valor_homologado_total_item",
             "Percentual Desconto": "percentual_desconto"
         }
-        # Preparar o DataFrame para ter todas as colunas mapeadas, com valores vazios para colunas faltantes
-        for key, value in mapeamento_colunas.items():
-            if value not in self.tr_df_carregado.columns:
-                self.tr_df_carregado[value] = None  # Adiciona a coluna com valores vazios
+        
+        self.pdf_dir = PDF_DIR  # Já existente para PDF_DIR
+        self.sicaf_dir = SICAF_DIR  # Adicionando para SICAF_DIR
 
-        # As colunas para o modelo são baseadas nas chaves do mapeamento, garantindo a ordem
-        headers = list(mapeamento_colunas.keys())
-        colunas_modelo = list(mapeamento_colunas.values())
+        global_event_manager.pdf_dir_updated.connect(self.on_pdf_dir_updated)
+        global_event_manager.sicaf_dir_updated.connect(self.on_sicaf_dir_updated)
 
-        # Cria um DataFrame apenas com as colunas mapeadas
-        dados_filtrados = self.tr_df_carregado[colunas_modelo]
-        self.model = DocumentTableModel(dados_filtrados, headers)
+        self.icons_dir = Path(icons_dir)
+
+        self.image_cache = load_images(self.icons_dir, [
+            "stats.png", "table.png", "data-processing.png", "performance.png", 
+            "data-collection.png", "data-collection2.png", "calendar.png", 
+            "report.png", "management.png", "alert.png", "relatorio.png"
+        ])
+
+        self.tr_variavel_df_carregado = None
+        self.nome_arquivo_carregado = ""
+        self.botoes = []  # Inicializando a lista de botões
+        self.setup_ui()
+        self.setMinimumSize(1200, 600)  # Define o tamanho mínimo da janela para 1200x600
+
+        self.tr_df_carregado = None
+        arquivo_salvo = self.load_file_path()
+        try:
+            if arquivo_salvo:
+                self.tr_variavel_df_carregado = pd.read_excel(arquivo_salvo)
+                self.nome_arquivo_carregado = os.path.basename(arquivo_salvo)
+            else:
+                raise FileNotFoundError
+        except FileNotFoundError:
+            self.nome_arquivo_carregado = ""
+            print("Arquivo não encontrado.")
+
+        self.progressDialog = None
+        self.sicafDialog = None
+        self.atasDialog = None
+
+        headers = list(self.mapeamento_colunas.keys())
+        self.model = DocumentTableModel(headers)
         self.tableView.setModel(self.model)
-        self.adjust_columns()
+
+    def on_pdf_dir_updated(self, new_pdf_dir):
+        # Atualiza a variável local com o novo caminho do diretório PDF
+        self.pdf_dir = new_pdf_dir
+
+    def on_sicaf_dir_updated(self, new_sicaf_dir):
+        self.sicaf_dir = new_sicaf_dir
+
+    def setup_ui(self):
+        self.main_layout = QVBoxLayout(self)
+        self.setup_alert_label()
+        self.setup_buttons_layout()
+        self.update_button_highlight()
+        self.start_color_blink()
+
+        self.tableView = QTableView(self)
+        self.model = DocumentTableModel(list(self.mapeamento_colunas.keys()))
+        self.tableView.setModel(self.model)
+        self.tableView.setStyleSheet("""
+        QTableView {
+            background-color: black;
+            color: white;
+            font-size: 12pt;
+            border: 1px solid black;
+        }
+        QHeaderView::section {
+            background-color: #333;
+            padding: 4px;
+            border: 0.5px solid #dcdcdc;
+            color: white;
+            font-size: 12pt;
+        }
+        """)
+        QTimer.singleShot(1, self.adjust_columns)
+        self.tableView.verticalHeader().setVisible(False)
+
+        self.main_layout.addWidget(self.tableView)
+        self.setup_buttons_down_layout()
+        self.setLayout(self.main_layout)
+
+    def adjust_columns(self):
+        """Ajusta as larguras das colunas do QTableView."""
+        header = self.tableView.horizontalHeader()
+        for i in range(self.model.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+
+        # Ajusta especificamente a coluna "Descrição" para se adaptar ao conteúdo
+        descricao_index = self.model.get_headers().index("Descrição") if "Descrição" in self.model.get_headers() else -1
+        if descricao_index != -1:
+            header.setSectionResizeMode(descricao_index, QHeaderView.ResizeMode.ResizeToContents)
+
+        # Oculta a coluna "Descrição Detalhada"
+        descricao_detalhada_index = self.model.get_headers().index("Descrição Detalhada") if "Descrição Detalhada" in self.model.get_headers() else -1
+        if descricao_detalhada_index != -1:
+            self.tableView.setColumnHidden(descricao_detalhada_index, True)
+
+
+    def setup_alert_label(self):
+        self.alert_label = QLabel("Pressione 'Importar TR' para adicionar os dados 'Catálogo', 'Descrição' e 'Descrição Detalhada'  do Termo de Referência.")
+        self.alert_label.setStyleSheet("color: white; font-size: 14pt; padding: 5px;")
+        self.alert_label.setAlignment(Qt.AlignmentFlag.AlignCenter) 
+        self.main_layout.addWidget(self.alert_label)
+        self.update_button_highlight()  
+
+    def start_color_blink(self):
+        # Animação que alterna as cores de fundo entre azul marinho e preto
+        self.color_animation = QVariantAnimation(self)
+        self.color_animation.setStartValue(QColor(0, 0, 128))  # Azul marinho
+        self.color_animation.setEndValue(QColor(0, 0, 0))  # Preto
+        self.color_animation.setDuration(1000)  # Duração de 1 segundo
+        self.color_animation.setLoopCount(-1)  # Loop infinito
+        self.color_animation.setEasingCurve(QEasingCurve.Type.InOutSine)  # Efeito suave de entrada e saída
+        self.color_animation.valueChanged.connect(self.update_background_color)
+        self.color_animation.start()
+
+    def update_background_color(self, color):
+        # Aplica a cor de fundo animada à label
+        self.alert_label.setStyleSheet(f"background-color: {color.name()}; color: white; font-size: 14pt; padding: 5px;")
+
+    def setup_buttons_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.create_buttons()
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def create_buttons(self):
+        buttons_layout = QHBoxLayout()  # Cria uma nova instância local
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
+
+        # Criar e adicionar botões individualmente à lista de botões e ao layout
+        import_tr_button = self.create_button("Importar TR", self.image_cache['stats'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size)
+        self.botoes.append(import_tr_button)
+        buttons_layout.addWidget(import_tr_button)
+
+        process_homolog_button = self.create_button("Processar Homologação", self.image_cache['data-collection'], self.iniciar_processamento, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size)
+        self.botoes.append(process_homolog_button)
+        buttons_layout.addWidget(process_homolog_button)
+
+        process_sicaf_button = self.create_button("Processar SICAF", self.image_cache['data-collection2'], self.salvar_tabela, "Exclui um item selecionado", icon_size)
+        self.botoes.append(process_sicaf_button)
+        buttons_layout.addWidget(process_sicaf_button)
+
+        settings_button = self.create_button("Configurações", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size)
+        self.botoes.append(settings_button)
+        buttons_layout.addWidget(settings_button)
+
+        # Adiciona o layout dos botões ao layout principal
+        self.main_layout.addLayout(buttons_layout)  # Adiciona a nova instância ao layout principal
+
+    def iniciar_processamento(self):
+        # Verifica se o termo de referência foi carregado
+        if self.tr_variavel_df_carregado is None:
+            QMessageBox.warning(self, "Atenção", "Carregue o termo de referência antes de processar os termos de homologação!")
+            return  # Interrompe a execução adicional deste método
+
+        pdf_files = list(self.pdf_dir.glob("*.pdf"))
+        total_files = len(pdf_files)
+
+        # Verifica se já existe um ProgressDialog aberto
+        if self.progressDialog is None or not self.progressDialog.isVisible():
+            # Se o arquivo foi carregado, cria o popup de progresso
+            self.progressDialog = ProgressDialog(total_files, self.start_pdf_conversion, self.pdf_dir, self)
+            self.progressDialog.show()
+        else:
+            # Opcional: Traga o diálogo existente para o primeiro plano
+            self.progressDialog.raise_()
+            self.progressDialog.activateWindow()
+
+    def create_button(self, text, icon, callback, tooltip_text, icon_size=QSize(40, 40)):
+        btn = QPushButton(text, self)
+        if icon:
+            btn.setIcon(QIcon(icon))
+            btn.setIconSize(icon_size)  # Define o tamanho do ícone
+        btn.clicked.connect(callback)
+        btn.setToolTip(tooltip_text)
+        btn.setObjectName(text.replace(" ", "_") + "_Button")  # Nomeia o objeto para referência fácil
+
+        # Estilo inicial padrão
+        btn.setStyleSheet("""
+        QPushButton {
+            background-color: black;
+            color: white;
+            font-size: 14pt;
+            min-height: 35px;
+            padding: 5px;      
+        }
+        QPushButton:hover {
+            background-color: white;
+            color: black;
+        }
+        QPushButton:pressed {
+            background-color: #ddd;
+            color: black;
+        }
+        """)
+        return btn
+
+    def update_button_highlight(self):
+        # Resetar os estilos de todos os botões para o padrão
+        for btn in self.botoes:
+            btn.setStyleSheet("""
+            QPushButton {
+                background-color: black;
+                color: white;
+                font-size: 14pt;
+                min-height: 35px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: white;
+                color: black;
+            }
+            QPushButton:pressed {
+                background-color: #ddd;
+                color: black;
+            }
+            """)
+
+        # Encontrar e destacar o botão correspondente
+        if "Importar TR" in self.alert_label.text():
+            button_to_highlight = self.findChild(QPushButton, "Importar_TR_Button")
+        elif "Processar Homologação" in self.alert_label.text():
+            button_to_highlight = self.findChild(QPushButton, "Processar_Homologação_Button")
+        else:
+            return  # Se não for um dos casos, não fazer nada
+
+        if button_to_highlight:
+            button_to_highlight.setStyleSheet("""
+            QPushButton {
+                background-color: #000020;
+                color: white;
+                font-size: 14pt;
+                min-height: 35px;
+                padding: 5px;
+                border: 1px solid white;
+            }
+            QPushButton:hover {
+                background-color: #0000CD;
+                color: white;
+            }
+            QPushButton:pressed {
+                background-color: #00008B;
+                color: white;
+            }
+            """)
+
+
+    def setup_buttons_down_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.create_buttons_down()
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def create_buttons_down(self):
+        self.buttons_layout = QHBoxLayout()
+        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
+        self.button_specs = [
+            ("Carregar DB", self.image_cache['table'], self.import_tr, "Adiciona um novo item ao banco de dados", icon_size),
+            ("Gerar Ata/Contrato", self.image_cache['data-processing'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
+            ("Indicador NORMCEIM", self.image_cache['performance'], self.salvar_tabela, "Exclui um item selecionado", icon_size),
+            ("Relatório", self.image_cache['relatorio'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
+        ]
+
+        for text, icon, callback, tooltip, icon_size in self.button_specs:
+            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+            self.buttons_layout.addWidget(btn)
+
+    def salvar_tabela(self):
+        pass    
+
+    def open_settings_dialog(self):
+        pass
+
+    def load_data(self):
+        # Retorna um DataFrame vazio para inicialização
+        return pd.DataFrame()
+    
+    def import_tr(self):
+        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
+        if arquivo:
+            self.tr_df_carregado = pd.read_excel(arquivo)
+            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{os.path.basename(arquivo)}' foi carregado com sucesso!")
+            self.atualizar_modelo_com_dados()
+            self.alert_label.setText("Salve os Termos de Homologação na pasta correta e pressione 'Processar Homologação' para processar os dados.")
+            self.update_button_highlight()  # Atualiza o destaque para o próximo botão relevante
+            
+    def button_clicked(self, index):
+        if index == 0:  # Primeiro botão
+            self.selecionar_termo_de_referencia_e_carregar()
+        elif index == 1:  # Segundo botão
+            convert_pdf_to_txt(self.pdf_dir, TXT_DIR, self.progress_bar_homolog)
+
+    def selecionar_termo_de_referencia_e_carregar(self):
+        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
+        if arquivo:
+            self.tr_df_carregado = pd.read_excel(arquivo)
+            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{os.path.basename(arquivo)}' foi carregado com sucesso!")
+
+    def atualizar_modelo_com_dados(self):
+        if self.tr_df_carregado is not None:
+            # Verifica se todas as colunas mapeadas estão no DataFrame e adiciona se faltarem
+            for key, value in self.mapeamento_colunas.items():
+                if value not in self.tr_df_carregado.columns:
+                    self.tr_df_carregado[value] = pd.NA  # Utiliza pd.NA para suportar tipos de dados adequados
+
+            # Cria um novo DataFrame apenas com as colunas mapeadas
+            dados_filtrados = self.tr_df_carregado[list(self.mapeamento_colunas.values())]
+            self.model = DocumentTableModel(headers=list(self.mapeamento_colunas.keys()), dados_filtrados=dados_filtrados)
+            self.tableView.setModel(self.model)
+            self.adjust_columns()
 
     def save_file_path(self, file_path):
         settings = QSettings("SuaEmpresa", "SeuApp")
@@ -418,44 +566,54 @@ class ProgressDialog(QDialog):
         self.parent = parent  # Mantém uma referência ao widget pai
         self.pdf_dir = pdf_dir  # Recebendo o diretório PDF
         self.setWindowTitle("Processando Arquivos PDF")
-        self.setLayout(QVBoxLayout())
+        
+        main_layout = QVBoxLayout()  # Cria o layout principal
+        
+        header_layout = self.cabecalho_layout()  # Cria o layout do cabeçalho
+        main_layout.addLayout(header_layout)  # Adiciona o cabeçalho ao layout principal
+        
         global_event_manager.pdf_dir_updated.connect(self.on_pdf_dir_updated)
 
         # Define a fonte para todos os elementos
         fonte_padrao = QFont()
         fonte_padrao.setPointSize(14)
 
-        # Adiciona o botão "Abrir Pasta"
-        self.abrirPastaButtonHomolog = QPushButton("Abrir Pasta", self)
-        self.abrirPastaButtonHomolog.setFont(fonte_padrao)
-        self.abrirPastaButtonHomolog.clicked.connect(lambda: open_folder(self.pdf_dir))
-        self.layout().addWidget(self.abrirPastaButtonHomolog)
+        # Caminho para o ícone de pasta
+        icon_folder = QIcon(str(ICONS_DIR / "folder128.png"))
 
+        # Adiciona o botão "Abrir Pasta" utilizando create_button
+        self.abrirPastaButtonHomolog = self.create_button("Abrir Pasta", icon_folder, lambda: open_folder(self.pdf_dir), "Abrir diretório de PDFs", QSize(40, 40))
+        
         # Botão "Atualizar"
-        self.atualizarButton = QPushButton("Atualizar", self)
-        self.atualizarButton.setFont(fonte_padrao)
-        self.atualizarButton.clicked.connect(self.atualizar_contagem_arquivos)
-        self.layout().addWidget(self.atualizarButton)
+        self.atualizarButton = self.create_button("Atualizar", QIcon(str(ICONS_DIR / "refresh.png")), self.atualizar_contagem_arquivos, "Atualizar contagem de arquivos PDF", QSize(40, 40))
+        
+        # Layout horizontal para os botões "Abrir Pasta" e "Atualizar"
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.abrirPastaButtonHomolog)
+        buttons_layout.addWidget(self.atualizarButton)
+        main_layout.addLayout(buttons_layout)
 
         self.label = QLabel(f"{total_files} arquivos PDF encontrados. Deseja processá-los?")
         self.label.setFont(fonte_padrao)  # Aplica a fonte ao QLabel
-        self.layout().addWidget(self.label)
+        main_layout.addWidget(self.label)
 
         self.progressBar = QProgressBar(self)
         self.progressBar.setFont(fonte_padrao)  # Aplica a fonte ao QProgressBar
         self.progressBar.setMaximum(total_files)
-        self.layout().addWidget(self.progressBar)
+        main_layout.addWidget(self.progressBar)
 
         self.confirmButton = QPushButton("Confirmar", self)
         self.confirmButton.setFont(fonte_padrao)  # Aplica a fonte ao QPushButton
         self.confirmButton.clicked.connect(confirm_callback)
-        self.layout().addWidget(self.confirmButton)
+        main_layout.addWidget(self.confirmButton)
 
         # Adiciona o botão de Acesso Rápido
         self.quickAccessButton = QPushButton("Acesso Rápido ao DataFrame", self)
         self.quickAccessButton.setFont(fonte_padrao)  # Aplica a fonte ao QPushButton
         self.quickAccessButton.clicked.connect(self.teste_rapido)
-        self.layout().addWidget(self.quickAccessButton)
+        main_layout.addWidget(self.quickAccessButton)
+        
+        self.setLayout(main_layout)  # Define o layout principal
 
     def abrir_pasta_homolog(self):
         open_folder(self.pdf_dir)
@@ -482,3 +640,27 @@ class ProgressDialog(QDialog):
             # self.parent.exibir_dataframe_itens_homologados()
             self.close()  # Fecha o diálogo
             QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
+
+    def cabecalho_layout(self):
+        header_layout = QHBoxLayout()
+        title_label = QLabel("Processar Termos de Homologação")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))  # Estilizando o título
+        header_layout.addWidget(title_label)
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        pixmap = QPixmap(str(MARINHA_PATH))
+        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap)
+        header_layout.addWidget(image_label)
+        return header_layout
+
+    def create_button(self, text, icon, callback, tooltip_text, icon_size=None):
+        btn = QPushButton(text)
+        btn.setIcon(icon)
+        # Define o tamanho do ícone com um valor padrão de QSize(40, 40) se nenhum tamanho for especificado
+        if icon_size is None:
+            icon_size = QSize(40, 40)
+        btn.setIconSize(icon_size)
+        btn.clicked.connect(callback)
+        btn.setToolTip(tooltip_text)
+        return btn
