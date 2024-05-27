@@ -93,7 +93,7 @@ def processar_arquivos_sicaf(frame, progress_bar, progress_var) -> None:
     import pandas as pd
     from pathlib import Path
     
-    convert_pdf_to_txt(frame, SICAF_DIR, SICAF_TXT_DIR, progress_bar, progress_var)
+    convert_pdf_to_txt(SICAF_DIR, SICAF_TXT_DIR, progress_bar, progress_var)
     arquivos_txt = obter_arquivos_txt(str(SICAF_TXT_DIR))
 
     # Passo 2: Processar cada arquivo e extrair dados

@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import pandas as pd
 
-def convert_pdf_to_txt(frame, pdf_dir, txt_dir, progress_bar, progress_callback):    
+def convert_pdf_to_txt(pdf_dir, txt_dir, progress_bar, progress_callback):    
     # Verifica se TXT_DIR existe. Se não, cria o diretório.
     if not txt_dir.exists():
         txt_dir.mkdir(parents=True, exist_ok=True)
@@ -18,7 +18,7 @@ def convert_pdf_to_txt(frame, pdf_dir, txt_dir, progress_bar, progress_callback)
         for file in txt_dir.iterdir():
             if file.is_file():
                 file.unlink()
-    
+
     # Inicia o processo de conversão
     pdf_files = list(pdf_dir.glob("*.pdf"))
     total_files = len(pdf_files)
@@ -31,11 +31,11 @@ def convert_pdf_to_txt(frame, pdf_dir, txt_dir, progress_bar, progress_callback)
             txt_file = txt_dir / f"{pdf_file.stem}.txt"
             with open(txt_file, 'w', encoding='utf-8') as f:
                 f.write(all_text)
-        
-         # Atualiza a barra de progresso
+
+        # Atualiza a barra de progresso
         progress = (index + 1) / total_files * 100
         progress_callback(progress)
-        
+
 def obter_arquivos_txt(directory: str) -> list:
     """Retorna a lista de arquivos TXT em um diretório."""
     return [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.txt')]

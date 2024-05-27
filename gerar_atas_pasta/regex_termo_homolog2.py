@@ -101,7 +101,7 @@ def process_cnpj_data(cnpj_dict):
         try:
             cnpj_dict["valor_estimado_total_do_item"] = cnpj_dict["quantidade"] * float(cnpj_dict["valor_estimado"])
             cnpj_dict["valor_homologado_total_item"] = cnpj_dict["quantidade"] * float(cnpj_dict["valor_homologado_item_unitario"])
-            cnpj_dict["percentual_desconto"] = (1 - (float(cnpj_dict["valor_homologado_item_unitario"]) / float(cnpj_dict["valor_estimado"]))) * 100
+            cnpj_dict["percentual_desconto"] = (1 - (float(cnpj_dict["valor_homologado_item_unitario"]) / float(cnpj_dict["valor_estimado"])))
         except ValueError:
             pass
             
