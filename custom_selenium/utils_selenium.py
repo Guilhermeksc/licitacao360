@@ -420,18 +420,25 @@ def marcar_checkboxes_para_outros(driver):
 
 def navegar_para_pagina(driver, pagina_desejada):
     if pagina_desejada == 1:
-        # Já iniciado na página 1, então não precisa de ação
         return True, "Já na página 1"
+
     try:
-        # Espera até que os seletores de paginação estejam visíveis ou até que um tempo limite seja atingido
         WebDriverWait(driver, 10).until(
             EC.visibility_of_all_elements_located((By.CSS_SELECTOR, ".pagelinks > a")),
             message=f"Esperando os seletores de paginação estarem visíveis para navegar para a página {pagina_desejada}."
         )
-        # Localiza e clica no link correto para a página desejada
-        # Calcula o índice do elemento a baseado na página desejada, assumindo que a página 2 é o quarto filho, página 3 o quinto, e assim por diante
-        link_index = 2 + pagina_desejada
-        pagina_link = driver.find_element(By.CSS_SELECTOR, f".pagelinks > a:nth-child({link_index})")
+        
+        if pagina_desejada <= 5:
+            link_index = 2 + pagina_desejada  # Página 2 é o quarto filho (3 + 1), página 3 é o quinto filho (4 + 1), etc.
+            pagina_link = driver.find_element(By.CSS_SELECTOR, f".pagelinks > a:nth-child({link_index})")
+        else:
+            # Para páginas além da quinta, considera que os links para páginas e o próximo botão se alternam
+            link_index = 2 + pagina_desejada
+            try:
+                pagina_link = driver.find_element(By.CSS_SELECTOR, f".pagelinks > a:nth-child({link_index})")
+            except NoSuchElementException:
+                pagina_link = driver.find_element(By.CSS_SELECTOR, f".pagelinks > a:nth-child({link_index}) > img:nth-child(1)")
+        
         if pagina_link:
             pagina_link.click()
             WebDriverWait(driver, 10).until(
@@ -445,6 +452,35 @@ def navegar_para_pagina(driver, pagina_desejada):
         return False, f"Erro durante a navegação: {e}"
     except NoSuchElementException:
         return False, "Seletores de paginação não encontrados"
+
+
+# def navegar_para_pagina(driver, pagina_desejada):
+#     if pagina_desejada == 1:
+#         # Já iniciado na página 1, então não precisa de ação
+#         return True, "Já na página 1"
+#     try:
+#         # Espera até que os seletores de paginação estejam visíveis ou até que um tempo limite seja atingido
+#         WebDriverWait(driver, 10).until(
+#             EC.visibility_of_all_elements_located((By.CSS_SELECTOR, ".pagelinks > a")),
+#             message=f"Esperando os seletores de paginação estarem visíveis para navegar para a página {pagina_desejada}."
+#         )
+#         # Localiza e clica no link correto para a página desejada
+#         # Calcula o índice do elemento a baseado na página desejada, assumindo que a página 2 é o quarto filho, página 3 o quinto, e assim por diante
+#         link_index = 2 + pagina_desejada
+#         pagina_link = driver.find_element(By.CSS_SELECTOR, f".pagelinks > a:nth-child({link_index})")
+#         if pagina_link:
+#             pagina_link.click()
+#             WebDriverWait(driver, 10).until(
+#                 EC.visibility_of_element_located((By.ID, "itemAnalise")),
+#                 message=f"Esperando a tabela de itens ser visível na página {pagina_desejada}."
+#             )
+#             return True, "Navegação bem-sucedida"
+#         else:
+#             return False, f"Link de paginação para a página {pagina_desejada} não encontrado"
+#     except TimeoutException as e:
+#         return False, f"Erro durante a navegação: {e}"
+#     except NoSuchElementException:
+#         return False, "Seletores de paginação não encontrados"
 
 def verificar_navegacao_pagina(driver, index_local, total_rows, pagina_atual):
     if index_local % 20 == 0 and index_local != total_rows:
