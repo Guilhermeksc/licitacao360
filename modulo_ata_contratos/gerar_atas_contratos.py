@@ -405,8 +405,21 @@ class GerarAtasWidget(QWidget):
         self.treeView.reset()
                     
     def abrir_dialog_atas(self):
+        if self.current_dataframe is not None:
+            dataframe_to_use = self.current_dataframe
+            # Verifica se as colunas desejadas estão presentes no dataframe
+            if all(col in dataframe_to_use.columns for col in ['empresa', 'num_pregao', 'ano_pregao']):
+                print("Colunas de 'empresa', 'num_pregao', 'ano_pregao' do DataFrame:")
+                print(dataframe_to_use[['empresa', 'num_pregao', 'ano_pregao']])
+            else:
+                print("Alguma das colunas 'empresa', 'num_pregao', 'ano_pregao' não está presente no DataFrame.")
+        else:
+            dataframe_to_use = None  # Define um valor padrão se não houver dataframe atual
+            print("Nenhum DataFrame atual disponível.")
+
         if self.atasDialog is None or not self.atasDialog.isVisible():
-            self.atasDialog = AtasDialog(self, pe_pattern=self.pe_pattern)
+            # Passa corretamente o dataframe como argumento para AtasDialog
+            self.atasDialog = AtasDialog(self, pe_pattern=self.pe_pattern, dataframe=dataframe_to_use)
             self.atasDialog.show()
         else:
             self.atasDialog.raise_()
@@ -595,11 +608,12 @@ class ModeloTreeview:
 class AtasDialog(QDialog):
     NUMERO_ATA_GLOBAL = None  # Defina isso em algum lugar adequado dentro de sua classe
 
-    def __init__(self, parent=None, pe_pattern=None):
+    def __init__(self, parent=None, pe_pattern=None, dataframe=None):
         super().__init__(parent)
-        self.db_manager = DatabaseManager(CONTROLE_DADOS) 
-        self.pe_pattern = pe_pattern  
+        self.db_manager = DatabaseManager(CONTROLE_DADOS)
+        self.pe_pattern = pe_pattern
         self.nup_data = None
+        self.dataframe = dataframe 
         self.setWindowTitle("Geração de Atas / Contratos")
         self.setFont(QFont('Arial', 14))
         layout = QVBoxLayout(self)
@@ -678,20 +692,19 @@ class AtasDialog(QDialog):
 
     def obter_nup(self, pe_formatted):
         try:
-            with DatabaseManager(CONTROLE_DADOS) as conn:
+            with self.db_manager as conn:
                 query = f"SELECT nup FROM controle_processos WHERE id_processo LIKE '%{pe_formatted}%'"
-                print(f"Executing query: {query}")  # Debugando a consulta SQL
                 df = pd.read_sql(query, conn)
                 if not df.empty:
-                    nup_data = df.iloc[0]['nup']
-                    print(f"nup_data from DB: {nup_data}")  # Imprime o nup_data da base de dados
-                    return nup_data
+                    self.nup_data = {
+                        'nup': df.iloc[0]['nup']
+                    }
+                    return self.nup_data
                 else:
-                    print("No data found matching the query.")
-                    return "(INSIRA O NUP)"
+                    return None
         except Exception as e:
             print(f"Erro ao acessar o banco de dados: {e}")
-            return "(INSIRA O NUP)"
+            return None
                     
     def atualizar_ultimo_contrato_label(self, ultimo_num_contrato):
         self.ultimo_contrato_label.setText(f"O último número de ata/contrato gerado foi: {ultimo_num_contrato}")
@@ -711,17 +724,10 @@ class AtasDialog(QDialog):
         numero_ata = self.ataEntry.text()
         if numero_ata.isdigit() and len(numero_ata) <= 4:
             AtasDialog.NUMERO_ATA_GLOBAL = int(numero_ata)
-            # Adicionando print para verificar o número antes de buscar o nup
-            print(f"Número da ATA confirmado como: {numero_ata}")
-
-            # Chamando obter_nup e imprimindo o resultado
             self.nup_data = self.obter_nup(self.convert_pe_format(self.pe_pattern))
-            print(f"nup_data obtido: {self.nup_data}")  # Imprime o nup_data obtido
-
             QMessageBox.information(self, "Número Confirmado", f"Número da ata definido para: {numero_ata}")
         else:
             QMessageBox.warning(self, "Número Inválido", "Por favor, digite um número válido de até 4 dígitos.")
-
 
     def criar_botao_especial(self, text, icon_path):
         button = QToolButton(self)
@@ -736,15 +742,15 @@ class AtasDialog(QDialog):
     def gerar_atas_contratos(self):
         if not self.nup_data:  # Verifica se nup_data está vazia ou é None
             self.nup_data = "(INSIRA O NUP)"  # Atribui um valor padrão caso não exista nup_data
-        self.iniciar_processo(self.nup_data) 
+        self.iniciar_processo(self.nup_data, self.dataframe)
 
-    def iniciar_processo(self, nup_data):
+    def iniciar_processo(self, nup_data, dataframe):
         if AtasDialog.NUMERO_ATA_GLOBAL is None:
             raise ValueError("O número da ATA não foi definido!")
 
         # Chama as outras funções que dependem de NUMERO_ATA_GLOBAL
-        criar_pastas_com_subpastas()
-        ultimo_num_ata = processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data) 
+        criar_pastas_com_subpastas(dataframe)
+        ultimo_num_ata = processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
 
         # Atualizar e salvar o último número da ATA
         self.salvar_ultimo_contrato(ultimo_num_ata)

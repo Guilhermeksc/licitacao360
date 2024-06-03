@@ -268,7 +268,7 @@ class RelatorioIndicadores(QDialog):
             controle_prazos_data = pd.read_sql(query, conn)
             # Filtrar para não incluir etapas de Planejamento
             controle_prazos_data = controle_prazos_data[controle_prazos_data['etapa'] != 'Planejamento']
-            controle_dias_processo = "\n".join(f"{row['etapa']} ({row['dias_na_etapa']} dias" for index, row in controle_prazos_data.iterrows())
+            controle_dias_processo = "\n".join(f"{row['etapa']} ({row['dias_na_etapa']} dias)" for index, row in controle_prazos_data.iterrows())
             # Calcular o somatório dos dias
             somatorio_dias_todas_etapas = controle_prazos_data['dias_na_etapa'].sum()
             controle_dias_processo += f"\nTotal de dias {somatorio_dias_todas_etapas}"

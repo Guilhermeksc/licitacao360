@@ -51,31 +51,35 @@ def iniciar_processo():
     criar_pastas_com_subpastas()
     processar_ata(NUMERO_ATA_GLOBAL)
 
-def criar_pastas_com_subpastas() -> None:
+def criar_pastas_com_subpastas(dataframe) -> None:
     relatorio_path = get_relatorio_path()
-
-    df = pd.read_csv(CSV_SICAF_PATH) 
-    combinacoes = df[['num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
+    combinacoes = dataframe[['num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
     
     for num_pregao, ano_pregao, empresa in combinacoes:
-        # Verifica se algum dos valores é NaN antes de prosseguir
         if pd.isna(num_pregao) or pd.isna(ano_pregao) or pd.isna(empresa):
             continue
         
-        # Conversão de números para string
+        empresa_limpa = limpar_nome_empresa(empresa)
+        
         nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
-        path_dir_principal = relatorio_path / nome_dir_principal
+        path_dir_principal = relatorio_path / Path(nome_dir_principal)
         
         if not path_dir_principal.exists():
             path_dir_principal.mkdir(parents=True)
         
-        # Verifica se o nome da empresa é válido
         if empresa not in NOMES_INVALIDOS and empresa:
-            nome_subpasta = f"{empresa}"
-            path_subpasta = path_dir_principal / nome_subpasta
+            nome_subpasta = empresa_limpa
+            path_subpasta = path_dir_principal / Path(nome_subpasta)
         
             if not path_subpasta.exists():
-                path_subpasta.mkdir()
+                path_subpasta.mkdir(parents=True)
+
+def limpar_nome_empresa(nome_empresa):
+    # Substituir caracteres não permitidos por "_" ou remover
+    caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+    for char in caracteres_invalidos:
+        nome_empresa = nome_empresa.replace(char, '_')
+    return nome_empresa
 
 import os
 import subprocess
@@ -89,18 +93,15 @@ def abrir_pasta(pasta):
     else:  # Linux e outros
         subprocess.Popen(["xdg-open", pasta])
 
-def processar_ata(NUMERO_ATA: int, nup_data):
+def processar_ata(NUMERO_ATA: int, nup_data, dataframe):
     relatorio_path = get_relatorio_path()
 
-    df = pd.read_csv(CSV_SICAF_PATH)
-    df = df.dropna(subset=['num_pregao', 'ano_pregao', 'empresa'])
-
     if nup_data:
-        nup = nup_data
+        nup = nup_data['nup']
     else:
         nup = "(INSIRA O NUP)"
 
-    combinacoes = df[['uasg', 'num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
+    combinacoes = dataframe[['uasg', 'num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
     NUMERO_ATA_atualizado = NUMERO_ATA
 
     for uasg, num_pregao, ano_pregao, empresa in combinacoes:
@@ -126,7 +127,7 @@ def processar_ata(NUMERO_ATA: int, nup_data):
                 path_subpasta.mkdir(parents=True, exist_ok=True)
             
             # Find the relevant record for this document
-            registros_empresa = df[df['empresa'] == empresa]
+            registros_empresa = dataframe[dataframe['empresa'] == empresa]
             if not registros_empresa.empty:
                 registro = registros_empresa.iloc[0].to_dict()
                 itens_relacionados = registros_empresa.to_dict('records')
@@ -190,17 +191,17 @@ def processar_ata(NUMERO_ATA: int, nup_data):
                 print(f"Nenhum registro encontrado para a empresa: {empresa}")
 
     # Atualizar a coluna num_ata após o loop para evitar o incremento prematuro
-    if 'num_ata' not in df.columns:
-        df['num_ata'] = ""
-    df['num_ata'] = df['num_ata'].astype(str)
+    if 'num_ata' not in dataframe.columns:
+        dataframe['num_ata'] = ""
+    dataframe['num_ata'] = dataframe['num_ata'].astype(str)
     for uasg, num_pregao, ano_pregao, empresa in combinacoes:
-        df.loc[df['empresa'] == empresa, 'num_ata'] = f"{uasg}/2023-{NUMERO_ATA_atualizado:03}/00"
+        dataframe.loc[dataframe['empresa'] == empresa, 'num_ata'] = f"{uasg}/2023-{NUMERO_ATA_atualizado:03}/00"
 
     # Salvar o DataFrame atualizado
     csv_filename = f"PE {int(num_pregao)}-{int(ano_pregao)}.csv"
-    df.to_csv(csv_filename, index=False)
+    dataframe.to_csv(csv_filename, index=False)
     excel_filename = f"PE {int(num_pregao)}-{int(ano_pregao)}.xlsx"
-    df.to_excel(excel_filename, index=False)
+    dataframe.to_excel(excel_filename, index=False)
 
     abrir_pasta(str(path_dir_principal))
 
@@ -213,7 +214,7 @@ def processar_contrato(NUMERO_ATA: int, nup_data):
     df = df.dropna(subset=['num_pregao', 'ano_pregao', 'empresa'])
 
     if nup_data:
-        nup = nup_data
+        nup = nup_data['nup']
     else:
         nup = "(INSIRA O NUP)"
 
