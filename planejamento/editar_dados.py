@@ -11,7 +11,7 @@ import locale
 import re
 from datetime import datetime
 from planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
-from utils.treeview_utils import load_images, create_button_2
+from database.utils.treeview_utils import load_images, create_button_2
 from pathlib import Path
 
 class TextEditDelegate(QItemDelegate):

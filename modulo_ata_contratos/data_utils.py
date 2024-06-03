@@ -4,14 +4,15 @@ from PyQt6.QtGui import *
 import pandas as pd
 import sqlite3
 from diretorios import *
-from gerar_atas_pasta.regex_termo_homolog import *
-from gerar_atas_pasta.regex_sicaf import *
-from gerar_atas_pasta.canvas_gerar_atas import *
+from modulo_ata_contratos.regex_termo_homolog import *
+from modulo_ata_contratos.regex_sicaf import *
+from modulo_ata_contratos.canvas_gerar_atas import *
 import os
 import pdfplumber
 import locale
 from decimal import Decimal
 from planejamento.utilidades_planejamento import DatabaseManager
+import re
 
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
@@ -21,8 +22,9 @@ except locale.Error:
     except locale.Error:
         print("Localidade não suportada. A formatação de moeda pode não funcionar corretamente.")
 
+
 class PDFProcessingThread(QThread):
-    progress_updated = pyqtSignal(int)
+    progress_updated = pyqtSignal(int, int, str)
     processing_complete = pyqtSignal(list)
 
     def __init__(self, pdf_dir, txt_dir, buffer_size=10):
@@ -39,18 +41,24 @@ class PDFProcessingThread(QThread):
         for index, pdf_file in enumerate(pdf_files):
             data = self.process_single_pdf(pdf_file)
             all_data.extend(data)
-            progress = int((index + 1) / total_files * 100)
-            self.progress_updated.emit(progress)
+            self.progress_updated.emit(index + 1, total_files, pdf_file.name)
         self.processing_complete.emit(all_data)
 
     def process_single_pdf(self, pdf_file):
+        text_content = self.extract_text_from_pdf(pdf_file)
+        self.save_text_to_file(pdf_file, text_content)
+        return [{'item_num': pdf_file.stem, 'text': text_content}]
+
+    def extract_text_from_pdf(self, pdf_file):
         with pdfplumber.open(pdf_file) as pdf:
             texts = [page.extract_text() for page in pdf.pages]
             all_text = ' '.join(texts).replace('\n', ' ').replace('\x0c', ' ')
-            txt_file = self.txt_dir / f"{pdf_file.stem}.txt"
-            with open(txt_file, 'w', encoding='utf-8') as f:
-                f.write(all_text)
-        return [{'item_num': pdf_file.stem, 'text': all_text}]
+        return all_text
+
+    def save_text_to_file(self, pdf_file, text_content):
+        txt_file = self.txt_dir / f"{pdf_file.stem}.txt"
+        with open(txt_file, 'w', encoding='utf-8') as f:
+            f.write(text_content)
 
 class DatabaseDialog(QDialog):
     def __init__(self, parent=None, dataframe=None, callback=None):
@@ -64,134 +72,103 @@ class DatabaseDialog(QDialog):
     def setup_ui(self):
         self.setWindowTitle("Gerenciamento de Dados")
         layout = QVBoxLayout(self)
+
+        self.info_label = QLabel("Escolha uma opção:")
         self.save_button = QPushButton("Salvar")
         self.load_button = QPushButton("Carregar")
-        self.info_label = QLabel("Escolha uma opção:")
+        self.delete_button = QPushButton("Excluir Database")
+        self.table_combobox = QComboBox()
 
-        self.save_button.setEnabled(self.dataframe is not None)
+        self.save_button.setEnabled(self.dataframe is not None)  # Habilita o botão de salvar apenas se há um DataFrame
 
         layout.addWidget(self.info_label)
         layout.addWidget(self.save_button)
         layout.addWidget(self.load_button)
-
+        layout.addWidget(self.delete_button)
+        layout.addWidget(self.table_combobox)
+        
         self.setLayout(layout)
 
     def connect_signals(self):
         self.save_button.clicked.connect(self.save_data)
         self.load_button.clicked.connect(self.load_data)
+        self.delete_button.clicked.connect(self.populate_and_show_delete_options)
 
-    def save_data(self):
-        if self.dataframe is not None:
-            name, ok = QInputDialog.getText(self, "Salvar DataFrame", "Digite o nome da tabela:")
-            if ok and name:
-                with self.db_manager as conn:
-                    self.dataframe.to_sql(name, conn, if_exists='replace', index=False)
-                QMessageBox.information(self, "Sucesso", "DataFrame salvo com sucesso!")
-        else:
-            QMessageBox.critical(self, "Erro", "Nenhum DataFrame disponível para salvar.")
-
-    def load_data(self):
+    def populate_and_show_delete_options(self):
         with self.db_manager as conn:
             cur = conn.cursor()
             cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%ATA%';")
             tables = [row[0] for row in cur.fetchall()]
         
-        if not tables:
+        self.table_combobox.clear()
+        if tables:
+            self.table_combobox.addItems(tables)
+        else:
             QMessageBox.warning(self, "Aviso", "Nenhuma tabela com 'ATA' no nome foi encontrada.")
             return
+        
+        self.delete_button.setText("Confirmar Exclusão")
+        self.delete_button.clicked.disconnect()
+        self.delete_button.clicked.connect(self.confirm_deletion)
 
-        item, ok = QInputDialog.getItem(self, "Carregar DataFrame", "Selecione a tabela:", tables, 0, False)
+    def confirm_deletion(self):
+        selected_table = self.table_combobox.currentText()
+        if selected_table:
+            # Confirmação de exclusão com o usuário
+            confirm = QMessageBox.question(self, "Confirmar Exclusão", f"Tem certeza que deseja excluir a tabela '{selected_table}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if confirm == QMessageBox.StandardButton.Yes:
+                with self.db_manager as conn:
+                    cur = conn.cursor()
+                    # Uso seguro de aspas duplas para delimitar o nome da tabela
+                    cur.execute(f'DROP TABLE "{selected_table}"')
+                    conn.commit()
+                QMessageBox.information(self, "Sucesso", f"Tabela '{selected_table}' excluída com sucesso!")
+                self.populate_and_show_delete_options()  # Re-populate list and reset state
+            else:
+                self.populate_and_show_delete_options()  # Re-populate list and reset state
+                    
+    def save_data(self):
+        if isinstance(self.dataframe, pd.DataFrame) and not self.dataframe.empty:
+            print("Salvando DataFrame com as colunas:", self.dataframe.columns)
+            name, ok = QInputDialog.getText(self, "Salvar DataFrame", "Digite o nome da tabela:")
+            if ok and name:
+                with self.db_manager as conn:
+                    self.dataframe.to_sql(name, conn, if_exists='replace', index=False)
+                QMessageBox.information(self, "Sucesso", "DataFrame salvo com sucesso!")
+                self.accept()  # Fecha o diálogo após salvar com sucesso
+        else:
+            QMessageBox.critical(self, "Erro", "Nenhum DataFrame válido disponível para salvar ou o objeto não é um DataFrame.")
+
+    def load_data(self):
+        with self.db_manager as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [row[0] for row in cur.fetchall()]
+        
+        if not tables:
+            QMessageBox.warning(self, "Aviso", "Nenhuma tabela foi encontrada.")
+            return
+
+        # Filtrar por nomes que possivelmente contenham o padrão desejado
+        pattern = re.compile(r"PE-\d{2}-\d{4}")
+        pe_tables = [table for table in tables if pattern.search(table)]
+
+        item, ok = QInputDialog.getItem(self, "Carregar DataFrame", "Selecione a tabela:", pe_tables, 0, False)
         if ok and item:
-            # Usa aspas duplas para delimitar o nome da tabela
             safe_table_name = f'"{item}"'  # Protege o nome da tabela
             with self.db_manager as conn:
                 df = pd.read_sql(f"SELECT * FROM {safe_table_name}", conn)
             if self.callback:
-                self.callback(df)  # Chama o callback com o DataFrame carregado
+                extracted_pe = pattern.search(item).group(0) if pattern.search(item) else "Desconhecido"
+                self.callback(df, extracted_pe)  # Passa o DataFrame e o padrão PE extraído
             QMessageBox.information(self, "Sucesso", f"DataFrame '{item}' carregado com sucesso!")
-
-
-class DocumentTableModel(QAbstractTableModel):
-    def __init__(self, headers=None):
-        super().__init__()
-        self._data = pd.DataFrame()
-        self._headers = headers if headers else []
-        self.currency_columns = ["Valor Estimado", "Valor Homologado", "Valor Estimado Total", "Valor Homologado Total"]
-        self._headers_map = {}
-
-    def rowCount(self, parent=None):
-        return len(self._data)
-
-    def columnCount(self, parent=None):
-        return len(self._data.columns)
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-        if role == Qt.ItemDataRole.DisplayRole:
-            column_name = self._headers[index.column()]
-            value = self._data.iloc[index.row(), index.column()]
-
-            # Verifica se o valor é um dos que devem ser substituídos
-            if pd.isna(value) or value == "N/A" or value == "Valor Inválido":
-                return "-"
-
-            if column_name in self.currency_columns and pd.notna(value):
-                formatted_value = format_currency(value)
-                return formatted_value
-
-            if column_name == "Desconto (%)" and pd.notna(value):
-                try:
-                    percent_value = float(value)
-                    return f"{percent_value:.2f}%"
-                except ValueError as e:
-                    return "Erro de Formatação"
-
-            return str(value)
-
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
-            return Qt.AlignmentFlag.AlignCenter
-
-        return None
-
-    def headerData(self, section, orientation, role):
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._headers[section] if section < len(self._headers) else None
-        return None
-
-    def flags(self, index):
-        default_flags = super().flags(index)
-        return default_flags & ~Qt.ItemFlag.ItemIsUserCheckable
-
-    def get_headers(self):
-        return self._headers
-
-    def load_data(self, data, headers_map=None):
-        self.beginResetModel()
-        self._data = data
-        if headers_map:
-            self._headers_map = headers_map
-            self._headers = [headers_map.get(col, col) for col in data.columns]
-        self.endResetModel()
-
+            self.close()  # Fecha o diálogo após carregar com sucesso
 
 def format_currency(value):
-    """Converte string para um valor formatado como moeda, com depuração."""
-    # print(f"Valor original: {value} (Tipo: {type(value)})")  # Depurando o valor original e seu tipo
-
-    try:
-        # Remove qualquer caractere que não seja dígito ou ponto
-        cleaned_value = ''.join(c for c in str(value) if c.isdigit() or c == '.')
-        numeric_value = float(cleaned_value)
-        formatted_currency = locale.currency(numeric_value, symbol=True, grouping=True)
-
-        # print(f"Valor limpo: {cleaned_value} -> Valor numérico: {numeric_value} -> Valor formatado: {formatted_currency}")
-        return formatted_currency
-    except (ValueError, TypeError) as e:
-        print(f"Erro ao converter para moeda: {e}")
-        return "Valor inválido"
+    """ Função para formatar valores monetários. """
+    return f"R$ {value:,.2f}".replace(',', 'temp').replace('.', ',').replace('temp', '.')
     
-def atualizar_modelo_com_dados(model, df, mapeamento_colunas, tableView):
+def atualizar_modelo_com_dados(model, df, mapeamento_colunas, treeview):
     print("Atualizando a tabela com os dados do DataFrame...")
     # Mapear as colunas do DataFrame para os nomes das colunas na tabela
     df_renamed = df.rename(columns={v: k for k, v in mapeamento_colunas.items() if v in df.columns})
@@ -203,8 +180,8 @@ def atualizar_modelo_com_dados(model, df, mapeamento_colunas, tableView):
     print("Carregando dados no modelo...")
     model.load_data(df_final)
     print("Modelo de dados carregado. Resetando a tabela...")
-    tableView.setModel(model)
-    tableView.reset()
+    treeview.setModel(model)
+    treeview.reset()
 
 def adjustar_colunas(tableView, model, colunas_escondidas):
     print("Ajustando as colunas do QTableView...")
@@ -242,7 +219,7 @@ def create_dataframe_from_txt_files(extracted_data):
     
     return dataframe_licitacao.sort_values(by="item_num")
 
-def save_to_dataframe(extracted_data, tr_variavel_df_carregado, database_dir, csv_output_path):
+def save_to_dataframe(extracted_data, tr_variavel_df_carregado, database_dir, existing_dataframe=None):
     df_extracted = create_dataframe_from_txt_files(extracted_data)
     df_extracted['item_num'] = pd.to_numeric(df_extracted['item_num'], errors='coerce').astype('Int64')
     
@@ -262,15 +239,22 @@ def save_to_dataframe(extracted_data, tr_variavel_df_carregado, database_dir, cs
         column_order = ['grupo', 'item_num', 'catalogo', 'descricao_tr', 'unidade', 'quantidade', 'valor_estimado', 
                         'valor_homologado_item_unitario', 'percentual_desconto', 'valor_estimado_total_do_item', 'valor_homologado_total_item',
                         'marca_fabricante', 'modelo_versao', 'situacao', 'descricao_detalhada', 'uasg', 'orgao_responsavel', 'num_pregao', 'ano_pregao', 
-                        'srp', 'objeto', 'melhor_lance', 'valor_negociado', 'ordenador_despesa', 'empresa', 'cnpj', 
+                        'srp', 'objeto', 'melhor_lance', 'valor_negociado', 'ordenador_despesa', 'empresa', 'cnpj',
+                        'endereco', 'cep', 'municipio', 'telefone', 'email', 'responsavel_legal' 
                         ]
         merged_df = merged_df.reindex(columns=column_order)
 
-        merged_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
-        return merged_df
+        if existing_dataframe is not None:
+            final_df = pd.concat([existing_dataframe, merged_df]).drop_duplicates(subset='item_num').reset_index(drop=True)
+        else:
+            final_df = merged_df
+
+        final_df.to_csv(database_dir / "dados.csv", index=False)
+        return final_df
     else:
         QMessageBox.warning(None, "Aviso", "Nenhum DataFrame de termo de referência carregado.")
         return None
+
 
 def obter_arquivos_txt(directory: str) -> list:
     return [str(file) for file in Path(directory).glob("*.txt")]

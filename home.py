@@ -4,25 +4,54 @@ from PyQt6.QtCore import *
 import logging
 import sys
 from diretorios import ICONS_DIR, IMAGE_PATH, DATABASE_DIR, LV_FINAL_DIR, ITEM_SELECIONADO_PATH, BASE_DIR
-from styles.styless import (
+from database.styles.styless import (
     get_menu_button_style, get_menu_title_style, get_content_title_style, 
     get_menu_button_activated_style, get_updated_background
 )
-from custom_widgets.create_1_inicio import InicioWidget
 from modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from planejamento.planejamento_button import ApplicationUI
-from custom_widgets.create_9_atas_button import AtasWidget
 from custom_selenium.selenium_automation import SeleniumAutomacao
 from controle_contratos.painel_contratos_novo import ControleContratosWidget
 from controle_dispensa.limite_dispensa import LimiteDispensa
 from controle_dispensa.consulta_pdm_catser import ConsultaPDMCatser
+
+class InicioWidget(QWidget):   
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)
+        self.setMinimumWidth(800) 
+
+        self.layout.addStretch(1)
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pixmap = QPixmap(str(IMAGE_PATH / "licitacao360.png"))  # Verifique se o caminho está correto
+        self.image_label.setPixmap(pixmap.scaled(900, 600, Qt.AspectRatioMode.KeepAspectRatio))
+        self.layout.addWidget(self.image_label)  # Adicionar a imagem ao layout principal
+
+        self.layout.addStretch(2)
+        # Criar um novo layout para os labels de contato
+        label_contato_layout = QHBoxLayout()
+
+        # Adicionar label de contato no canto inferior direito
+        label_contato = QLabel(
+            "Desenvolvido por:\n" 
+            "CC (IM) Guilherme Kirschner de Siqueira Campos\n"
+            "Contato: (61) 98264-0077\n"
+            "E-mail: siqueira.campos@marinha.mil.br"
+        )
+        label_contato.setAlignment(Qt.AlignmentFlag.AlignRight)  # Alinhar à direita
+        label_contato.setStyleSheet("color: white; font-size: 20px;")  # Definir a cor do texto como branca, o tamanho da fonte como 20px e o fundo como transparente
+        label_contato_layout.addWidget(label_contato, alignment=Qt.AlignmentFlag.AlignRight)  # Adicionar a label ao layout de labels
+
+        # Adicionar o layout de labels de contato ao layout principal
+        self.layout.addLayout(label_contato_layout)
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setup_ui()
         self.open_initial_page()
-
+                 
     def setup_ui(self):
         self.configure_window()
         self.setup_central_widget()
@@ -87,17 +116,12 @@ class MainWindow(QMainWindow):
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        menu_title = QLabel("Menu Principal")
-        menu_title.setStyleSheet(get_menu_title_style())
-        menu_layout.addWidget(menu_title)
-
         menu_buttons = [
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
-            (" Controle de Contratos", ICONS_DIR / "x.png"), 
-            (" Atas e Contratos (novo)", ICONS_DIR / "x.png"), 
-            (" Atas e Contratos", ICONS_DIR / "x.png"),
+            # (" Controle de Contratos", ICONS_DIR / "x.png"), 
+            (" Gerar Ata e Contrato", ICONS_DIR / "x.png"), 
+            # (" Atas e Contratos", ICONS_DIR / "x.png"),
             (" Limite de Dispensa", ICONS_DIR / "x.png"), 
             (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),       
             (" Selenium", ICONS_DIR / "x.png"),  
@@ -126,21 +150,17 @@ class MainWindow(QMainWindow):
         menu_widget.setLayout(menu_layout)
         menu_widget.setFixedWidth(260)  
         
-        self.selecionado_label = QLabel("\n\n", self.central_widget) 
-        self.selecionado_label.setStyleSheet(get_menu_title_style())
-        menu_layout.addWidget(self.selecionado_label)
-
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.addWidget(menu_widget)
         menu_layout.addStretch(1) 
 
         # Load da Imagem
-        caminho_imagem = IMAGE_PATH / "logo.png" 
-        tucano_pixmap = QPixmap(str(caminho_imagem))  
-        tucano_pixmap = tucano_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        caminho_imagem = IMAGE_PATH / "ceimbra.png" 
+        licitacao_360_pixmap = QPixmap(str(caminho_imagem))  
+        licitacao_360_pixmap = licitacao_360_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
         image_label = QLabel()
-        image_label.setPixmap(tucano_pixmap)
+        image_label.setPixmap(licitacao_360_pixmap)
         image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         menu_layout.addWidget(image_label)
@@ -172,9 +192,9 @@ class MainWindow(QMainWindow):
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
-            "Controle de Contratos": self.setup_controle_contratos,
-            "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
-            "Atas e Contratos": self.setup_atas_contratos,
+            # "Controle de Contratos": self.setup_controle_contratos,
+            "Gerar Ata e Contrato": self.setup_atas_contratos_novo,
+            # "Atas e Contratos": self.setup_atas_contratos,
             "Limite de Dispensa": self.setup_limite_dispensa,
             "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
             "Selenium": self.setup_selenium_automacao,
@@ -196,9 +216,9 @@ class MainWindow(QMainWindow):
             button_actions = {
                 "Início": self.open_initial_page,
                 "Planejamento": self.setup_planejamento,
-                "Controle de Contratos": self.setup_controle_contratos,
-                "Atas e Contratos (novo)": self.setup_atas_contratos_novo,
-                "Atas e Contratos": self.setup_atas_contratos,
+                # "Controle de Contratos": self.setup_controle_contratos,
+                "Gerar Ata e Contrato": self.setup_atas_contratos_novo,
+                # "Atas e Contratos": self.setup_atas_contratos,
                 "Limite de Dispensa": self.setup_limite_dispensa,
                 "Consulta CATMAT/CATSER": self.setup_controle_pdm,
                 "Selenium": self.setup_selenium_automacao,
@@ -217,11 +237,6 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.contratos_widget = ControleContratosWidget(self)
         self.content_layout.addWidget(self.contratos_widget)
-    
-    def setup_atas_contratos(self):
-        self.clear_content_area()
-        self.atas_contratos_widget = AtasWidget(str(ICONS_DIR), self)
-        self.content_layout.addWidget(self.atas_contratos_widget)
 
     def setup_atas_contratos_novo(self):
         self.clear_content_area()

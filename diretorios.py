@@ -42,7 +42,6 @@ def update_file_path(title, key, default_value, parent=None, file_type="All File
         return Path(new_file)
     return default_value
 
-
 PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
 ICONS_DIR = DATABASE_DIR / "icons"
@@ -54,6 +53,10 @@ SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
 PASTA_TEMPLATE = Path(load_config("PASTA_TEMPLATE", DATABASE_DIR / "template"))
 RELATORIO_PATH = Path(load_config("RELATORIO_PATH", DATABASE_DIR / "relatorio"))
 LV_DIR = Path(load_config("LV_DIR", BASE_DIR / "Lista_de_Verificacao"))
+
+
+CONTROLE_LIMITE_DISPENSA_DIR = DATABASE_DIR / "controle_limite_dispensa"
+ARQUIVO_DADOS_PDM_CATSER = CONTROLE_LIMITE_DISPENSA_DIR / 'dados_pdm.db'
 
 TXT_DIR = PDF_DIR / "homolog_txt"
 SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"

@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize, QSettings
 from PyQt6.QtGui import *
-from styles.styless import get_transparent_title_style
-from styles.button_styles import apply_button_style, CustomToolButton
+from database.styles.styless import get_transparent_title_style
+from database.styles.button_styles import apply_button_style, CustomToolButton
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By

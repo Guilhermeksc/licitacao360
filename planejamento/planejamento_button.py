@@ -3,7 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
-from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
+from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
 import pandas as pd
 import os
 from planejamento.settings import SettingsDialog

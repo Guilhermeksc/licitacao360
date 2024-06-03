@@ -2,19 +2,13 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from gerar_atas_pasta.regex_termo_homolog import *
-from gerar_atas_pasta.regex_sicaf import *
-from gerar_atas_pasta.canvas_gerar_atas import *
-from utils.treeview_utils import open_folder, load_images, create_button
+from modulo_ata_contratos.regex_termo_homolog import *
+from modulo_ata_contratos.regex_sicaf import *
+from modulo_ata_contratos.canvas_gerar_atas import *
+from database.utils.treeview_utils import open_folder, load_images, create_button
 from diretorios import *
-import pdfplumber
 from modulo_ata_contratos.data_utils import PDFProcessingThread
-
-TXT_OUTPUT_PATH = DATABASE_DIR / "relacao_cnpj.txt"
-NUMERO_ATA_GLOBAL = None
-GERADOR_NUMERO_ATA = None
-
-tr_variavel_df_carregado = None
+import webbrowser
 
 class ProgressDialog(QDialog):
     processing_complete = pyqtSignal(list)
@@ -24,67 +18,74 @@ class ProgressDialog(QDialog):
         self.pdf_dir = pdf_dir
         self.total_files = total_files
         self.parent = parent
+        self.processed_files = set()
         self.setup_ui()
+
+    def update_processed_files(self, new_files):
+        self.processed_files.update(new_files)
 
     def set_conversion_callback(self, callback):
         self.confirmButton.clicked.connect(callback)
 
     def setup_ui(self):
         self.setWindowTitle("Processando Arquivos PDF")
+        self.setFixedSize(800, 300)
         main_layout = QVBoxLayout()
-        
-        header_layout = self.cabecalho_layout()  # Cria o layout do cabeçalho
-        main_layout.addLayout(header_layout)  # Adiciona o cabeçalho ao layout principal
-        
-        global_event_manager.pdf_dir_updated.connect(self.on_pdf_dir_updated)
 
-        # Define a fonte para todos os elementos
+        header_layout = self.cabecalho_layout()
+        main_layout.addLayout(header_layout)
+
         fonte_padrao = QFont()
         fonte_padrao.setPointSize(14)
 
-        # Caminho para o ícone de pasta
-        icon_folder = QIcon(str(ICONS_DIR / "folder128.png"))
+        self.abrirPastaButtonHomolog = self.create_button("   Abrir Pasta", QIcon(str(ICONS_DIR / "folder128.png")), lambda: open_folder(self.pdf_dir), "Abrir diretório de PDFs", QSize(40, 40))
+        self.atualizarButton = self.create_button("   Atualizar", QIcon(str(ICONS_DIR / "refresh.png")), self.atualizar_contagem_arquivos, "Atualizar contagem de arquivos PDF", QSize(40, 40))
+        self.comprasnetButton = self.create_button("", QIcon(str(ICONS_DIR / "comprasnet.svg")), self.abrir_comprasnet, "Abrir Comprasnet", QSize(200, 40))
 
-        # Adiciona o botão "Abrir Pasta" utilizando create_button
-        self.abrirPastaButtonHomolog = self.create_button("Abrir Pasta", icon_folder, lambda: open_folder(self.pdf_dir), "Abrir diretório de PDFs", QSize(40, 40))
-        
-        # Botão "Atualizar"
-        self.atualizarButton = self.create_button("Atualizar", QIcon(str(ICONS_DIR / "refresh.png")), self.atualizar_contagem_arquivos, "Atualizar contagem de arquivos PDF", QSize(40, 40))
-        
-        # Layout horizontal para os botões "Abrir Pasta" e "Atualizar"
         buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.abrirPastaButtonHomolog)
         buttons_layout.addWidget(self.atualizarButton)
+        buttons_layout.addWidget(self.comprasnetButton)
         main_layout.addLayout(buttons_layout)
 
-        self.label = QLabel(f"{self.total_files} arquivos PDF encontrados. Deseja processá-los?")
-        self.label.setFont(fonte_padrao)  # Aplica a fonte ao QLabel
+        self.label = QLabel(f"{self.total_files} arquivos PDF encontrados no diretório, clique em 'Iniciar Processamento' para começar.")
+        self.label.setFont(fonte_padrao)
         main_layout.addWidget(self.label)
 
-        self.progressBar = QProgressBar(self)
+        self.progressBar = CustomProgressBar(self)
         self.progressBar.setMaximum(100)
+        self.progressBar.setValue(0)  # Inicializar com valor 0
         main_layout.addWidget(self.progressBar)
 
-        self.confirmButton = QPushButton("Iniciar Processamento", self)
-        self.confirmButton.setFont(fonte_padrao)
-        self.confirmButton.clicked.connect(self.start_conversion)
+        self.progress_label = QLabel("")  # Apenas para mostrar o texto sem o percentual
+        self.progress_label.setFont(QFont("Arial", 16))  # Aumentar a fonte do texto
+        self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.confirmButton = self.create_button("Iniciar Processamento", QIcon(str(ICONS_DIR / "rpa.png")), self.start_conversion, "Iniciar o processamento para obtenção dos dados dos Termos de Homologação", QSize(40, 40))
         main_layout.addWidget(self.confirmButton)
-        
-        self.setLayout(main_layout)  # Define o layout principal
+
+        self.setLayout(main_layout)
 
     def start_conversion(self):
         self.confirmButton.setEnabled(False)
         self.processing_thread = PDFProcessingThread(self.pdf_dir, TXT_DIR)
-        self.processing_thread.progress_updated.connect(self.update_progress)
+        self.processing_thread.progress_updated.connect(lambda current, total, current_file: self.update_progress(current, total, current_file))
         self.processing_thread.processing_complete.connect(self.on_conversion_finished)
         self.processing_thread.start()
 
-    def update_progress(self, value):
+        # Remover `self.label` e adicionar `self.progress_label` ao layout
+        self.layout().removeWidget(self.label)
+        self.label.deleteLater()
+        self.layout().insertWidget(2, self.progress_label)  # Inserir na mesma posição de `self.label`
+
+    def update_progress(self, current, total, current_file):
         if self.isVisible():
-            self.progressBar.setValue(int(value))
+            progress_percent = int((current / total) * 100)
+            self.progressBar.setValue(progress_percent)
+            self.progress_label.setText(f"Analisando \"{current_file}\"")  # Remover o percentual aqui
 
     def on_conversion_finished(self, extracted_data):
-        self.processing_complete.emit(extracted_data)  # Emite o sinal com os dados extraídos
+        self.processing_complete.emit(extracted_data)
         QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
         self.confirmButton.setEnabled(True)
         self.close()
@@ -99,7 +100,6 @@ class ProgressDialog(QDialog):
         self.atualizar_contagem_arquivos()
 
     def atualizar_contagem_arquivos(self):
-        # Atualiza a contagem de arquivos PDF
         pdf_files = list(self.pdf_dir.glob("*.pdf"))
         self.total_files = len(pdf_files)
         self.label.setText(f"{self.total_files} arquivos PDF encontrados. Deseja processá-los?")
@@ -127,7 +127,28 @@ class ProgressDialog(QDialog):
         btn.clicked.connect(callback)
         btn.setToolTip(tooltip_text)
         fonte_btn = QFont()
-        fonte_btn.setPointSize(14)  # Define o tamanho da fonte como 14
+        fonte_btn.setPointSize(14)
         btn.setFont(fonte_btn)
-        
         return btn
+
+    def abrir_comprasnet(self):
+        webbrowser.open("https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras")
+
+class CustomProgressBar(QProgressBar):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFont(QFont("Arial", 16))  # Aumentar a fonte do percentual
+        self.setTextVisible(False)  # Desativar o texto padrão do QProgressBar
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setPen(QColor(Qt.GlobalColor.black))
+        rect = self.rect()
+        font_metrics = self.fontMetrics()
+        progress_percent = self.value()
+        text = f"{progress_percent}%" if progress_percent >= 0 else ""
+        text_width = font_metrics.horizontalAdvance(text)
+        text_height = font_metrics.height()
+        painter.drawText(int((rect.width() - text_width) / 2), int((rect.height() + text_height) / 2), text)
+        painter.end()

@@ -6,7 +6,7 @@ from datetime import datetime
 from planejamento.utilidades_planejamento import formatar_valor_monetario
 import re
 import os
-from utils.treeview_utils import load_images, create_button
+from database.utils.treeview_utils import load_images, create_button
 import datetime
 
 class MSGIRP(QDialog):

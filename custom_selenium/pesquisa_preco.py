@@ -1,7 +1,6 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-from styles.styless import get_transparent_title_style
 from datetime import datetime
 import pandas as pd
 import time

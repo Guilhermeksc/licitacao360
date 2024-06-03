@@ -5,8 +5,8 @@ from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPixmap, QIcon, QFont
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
-from utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
-from utils.utilidades import ler_arquivo_json, escrever_arquivo_json, inicializar_json_do_excel, sincronizar_json_com_dataframe
+from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
+from database.utils.utilidades import ler_arquivo_json, escrever_arquivo_json, inicializar_json_do_excel, sincronizar_json_com_dataframe
 import pandas as pd
 import subprocess
 import win32com.client
