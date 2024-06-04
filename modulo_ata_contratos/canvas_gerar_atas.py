@@ -191,17 +191,11 @@ def processar_ata(NUMERO_ATA: int, nup_data, dataframe):
                 print(f"Nenhum registro encontrado para a empresa: {empresa}")
 
     # Atualizar a coluna num_ata após o loop para evitar o incremento prematuro
-    if 'num_ata' not in dataframe.columns:
-        dataframe['num_ata'] = ""
-    dataframe['num_ata'] = dataframe['num_ata'].astype(str)
+    if 'numero_da_ata' not in dataframe.columns:
+        dataframe['numero_da_ata'] = ""
+    dataframe['numero_da_ata'] = dataframe['numero_da_ata'].astype(str)
     for uasg, num_pregao, ano_pregao, empresa in combinacoes:
-        dataframe.loc[dataframe['empresa'] == empresa, 'num_ata'] = f"{uasg}/2023-{NUMERO_ATA_atualizado:03}/00"
-
-    # Salvar o DataFrame atualizado
-    csv_filename = f"PE {int(num_pregao)}-{int(ano_pregao)}.csv"
-    dataframe.to_csv(csv_filename, index=False)
-    excel_filename = f"PE {int(num_pregao)}-{int(ano_pregao)}.xlsx"
-    dataframe.to_excel(excel_filename, index=False)
+        dataframe.loc[dataframe['empresa'] == empresa, 'numero_da_ata'] = f"{uasg}/2023-{NUMERO_ATA_atualizado:03}/00"
 
     abrir_pasta(str(path_dir_principal))
 

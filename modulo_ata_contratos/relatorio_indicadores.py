@@ -74,7 +74,6 @@ def add_hyperlink(paragraph, url, text, font_name='Carlito', font_size=12):
 
     paragraph._p.append(hyperlink)
 
-
 class RelatorioIndicadores(QDialog):
     def __init__(self, dataframe, parent=None, pe_pattern=None):
         super().__init__(parent)
@@ -91,9 +90,14 @@ class RelatorioIndicadores(QDialog):
         return pe_formatted
 
     def formatar_brl(self, valor):
-        if valor is None or pd.isna(valor) or valor == 0:
-            return ""  # Retornar string vazia se não for um valor válido
-        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        try:
+            if valor is None or pd.isna(valor):
+                return "R$ 0,00"  # Retorna string formatada se não for um valor válido
+            valor_formatado = f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            return valor_formatado
+        except Exception as e:
+            print(f"Erro ao formatar valor: {valor} - Erro: {str(e)}")
+            return "R$ 0,00"
 
     def fetch_pregao_data(self, pe_formatted):
         try:
@@ -240,6 +244,43 @@ class RelatorioIndicadores(QDialog):
             return percentual_desconto, total_estimado, total_homologado
         return 0, 0, 0
 
+    def preparar_relacao_empresas_contratadas(self):
+        grupos = self.current_dataframe.groupby(['numero_ata', 'cnpj', 'empresa'])
+        relacao_empresas = []
+        dados_empresas = []
+
+        for (numero_ata, cnpj, empresa), grupo in grupos:
+            itens = grupo[['item_num', 'catalogo', 'descricao_tr', 'valor_homologado_item_unitario', 'quantidade', 'valor_homologado_total_item']].to_dict('records')
+            valor_total_homologado = sum(item.get('valor_homologado_total_item', 0) for item in itens)
+            valor_total_formatado = self.formatar_brl(valor_total_homologado)
+
+            # Preparar os dados para cada empresa
+            dados_empresas.append({
+                'numero_ata': numero_ata,
+                'cnpj': cnpj,
+                'empresa': empresa,
+                'valor_total_homologado': valor_total_homologado,
+                'valor_total_formatado': valor_total_formatado,
+                'itens': itens
+            })
+
+        # Agora, processar os dados para a saída final após todos os cálculos
+        for dados in dados_empresas:
+            itens_formatados = [
+                f"Item {item['item_num']} - {item['descricao_tr']}\nValor Homologado: {self.formatar_brl(item['valor_homologado_item_unitario'])}, Quantidade:  {int(item['quantidade']) if item['quantidade'].is_integer() else item['quantidade']}, Valor Total do Item: {self.formatar_brl(item['valor_homologado_total_item'])}"
+                for item in dados['itens']
+            ]
+            empresa_info = (
+                f"{dados['numero_ata']} - {dados['empresa']} (CNPJ: {dados['cnpj']})\n" +
+                "\n".join(itens_formatados) +
+                f"\nValor total contratado = {dados['valor_total_formatado']}" +
+                "\nLink para o PNCP"
+            )
+            relacao_empresas.append(empresa_info)
+
+        return "\n\n".join(relacao_empresas)
+
+
     def gerar_relatorio_docx(self):
         self.adicionar_dados()  # Primeiro adicionar os dados de PDM e classe
         lista_pdm, lista_classe = self.verificar_pdm_e_classe()  # Obter as listas de PDM e classe com somas
@@ -256,7 +297,9 @@ class RelatorioIndicadores(QDialog):
         total_homologado_fmt = self.formatar_brl(total_homologado)
 
         top10_items = self.current_dataframe.nlargest(10, 'percentual_desconto')[['item_num', 'descricao_tr', 'percentual_desconto']]
-       
+
+        relacao_empresas_contratadas = self.preparar_relacao_empresas_contratadas()
+
         doc = DocxTemplate(str(TEMPLATE_INDICADORES_PATH))
 
         pe_formatted = self.convert_pe_format(self.pe_pattern)  # Garantir que esta chamada está correta
@@ -301,7 +344,8 @@ class RelatorioIndicadores(QDialog):
                 'nup': pregao_data['nup'],
                 'setor_responsavel': pregao_data['setor_responsavel'],
                 'uasg': f"{pregao_data['uasg']}-{pregao_data['sigla_om']}",
-                'coordenador_planejamento': pregao_data['coordenador_planejamento']
+                'coordenador_planejamento': pregao_data['coordenador_planejamento'],
+                'relacao_empresas_contratadas': relacao_empresas_contratadas
             }
             try:
                 doc.render(context)
@@ -420,6 +464,7 @@ class RelatorioIndicadores(QDialog):
             QMessageBox.warning(self, "Erro", "O arquivo DOCX não existe ou não pode ser acessado.")
             return
 
+        word = None
         try:
             absolute_docx_path = os.path.abspath(docx_path).replace('/', '\\')
             print(f"Caminho absoluto do DOCX: {absolute_docx_path}")
@@ -428,7 +473,6 @@ class RelatorioIndicadores(QDialog):
             word.Visible = False
 
             doc = word.Documents.Open(absolute_docx_path)
-
             pdf_path = absolute_docx_path.replace('.docx', '.pdf')
             doc.SaveAs(pdf_path, FileFormat=17)
             doc.Close(False)
@@ -438,9 +482,11 @@ class RelatorioIndicadores(QDialog):
             self.abrirDocumento(pdf_path)
         except Exception as e:
             QMessageBox.critical(self, "Erro ao Gerar PDF", f"Ocorreu um erro ao gerar o PDF: {str(e)}")
+            print(f"Erro detalhado: {str(e)}")
             if word:
                 word.Quit()
 
+                
     def abrirDocumento(self, path):
         try:
             if sys.platform == "win32":

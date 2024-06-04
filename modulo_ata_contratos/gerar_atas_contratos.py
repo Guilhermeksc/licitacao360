@@ -407,23 +407,28 @@ class GerarAtasWidget(QWidget):
     def abrir_dialog_atas(self):
         if self.current_dataframe is not None:
             dataframe_to_use = self.current_dataframe
-            # Verifica se as colunas desejadas estão presentes no dataframe
             if all(col in dataframe_to_use.columns for col in ['empresa', 'num_pregao', 'ano_pregao']):
                 print("Colunas de 'empresa', 'num_pregao', 'ano_pregao' do DataFrame:")
                 print(dataframe_to_use[['empresa', 'num_pregao', 'ano_pregao']])
             else:
                 print("Alguma das colunas 'empresa', 'num_pregao', 'ano_pregao' não está presente no DataFrame.")
         else:
-            dataframe_to_use = None  # Define um valor padrão se não houver dataframe atual
+            dataframe_to_use = None
             print("Nenhum DataFrame atual disponível.")
 
         if self.atasDialog is None or not self.atasDialog.isVisible():
-            # Passa corretamente o dataframe como argumento para AtasDialog
             self.atasDialog = AtasDialog(self, pe_pattern=self.pe_pattern, dataframe=dataframe_to_use)
+            self.atasDialog.dataframe_updated.connect(self.on_dataframe_updated)  # Conectar ao método que trata o DataFrame
             self.atasDialog.show()
         else:
             self.atasDialog.raise_()
             self.atasDialog.activateWindow()
+
+    def on_dataframe_updated(self, updated_dataframe):
+        # Atualiza o DataFrame atual com as modificações recebidas
+        self.current_dataframe = updated_dataframe
+        print("DataFrame atualizado recebido do diálogo Atas:")
+        print(self.current_dataframe[['numero_ata', 'item_num']])
 
     def salvar_tabela(self):
         if self.current_dataframe is not None:
@@ -607,6 +612,7 @@ class ModeloTreeview:
         
 class AtasDialog(QDialog):
     NUMERO_ATA_GLOBAL = None  # Defina isso em algum lugar adequado dentro de sua classe
+    dataframe_updated = pyqtSignal(object)  # Sinal para emitir o DataFrame atualizado
 
     def __init__(self, parent=None, pe_pattern=None, dataframe=None):
         super().__init__(parent)
@@ -614,75 +620,80 @@ class AtasDialog(QDialog):
         self.pe_pattern = pe_pattern
         self.nup_data = None
         self.dataframe = dataframe 
+        self.configurar_ui()
+
+    def closeEvent(self, event):
+        # Quando o diálogo é fechado, emite o DataFrame atualizado
+        self.dataframe_updated.emit(self.dataframe)
+        super().closeEvent(event)
+
+    def configurar_ui(self):
         self.setWindowTitle("Geração de Atas / Contratos")
         self.setFont(QFont('Arial', 14))
         layout = QVBoxLayout(self)
-
-        # Primeiro crie a QLabel para o último contrato
-        self.ultimo_contrato_label = QLabel("O último contrato gerado foi:")
-        self.ultimo_contrato_label.setFont(QFont('Arial', 14))
-        layout.addWidget(self.ultimo_contrato_label)
-
-        self.label = QLabel("\nDigite o próximo Número de Controle de Atas/Contratos:\n")
-        self.label.setFont(QFont('Arial', 14))
-        layout.addWidget(self.label)
-
-        # Cria um QHBoxLayout para a entrada e o botão
-        entry_button_layout = QHBoxLayout()
-
-        # Espaçador à esquerda
-        left_spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        entry_button_layout.addItem(left_spacer)
-
-        # Agora crie o QLineEdit para a entrada de texto
-        self.ataEntry = QLineEdit(self)
-        self.ataEntry.setPlaceholderText("Digite um número até 4 dígitos")
-        self.ataEntry.setMaxLength(4)
-
-        self.ataEntry.setFixedWidth(self.ataEntry.fontMetrics().horizontalAdvance('0') * 6)
-
-        entry_button_layout.addWidget(self.ataEntry)
-
-        # Cria o botão Confirmar
-        self.confirmButton = QPushButton("Confirmar", self)
-        self.confirmButton.clicked.connect(self.confirmar_numero_ata_e_nup_do_processo)
-        entry_button_layout.addWidget(self.confirmButton)
-
-        # Espaçador à direita
-        right_spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        entry_button_layout.addItem(right_spacer)
-      
-        # Adiciona o QHBoxLayout da entrada e botão ao layout principal
-        layout.addLayout(entry_button_layout)
-
-        # Cria um QHBoxLayout para os botões Gerar Atas/Contratos e Gerar Documento
-        buttons_layout = QHBoxLayout()
-
-        self.label_espaco = QLabel("\n")
-        layout.addWidget(self.label_espaco)
-
-        # Botão para gerar atas ou contratos
-        self.gerarButton = self.criar_botao_especial("Gerar\nAtas", str(ICONS_DIR / 'gerar_atas.png'))
-        self.gerarButton.clicked.connect(self.gerar_atas_contratos)
-        buttons_layout.addWidget(self.gerarButton)
-
-        # Botão para gerar documento
-        self.gerarDocumentoButton = self.criar_botao_especial("Gerar\nContratos", str(ICONS_DIR / 'gerar_contrato.png'))
-        self.gerarDocumentoButton.clicked.connect(self.gerar_documento)
-        buttons_layout.addWidget(self.gerarDocumentoButton)
         
-        # Depois de criar self.ataEntry, agora você pode verificar e definir seu valor inicial
-        ultimo_num_contrato = self.carregar_ultimo_contrato()
-        if ultimo_num_contrato is not None:
-            self.atualizar_ultimo_contrato_label(f"Nº {ultimo_num_contrato}")
-            self.ataEntry.setText(str(ultimo_num_contrato + 1))
+        self.configurar_rotulos(layout)
+        self.configurar_entrada_e_botao_confirmar(layout)
+        self.configurar_botoes_acao(layout)
+        self.carregar_e_exibir_ultimo_contrato()
+
+    def configurar_rotulos(self, layout):
+        self.rotulo_ultimo_contrato = QLabel("O último contrato gerado foi:")
+        self.rotulo_ultimo_contrato.setFont(QFont('Arial', 14))
+        layout.addWidget(self.rotulo_ultimo_contrato)
+
+        rotulo = QLabel("\nDigite o próximo Número de Controle de Atas/Contratos:\n")
+        rotulo.setFont(QFont('Arial', 14))
+        layout.addWidget(rotulo)
+
+    def configurar_entrada_e_botao_confirmar(self, layout):
+        layout_entrada_botao = QHBoxLayout()
+        layout_entrada_botao.addStretch()
+
+        self.entradaAta = QLineEdit(self)
+        self.entradaAta.setPlaceholderText("Digite um número até 4 dígitos")
+        self.entradaAta.setMaxLength(4)
+        self.entradaAta.setFixedWidth(self.entradaAta.fontMetrics().horizontalAdvance('0') * 6)
+        layout_entrada_botao.addWidget(self.entradaAta)
+
+        self.botaoConfirmar = QPushButton("Confirmar", self)
+        self.botaoConfirmar.clicked.connect(self.confirmar_numero_ata_e_nup_do_processo)
+        layout_entrada_botao.addWidget(self.botaoConfirmar)
+
+        layout_entrada_botao.addStretch()
+        layout.addLayout(layout_entrada_botao)
+
+    def configurar_botoes_acao(self, layout):
+        layout_botoes = QHBoxLayout()
+        layout_botoes.addStretch()
+
+        self.botaoGerarAtas = self.criar_botao_especial("Gerar\nAtas", str(ICONS_DIR / 'gerar_atas.png'))
+        self.botaoGerarAtas.clicked.connect(self.gerar_ata_de_registro_de_precos)
+        layout_botoes.addWidget(self.botaoGerarAtas)
+
+        self.botaoGerarDocumentos = self.criar_botao_especial("Gerar\nContratos", str(ICONS_DIR / 'gerar_contrato.png'))
+        self.botaoGerarDocumentos.clicked.connect(self.gerar_ata_de_registro_de_precos)
+        layout_botoes.addWidget(self.botaoGerarDocumentos)
+
+        layout_botoes.addStretch()
+        layout.addLayout(layout_botoes)
+
+    def carregar_e_exibir_ultimo_contrato(self):
+        ultimo_numero_contrato = self.carregar_ultimo_contrato()
+        if ultimo_numero_contrato is not None:
+            self.atualizar_rotulo_ultimo_contrato(f"Nº {ultimo_numero_contrato}")
+            self.entradaAta.setText(str(ultimo_numero_contrato + 1))
         else:
-            self.ultimo_contrato_label.setText("O último número de ata/contrato gerado foi: Nenhum")
-        
-        # Adiciona o QHBoxLayout dos botões ao layout principal
-        layout.addLayout(buttons_layout)
+            self.rotulo_ultimo_contrato.setText("O último número de ata/contrato gerado foi: Nenhum")
+
+    def criar_botao_especial(self, texto, caminho_icone):
+        botao = QToolButton(self)
+        botao.setText(texto)
+        botao.setIcon(QIcon(caminho_icone))
+        botao.setIconSize(QSize(64, 64))
+        botao.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        botao.setFixedSize(200, 160)
+        return botao
 
     @staticmethod
     def convert_pe_format(pe_string):
@@ -705,9 +716,9 @@ class AtasDialog(QDialog):
         except Exception as e:
             print(f"Erro ao acessar o banco de dados: {e}")
             return None
-                    
-    def atualizar_ultimo_contrato_label(self, ultimo_num_contrato):
-        self.ultimo_contrato_label.setText(f"O último número de ata/contrato gerado foi: {ultimo_num_contrato}")
+                                       
+    def atualizar_rotulo_ultimo_contrato(self, ultimo_numero_contrato):
+        self.rotulo_ultimo_contrato.setText(f"O último número de ata/contrato gerado foi: {ultimo_numero_contrato}")
 
     def salvar_ultimo_contrato(self, ultimo_num_contrato):
         with open(ULTIMO_CONTRATO_DIR, "w") as f:
@@ -721,7 +732,7 @@ class AtasDialog(QDialog):
             return None
 
     def confirmar_numero_ata_e_nup_do_processo(self):
-        numero_ata = self.ataEntry.text()
+        numero_ata = self.entradaAta.text()
         if numero_ata.isdigit() and len(numero_ata) <= 4:
             AtasDialog.NUMERO_ATA_GLOBAL = int(numero_ata)
             self.nup_data = self.obter_nup(self.convert_pe_format(self.pe_pattern))
@@ -729,49 +740,175 @@ class AtasDialog(QDialog):
         else:
             QMessageBox.warning(self, "Número Inválido", "Por favor, digite um número válido de até 4 dígitos.")
 
-    def criar_botao_especial(self, text, icon_path):
-        button = QToolButton(self)
-        button.setText(text)
-        button.setIcon(QIcon(icon_path))
-        button.setIconSize(QSize(64, 64))  # Defina o tamanho do ícone conforme necessário
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-
-        button.setFixedSize(200, 160) 
-        return button
-
-    def gerar_atas_contratos(self):
+    def gerar_ata_de_registro_de_precos(self):
         if not self.nup_data:  # Verifica se nup_data está vazia ou é None
             self.nup_data = "(INSIRA O NUP)"  # Atribui um valor padrão caso não exista nup_data
-        self.iniciar_processo(self.nup_data, self.dataframe)
+        self.processar_ata_de_registro_de_precos(self.nup_data, self.dataframe)
 
-    def iniciar_processo(self, nup_data, dataframe):
+    def processar_ata_de_registro_de_precos(self, nup_data, dataframe):
         if AtasDialog.NUMERO_ATA_GLOBAL is None:
             raise ValueError("O número da ATA não foi definido!")
 
         # Chama as outras funções que dependem de NUMERO_ATA_GLOBAL
         criar_pastas_com_subpastas(dataframe)
-        ultimo_num_ata = processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
+        ultimo_num_ata = self.processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
 
         # Atualizar e salvar o último número da ATA
         self.salvar_ultimo_contrato(ultimo_num_ata)
-        self.atualizar_ultimo_contrato_label(ultimo_num_ata)
+        self.atualizar_rotulo_ultimo_contrato(ultimo_num_ata)
 
-    def gerar_documento(self):
-        # Aqui chamamos a função iniciar_processo
-        try:
-            self.iniciar_contrato()
-        except ValueError as e:
-            QMessageBox.critical(self, "Erro", str(e))
-        pass
+    def processar_ata(self, NUMERO_ATA: int, nup_data, dataframe):
+        relatorio_path = get_relatorio_path()
+        nup = nup_data['nup'] if nup_data else "(INSIRA O NUP)"
+        combinacoes = dataframe[['uasg', 'num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
+        NUMERO_ATA_atualizado = NUMERO_ATA
 
-    def iniciar_contrato(self):
-        if AtasDialog.NUMERO_ATA_GLOBAL is None:
-            raise ValueError("O número do Contrato não foi definido!")
+        # Verifica se a coluna 'numero_ata' existe, senão, cria ela
+        if 'numero_ata' not in dataframe.columns:
+            dataframe['numero_ata'] = None
 
-        # Chama as outras funções que dependem de NUMERO_ATA_GLOBAL
-        criar_pastas_com_subpastas()
-        ultimo_num_contrato = processar_contrato(AtasDialog.NUMERO_ATA_GLOBAL)
+        for uasg, num_pregao, ano_pregao, empresa in combinacoes:
+            if not pd.isna(num_pregao) and not pd.isna(ano_pregao) and not pd.isna(empresa):
+                path_dir_principal, path_subpasta = self.preparar_diretorios(relatorio_path, num_pregao, ano_pregao, empresa)
+                registros_empresa = dataframe[dataframe['empresa'] == empresa]
+                NUMERO_ATA_atualizado, num_contrato = self.processar_empresa(registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado)
 
-        # Atualizar e salvar o último número do contrato
-        self.salvar_ultimo_contrato(ultimo_num_contrato)
-        self.atualizar_ultimo_contrato_label(ultimo_num_contrato)
+                # Atualizar o DataFrame com o número de contrato atualizado para a empresa processada
+                dataframe.loc[dataframe['empresa'] == empresa, 'numero_ata'] = num_contrato
+
+        abrir_pasta(str(path_dir_principal))
+        print(dataframe[['numero_ata', 'item_num']])  # Mostra os valores das colunas 'numero_ata' e 'item_num'
+        return NUMERO_ATA_atualizado
+    
+    def limpar_nome_empresa(self, nome_empresa):
+        # Substituir caracteres não permitidos por "_" ou remover
+        caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+        for char in caracteres_invalidos:
+            nome_empresa = nome_empresa.replace(char, '_')
+        return nome_empresa
+
+    def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):
+        nome_empresa_limpo = self.limpar_nome_empresa(empresa)
+        nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
+        path_dir_principal = relatorio_path / nome_dir_principal
+        nome_subpasta = nome_empresa_limpo
+        path_subpasta = path_dir_principal / nome_subpasta
+        if not path_subpasta.exists():
+            path_subpasta.mkdir(parents=True, exist_ok=True)
+        return path_dir_principal, path_subpasta
+    
+    def processar_empresa(self, registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado):
+        if not registros_empresa.empty:
+            registro = registros_empresa.iloc[0].to_dict()
+            itens_relacionados = registros_empresa.to_dict('records')
+            context, num_contrato = self.criar_contexto(registro, empresa, NUMERO_ATA_atualizado, nup, itens_relacionados)
+            
+            # Atualizando a chamada para salvar_documento com todos os parâmetros necessários
+            self.salvar_documento(path_subpasta, empresa, context, registro, itens_relacionados)
+
+            NUMERO_ATA_atualizado += 1  # Atualiza o número da ATA após processar com sucesso
+        else:
+            print(f"Nenhum registro encontrado para a empresa: {empresa}")
+            num_contrato = None
+        return NUMERO_ATA_atualizado, num_contrato
+
+    def criar_contexto(self, registro, empresa, NUMERO_ATA_atualizado, nup, itens_relacionados):
+        num_contrato = f"{registro['uasg']}/2024-{NUMERO_ATA_atualizado:03}/00"
+        texto_substituto = f"Pregão Eletrônico nº {registro['num_pregao']}/{registro['ano_pregao']}"
+        soma_valor_homologado = gerar_soma_valor_homologado(itens_relacionados)
+        return ({
+            "num_pregao": registro['num_pregao'],
+            "ano_pregao": registro['ano_pregao'],
+            "empresa": empresa,
+            "uasg": registro['uasg'],
+            "numero_ata": NUMERO_ATA_atualizado,
+            "soma_valor_homologado": soma_valor_homologado,
+            "cabecalho": texto_substituto,
+            "contrato": num_contrato,
+            "endereco": registro["endereco"],
+            "cnpj": registro["cnpj"],
+            "objeto": registro["objeto"],
+            "ordenador_despesa": registro["ordenador_despesa"],
+            "responsavel_legal": registro["responsavel_legal"],
+            "nup": nup,
+            "email": registro["email"]
+        }, num_contrato)
+
+    def salvar_email(self, path_subpasta, context):
+        nome_arquivo_txt = "E-mail.txt"
+        path_arquivo_txt = path_subpasta / nome_arquivo_txt
+        with open(path_arquivo_txt, "w") as arquivo_txt:
+            texto_email = (f"{context['email']}\n\n"
+                        f"Sr. Representante.\n\n"
+                        f"Encaminho em anexo a Vossa Senhoria a ATA {context['contrato']} "
+                        f"decorrente do Pregão Eletrônico (SRP) nº {context['num_pregao']}/{context['ano_pregao']}, do Centro "
+                        f"de Intendência da Marinha em Brasília (CeIMBra).\n\n"
+                        f"Os documentos deverão ser conferidos, assinados e devolvidos a este Comando.\n\n"
+                        f"A empresa receberá uma via, devidamente assinada, após a publicação.\n\n"
+                        f"Respeitosamente,\n")
+            arquivo_txt.write(texto_email)
+
+    def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados):
+        empresa_limpa = self.limpar_nome_empresa(empresa)
+        tpl = DocxTemplate(TEMPLATE_PATH)
+        tpl.render(context)
+        nome_documento = f"{empresa_limpa} ata.docx"
+        path_documento = path_subpasta / nome_documento
+        tpl.save(path_documento)
+        
+        # Alterar o documento após a criação inicial para incluir informações detalhadas
+        self.alterar_documento_criado(path_documento, registro, registro["cnpj"], itens_relacionados)
+        
+        # Salvando o arquivo de email associado
+        self.salvar_email(path_subpasta, context)
+
+    def alterar_documento_criado(self, caminho_documento, registro, cnpj, itens):
+        # Carregando o documento real
+        doc = Document(caminho_documento)
+        
+        # Iterando por cada parágrafo do documento
+        for paragraph in doc.paragraphs:
+            if '{relacao_empresa}' in paragraph.text:
+                # Substituindo o marcador pelo conteúdo gerado pelo método inserir_relacao_empresa
+                paragraph.clear()  # Limpar o parágrafo atual
+                self.inserir_relacao_empresa(paragraph, registro, cnpj)
+            
+            # Verificando o marcador {relacao_item}
+            if '{relacao_item}' in paragraph.text:
+                # Substituindo o marcador pelo conteúdo gerado pela função inserir_relacao_itens
+                paragraph.clear()  # Limpar o parágrafo atual
+                inserir_relacao_itens(paragraph, itens)
+        
+        # Salvando as alterações no documento
+        doc.save(caminho_documento)
+
+    def inserir_relacao_empresa(self, paragrafo, registro, cnpj):
+        dados = {
+            "Razão Social": registro["empresa"],
+            "CNPJ": registro["cnpj"],
+            "Endereço": registro["endereco"],
+            "Município-UF": registro["municipio"],
+            "CEP": registro["cep"],
+            "Telefone": registro["telefone"],
+            "E-mail": registro["email"]
+        }
+
+        total_itens = len(dados)
+        contador = 1
+        
+        for chave, valor in dados.items():
+            adicione_texto_formatado(paragrafo, f"{chave}: ", True)
+
+            # Verifica se é a penúltima linha
+            if contador == total_itens - 1:
+                adicione_texto_formatado(paragrafo, f"{valor}; e\n", False)
+            # Verifica se é a última linha
+            elif contador == total_itens:
+                adicione_texto_formatado(paragrafo, f"{valor}.\n", False)
+            else:
+                adicione_texto_formatado(paragrafo, f"{valor};\n", False)
+
+            contador += 1
+        
+        adicione_texto_formatado(paragrafo, "Representada neste ato, por seu representante legal, o(a) Sr(a) ", False)
+        adicione_texto_formatado(paragrafo, f'{registro["responsavel_legal"]}.\n', False)

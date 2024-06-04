@@ -109,10 +109,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         button_gerar_word = self.create_button("  Gerar DOCX  ", icon_word, self.gerarDocx, "Gerar arquivo Word")
         button_gerar_pdf = self.create_button("  Gerar PDF  ", icon_pdf, self.gerarPdf, "Gerar arquivo PDF")
 
-        # Conectando os botões aos métodos correspondentes
-        button_gerar_word.clicked.connect(self.gerarDocx)
-        button_gerar_pdf.clicked.connect(self.gerarPdf)  # Conexão correta para geração de PDF
-
         # Adicionando os botões ao layout
         layout.addWidget(button_gerar_word)
         layout.addWidget(button_gerar_pdf)
@@ -206,6 +202,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         layout.addLayout(button_layout)
         vertical_spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(vertical_spacer)
+
     def setupGrupoSIGDEM(self):
         layout = QVBoxLayout(self.grupoSIGDEM)
 

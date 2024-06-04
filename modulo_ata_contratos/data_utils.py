@@ -97,7 +97,7 @@ class DatabaseDialog(QDialog):
     def populate_and_show_delete_options(self):
         with self.db_manager as conn:
             cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%ATA%';")
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%UASG%';")
             tables = [row[0] for row in cur.fetchall()]
         
         self.table_combobox.clear()

@@ -19,7 +19,6 @@ def build_executable():
         (WEBDRIVER_DIR, "database/selenium"),
         (TEMPLATE_DIR, "database/template"),
         (CP_DIR, "database/template/comunicacao_padronizada"),
-        (GERAR_RELATORIO_DIR, "database/template/relatorio_controle_pregao"),
         (CONTROLE_CONTRATOS_DIR, "controle_contratos"),
         (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
         (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")

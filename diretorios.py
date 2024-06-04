@@ -77,14 +77,10 @@ LV_BASE_DIR = DATABASE_DIR / "Nova pasta"
 
 WEBDRIVER_DIR = DATABASE_DIR / "selenium"
 WEBDRIVER_FIREFOX_PATH = WEBDRIVER_DIR / "geckodriver.exe"
-CONTROLE_PREGOEIROS_DIR = DATABASE_DIR / "controle_pregoeiros.xlsx"
-
-CONTROLE_FASE_PROCESSO = DATABASE_DIR / "controle_processos_blocos.xlsx"
 
 TREEVIEW_DATA_PATH =  DATABASE_DIR / "treeview_data.csv"
 TEMPLATE_DIR = DATABASE_DIR / "template"
 CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
-GERAR_RELATORIO_DIR = TEMPLATE_DIR / "relatorio_controle_pregao" 
 
 ESCALACAO_PREGOEIROS = DATABASE_DIR / "pregoeiros.json"
 TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
@@ -101,13 +97,9 @@ ITEM_SELECIONADO_PATH = DATABASE_DIR / "item_selecionado.csv"
 
 
 BG_IMAGEM_PATH = IMAGE_PATH / "bg1.png"
-CONTROLE_PROCESSOS_DIR = DATABASE_DIR / "controle_processos.xlsx"
-CONTROLE_DISPENSA_DIR = DATABASE_DIR / "controle_dispensa.xlsx"
 
 TABELA_UASG_DIR = DATABASE_DIR / "tabela_uasg.xlsx"
 ORDENADOR_DESPESAS_DIR = DATABASE_DIR / "ordenador_despesas.xlsx"
-
-FONT_STYLE = ("Arial", 20, "bold")
 
 URL_SAPIENS = 'https://sapiens.agu.gov.br/login'
 
