@@ -15,6 +15,8 @@ import time
 import sqlite3
 
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
+    dados_atualizados = pyqtSignal()
+    
     def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
         self.setup_atributos(main_app, config_manager, df_registro)

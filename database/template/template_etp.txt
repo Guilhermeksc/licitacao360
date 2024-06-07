@@ -1,0 +1,96 @@
+﻿
+MARINHA DO BRASIL
+{{orgao_responsavel}}
+
+Pregão Eletrônico nº {{num_pregao}}/{ano_pregao}}
+etp_inicio_
+Estudo Técnico Preliminar (ETP) 
+
+1. INFORMAÇÕES BÁSICAS
+
+         Processo Administrativo nº {{nup}}.
+
+2. DESCRIÇÃO DA NECESSIDADE
+
+         XXXXXX
+
+3. ÁREA REQUISITANTE
+
+Setor Requisitante: {variavel_requi};
+Responsável pela Demanda: {variavel_resp}; e
+E-mail e telefone para contato: {variavel_email} e {variavel_tel}.
+4. DESCRIÇÃO DOS REQUISITOS DA CONTRATAÇÃO
+Requisitos Legais:
+         XXXXXX
+Requisitos de Garantia:
+         XXXXXX
+Requisitos de Sustentabilidade:
+         XXXXXX
+Requisitos de Qualificação Técnica ou Econômica:
+         XXXXXX
+5. LEVANTAMENTO DE MERCADO
+         XXXXXX
+6. DESCRIÇÃO DA SOLUÇÃO COMO UM TODO
+         XXXXXX
+7. ESTIMATIVA DAS QUANTIDADES A SEREM CONTRATADAS
+         XXXXXX
+8. ESTIMATIVA DO VALOR DA CONTRATAÇÃO
+         Valor (R$): {{valor_total}}.
+         Tomando-se por base os valores praticados pelos fornecedores junto a outros órgãos, vendas em sites específicos, ou mediante consulta aos mesmos, estima-se o valor total da contratação de R$ 332.929,94 (Trezentos e trinta mil e quinhentos e oitenta e três reais e seis centavos)
+9. JUSTIFICATIVA PARA O PARCELAMENTO OU NÃO DA SOLUÇÃO
+         XXXXXX
+10. CONTRATAÇÕES CORRELATAS E/OU INTERDEPENDENTES
+         No escopo deste estudo como um todo, não se vislumbra como necessário proceder a outras contratações para se atingir o fim almejado. 
+11. ALINHAMENTO ENTRE A CONTRATAÇÃO E O PLANEJAMENTO
+         XXXXXX
+12. BENEFÍCIOS A SEREM ALCANÇADOS COM A CONTRATAÇÃO
+         XXXXXX
+13. PROVIDÊNCIAS A SEREM ADOTADAS
+         XXXXXX
+14. POSSÍVEIS IMPACTOS AMBIENTAIS
+         XXXXXX
+
+
+
+DECLARAÇÃO DE VIABILIDADE
+Esta equipe de planejamento declara viável esta contratação
+Justificativa da Viabilidade
+Com base nos elementos acima expostos, declara-se que a participação ora pretendida é viável. 
+
+Brasília-DF, na data da assinatura.
+
+
+
+{{memb1_plan}}
+{{grad_memb1_plan}}
+Membro da Equipe de Planejamento
+ASSINADO DIGITALMENTE{{memb2_plan}}
+{{grad_memb2_plan}}
+Membro da Equipe de Planejamento
+ASSINADO DIGITALMENTE
+
+
+{{coord_plan}}
+{{grad_coord_plan}}
+
+Coordenador da Equipe de Planejamento
+ASSINADO DIGITALMENTE
+etp_fim_
+
+
+
+Continuação do ETP da OM: {{sigla_om}}
+
+
+2 | 3
+
+
+1 | 3
+
+
+Continuação do ETP da OM: {{sigla_om}}
+
+
+3 | 3
+
+
