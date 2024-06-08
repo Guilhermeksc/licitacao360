@@ -470,6 +470,8 @@ def extrair_chave_processo(itemText):
         return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
     return None
 
+import traceback
+
 def carregar_dados_pregao(index, caminho_banco_dados):
     """
     Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
@@ -481,11 +483,19 @@ def carregar_dados_pregao(index, caminho_banco_dados):
     Retorna:
     - Um DataFrame do Pandas contendo os dados do registro selecionado.
     """
-    connection = sqlite3.connect(caminho_banco_dados)
-    query = f"SELECT * FROM controle_processos WHERE id={index+1}"
-    df_registro_selecionado = pd.read_sql_query(query, connection)
-    connection.close()
-    return df_registro_selecionado
+    try:
+        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
+        connection = sqlite3.connect(caminho_banco_dados)
+        query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+        logging.debug(f"Executando consulta SQL: {query}")
+        df_registro_selecionado = pd.read_sql_query(query, connection)
+        connection.close()
+        logging.debug(f"Dados carregados com sucesso para o índice {index}: {df_registro_selecionado}")
+        return df_registro_selecionado
+    except Exception as e:
+        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
+        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+
 
 def carregar_dados_processos(controle_processos_path):
     try:

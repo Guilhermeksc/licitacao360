@@ -1,0 +1,21 @@
+Item: 16, Descrição: Canaleta, Unidade de Fornecimento: Unidade, Quantidade: 1123
+Descrição detalhada: SISTEMA ALUMBRA BRANCA 20MM(CANALETA 2M) ADESIVO 6262
+Valor Estimado: 11.443,37, Valor Homologado: 11.443,37, Valor Total do Item: 11.443,37
+Marca: ALUMBRA, Fabricante: ALUMBRA, Modelo / Versão: CONFORME EDITAL
+
+Item: 232, Descrição: Resistência elétrica, Unidade de Fornecimento: Unidade, Quantidade: 88
+Descrição detalhada: RESISTENCIA TIPO FAME 220V 4000W
+Valor Estimado: 3.080,00, Valor Homologado: 3.080,00, Valor Total do Item: 3.080,00
+Marca: ANDRALUZ, Fabricante: ANDRALUZ, Modelo / Versão: CONFORME EDITAL
+
+Item: 319, Descrição: Relé fotelétrico, Unidade de Fornecimento: Unidade, Quantidade: 78
+Descrição detalhada: RELE QUALITRONIX FOTOCELULA FACIL CORUJITO BIVOLT QR51
+Valor Estimado: 1.946,88, Valor Homologado: 1.946,88, Valor Total do Item: 1.946,88
+Marca: QUALITRONIX, Fabricante: QUALITRONIX, Modelo / Versão: CONFORME EDITAL
+
+Item: 335, Descrição: Alicate de pressão, Unidade de Fornecimento: Unidade, Quantidade: 41
+Descrição detalhada: ALICATE PRESSAO BRASFORT CURVO 10" 8269
+Valor Estimado: 2.252,54, Valor Homologado: 2.252,54, Valor Total do Item: 2.252,54
+Marca: BRASFORT, Fabricante: BRASFORT, Modelo / Versão: CONFORME EDITAL
+
+Valor Total da Ata: R$ 18.722,79

@@ -29,6 +29,7 @@ df_registro_selecionado = None
 from functools import partial
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from datetime import datetime
+import logging
 
 etapas = {
     'Planejamento': None,
@@ -46,34 +47,31 @@ etapas = {
     'Assinatura Contrato': None,
     'Concluído': None
 }
-    
+
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
-        self.main_app = main_app  # Armazena a referência ao aplicativo principal
-        self.config_manager = config_manager  # Armazena a referência ao gerenciador de configurações
+        self.main_app = main_app
+        self.config_manager = config_manager
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
 
     def showContextMenu(self, pos):
         index = self.indexAt(pos)
         if index.isValid():
-            contextMenu = MenuOpcoes(self.main_app, index, self.model(), config_manager=self.config_manager)
+            contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
             contextMenu.exec(self.viewport().mapToGlobal(pos))
 
-class MenuOpcoes(QMenu):
+class TableMenu(QMenu):
     def __init__(self, main_app, index, model=None, config_manager=None):
         super().__init__()
         self.main_app = main_app
         self.index = index
+        self.config_manager = config_manager 
         self.model = model
-        self.config_manager = config_manager
-        
-        self.configurar_estilos()
-        self.popular_menu()
 
-    def configurar_estilos(self):
-        estilo = """
+        # Configuração do estilo do menu
+        self.setStyleSheet("""
             QMenu {
                 background-color: #333;
                 padding: 4px;
@@ -87,141 +85,166 @@ class MenuOpcoes(QMenu):
             QMenu::item:selected {
                 background-color: #565656;
             }
-        """
-        self.setStyleSheet(estilo)
+        """)
 
-    def popular_menu(self):
-        self.adicionar_acoes_menu([
-            ("Editar Dados do Processo", self.editar_dados),
-            ("1. Autorização para Abertura de Licitação", self.abrir_dialogo_autorizacao),
-            ("2. Portaria de Equipe de Planejamento", self.abrir_dialogo_portaria_planejamento),
-            ("3. Documento de Formalização de Demanda (DFD)", self.abrir_dialogo_dfd)
-        ])
+        # Opções do menu principal
+        actions = [
+            "Editar Dados do Processo",
+            "1. Autorização para Abertura de Licitação",
+            "2. Portaria de Equipe de Planejamento",
+            "3. Documento de Formalização de Demanda (DFD)",
+        ]
         
-        # Submenu para IRP
+        for actionText in actions:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+        # Submenu para "4. Intenção de Registro de Preços (IRP)"
+        submenu_irp = QMenu("4. Intenção de Registro de Preços (IRP)", self)
+        submenu_irp.setStyleSheet(self.styleSheet())
         opcoes_irp = [
-            ("4.1. Manifesto de IRP da OM participante", self.abrir_dialogo_manifesto_irp),
-            ("4.2. Mensagem de Divulgação de IRP", self.abrir_dialogo_manifesto_irp),
-            ("4.3. Lançar o IRP", self.abrir_dialogo_manifesto_irp),
-            ("4.4. Conformidade do IRP (Local, R$, etc)", self.abrir_dialogo_manifesto_irp)
+            ("4.1. Manifesto de IRP da OM participante", self.openDialogIRPManifesto),
+            ("4.2. Mensagem de Divulgação de IRP", self.abrirDialogoIRP),
+            ("4.3. Lançar o IRP", self.abrirDialogoIRP),
+            ("4.4. Conformidade do IRP (Local, R$, etc)", self.abrirDialogoIRP),
         ]
-        self.adicionar_submenu("4. Intenção de Registro de Preços (IRP)", opcoes_irp)
+        for texto, funcao in opcoes_irp:
+            sub_action = QAction(texto, submenu_irp)
+            sub_action.triggered.connect(partial(self.trigger_sub_action, funcao))
+            submenu_irp.addAction(sub_action)
+        self.addMenu(submenu_irp)
 
-        # Ações adicionais agora incluem suas respectivas funções
-        self.adicionar_acoes_menu([
-            ("6. Estudo Técnico Preliminar (ETP)", self.abrir_dialogo_etp),
-            ("7. Termo de Referência (TR)", self.abrir_dialogo_tr),
-            ("8. Matriz de Riscos", self.abrir_dialogo_matriz_riscos)
-        ])
+        # Adicionando as opções do menu
+        actions_2 = [
+            "6. Estudo Técnico Preliminar (ETP)",
+            "7. Termo de Referência (TR)",
+            "8. Matriz de Riscos",
+        ]
 
-        # Submenu para Edital e Anexos
+        for actionText in actions_2:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+        # Submenu "10. Edital e Anexos"
+        submenu_edital = QMenu("9. Edital e Anexos", self)
+        submenu_edital.setStyleSheet(self.styleSheet())
         opcoes_edital = [
-            ("9.1 Edital", self.abrir_dialogo_edital),
-            ("9.2 Capa do Edital", self.abrir_dialogo_capa_edital),
-            ("9.3 Contrato", self.abrir_dialogo_contrato),
-            ("9.4 Ata de Registro de Preços", self.abrir_dialogo_ata_registro)
+            ("9.1 Edital", self.openDialogEdital),
+            ("9.2 Capa do Edital", self.openDialogCapaEdital),
+            ("9.3 Contrato", self.openDialogContrato),
+            ("9.4 Ata de Registro de Preços", self.openDialogAtaRegistro)
         ]
-        self.adicionar_submenu("9. Edital e Anexos", opcoes_edital)
+        for texto, funcao in opcoes_edital:
+            sub_action = QAction(texto, submenu_edital)
+            sub_action.triggered.connect(partial(self.trigger_sub_action, funcao))
+            submenu_edital.addAction(sub_action)
+        self.addMenu(submenu_edital)
 
-        # Mais ações principais após o submenu
-        acoes_finais = [
-            ("10. Check-list", self.abrir_dialogo_checklist),
-            ("11. Nota Técnica", self.abrir_dialogo_nota_tecnica),
-            ("12. CP Encaminhamento AGU", self.abrir_dialogo_encaminhamento_agu),
-            ("13. CP Recomendações AGU", self.abrir_dialogo_recomendacoes_agu),
-            ("14. Escalar Pregoeiro", self.abrir_dialogo_escalar_pregoeiro),
-            ("15. Mensagem de Publicação", self.abrir_dialogo_publicacao),
-            ("16. Mensagem de Homologação", self.abrir_dialogo_homologacao),
-            ("17. Gerar Relatório de Processo", self.abrir_dialogo_gerar_relatorio)
+        # Adicionando mais ações principais após o submenu
+        actions_3 = [
+            "10. Check-list",
+            "11. Nota Técnica",
+            "12. CP Encaminhamento AGU",
+            "13. CP Recomendações AGU",
+            "14. Escalar Pregoeiro",
+            "15. Mensagem de Publicação",
+            "16. Mensagem de Homologação",            
+            "17. Gerar Relatório de Processo",
         ]
-        self.adicionar_acoes_menu(acoes_finais)
+        for actionText in actions_3:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
 
-    def adicionar_acoes_menu(self, acoes):
-        for texto, funcao in acoes:
-            acao = QAction(texto, self)
-            acao.triggered.connect(partial(self.executar_acao, funcao))
-            self.addAction(acao)
+    def trigger_sub_action(self, funcao):
+        if self.index.isValid():
+            source_index = self.model.mapToSource(self.index)
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            if not df_registro_selecionado.empty:
+                funcao(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Dados não encontrados.")
 
-    def adicionar_submenu(self, titulo, opcoes):
-        submenu = QMenu(titulo, self)
-        submenu.setStyleSheet(self.styleSheet())
-        for texto, funcao in opcoes:
-            sub_acao = QAction(texto, submenu)
-            sub_acao.triggered.connect(partial(self.executar_sub_acao, funcao))
-            submenu.addAction(sub_acao)
-        self.addMenu(submenu)
-
-    def buscar_e_executar(self, metodo_acao, verifica_vazio=True):
-        if not self.index.isValid():
+    def trigger_action(self, actionText):
+        if self.index.isValid():
+            if isinstance(self.model, QSortFilterProxyModel):
+                source_index = self.model.mapToSource(self.index)
+            else:
+                source_index = self.index
+            
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
+            if not df_registro_selecionado.empty:
+                if actionText == "Editar Dados do Processo":
+                    self.editar_dados(df_registro_selecionado)
+                elif actionText == "1. Autorização para Abertura de Licitação":
+                    self.openDialogAutorizacao(df_registro_selecionado)
+                elif actionText == "2. Portaria de Equipe de Planejamento":
+                    self.openDialogPortariaPlanejamento(df_registro_selecionado)
+                elif actionText == "3. Documento de Formalização de Demanda (DFD)":
+                    self.openDialogDFD(df_registro_selecionado)
+                elif actionText == "5. Mensagem de Divulgação de IRP":
+                    self.abrirDialogoIRP(df_registro_selecionado)
+                elif actionText == "6. Estudo Técnico Preliminar (ETP)":
+                    self.openDialogETP(df_registro_selecionado)
+                elif actionText == "8. Matriz de Riscos":
+                    self.openDialogMatrizRiscos(df_registro_selecionado)
+                elif actionText == "12. CP Encaminhamento AGU":
+                    self.openDialogEncaminhamentoAGU(df_registro_selecionado)
+                elif actionText == "14. Escalar Pregoeiro":
+                    self.openDialogEscalarPregoeiro(df_registro_selecionado)
+                elif actionText == "15. Mensagem de Publicação":
+                    self.abrirDialogoPublicacao(df_registro_selecionado)
+                elif actionText == "16. Mensagem de Homologação":
+                    self.abrirDialogoHomologacao(df_registro_selecionado)
+                elif actionText == "10. Check-list":
+                    self.openChecklistDialog(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
             QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
-            return
 
-        indice_origem = self.model.mapToSource(self.index) if isinstance(self.model, QSortFilterProxyModel) else self.index
-        linha_selecionada = indice_origem.row()
-        df_registro_selecionado = carregar_dados_pregao(linha_selecionada, str(self.main_app.database_path))
+    # No final da classe TableMenu:
+    def on_get_pregoeiro(self):
+        id_processo = self.df_licitacao_completo['id_processo'].iloc[0]
+        dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, id_processo, self)
+        dialog.exec()
 
-        if not df_registro_selecionado.empty or not verifica_vazio:
-            metodo_acao(df_registro_selecionado)
-        else:
-            QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+    def openDialogIRPManifesto(self, df_registro_selecionado):
+        dialog = GerarManifestoIRP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
-    def executar_sub_acao(self, funcao):
-        self.buscar_e_executar(funcao)
-
-    def executar_acao(self, texto_acao):
-        metodo_acao = self.metodos_acao.get(texto_acao)
-        if metodo_acao:
-            self.buscar_e_executar(metodo_acao)
-        else:
-            QMessageBox.warning(self, "Erro", "Ação não configurada: " + texto_acao)
-
-    def abrir_dialogo_padrao(self, dialog_class, df_registro_selecionado, extra_data=None):
-        try:
-            if df_registro_selecionado.empty:
-                QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
-                return
-            dialog = dialog_class(self.main_app, self.config_manager, df_registro_selecionado, extra_data)
-            dialog.exec()
-        except Exception as e:
-            QMessageBox.warning(self, "Erro", "Falha ao abrir o diálogo: " + str(e))
-
-    def editar_dados(self, df_registro_selecionado):
+    def abrirDialogoIRP(self, df_registro_selecionado):
         if not df_registro_selecionado.empty:
-            dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
-            dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
-            dialog.show()
-        else:
-            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
-
-    def abrir_dialogo_autorizacao(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(AutorizacaoAberturaLicitacaoDialog, df_registro_selecionado)
-
-    def abrir_dialogo_portaria_planejamento(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(GerarPortariaPlanejamento, df_registro_selecionado)
-
-    def abrir_dialogo_dfd(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(GerarDFD, df_registro_selecionado)
-
-    def abrir_dialogo_manifesto_irp(self, df_registro_selecionado):
-        if not df_registro_selecionado.empty:
-            dados = df_registro_selecionado.iloc[0].to_dict() 
+            dados = df_registro_selecionado.iloc[0].to_dict()
             dialogo = MSGIRP(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
             dialogo.exec()
         else:
             QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
 
-    def abrir_dialogo_etp(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(GerarETP, df_registro_selecionado)
-
-    def openDialogMatrizRiscos(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(GerarMR, df_registro_selecionado)
-
-    def on_get_pregoeiro(self):
-        id_processo = self.df_licitacao_completo['id_processo'].iloc[0] if not self.df_licitacao_completo.empty else None
-        if id_processo:
-            self.abrir_dialogo_padrao(EscalarPregoeiroDialog, self.df_licitacao_completo, id_processo)
+    def abrirDialogoPublicacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGPublicacao(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
         else:
-            QMessageBox.warning(self, "Aviso", "Nenhum processo selecionado.")
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def abrirDialogoHomologacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGHomolog(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def editar_dados(self, df_registro_selecionado):
+        dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
+        dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
+        dialog.show()
 
     def openChecklistDialog(self, df_registro_selecionado):
         dialog = QDialog(self)
@@ -236,32 +259,50 @@ class MenuOpcoes(QMenu):
         layout.addWidget(checklist_widget)
         dialog.exec()
 
-    def openDialogIRPManifesto(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(GerarManifestoIRP, df_registro_selecionado)
-        
-    def abrirDialogoPublicacao(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(MSGPublicacao, df_registro_selecionado, extra_data=str(ICONS_DIR))
+    def openDialogDFD(self, df_registro_selecionado):
+        dialog = GerarDFD(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
-    def abrirDialogoHomologacao(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(MSGHomolog, df_registro_selecionado, extra_data=str(ICONS_DIR))
+    def openDialogAutorizacao(self, df_registro_selecionado):
+        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogPortariaPlanejamento(self, df_registro_selecionado):
+        dialog = GerarPortariaPlanejamento(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogETP(self, df_registro_selecionado):
+        dialog = GerarETP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogMatrizRiscos(self, df_registro_selecionado):
+        dialog = GerarMR(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
     def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(CPEncaminhamentoAGU, df_registro_selecionado)
+        dialog = CPEncaminhamentoAGU(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
     def openDialogCapaEdital(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(CapaEdital, df_registro_selecionado)
+        dialog = CapaEdital(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+
+
 
     def openDialogEdital(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(EditalDialog, df_registro_selecionado)
-
-    def openDialogEscalarPregoeiro(self, df_registro_selecionado):
-        self.abrir_dialogo_padrao(EscalarPregoeiroDialog, df_registro_selecionado)
+        dialog = EditalDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
     def openDialogContrato(self, df_registro_selecionado):
         pass
 
     def openDialogAtaRegistro(self, df_registro_selecionado):
         pass
+
+    def openDialogEscalarPregoeiro(self, df_registro_selecionado):
+        dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
 
 class CustomItemDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
@@ -337,6 +378,7 @@ class ApplicationUI(QMainWindow):
     def atualizar_tabela(self):
         self.model.select()
         self.table_view.viewport().update()
+        logging.debug("Tabela atualizada.")
 
     def ensure_database_exists(self):
         with self.database_manager as conn:
@@ -456,7 +498,6 @@ class ApplicationUI(QMainWindow):
         header.resizeSection(6, 260)  # Define o tamanho inicial
         header.setMinimumSectionSize(110)  # Define o tamanho mínimo
 
-
     def on_header_clicked(self, logicalIndex):
         # Alternar entre ordenação ascendente e descendente
         ascending = self.table_view.horizontalHeader().sortIndicatorOrder() == Qt.SortOrder.AscendingOrder
@@ -466,11 +507,15 @@ class ApplicationUI(QMainWindow):
         if selected.indexes():
             proxy_index = selected.indexes()[0]
             source_index = self.proxy_model.mapToSource(proxy_index)
-            print(f"Selecionado no proxy: row {proxy_index.row()}, column {proxy_index.column()}")
-            print(f"Correspondente no modelo fonte: row {source_index.row()}, column {source_index.column()}")
+            logging.debug(f"Selecionado no proxy: row {proxy_index.row()}, column {proxy_index.column()}")
+            logging.debug(f"Correspondente no modelo fonte: row {source_index.row()}, column {source_index.column()}")
 
             df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.database_path)
-            print(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
+            if not df_registro_selecionado.empty:
+                logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
+            else:
+                logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+                QMessageBox.warning(self, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
 
     def _setup_buttons_layout(self):
         self.buttons_layout = QHBoxLayout()

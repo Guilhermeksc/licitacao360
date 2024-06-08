@@ -1,0 +1,11 @@
+Item: 164, Descrição: Luminária, Unidade de Fornecimento: Unidade, Quantidade: 650
+Descrição detalhada: Luminária Material Corpo: Alumínio/Acrílico , Componentes: Drive Interno , Aplicação: Iluminação Interna , Temperatura De Cor: 6.000 K, Fluxo Luminoso: 1.840 LM, Cor: Luz Branca Frio , Potência Nominal Lâmpada: 24 W, Tensão Nominal: Bivolt V, Tipo Lâmpada: Led , Instalação: Teto Ou Parede , Posição Relativa: Embutir , Formato: Quadrado
+Valor Estimado: 24.017,50, Valor Homologado: 12.356,50, Valor Total do Item: 12.356,50
+Marca: AVANT, Fabricante: AVANT, Modelo / Versão: AVANT
+
+Item: 165, Descrição: Luminária, Unidade de Fornecimento: Unidade, Quantidade: 383
+Descrição detalhada: Luminária Material Corpo: Alumínio Injetado Alta Pressão , Material Difusor: Policarbonato Leitoso , Aplicação: Iluminação Interna , Temperatura De Cor: 6.000 K, Fluxo Luminoso: 1.400 LM, Cor: Branca , Dimensões: 22 X 22 X 2,5 CM, Tipo: Embutir , Potência Nominal Lâmpada: 18 W, Tensão Nominal: 220 V, Tipo Lâmpada: Led , Posição Relativa: Embutir , Formato: Redondo
+Valor Estimado: 7.211,89, Valor Homologado: 5.921,18, Valor Total do Item: 5.921,18
+Marca: AVANT, Fabricante: AVANT, Modelo / Versão: AVANT
+
+Valor Total da Ata: R$ 18.277,68

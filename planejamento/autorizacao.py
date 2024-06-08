@@ -14,24 +14,21 @@ from win32com.client import Dispatch
 import time
 import sqlite3
 
+import traceback
+import logging
+
 class AutorizacaoAberturaLicitacaoDialog(QDialog):
-    dados_atualizados = pyqtSignal()
-    
     def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)
-        self.setup_atributos(main_app, config_manager, df_registro)
-        self.initUI()
-
-    def setup_atributos(self, main_app, config_manager, df_registro):
         self.main_app = main_app
+        self.config_manager = config_manager 
         self.df_registro = df_registro
-        self.config_manager = config_manager
-        self.extrair_registro_df()
-        self.setup_pasta_base()
 
-    def extrair_registro_df(self):
+        # Certifique-se de que df_registro tem pelo menos um registro
         if not self.df_registro.empty:
-            self.id_processo = self.df_registro['id_processo'].iloc[0].replace('/', '-')
+            self.id = self.df_registro['id'].iloc[0]
+            id_processo_original = self.df_registro['id_processo'].iloc[0]
+            self.id_processo = id_processo_original.replace('/', '-')
             self.tipo = self.df_registro['tipo'].iloc[0]
             self.numero = self.df_registro['numero'].iloc[0]
             self.ano = self.df_registro['ano'].iloc[0]
@@ -43,22 +40,21 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.uasg = self.df_registro['uasg'].iloc[0]
             self.sigla_om = self.df_registro['sigla_om'].iloc[0]
             self.material_servico = self.df_registro['material_servico'].iloc[0]
-
-    def setup_pasta_base(self):
-        default_path = str(Path.home() / 'Desktop')  # Define o caminho padrão
-        save_location = self.config_manager.get_config('save_location', default_path)
-        self.pasta_base = Path(save_location)  
-        
-    def initUI(self):
+            self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
         self.setWindowTitle("Autorização para abertura de processo administrativo")
-        self.setFixedSize(1250, 550)
+        self.setFixedSize(1250, 550)        
+        self.pasta = ''
+
         self.layoutPrincipal = QVBoxLayout()
         self.layoutPrincipal.addLayout(self.cabecalho_layout())
         self.criar_layouts()
         self.setupUi()
         self.aplicar_estilos()
         self.setLayout(self.layoutPrincipal)
+        
         self.config_manager.config_updated.connect(self.update_save_location)
+
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
 
     def cabecalho_layout(self):
         header_layout = QHBoxLayout()

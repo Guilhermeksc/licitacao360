@@ -1,0 +1,6 @@
+Item: 219, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 24
+Descrição detalhada: Estabilizador tensão, capacidade nominal:1200 va -NEW 1200 FULL BLACK STD TI ▪ FP: 0,5 ▪ 600W ▪ Tensão de Entrada: TRIVOLT AUTOMAT ▪ Tensão de Saída 115V ▪ Tomadas: 6 ▪ Bateria: 1x12V/7Ah ▪ Recursos: TROCA FÁCIL DE BATERIAS / AP ║ Onda Senoidal: Por aproximação (PWM)
+Valor Estimado: 13.392,00, Valor Homologado: 12.816,00, Valor Total do Item: 12.816,00
+Marca: RAGTECH, Fabricante: RAGTECH, Modelo / Versão: NOBREAK NEW EASY WAY 1200VA - CÓD: 4133
+
+Valor Total da Ata: R$ 12.816,00

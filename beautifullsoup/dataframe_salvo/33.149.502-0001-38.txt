@@ -1,0 +1,46 @@
+Item: , Descrição: Grupo 22, Unidade de Fornecimento: -, Quantidade: -
+Descrição detalhada: 
+Valor Estimado: 0,00, Valor Homologado: 16.125,65, Valor Total do Item: 16.125,65
+Marca: , Fabricante: , Modelo / Versão: 
+
+Item: , Descrição: Grupo 29, Unidade de Fornecimento: -, Quantidade: -
+Descrição detalhada: 
+Valor Estimado: 0,00, Valor Homologado: 8.455,81, Valor Total do Item: 8.455,81
+Marca: , Fabricante: , Modelo / Versão: 
+
+Item: 162, Descrição: Luminária, Unidade de Fornecimento: Unidade, Quantidade: 200
+Descrição detalhada: Luminária, tipo:tartaruga, material corpo:termoplás!co de engenharia, quantidade lâmpadas:1 un, tipo soquete:cerâmico com base e-27, material difusor:acrílico transparente, fixação:encaixe, potência nominal lâmpada:100 w
+Valor Estimado: 2.716,00, Valor Homologado: 2.608,00, Valor Total do Item: 2.608,00
+Marca: plaslumi, Fabricante: plaslumi, Modelo / Versão: e27
+
+Item: 198, Descrição: Conector adaptação terminal, Unidade de Fornecimento: Unidade, Quantidade: 975
+Descrição detalhada: Conector adaptação terminal, uso:cabo 4,0 mm2 e 6,0 mm2, !po terminal:garfo
+Valor Estimado: 633,75, Valor Homologado: 633,75, Valor Total do Item: 633,75
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TG4481
+
+Item: 199, Descrição: Terminal cabo, Unidade de Fornecimento: Unidade, Quantidade: 661
+Descrição detalhada: Terminal cabo, material:cobre estanhado, fixação:compressão, seção nominal condutor:16 mm2
+Valor Estimado: 1.255,90, Valor Homologado: 1.255,90, Valor Total do Item: 1.255,90
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TC0668
+
+Item: 200, Descrição: Terminal cabo, Unidade de Fornecimento: Unidade, Quantidade: 774
+Descrição detalhada: Terminal cabo, seção nominal condutor:10 mm2, lingueta:olhal
+Valor Estimado: 1.431,90, Valor Homologado: 1.431,90, Valor Total do Item: 1.431,90
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TC0650
+
+Item: 205, Descrição: Terminal elétrico, Unidade de Fornecimento: Unidade, Quantidade: 631
+Descrição detalhada: Terminal elétrico, material:liga de cobre, aplicação:cabo elétrico, fixação:por compressão, seção nominal condutor:25 mm2
+Valor Estimado: 3.464,19, Valor Homologado: 3.028,80, Valor Total do Item: 3.028,80
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TC0689
+
+Item: 206, Descrição: Terminal elétrico, Unidade de Fornecimento: Unidade, Quantidade: 600
+Descrição detalhada: Terminal elétrico, material:liga de cobre, aplicação:cabo elétrico, fixação:por compressão, seção nominal condutor:70 mm2
+Valor Estimado: 6.186,00, Valor Homologado: 3.846,00, Valor Total do Item: 3.846,00
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TC1017
+
+Item: 207, Descrição: Terminal elétrico, Unidade de Fornecimento: Unidade, Quantidade: 600
+Descrição detalhada: Terminal elétrico, material:liga de cobre, fixação:por compressão, seção nominal condutor:150 mm2
+Valor Estimado: 14.760,00, Valor Homologado: 10.140,00, Valor Total do Item: 10.140,00
+Marca: DECORLUX, Fabricante: DECORLUX, Modelo / Versão: TC1727
+
+Valor Total da Ata: R$ 47.525,81

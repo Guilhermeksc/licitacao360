@@ -1,0 +1,111 @@
+Item: , Descrição: Grupo 15, Unidade de Fornecimento: -, Quantidade: -
+Descrição detalhada: 
+Valor Estimado: 0,00, Valor Homologado: 9.896,75, Valor Total do Item: 9.896,75
+Marca: , Fabricante: , Modelo / Versão: 
+
+Item: 44, Descrição: Cabo áudio e vídeo, Unidade de Fornecimento: Unidade, Quantidade: 49
+Descrição detalhada: CABO ÁUDIO E VÍDEO, APLICAÇÃO CAIXA/MESA SOM, TIPO CABO P10/XLR MACHO,        COMPRIMENTO 15 M
+Valor Estimado: 5.031,81, Valor Homologado: 4.802,00, Valor Total do Item: 4.802,00
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 46, Descrição: Cabo Áudio E Vídeo, Unidade de Fornecimento: Unidade, Quantidade: 16
+Descrição detalhada: CABO ÁUDIO E VÍDEO, MATERIAL CONDUTOR COBRE, MATERIAL ISOLAMENTO CONDUTOR PVC,APLICAÇÃO MICROFONE, ACESSÓRIOS CONECTOR XLR, MATERIAL COBERTURA PVC          EMBORRACHADO, COMPRIMENTO 1 M
+Valor Estimado: 1.152,00, Valor Homologado: 1.128,96, Valor Total do Item: 1.128,96
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 47, Descrição: Cabo áudio e vídeo, Unidade de Fornecimento: Unidade, Quantidade: 31
+Descrição detalhada: CABO ÁUDIO E VÍDEO, MATERIAL CONDUTOR COBRE, MATERIAL ISOLAMENTO CONDUTOR PVC,APLICAÇÃO MICROFONE, ACESSÓRIOS CONECTOR XLR MACHO E FÊMEA, MATERIAL COBERTURAPVC EMBORRACHADO, COMPRIMENTO 20 M
+Valor Estimado: 4.570,95, Valor Homologado: 4.405,10, Valor Total do Item: 4.405,10
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 50, Descrição: Microfone, Unidade de Fornecimento: Unidade, Quantidade: 18
+Descrição detalhada: MICROFONE, TIPO DE MÃO, RESPOSTA FREQÜÊNCIA 55-18000 HZ, TIPO RECEPTOR PADRÃO RACK 19 POLEGADAS COM 2 ANTENAS, CARACTERÍSTICAS ADICIONAIS UHF, KIT DE       MONTAGEM, ALCANCE MÍNIMO 100 M, ALIMENTAÇÃO EXTERNA RECEPTOR 110/220 V,       ALIMENTAÇÃO RECEPTOR 3 V, APLICAÇÃO AUDITÓRIO, PADRÃO POLAR HIPERCARDIÓIDE,   MATERIAL CORPO DE METAL, COR PRETA, POTÊNCIA DE SAÍDA MÍNIMA 10 MW, REFERÊNCIAFABRICANTE BEYERDINAMIC NE 900D, RELAÇÃO SINAL/ RUIDO MENOR QUE 110 DB
+Valor Estimado: 25.864,92, Valor Homologado: 7.758,00, Valor Total do Item: 7.758,00
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 52, Descrição: Microfone, Unidade de Fornecimento: Unidade, Quantidade: 16
+Descrição detalhada: MICROFONE, TIPO SEM FIO, ALIMENTAÇÃO PILHA, RESPOSTA FREQÜÊNCIA UHF ACIMA DE  700 MHZ MHZ, TIPO RECEPTOR UHF, ALCANCE 50 M, APLICAÇÃO AUDITÓRIO, PADRÃO     POLAR CARDIÓIDE, SENSIBILIDADE +/- 3 DB, MATERIAL CORPO EM ALUMÍNIO, COR PRETA
+Valor Estimado: 7.275,04, Valor Homologado: 5.331,20, Valor Total do Item: 5.331,20
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 54, Descrição: Pedestal caixa acústica, Unidade de Fornecimento: Unidade, Quantidade: 20
+Descrição detalhada: PEDESTAL CAIXA ACÚSTICA, MATERIAL HASTE AÇO CARBONO, COR PRETA, ALTURA ABERTO MÁX. 1,90M FECHADO MÁX. 1,60 M
+Valor Estimado: 2.851,20, Valor Homologado: 2.783,20, Valor Total do Item: 2.783,20
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 55, Descrição: Pedestal microfone, Unidade de Fornecimento: Unidade, Quantidade: 19
+Descrição detalhada: PEDESTAL MICROFONE, MATERIAL BASE SUSTENTAÇÃO FERRO, TIPO DE MESA, FORMATO    BASE REDONDO, ACABAMENTO SUPERFICIAL PINTURA ELETROSTÁTICA, COR PRETA, TIPO   HASTE FLEXÍVEL COM SUPORTE, COMPRIMENTO HASTE 30 CM
+Valor Estimado: 1.189,40, Valor Homologado: 1.189,40, Valor Total do Item: 1.189,40
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 56, Descrição: Pedestal microfone, Unidade de Fornecimento: Unidade, Quantidade: 20
+Descrição detalhada: PEDESTAL MICROFONE, MATERIAL BASE SUSTENTAÇÃO AÇO CARBONO, TIPO GIRAFA,       FORMATO BASE TRIPÉ DOBRÁVEL, ACABAMENTO SUPERFICIAL PINTURA ELETROSTÁTICA,    TIPO HASTE TELESCÓPICA, CARACTERÍSTICAS ADICIONAIS HASTE COM REGULAGEM DE     ALTURA E INCLINAÇÃO, ALTURA 1,95 M
+Valor Estimado: 2.600,00, Valor Homologado: 2.548,00, Valor Total do Item: 2.548,00
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 119, Descrição: Disjuntor baixa tensão, Unidade de Fornecimento: Unidade, Quantidade: 16
+Descrição detalhada: DISJUNTOR BAIXA TENSÃO, FUNCIONAMENTO TERMOMAGNÉTICO, TENSÃO MÁXIMA OPERAÇÃO  127/220 V, CORRENTE NOMINAL 4 A, NÚMERO DE FASES MONOPOLAR, CURVA DE DISPARO C, APLICAÇÃO INSTALAÇÕES ELÉTRICAS, PADRÃO DIN
+Valor Estimado: 760,00, Valor Homologado: 760,00, Valor Total do Item: 760,00
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 123, Descrição: Disjuntor baixa tensão, Unidade de Fornecimento: Unidade, Quantidade: 25
+Descrição detalhada: DISJUNTOR BAIXA TENSÃO, FUNCIONAMENTO TERMOMAGNÉTICO, TENSÃO MÁXIMA OPERAÇÃO  127/220 V, CORRENTE NOMINAL 63 A, NÚMERO DE FASES TRIPOLAR, CURVA DE DISPARO C, APLICAÇÃO INSTALAÇÕES ELÉTRICAS, PADRÃO DIN
+Valor Estimado: 2.291,25, Valor Homologado: 867,25, Valor Total do Item: 867,25
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 131, Descrição: Eletroduto, Unidade de Fornecimento: Metro, Quantidade: 280
+Descrição detalhada: ELETRODUTO, MATERIAL POLIETILENO ALTA DENSIDADE, TIPO CORRUGADO, COR PRETA,   APLICAÇÃO CABO SUBTERRÂNEO, CARACTERÍSTICAS ADICIONAIS FLEXÍVEL ,IMPERMEAVEL EESFORÇO COM COMPRESSÃO DI A, ACESSÓRIOS GUIA, DIÂMETRO NOMINAL 1 1/2 POL,     REFERÊNCIA FABRICANTE KANAFLEX
+Valor Estimado: 1.506,40, Valor Homologado: 1.506,40, Valor Total do Item: 1.506,40
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 181, Descrição: Refletor, Unidade de Fornecimento: Unidade, Quantidade: 90
+Descrição detalhada: REFLETOR, MATERIAL CORPO ALUMÍNIO, FORMATO RETANGULAR, TIPO RGB 200W,         APLICAÇÃO SISTEMA DE ILUMINAÇÃO, TIPO LÂMPADA MICROLED, TENSÃO ALIMENTAÇÃO    BIVOLT, GRAU PROTEÇÃO IP-66, COMPRIMENTO 70 MM, LARGURA 280 MM, ALTURA 210 MM,COR PRETA, ÂNGULO DE ABERTURA DA LENTE 120¨, FLUXO LUMINOSO 18.000 LM
+Valor Estimado: 5.091,30, Valor Homologado: 4.153,50, Valor Total do Item: 4.153,50
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 213, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 58
+Descrição detalhada: ESTABILIZADOR TENSÃO, TENSÃO ALIMENTAÇÃO ENTRADA 110/220 V, CARACTERÍSTICAS   ADICIONAIS CERTIFICADO INMETRO; GARANTIA 12 MESES, QUANTIDADE TOMADAS SAÍDA 4 COM 3 PINOS, VARIAÇÃO ENTRADA +/- 15%, CAPACIDADE NOMINAL 600 VA, TIPO ALARME LED INDICADOR BATERIA BAIXA E SOBRECARGA, BATERIA SELADA, AUTONOMIA BATERIA 20MIN
+Valor Estimado: 24.360,00, Valor Homologado: 15.631,00, Valor Total do Item: 15.631,00
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 215, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 26
+Descrição detalhada: ESTABILIZADOR TENSÃO, CAPACIDADE NOMINAL 2 KVA, TIPO ONDA SENOIDAL, NORMAS    TÉCNICAS NBR14136, TIPO NOBREAK
+Valor Estimado: 53.151,80, Valor Homologado: 28.524,86, Valor Total do Item: 28.524,86
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 221, Descrição: Fonte auxiliar partida, Unidade de Fornecimento: Unidade, Quantidade: 3
+Descrição detalhada: FONTE AUXILIAR PARTIDA, FINALIDADE VEÍCULO AUTOMOTOR, COMPONENTES CARREGADOR  INTELIGENTE/CABO MACHO-MACHO, TENSÃO SAÍDA 12 VDC, CORRENTE SAÍDA 40 AH,      COMPRIMENTO 290 MM, LARGURA 200 MM, ALTURA 290 MM, PESO 10 KG, CORRENTE DE    PARTIDA 460 A
+Valor Estimado: 7.264,26, Valor Homologado: 7.264,26, Valor Total do Item: 7.264,26
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 231, Descrição: Resistência elétrica, Unidade de Fornecimento: Unidade, Quantidade: 58
+Descrição detalhada: RESISTÊNCIA ELÉTRICA, POTÊNCIA 4.400 W, TENSÃO 220 VOLT, USO CHUVEIRO ELÉTRICO, COMPATIBILIDADE MODELO 020
+Valor Estimado: 1.409,40, Valor Homologado: 1.409,40, Valor Total do Item: 1.409,40
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 233, Descrição: Resistência elétrica, Unidade de Fornecimento: Unidade, Quantidade: 182
+Descrição detalhada: RESISTÊNCIA ELÉTRICA, APLICAÇÃO CHUVEIRO ELÉTRICO, MARCA LORENZETTI,          CARACTERÍSTICAS ADICIONAIS 3 TEMPERATURAS, TENSÃO NOMINAL 220 V, POTÊNCIA     NOMINAL 5500 W
+Valor Estimado: 6.069,70, Valor Homologado: 5.947,76, Valor Total do Item: 5.947,76
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 258, Descrição: Alicate bico, Unidade de Fornecimento: Unidade, Quantidade: 44
+Descrição detalhada: ALICATE BICO, MATERIAL AÇO CROMO VANÁDIO, TIPO FINO E CURVO, TIPO CABO ISOLADO, COMPRIMENTO 8 POL, APLICAÇÃO MANUTENÇÃO EQUIPAMENTOS ELETRÔNICOS
+Valor Estimado: 3.970,56, Valor Homologado: 3.970,56, Valor Total do Item: 3.970,56
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 259, Descrição: Alicate de corte, Unidade de Fornecimento: Unidade, Quantidade: 76
+Descrição detalhada: ALICATE DE CORTE, MATERIAL AÇO CROMO VANÁDIO, TIPO CORTE DIAGONAL, MATERIAL   CABO PLÁSTICO, TIPO CABO ISOLADO 1.OOO VOLTS, COMPRIMENTO 6 POL
+Valor Estimado: 2.070,24, Valor Homologado: 2.070,24, Valor Total do Item: 2.070,24
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 260, Descrição: Alicate descascar fio, Unidade de Fornecimento: Unidade, Quantidade: 33
+Descrição detalhada: ALICATE DESCASCAR FIO, MATERIAL AÇO, COMPRIMENTO 112 MM, ACABAMENTO           REVESTIMENTO ISOLADO, CARACTERÍSTICAS ADICIONAIS CABO UTP/FTP CFTV RG58/RG59/ RG62,CABOS ELÉTRICOS
+Valor Estimado: 1.308,12, Valor Homologado: 1.308,12, Valor Total do Item: 1.308,12
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Item: 275, Descrição: Multímetro, Unidade de Fornecimento: Unidade, Quantidade: 34
+Descrição detalhada: MULTÍMETRO, TENSÃO 1.000 V, TENSÃO AC 2,5 A 1.000 V, CORRENTE DC 50 MA A 10 A,RESISTÊNCIA 0-2 KOHM A 0-20 MOHM, CARACTERÍSTICAS ADICIONAIS COM PROTEÇÃO DE  SOBRECARGA E BATERIAS INTERNAS, TENSÃO DC 250 MV A 1.000 V, TIPO ANALÓGICO E  PORTÁTIL, SENSIBILIDADE 20 KOHM/V (DC) E 5 KOHM/V (AC), FUNCIONAMENTO BATERIAS1,5V (AA), DIMENSÕES 180 X 140 X 80 MM, PESO 1.400 G
+Valor Estimado: 2.005,66, Valor Homologado: 1.965,54, Valor Total do Item: 1.965,54
+Marca: SIMILAR, Fabricante: SIMILAR, Modelo / Versão: SIMILAR
+
+Valor Total da Ata: R$ 115.221,50

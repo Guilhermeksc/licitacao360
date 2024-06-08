@@ -287,7 +287,16 @@ class MainWindow(QMainWindow):
             self.active_buttonin = self.buttons[button_name]
 
 def main():
+    logging.basicConfig(level=logging.DEBUG,  # Mudança para DEBUG para mais detalhes
+                        format='%(asctime)s %(levelname)s:%(message)s',
+                        handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
     app = QApplication(sys.argv)
+    
+    def handle_exit():
+        logging.info("Aplicação está fechando.")
+    
+    app.aboutToQuit.connect(handle_exit)
+    
     try:
         window = MainWindow()
         window.show()

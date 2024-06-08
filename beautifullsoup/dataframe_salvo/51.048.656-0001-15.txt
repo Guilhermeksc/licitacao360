@@ -1,0 +1,36 @@
+Item: , Descrição: Grupo 16, Unidade de Fornecimento: -, Quantidade: -
+Descrição detalhada: 
+Valor Estimado: 0,00, Valor Homologado: 7.043,81, Valor Total do Item: 7.043,81
+Marca: , Fabricante: , Modelo / Versão: 
+
+Item: 107, Descrição: Disjuntor baixa tensão, Unidade de Fornecimento: Unidade, Quantidade: 185
+Descrição detalhada: Disjuntor baixa tensão trifásico 30a
+Valor Estimado: 6.454,65, Valor Homologado: 5.831,20, Valor Total do Item: 5.831,20
+Marca: LUKMA, Fabricante: LUKMA, Modelo / Versão: DISJUNTOR DIN
+
+Item: 183, Descrição: Refletor, Unidade de Fornecimento: Unidade, Quantidade: 105
+Descrição detalhada: Refletor 100w
+Valor Estimado: 6.289,50, Valor Homologado: 3.301,20, Valor Total do Item: 3.301,20
+Marca: ATHLANTA, Fabricante: ATHLANTA, Modelo / Versão: REFLETOR LED
+
+Item: 236, Descrição: Cabo elétrico flexível, Unidade de Fornecimento: Metro, Quantidade: 1700
+Descrição detalhada: Cabo elétrico flexível:3 x 2,5 mm2
+Valor Estimado: 10.200,00, Valor Homologado: 9.163,00, Valor Total do Item: 9.163,00
+Marca: MASTER COPPER, Fabricante: PORTO CABOS, Modelo / Versão: CABO PP
+
+Item: 252, Descrição: Cabo Elétrico Isolado, Unidade de Fornecimento: Rolo 100,00 M, Quantidade: 86
+Descrição detalhada: Cabo elétrico isolado 6mm2
+Valor Estimado: 29.240,00, Valor Homologado: 25.889,44, Valor Total do Item: 25.889,44
+Marca: MASTER COPPER, Fabricante: PORTO CABOS, Modelo / Versão: CABO FLEXIVEL
+
+Item: 253, Descrição: Cabo elétrico isolado, Unidade de Fornecimento: Rolo 100,00 M, Quantidade: 82
+Descrição detalhada: Cabo elétrico isolado 10mm2
+Valor Estimado: 44.210,30, Valor Homologado: 44.210,30, Valor Total do Item: 44.210,30
+Marca: MASTER COPPER, Fabricante: PORTO CABOS, Modelo / Versão: CABO FLEXIVEL
+
+Item: 254, Descrição: Cabo Elétrico Isolado, Unidade de Fornecimento: Rolo 100,00 M, Quantidade: 146
+Descrição detalhada: Cabo elétrico isolado 2,5mm2
+Valor Estimado: 17.045,50, Valor Homologado: 17.045,50, Valor Total do Item: 17.045,50
+Marca: MASTER COPPER, Fabricante: PORTO CABOS, Modelo / Versão: CABO FLEXIVEL
+
+Valor Total da Ata: R$ 112.484,45

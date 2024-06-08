@@ -1,0 +1,6 @@
+Item: 216, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 21
+Descrição detalhada: NOBREAK NEW SAVE HOME 600VA - CÓD: 4114   NSH 600 STD TI FULL BLACK ▪ FP: 0,5 ▪ 300W ▪ Tensão de Entrada: TRIVOLT AUTOMAT ▪ Tensão de Saída 115V ▪ Tomadas: 6 ▪ Bateria: 1x12V/5Ah ▪ Recursos: TROCA FÁCIL DE BATERIAS / ABS ANTI CHAMA / ORGANIZADOR DE CABOS / BOTÃO TEMPORIZADO ║ Onda Senoidal: Por aproximação (PWM)  GARANTIA: 12 MESES BALCÃO
+Valor Estimado: 7.770,00, Valor Homologado: 7.749,00, Valor Total do Item: 7.749,00
+Marca: RAGTECH, Fabricante: RAGTECH, Modelo / Versão: 600VA 4114
+
+Valor Total da Ata: R$ 7.749,00

@@ -1,0 +1,11 @@
+Item: 214, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 123
+Descrição detalhada: Estabilizador Tensão Capacidade: 1 KVA, Tensão Alimentação Entrada: 110/220 V, Tensão Alimentação Saída: 115 V, Características Adicionais: 4 Tomadas
+Valor Estimado: 51.764,55, Valor Homologado: 29.893,92, Valor Total do Item: 29.893,92
+Marca: CR ENERGIA, Fabricante: CR ENERGIA, Modelo / Versão: 1 KVA
+
+Item: 218, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 18
+Descrição detalhada: Estabilizador Tensão Bateria: Selada , Tensão Alimentação Entrada: 220 V, Autonomia Bateria: 20 Min , Quantidade Tomadas Saída: 6 , Tipo Onda: Senoidal Pura, apenas no MODO REDE e Com Controle Digital , Tipo: On Line Dupla Conversão , Freqüência: 60 HZ, Tensão Saída: 110 V, Capacidade Nominal: 3 KVA.
+Valor Estimado: 40.500,00, Valor Homologado: 39.690,00, Valor Total do Item: 39.690,00
+Marca: CR ENERGIA, Fabricante: CR ENERGIA, Modelo / Versão: 3 KVA
+
+Valor Total da Ata: R$ 69.583,92
