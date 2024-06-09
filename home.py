@@ -229,9 +229,11 @@ class MainWindow(QMainWindow):
                 action()
 
     def setup_planejamento(self):
+        print("Configurando Planejamento...")
         self.clear_content_area()
         self.application_ui = ApplicationUI(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
+        print("Planejamento configurado e adicionado ao layout de conteúdo.")
 
     def setup_controle_contratos(self):
         self.clear_content_area()

@@ -201,6 +201,7 @@ class SeleniumAutomacao(QWidget):
             if elemento:
                 elemento.click()
                 print(f"Clicado com sucesso no elemento: {selector}")
+                return True  # Indica sucesso
         except TimeoutException:
             print(f"Timeout: O elemento {selector} não ficou clicável após {timeout} segundos.")
         except NoSuchElementException:
@@ -208,18 +209,31 @@ class SeleniumAutomacao(QWidget):
         except Exception as e:
             print(f"Erro ao clicar no elemento {selector}: {e}")
 
+        return False  # Indica falha
+
     def esperar_elemento_clicavel(self, selector, by=By.CSS_SELECTOR, timeout=10):
         return WebDriverWait(self.driver, timeout).until(
             EC.element_to_be_clickable((by, selector))
         )
 
     def esperar_e_preencher(self, selector, texto, by=By.CSS_SELECTOR, timeout=20):
-        elemento = self.esperar_elemento_visivel(selector, by, timeout)
-        if elemento:
-            elemento.clear()
-            elemento.send_keys(texto)
-        else:
-            print(f"Não foi possível preencher o campo de texto: {selector}")
+        try:
+            # Aguardar até que o elemento seja visível e possa ser interagido
+            elemento = WebDriverWait(self.driver, timeout).until(
+                EC.visibility_of_element_located((by, selector))
+            )
+            if elemento:
+                elemento.clear()
+                elemento.send_keys(texto)
+                print(f"Campo preenchido com sucesso: {texto}")
+                return True
+        except TimeoutException:
+            print(f"Timeout: O elemento {selector} não ficou visível após {timeout} segundos.")
+        except NoSuchElementException:
+            print(f"Elemento não encontrado: {selector}")
+        except Exception as e:
+            print(f"Erro ao preencher o elemento {selector}: {e}")
+        return False
 
     def esperar_elemento_visivel(self, selector, by=By.CSS_SELECTOR, timeout=10):
         try:
@@ -328,13 +342,23 @@ class SeleniumAutomacao(QWidget):
     def get_content_widget(self):
         return self
 
-    def aguardar_e_mudar_para_popup(self):
-        time.sleep(2)  # Pequena pausa
+    def aguardar_e_mudar_para_popup(self, timeout=30):
+        # Espera até que qualquer janela adicional seja aberta
+        WebDriverWait(self.driver, timeout).until(
+            lambda driver: len(driver.window_handles) > 1
+        )
+
+        # Itera sobre todas as janelas abertas
         for handle in self.driver.window_handles:
+            # Muda para a janela atual
             self.driver.switch_to.window(handle)
+            # Verifica o título da janela
             if "Catálogo Compras.gov.br" in self.driver.title:
                 print("Foco mudado para a janela do pop-up.")
-                break
+                return True
+
+        print("Pop-up desejado não encontrado.")
+        return False
 
     def fluxo_alteracao_irp(self):
         alteracao_irp_dialog = AlteracaoIRPDialog(self)
@@ -352,6 +376,26 @@ class SeleniumAutomacao(QWidget):
         else:
             print("Ação cancelada pelo usuário.")
 
+    def formatar_valor(self, valor):
+        """Formata o valor para ter uma vírgula como separador decimal e quatro casas decimais."""
+        valor_formatado = f"{valor:,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return valor_formatado
+
+    def inserir_valor_unitario(self, elemento, valor):
+        try:
+            self.driver.execute_script("arguments[0].value = arguments[1];", elemento, valor)
+            time.sleep(0.5)  # Dá tempo para o JavaScript processar a mudança de valor
+            valor_inserido = elemento.get_attribute('value')
+            if valor_inserido == valor:
+                print(f"Valor unitário {valor} inserido com sucesso.")
+                return True
+            else:
+                print(f"Falha ao inserir o valor unitário. Esperado: {valor}, Obtido: {valor_inserido}")
+                return False
+        except Exception as e:
+            print(f"Erro ao inserir o valor unitário via JavaScript: {e}")
+            return False
+        
     def alterar_dados(self, item_inicio):
         if self.table_data is None:
             print("Dados da tabela não estão disponíveis.")
@@ -397,16 +441,16 @@ class SeleniumAutomacao(QWidget):
                     item_erro = item_num_sequencial
                     break  # Sair do loop
 
-                valor_unitario_xpath = "/html/body/div[2]/table/tbody/tr[2]/td/div[3]/form/table[1]/tbody/tr[2]/td/div[3]/table[2]/tbody/tr[2]/td[5]/input"
-                elemento_valor_unitario = self.tentar_localizar_elemento(valor_unitario_xpath)
+                valor_unitario_css = "#div_Item > table:nth-child(23) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(5) > input:nth-child(1)"
+                elemento_valor_unitario = self.tentar_localizar_elemento(valor_unitario_css, By.CSS_SELECTOR)
                 if elemento_valor_unitario is None:
-                    continue  # Se não encontrou o elemento, pula para a próxima iteração
+                    continue
 
-                valor_unitario = row['valor_unitario']
-                print(f"Preparando para inserir o valor unitário: {valor_unitario}")
+                valor_unitario = self.formatar_valor(row['valor_unitario'])
+                print(f"Preparando para inserir o valor unitário formatado: {valor_unitario}")
 
-                if not self.preencher_e_verificar_valor_unitario(valor_unitario, valor_unitario_xpath):
-                    continue  # Pula para a próxima iteração se não for bem-sucedido
+                if not self.inserir_valor_unitario(elemento_valor_unitario, valor_unitario):
+                    continue  # Se a inserção falhar, pule para a próxima iteração
 
                 # Selecionar a opção "Não" em 'valor_sigiloso'
                 valor_sigiloso_nao_xpath = "/html/body/div[2]/table/tbody/tr[2]/td/div[3]/form/table[1]/tbody/tr[2]/td/div[3]/table[3]/tbody/tr[1]/td/div/input[2]"
@@ -431,7 +475,7 @@ class SeleniumAutomacao(QWidget):
                 # Voltar para a janela principal
                 self.driver.switch_to.window(janela_principal)
 
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 # Digitar quantidade (da tabela) e incluir município
                 quantidade_xpath = "/html/body/div[2]/table/tbody/tr[2]/td/div[3]/form/table[1]/tbody/tr[2]/td/div[3]/fieldset/table/tbody/tr[2]/td[3]/input"
                 self.esperar_e_preencher(quantidade_xpath, str(row['quantidade_estimada']), By.XPATH)
@@ -439,76 +483,50 @@ class SeleniumAutomacao(QWidget):
                 botao_incluir_municipio_xpath = "//*[@id='incluirMunicipio']"
                 self.esperar_e_clicar(botao_incluir_municipio_xpath, By.XPATH)
 
-                self.driver.switch_to.window(janela_principal)
-
-                self.aguardar_e_mudar_para_popup()
-                time.sleep(0.2)
+                # self.driver.switch_to.window(janela_principal)
+                print("Incluído município com sucesso.")
+                # time.sleep(0.2)
                 # Clicar no botão "Salvar Item" para finalizar a alteração
-                botao_salvar_item = "//*[@id='alterar']"
-                time.sleep(0.2)
-                self.esperar_e_clicar(botao_salvar_item, By.XPATH)
-                time.sleep(0.2)
+                botao_salvar_item = "#alterar"
+                # time.sleep(0.2)
+                self.esperar_e_clicar(botao_salvar_item, By.CSS_SELECTOR)
+                # time.sleep(0.2)
+                print("Botão 'Salvar Item' clicado com sucesso.")
                 self.clicar_botao_ok_popup()
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 self.aguardar_e_mudar_para_popup()
 
-                tentativas = 0
-                while tentativas < tentativas_max:
-                    try:
-                        # Clicar no botão "Salvar Item" para finalizar a alteração
-                        botao_itens_relacao = "//*[@id='itens']"
-                        time.sleep(0.2)
-                        self.esperar_e_clicar(botao_itens_relacao, By.XPATH)
-                        time.sleep(0.2)
-                        print(f"Tentativa {tentativas + 1}: Clicou no botão 'Salvar Item'.")
+                botao_itens_relacao = "#itens"
 
-                        # Verificar se a mudança esperada ocorreu na página
-                        if self.verificar_mudanca_esperada_apos_clique():
-                            time.sleep(0.2)
-                            print("Mudança confirmada após clique no botão 'Salvar Item'.")
-                            break  # Sair do loop de tentativas
-                        else:
-                            print(f"Tentativa {tentativas + 1}: Mudança esperada não detectada. Tentando novamente.")
-                            tentativas += 1
-                    except Exception as e:
-                        print(f"Erro ao tentar clicar no botão 'Salvar Item': {e}")
-                        tentativas += 1
-                        if tentativas == tentativas_max:
-                            print("Número máximo de tentativas atingido. Encerrando a operação.")
-                            return  # Encerra a função se o número máximo de tentativas for atingido
+                self.esperar_e_clicar(botao_itens_relacao, By.CSS_SELECTOR)
+                self.verificar_mudanca_esperada_apos_clique()
 
             except Exception as e:
                 print(f"Erro durante a alteração de dados: {e}")
 
-        # Código para exibir a mensagem de alerta se houver um erro
         if item_erro is not None:
             itens_alterados_texto = ', '.join(str(num) for num in itens_alterados_sucesso)
             mensagem_erro = (f"Itens alterados com sucesso: {itens_alterados_texto}\n"
                             f"Erro encontrado no item número: {item_erro}\n"
                             "O programa será encerrado.")
             QMessageBox.critical(None, "Erro de Alteração", mensagem_erro)
-        self.driver.quit()  # Fecha o navegador   
+        # self.driver.quit()  # Fecha o navegador
 
-    def tentar_localizar_elemento(self, xpath, max_tentativas=3):
+    def tentar_localizar_elemento(self, seletor, tipo_seletor=By.CSS_SELECTOR, max_tentativas=3):
         tentativas = 0
         while tentativas < max_tentativas:
             try:
                 elemento = WebDriverWait(self.driver, 10).until(
-                    EC.visibility_of_element_located((By.XPATH, xpath))
+                    EC.visibility_of_element_located((tipo_seletor, seletor))
                 )
                 return elemento
             except TimeoutException:
-                print(f"Tentativa {tentativas + 1}: Não foi possível localizar o elemento {xpath}. Tentando novamente...")
+                print(f"Tentativa {tentativas + 1}: Não foi possível localizar o elemento {seletor}. Tentando novamente...")
                 tentativas += 1
-                if tentativas == max_tentativas:
-                    print("Não foi possível localizar o elemento após várias tentativas.")
-                    return None
             except Exception as e:
-                print(f"Tentativa {tentativas + 1}: Erro ao tentar localizar o elemento: {e}")
+                print(f"Tentativa {tentativas + 1}: Erro ao tentar localizar o elemento {seletor}: {e}")
                 tentativas += 1
-                if tentativas == max_tentativas:
-                    print("Erro na localização do elemento após várias tentativas.")
-                    return None
+        print("Não foi possível localizar o elemento após várias tentativas.")
         return None
     
     def verificar_mudanca_esperada_apos_clique(self):
@@ -528,30 +546,50 @@ class SeleniumAutomacao(QWidget):
         self.aguardar_e_mudar_para_popup()
 
         # Preencher o campo com "Brasília"
-        campo_brasilia_xpath = "/html/body/table/tbody/tr/td/div[2]/form/table/tbody/tr[1]/td/table[1]/tbody/tr[2]/td/input"
-        self.esperar_e_preencher(campo_brasilia_xpath, "Brasília", By.XPATH)
+        campo_brasilia_css = ".field"
+        elemento_brasilia = self.esperar_e_preencher(campo_brasilia_css, "Brasília", By.CSS_SELECTOR)
+        if not elemento_brasilia:
+            print("Falha ao localizar ou preencher o campo Brasília.")
+            return False
 
         # Clicar no botão "Pesquisar"
-        botao_pesquisar_xpath = "//*[@id='consultar']"
-        self.esperar_e_clicar(botao_pesquisar_xpath, By.XPATH)
+        botao_pesquisar_css = "#consultar"
+        if not self.esperar_e_clicar(botao_pesquisar_css, By.CSS_SELECTOR):
+            print("Falha ao clicar no botão Pesquisar.")
+            return False
 
         # Selecionar o município e fechar o pop-up
-        selecionar_municipio_xpath = "/html/body/table/tbody/tr/td/div[2]/form/table/tbody/tr[2]/td/table/tbody/tr[1]/td[3]/a"
-        self.esperar_e_clicar(selecionar_municipio_xpath, By.XPATH)
+        selecionar_municipio_css = "tr > td > a"  # Ajuste o seletor CSS conforme necessário
+        if not self.esperar_e_clicar(selecionar_municipio_css, By.CSS_SELECTOR):
+            print("Falha ao selecionar o município.")
+            return False
 
-    def clicar_botao_ok_popup(self):
-        # Aguardar a abertura do pop-up e mudar o foco para ele
+        return True
+
+    def clicar_botao_ok_popup(self):       
+        # # Aguardar a abertura do pop-up e mudar o foco para ele
         self.aguardar_e_mudar_para_popup()
 
-        # Localizar e clicar no botão "OK" no pop-up
-        botao_ok_xpath = "//*[@id='btOk']"
+        # Utiliza o seletor CSS para localizar o botão "OK"
+        botao_ok_css = "#btOk"
         try:
             # Espera até que o botão "OK" esteja visível e clicável
-            WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, botao_ok_xpath)))
-            self.driver.find_element(By.XPATH, botao_ok_xpath).click()
-            print("Botão 'OK' clicado no pop-up.")
+            elemento_botao_ok = WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, botao_ok_css))
+            )
+            # Tenta clicar usando o Selenium
+            elemento_botao_ok.click()
+            print("Botão 'OK' clicado no pop-up via Selenium.")
+        except TimeoutException:
+            # Se o Selenium falhar, tenta clicar usando JavaScript
+            try:
+                self.driver.execute_script("document.querySelector('#btOk').click();")
+                print("Botão 'OK' clicado no pop-up via JavaScript.")
+            except Exception as e:
+                print(f"Erro ao clicar no botão 'OK' do pop-up via JavaScript: {e}")
         except Exception as e:
-            print(f"Erro ao clicar no botão 'OK' do pop-up: {e}")
+            print(f"Erro ao clicar no botão 'OK' do pop-up via Selenium: {e}")
+
 
     def preencher_e_verificar_valor_unitario(self, valor_unitario, xpath, max_tentativas=3):
         tentativas = 0

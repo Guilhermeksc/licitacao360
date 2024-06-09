@@ -54,10 +54,16 @@ def remover_caracteres_especiais(texto):
 class DatabaseManager:
     def __init__(self, db_path):
         self.db_path = db_path
+        self.connection = None
+        self.connect_to_database()
         logging.basicConfig(level=logging.INFO, filename='app.log', filemode='a',
                             format='%(name)s - %(levelname)s - %(message)s')
 
     def __enter__(self):
+        self.connection = self.connect_to_database()
+        return self.connection
+
+    def connect_to_database(self):
         try:
             self.connection = sqlite3.connect(self.db_path)
             return self.connection
@@ -65,13 +71,62 @@ class DatabaseManager:
             logging.error(f"Failed to connect to database at {self.db_path}: {e}")
             raise
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def connect_to_database(self):
         try:
-            if self.connection:
-                self.connection.close()
+            self.connection = sqlite3.connect(self.db_path)
+            return self.connection
         except sqlite3.Error as e:
-            logging.error(f"Failed to close the database connection: {e}")
+            logging.error(f"Failed to connect to database at {self.db_path}: {e}")
             raise
+
+    def execute_query(self, query, params=None):
+        try:
+            cursor = self.connection.cursor()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            return cursor.fetchall()
+        except sqlite3.Error as e:
+            logging.error(f"Error executing query: {query}, Error: {e}")
+            return None
+
+    def execute_update(self, query, params=None):
+        try:
+            cursor = self.connection.cursor()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            self.connection.commit()
+        except sqlite3.Error as e:
+            logging.error(f"Error executing update: {query}, Error: {e}")
+            return False
+        return True
+
+    def close_connection(self):
+        if self.connection:
+            self.connection.close()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_connection()
+
+    def ensure_database_exists(self):
+        with self.connect_to_database() as conn:
+            if not self.database_exists(conn):
+                self.create_database(conn)
+            self.criar_tabela_controle_prazos(conn)
+            required_columns = {
+                "id": "INTEGER PRIMARY KEY", "tipo": "TEXT", "numero": "TEXT", "ano": "TEXT", "id_processo": "TEXT", "nup": "TEXT",
+                "objeto": "TEXT", "objeto_completo": "TEXT", "valor_total": "TEXT", "uasg": "TEXT", "orgao_responsavel": "TEXT",
+                "sigla_om": "TEXT", "setor_responsavel": "TEXT", "coordenador_planejamento": "TEXT", "etapa": "TEXT",
+                "pregoeiro": "TEXT", "item_pca": "TEXT", "portaria_PCA": "TEXT", "data_sessao": "TEXT", "data_limite_entrega_tr": "TEXT",
+                "nup_portaria_planejamento": "TEXT", "srp": "TEXT", "material_servico": "TEXT", "parecer_agu": "TEXT", "msg_irp": "TEXT",
+                "data_limite_manifestacao_irp": "TEXT", "data_limite_confirmacao_irp": "TEXT", "num_irp": "TEXT", "om_participantes": "TEXT",
+                "link_pncp": "TEXT", "link_portal_marinha": "TEXT", "comentarios": "TEXT"
+            }
+            self.verify_and_create_columns(conn, 'controle_processos', required_columns)
+            self.check_and_fix_id_sequence(conn)
 
     def atualizar_ultima_etapa_data_final(self, conn):
         today_str = datetime.today().strftime('%Y-%m-%d')

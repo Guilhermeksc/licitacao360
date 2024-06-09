@@ -29,6 +29,7 @@ df_registro_selecionado = None
 from functools import partial
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from datetime import datetime
+import logging
 
 etapas = {
     'Planejamento': None,
@@ -46,12 +47,12 @@ etapas = {
     'Assinatura Contrato': None,
     'Concluído': None
 }
-    
+
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
-        self.main_app = main_app  # Armazena a referência ao aplicativo principal
-        self.config_manager = config_manager  # Armazena a referência ao gerenciador de configurações
+        self.main_app = main_app
+        self.config_manager = config_manager
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
 
@@ -59,8 +60,6 @@ class CustomTableView(QTableView):
         index = self.indexAt(pos)
         if index.isValid():
             contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
-            # Conectar o sinal emitido por TableMenu ao slot em ApplicationUI que atualiza a TableView
-            contextMenu.require_update.connect(self.main_app.atualizar_tabela)
             contextMenu.exec(self.viewport().mapToGlobal(pos))
 
 class TableMenu(QMenu):
@@ -264,6 +263,10 @@ class TableMenu(QMenu):
         dialog = GerarDFD(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
+    def openDialogAutorizacao(self, df_registro_selecionado):
+        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
     def openDialogPortariaPlanejamento(self, df_registro_selecionado):
         dialog = GerarPortariaPlanejamento(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
@@ -283,13 +286,6 @@ class TableMenu(QMenu):
     def openDialogCapaEdital(self, df_registro_selecionado):
         dialog = CapaEdital(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
-
-    def openDialogAutorizacao(self, df_registro_selecionado):
-        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
-        dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
-        dialog.exec()
-        # Emitir sinal após fechar o diálogo
-        self.require_update.emit(True)
 
     def openDialogEdital(self, df_registro_selecionado):
         dialog = EditalDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
@@ -332,209 +328,59 @@ class CustomItemDelegate(QStyledItemDelegate):
         # Garante que o alinhamento centralizado seja aplicado
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
-class CustomSqlTableModel(QSqlTableModel):
-    def __init__(self, parent=None, db=None):
-        super().__init__(parent, db)
-        self.etapa_order = {
-            'Concluído': 0, 'Assinatura Contrato': 1, 'Homologado': 2, 'Em recurso': 3,
-            'Sessão Pública': 4, 'Impugnado': 5, 'Pré-Publicação': 6, 'Recomendações AGU': 7,
-            'AGU': 8, 'Nota Técnica': 9, 'Montagem do Processo': 10, 'IRP': 11, 
-            'Setor Responsável': 12, 'Planejamento': 13
-        }
-
-    def sort(self, column, order):
-        if self.headerData(column, Qt.Orientation.Horizontal) == 'Etapa':
-            self.setSortRole(Qt.ItemDataRole.UserRole)
-        else:
-            self.setSortRole(Qt.ItemDataRole.DisplayRole)
-        super().sort(column, order)
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.UserRole and self.headerData(index.column(), Qt.Orientation.Horizontal) == 'Etapa':
-            etapa = super().data(index, Qt.ItemDataRole.DisplayRole)
-            return self.etapa_order.get(etapa, 999)  # Default for undefined stages
-        return super().data(index, role)
-        
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
         self.app = app
         self.icons_dir = Path(icons_dir)
-        self.config_manager = ConfigManager(BASE_DIR / "config.json")
-        # Carregar configuração inicial do diretório do banco de dados
-        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
-        
-        self.event_manager = EventManager()
-        self.event_manager.controle_dados_dir_updated.connect(self.handle_database_dir_update)
-        
-        self.selectedIndex = None
-        self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "report.png", "management.png"
-        ])
-        
-        self.database_manager = DatabaseManager(self.database_path)
-        self.ensure_database_exists()
+        self.setup_managers()
+        self.load_initial_data()
+        self.model = self.init_model()
+        if not self.model:
+            raise Exception("Failed to initialize the model")
+        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)  # Passa o modelo para UIManager
+        self.setup_signals()
         self.init_ui()
+
+    def setup_managers(self):
+        self.config_manager = ConfigManager(BASE_DIR / "config.json")
+        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        self.database_manager = DatabaseManager(self.database_path)
+        self.event_manager = EventManager()
+
+    def load_initial_data(self):
+        print("Carregando dados iniciais...")
+        self.image_cache = load_images(self.icons_dir, [
+            "plus.png", "save_to_drive.png", "loading.png", "delete.png", 
+            "excel.png", "calendar.png", "report.png", "management.png"
+        ])
+        self.selectedIndex = None
+
+    def init_model(self):
+        # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
+        sql_model = SqlModel(self.database_manager, self)
+        model = sql_model.setup_model("controle_processos", editable=True)
+        return model
+    
+    def init_ui(self):
+        print("Inicializando UI no ApplicationUI...")
+        # self.table_view = CustomTableView(main_app=self, config_manager=self.config_manager, parent=self)
+        self.setCentralWidget(self.ui_manager.main_widget)  # Define o widget central como o widget principal do UIManager
+        self.ui_manager.configure_table_model()
+        print("UI do ApplicationUI inicializada.")
+
+    def setup_signals(self):
+        self.event_manager.controle_dados_dir_updated.connect(self.handle_database_dir_update)
+
+    def handle_database_dir_update(self, new_dir):
+        self.database_manager.update_database_path(new_dir)
+        self.ui_manager.update_ui_after_database_change()
+        print("ApplicationUI inicializada.")
 
     def atualizar_tabela(self):
         self.model.select()
         self.table_view.viewport().update()
-
-    def ensure_database_exists(self):
-        with self.database_manager as conn:
-            # Verifica se o banco de dados existe
-            if not DatabaseManager.database_exists(conn):
-                # Se não existir, cria o banco de dados
-                DatabaseManager.create_database(conn)
-            # Garante que a tabela de controle de prazos exista
-            DatabaseManager.criar_tabela_controle_prazos(conn)
-            # Verifica se todas as colunas necessárias estão presentes
-
-            required_columns = {
-                "id": "INTEGER PRIMARY KEY", "tipo": "TEXT", "numero": "TEXT", "ano": "TEXT", "id_processo": "TEXT", "nup": "TEXT",
-                "objeto": "TEXT", "objeto_completo": "TEXT", "valor_total": "TEXT", "uasg": "TEXT", "orgao_responsavel": "TEXT",
-                "sigla_om": "TEXT", "setor_responsavel": "TEXT", "coordenador_planejamento": "TEXT", "etapa": "TEXT",
-                "pregoeiro": "TEXT", "item_pca": "TEXT", "portaria_PCA": "TEXT", "data_sessao": "TEXT", "data_limite_entrega_tr": "TEXT",
-                "nup_portaria_planejamento": "TEXT", "srp": "TEXT", "material_servico": "TEXT", "parecer_agu": "TEXT", "msg_irp": "TEXT",
-                "data_limite_manifestacao_irp": "TEXT", "data_limite_confirmacao_irp": "TEXT", "num_irp": "TEXT", "om_participantes": "TEXT",
-                "link_pncp": "TEXT", "link_portal_marinha": "TEXT", "comentarios": "TEXT"
-            }
-            DatabaseManager.verify_and_create_columns(conn, 'controle_processos', required_columns)
-            DatabaseManager.check_and_fix_id_sequence(conn)
-                
-    def init_ui(self):
-        self.main_widget = QWidget(self)
-        self.main_layout = QVBoxLayout(self.main_widget)
-
-        self.search_bar = QLineEdit(self)
-        self.search_bar.setPlaceholderText("Digite para buscar...")
-        self.search_bar.setStyleSheet("""
-            QLineEdit {
-                font-size: 12pt;
-                color: #fcc200;
-                background-color: black;
-                border: 2px solid #333;
-                padding: 1px;
-            }
-            QLineEdit:focus {
-                border-color: #fcc200;
-            }
-        """)
-        self.main_layout.addWidget(self.search_bar)
-        self._setup_buttons_layout()
-        self.table_view = CustomTableView(main_app=self, config_manager=self.config_manager, parent=self)
-        self.init_sql_model()
-
-        # Configurando o QSortFilterProxyModel
-        self.proxy_model = QSortFilterProxyModel(self)
-        self.proxy_model.setSourceModel(self.model)
-        self.proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.proxy_model.setFilterKeyColumn(-1)  # Considera todas as colunas para a busca
-
-        def handle_text_change(text):
-            regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
-            self.proxy_model.setFilterRegularExpression(regex)
-
-        self.search_bar.textChanged.connect(handle_text_change)
-
-        self.table_view.setModel(self.proxy_model)
-        self.table_view.verticalHeader().setVisible(False)
-        self.main_layout.addWidget(self.table_view)
-
-        # Cria e aplica o CustomItemDelegate para todas as colunas da QTableView
-        custom_item_delegate = CustomItemDelegate(self.table_view)
-        for column in range(self.model.columnCount()):
-            self.table_view.setItemDelegateForColumn(column, custom_item_delegate)
-
-        self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-
-        self.table_view.setStyleSheet("""
-        QTableView {
-            background-color: black;
-            color: white;
-            font-size: 12pt;
-            border: 1px solid black;
-        }
-        QHeaderView::section {
-            background-color: #333;
-            padding: 4px;
-            border: 0.5px solid #dcdcdc;
-            color: white;
-            font-size: 12pt;
-        }
-        """)
-
-        self.setCentralWidget(self.main_widget)
-        self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
-
-        QTimer.singleShot(1, self.adjustColumnWidth) 
-
-        # Conectar a reordenação ao proxy model
-        header = self.table_view.horizontalHeader()
-        header.setSortIndicatorShown(True)
-        header.sectionClicked.connect(self.on_header_clicked)
-
-    def adjustColumnWidth(self):
-        header = self.table_view.horizontalHeader()
-        # Configurar outras colunas para ter tamanhos fixos
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Stretch)  # Continua expansível
-        
-        # Ajusta o tamanho de colunas fixas
-        header.resizeSection(4, 110)
-        header.resizeSection(5, 200)
-        header.resizeSection(8, 100)
-        header.resizeSection(10, 110)
-        header.resizeSection(13, 170)
-        header.resizeSection(14, 110)
-
-        # Configura a coluna 6 para ser expansível e define o tamanho mínimo
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
-        header.resizeSection(6, 260)  # Define o tamanho inicial
-        header.setMinimumSectionSize(110)  # Define o tamanho mínimo
-
-
-    def on_header_clicked(self, logicalIndex):
-        # Alternar entre ordenação ascendente e descendente
-        ascending = self.table_view.horizontalHeader().sortIndicatorOrder() == Qt.SortOrder.AscendingOrder
-        self.proxy_model.sort(logicalIndex, Qt.SortOrder.AscendingOrder if not ascending else Qt.SortOrder.DescendingOrder)
-
-    def linhaSelecionada(self, selected, deselected):
-        if selected.indexes():
-            proxy_index = selected.indexes()[0]
-            source_index = self.proxy_model.mapToSource(proxy_index)
-            print(f"Selecionado no proxy: row {proxy_index.row()}, column {proxy_index.column()}")
-            print(f"Correspondente no modelo fonte: row {source_index.row()}, column {source_index.column()}")
-
-            df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.database_path)
-            print(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
-
-    def _setup_buttons_layout(self):
-        self.buttons_layout = QHBoxLayout()
-        self._create_buttons()
-        self.main_layout.addLayout(self.buttons_layout)
-            
-    def _create_buttons(self):
-        self.buttons_layout = QHBoxLayout()
-        icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
-        self.button_specs = [
-            ("  Adicionar Item", self.image_cache['plus'], self.on_add_item, "Adiciona um novo item ao banco de dados", icon_size),
-            ("  Salvar", self.image_cache['excel'], self.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')", icon_size),
-            # ("  Carregar", self.image_cache['loading'], self.carregar_tabela, "Carrega o dataframe de um arquivo existente('.db', '.xlsx' ou '.odf')", icon_size),
-            ("  Excluir", self.image_cache['delete'], self.on_delete_item, "Exclui um item selecionado", icon_size),
-            ("  Controle de Datas", self.image_cache['calendar'], self.on_control_process, "Abre o painel de controle do processo", icon_size),            
-            # ("    Relatório", self.image_cache['report'], self.on_report, "Gera um relatório dos dados", icon_size),
-            ("Configurações", self.image_cache['management'], self.open_settings_dialog, "Abre as configurações da aplicação", icon_size),            
-        ]
-
-        for text, icon, callback, tooltip, icon_size in self.button_specs:
-            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
-            self.buttons_layout.addWidget(btn)
+        logging.debug("Tabela atualizada.")
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(config_manager=self.config_manager, parent=self)
@@ -775,44 +621,7 @@ class ApplicationUI(QMainWindow):
             print("DataFrame de processos está vazio após a atualização.")
         else:
             print("Dados no TableView foram atualizados.")
-
-    def on_edit_item(self):
-        # Implementar lógica de edição aqui
-        print("Editar item")
                 
-    def init_sql_model(self):
-        # Agora self.database_path já deve estar corretamente definido.
-        self.db = QSqlDatabase.addDatabase('QSQLITE')
-        self.db.setDatabaseName(str(self.database_path))
-
-        if not self.db.open():
-            print("Não foi possível abrir a conexão com o banco de dados.")
-            return
-        else:
-            print("Conexão com o banco de dados aberta com sucesso.")
-
-        # Configura o modelo SQL para a tabela controle_processos
-        self.model = QSqlTableModel(self, self.db)
-        self.model.setTable('controle_processos')
-        self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
-        self.model.select()
-        # Especifica as colunas a serem exibidas
-        self.model.setHeaderData(4, Qt.Orientation.Horizontal, "ID Processo")
-        self.model.setHeaderData(5, Qt.Orientation.Horizontal, "NUP")
-        self.model.setHeaderData(6, Qt.Orientation.Horizontal, "Objeto")
-        self.model.setHeaderData(8, Qt.Orientation.Horizontal, "UASG")
-        self.model.setHeaderData(10, Qt.Orientation.Horizontal, "OM")
-        self.model.setHeaderData(13, Qt.Orientation.Horizontal, "Etapa")
-        self.model.setHeaderData(14, Qt.Orientation.Horizontal, "Pregoeiro")
-
-        # Aplica o modelo ao QTableView
-        self.table_view.setModel(self.model)
-        # print("Colunas disponíveis no modelo:")
-        for column in range(self.model.columnCount()):
-            # print(f"Índice {column}: {self.model.headerData(column, Qt.Orientation.Horizontal)}")
-            if column not in [4, 5, 6, 8, 10, 13, 14]:
-                self.table_view.hideColumn(column)
-
     def atualizar_tabela(self):
         # Verifica se o modelo da tabela é um QSqlTableModel
         if isinstance(self.model, QSqlTableModel):
@@ -829,3 +638,308 @@ class ApplicationUI(QMainWindow):
     def update_database(self):
         # Isso agora é um método público que pode ser chamado de SettingsDialog
         self.update_database_file()
+
+class UIManager:
+    def __init__(self, parent, icons_dir, config_manager, model):
+        self.parent = parent
+        self.icons_dir = icons_dir
+        self.config_manager = config_manager
+        if model is None:
+            raise ValueError("Model cannot be None")
+        self.model = model
+
+        self.proxy_model = QSortFilterProxyModel(self.parent)
+        self.proxy_model.setSourceModel(self.model)
+
+        self.main_widget = QWidget(parent)
+        self.main_layout = QVBoxLayout(self.main_widget)
+        self.button_manager = ButtonManager(self.parent)
+        self.init_ui()
+
+    def init_ui(self):
+        self.setup_search_bar()
+        self.setup_buttons_layout()
+        self.setup_table_view()
+
+    def setup_search_bar(self):
+        self.search_bar = QLineEdit(self.parent)
+        self.search_bar.setPlaceholderText("Digite para buscar...")
+        self.search_bar.setStyleSheet("""
+            QLineEdit {
+                background-color: #f9f9f9;
+                color: #333;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                padding: 5px;
+                border-radius: 5px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #a9a9a9;
+            }
+            QLineEdit:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        self.main_layout.addWidget(self.search_bar)
+
+        def handle_text_change(text):
+            print(f"Search text changed: {text}")  # Debugging line
+            regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
+            self.proxy_model.setFilterRegularExpression(regex)
+
+        self.search_bar.textChanged.connect(handle_text_change)
+        self.main_layout.addWidget(self.search_bar)
+
+    def setup_buttons_layout(self):
+        self.buttons_layout = QHBoxLayout()
+        self.button_manager.add_buttons_to_layout(self.buttons_layout)
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def setup_table_view(self):
+        self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
+        self.table_view.setModel(self.proxy_model)  # Use o proxy model aqui
+        self.main_layout.addWidget(self.table_view)
+        self.configure_table_model()
+        self.table_view.verticalHeader().setVisible(False)
+        self.adjust_columns()
+        self.apply_custom_style()
+
+        # Configura um delegado de alinhamento central para todas as colunas
+        center_delegate = CenterAlignDelegate(self.table_view)
+        for column in range(self.model.columnCount()):
+            self.table_view.setItemDelegateForColumn(column, center_delegate)
+
+    def configure_table_model(self):
+        if not self.model:
+            print("Model is not initialized")
+            return
+        self.table_view.setModel(self.proxy_model)
+        self.model.dataChanged.connect(self.table_view.update)
+
+        # Configurações de seleção da tabela
+        if self.table_view.selectionModel():
+            self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+            self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+            self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
+
+        self.update_column_headers()
+        self.hide_unwanted_columns()
+
+    def adjust_columns(self):
+        # Ajustar automaticamente as larguras das colunas ao conteúdo
+        self.table_view.resizeColumnsToContents()
+        QTimer.singleShot(1, self.apply_custom_column_sizes) 
+
+    def apply_custom_column_sizes(self):
+        print("Aplicando configurações de tamanho de coluna...")
+        header = self.table_view.horizontalHeader()
+        
+        # Configurações específicas de redimensionamento para colunas selecionadas
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Stretch) 
+        # Definir tamanhos específicos onde necessário
+        header.resizeSection(4, 110)
+        header.resizeSection(5, 175)
+        header.resizeSection(8, 70)
+        header.resizeSection(10, 100)
+
+    def apply_custom_style(self):
+        # Aplica um estilo CSS personalizado ao tableView
+        self.table_view.setStyleSheet("""
+            QTableView {
+                background-color: #f9f9f9;
+                alternate-background-color: #e0e0e0;
+                color: #333;
+                font-size: 16px;
+                border: 1px solid #ccc;
+            }
+            QTableView::item:selected {
+                background-color: #b0c4de;
+                color: white;
+            }
+            QTableView::item:hover {
+                background-color: #d3d3d3;
+                color: black;
+            }
+            QTableView::section {
+                background-color: #d3d3d3;
+                color: #333;
+                padding: 5px;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                font-weight: bold; 
+            }
+            QHeaderView::section:horizontal {
+                background-color: #a9a9a9;
+                color: white;
+                border: 1px solid #ccc;
+                padding: 5px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QHeaderView::section:vertical {
+                background-color: #d3d3d3;
+                color: #333;
+                border: 1px solid #ccc;
+                padding: 5px;
+                font-size: 16px;
+            }
+        """)
+
+    def linhaSelecionada(self, selected, deselected):
+        if selected.indexes():
+            proxy_index = selected.indexes()[0]
+            source_index = self.parent.proxy_model.mapToSource(proxy_index)
+            print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
+
+            df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.parent.database_path)
+            if not df_registro_selecionado.empty:
+                logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
+            else:
+                logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+                QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+
+    def update_column_headers(self):
+        titles = {
+            4: "ID Processo",
+            5: "NUP",
+            6: "Objeto",
+            8: "UASG",
+            10: "OM",
+            13: "Etapa",
+            14: "Pregoeiro"
+        }
+        for column, title in titles.items():
+            self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
+
+    def hide_unwanted_columns(self):
+        visible_columns = {4, 5, 6, 8, 10, 13, 14}
+        for column in range(self.model.columnCount()):
+            if column not in visible_columns:
+                self.table_view.hideColumn(column)
+
+class CustomSqlTableModel(QSqlTableModel):
+    def __init__(self, parent=None, db=None, non_editable_columns=None, etapa_order=None):
+        super().__init__(parent, db)
+        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
+        self.etapa_order = etapa_order if etapa_order is not None else {}
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.UserRole and index.column() == self.fieldIndex('etapa'):
+            etapa = super().data(index, Qt.ItemDataRole.DisplayRole)
+            return self.etapa_order.get(etapa, 999)  # Assume 999 as a high value for undefined stages
+        return super().data(index, role)
+
+    def flags(self, index):
+        original_flags = super().flags(index)
+        if index.column() in self.non_editable_columns:
+            # Remove a flag de edição e mantém a possibilidade de seleção
+            return original_flags & ~Qt.ItemFlag.ItemIsEditable
+        return original_flags
+    
+class SqlModel:
+    def __init__(self, database_manager, parent=None):
+        self.database_manager = database_manager
+        self.parent = parent
+        self.etapa_order = {
+            'Concluído': 0, 'Assinatura Contrato': 1, 'Homologado': 2, 'Em recurso': 3,
+            'Sessão Pública': 4, 'Impugnado': 5, 'Pré-Publicação': 6, 'Recomendações AGU': 7,
+            'AGU': 8, 'Nota Técnica': 9, 'Montagem do Processo': 10, 'IRP': 11, 
+            'Setor Responsável': 12, 'Planejamento': 13
+        }
+        # Inicia uma nova conexão QSqlDatabase
+        self.init_database()
+        self.setup_model("controle_processos", editable=True)
+
+    def init_database(self):
+        # Remova qualquer conexão existente com o mesmo nome para evitar conflitos
+        if QSqlDatabase.contains("my_conn"):
+            QSqlDatabase.removeDatabase("my_conn")
+        self.db = QSqlDatabase.addDatabase('QSQLITE', "my_conn")
+        self.db.setDatabaseName(str(self.database_manager.db_path))  # Convertendo WindowsPath para string
+        if not self.db.open():
+            print("Não foi possível abrir a conexão com o banco de dados.")
+
+    def setup_model(self, table_name, editable=False):
+        self.model = CustomSqlTableModel(self.parent, self.db, non_editable_columns=[4, 8, 10, 13], etapa_order=self.etapa_order)
+        self.model.setTable(table_name)
+        if editable:
+            self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
+        self.model.select()
+        if not self.model.rowCount():  # Verifique se há dados carregados
+            print("No data loaded into the model.")
+        return self.model
+
+    def sort_by_etapa(self):
+        column_index = self.model.fieldIndex('etapa')  # Certifique-se de que 'etapa' é o nome correto da coluna no banco de dados
+        self.proxy_model.sort(column_index, Qt.SortOrder.AscendingOrder)  # Ordena de forma ascendente
+
+    def configure_columns(self, table_view, visible_columns):
+        for column in range(self.model.columnCount()):
+            header = self.model.headerData(column, Qt.Orientation.Horizontal)
+            if column not in visible_columns:
+                table_view.hideColumn(column)
+            else:
+                self.model.setHeaderData(column, Qt.Orientation.Horizontal, header)
+
+class ButtonManager:
+    def __init__(self, parent):
+        self.parent = parent  # parent deveria ser uma instância de um QWidget ou classe derivada
+        self.buttons = []
+        self.create_buttons()
+
+    def create_buttons(self):
+        button_specs = [
+            ("Adicionar Item", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
+            ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
+            ("Controle de Datas", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
+            ("Configurações", self.parent.image_cache['management'], self.parent.open_settings_dialog, "Abre as configurações da aplicação"),
+        ]
+        for text, icon, callback, tooltip in button_specs:
+            btn = self.create_button(text, icon, callback, tooltip, self.parent)
+            self.buttons.append(btn)
+
+    def add_buttons_to_layout(self, layout):
+        for btn in self.buttons:
+            layout.addWidget(btn)
+
+    def create_button(self, text, icon, callback, tooltip_text, parent, icon_size=QSize(40, 40)):
+        btn = QPushButton(text, parent)
+        if icon:
+            btn.setIcon(QIcon(icon))
+            btn.setIconSize(icon_size)
+        if callback:
+            btn.clicked.connect(callback)
+        if tooltip_text:
+            btn.setToolTip(tooltip_text)
+
+        btn.setStyleSheet("""
+        QPushButton {
+            background-color: black;
+            color: white;
+            font-size: 14pt;
+            min-height: 35px;
+            padding: 5px;      
+        }
+        QPushButton:hover {
+            background-color: white;
+            color: black;
+        }
+        QPushButton:pressed {
+            background-color: #ddd;
+            color: black;
+        }
+        """)
+
+        return btn
+
+class CenterAlignDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter

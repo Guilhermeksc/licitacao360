@@ -9,6 +9,7 @@ import os
 import locale
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 from pathlib import Path
+import re
 
 class JSONDialog(QDialog):
     def __init__(self, parent=None):
@@ -190,16 +191,53 @@ class AlteracaoIRPDialog(QDialog):
 
         self.table_data = None  # DataFrame para armazenar dados da tabela
         self.setWindowTitle("Carregue a table para atualizar o IRP")
-        
+
+    def format_currency(self, value):
+        return locale.currency(value, grouping=True)
+    
+    def convert_currency_to_number(self, value):
+        if not isinstance(value, str):
+            value = str(value)  # Converte valor para string se não for string
+
+        # Remove caracteres não numéricos exceto vírgula e ponto
+        value = re.sub(r'[^\d,\.]', '', value)
+
+        # Verifica se o valor contém vírgula como possível separador decimal
+        if ',' in value:
+            if '.' not in value:
+                # Substitui vírgula por ponto se não há ponto, assumindo que vírgula é o separador decimal
+                value = value.replace(',', '.')
+            else:
+                # Se ambos, ponto e vírgula existem, remove pontos e substitui vírgula por ponto
+                parts = value.split(',')
+                if len(parts[-1]) == 2:  # Considera o último segmento após a vírgula como centavos
+                    value = ''.join(parts[:-1]) + '.' + parts[-1]
+                else:
+                    value = value.replace('.', '').replace(',', '.')
+
+        # Converte o valor final para float
+        return float(value)
+
     def load_table(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.ods)")
         if file_name:
             self.table_data = pd.read_excel(file_name)
+
+            # Aplicar strip em todas as strings de cada coluna
+            for column in self.table_data.columns:
+                self.table_data[column] = self.table_data[column].apply(lambda x: x.strip() if isinstance(x, str) else x)
+
+            self.table_data['valor_unitario'] = self.table_data['valor_unitario'].apply(self.convert_currency_to_number)
+
             self.model.clear()
             self.model.setHorizontalHeaderLabels(self.table_data.columns)
 
             for index, row in self.table_data.iterrows():
-                items = [QStandardItem(str(cell)) for cell in row]
+                items = []
+                for col_index, cell in enumerate(row):
+                    if self.table_data.columns[col_index] == 'valor_unitario':
+                        cell = self.format_currency(cell)  # Formata o valor monetário
+                    items.append(QStandardItem(str(cell)))
                 self.model.appendRow(items)
 
             # Preencher a ComboBox com os números dos itens

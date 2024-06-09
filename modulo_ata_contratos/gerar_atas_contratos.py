@@ -19,6 +19,7 @@ import contextily as ctx
 import traceback
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm 
+from datetime import datetime
 
 import seaborn as sns
 from planejamento.utilidades_planejamento import DatabaseManager
@@ -803,8 +804,8 @@ class AtasDialog(QDialog):
             itens_relacionados = registros_empresa.to_dict('records')
             context, num_contrato = self.criar_contexto(registro, empresa, NUMERO_ATA_atualizado, nup, itens_relacionados)
             
-            # Atualizando a chamada para salvar_documento com todos os parâmetros necessários
-            self.salvar_documento(path_subpasta, empresa, context, registro, itens_relacionados)
+            # Passando num_contrato para salvar_documento
+            self.salvar_documento(path_subpasta, empresa, context, registro, itens_relacionados, num_contrato)
 
             NUMERO_ATA_atualizado += 1  # Atualiza o número da ATA após processar com sucesso
         else:
@@ -813,8 +814,9 @@ class AtasDialog(QDialog):
         return NUMERO_ATA_atualizado, num_contrato
 
     def criar_contexto(self, registro, empresa, NUMERO_ATA_atualizado, nup, itens_relacionados):
-        num_contrato = f"{registro['uasg']}/2024-{NUMERO_ATA_atualizado:03}/00"
-        texto_substituto = f"Pregão Eletrônico nº {registro['num_pregao']}/{registro['ano_pregao']}"
+        ano_atual = datetime.now().year
+        num_contrato = f"{registro['uasg']}/{ano_atual}-{NUMERO_ATA_atualizado:03}/00"
+        texto_substituto = f"Pregão Eletrônico nº {registro['num_pregao']}/{registro['ano_pregao']}\n{num_contrato}"
         soma_valor_homologado = gerar_soma_valor_homologado(itens_relacionados)
         return ({
             "num_pregao": registro['num_pregao'],
@@ -848,11 +850,12 @@ class AtasDialog(QDialog):
                         f"Respeitosamente,\n")
             arquivo_txt.write(texto_email)
 
-    def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados):
+    def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados, num_contrato):
         empresa_limpa = self.limpar_nome_empresa(empresa)
+        contrato_limpo = self.limpar_nome_empresa(num_contrato)
         tpl = DocxTemplate(TEMPLATE_PATH)
         tpl.render(context)
-        nome_documento = f"{empresa_limpa} ata.docx"
+        nome_documento = f"{contrato_limpo} - {empresa_limpa}.docx"  # Novo formato do nome do arquivo
         path_documento = path_subpasta / nome_documento
         tpl.save(path_documento)
         

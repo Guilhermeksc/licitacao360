@@ -83,7 +83,14 @@ class IRPDialog(QDialog):
     def load_table(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Arquivos de Tabela (*.xlsx *.xls *.ods)")
         if file_name:
-            self.dataframe = pd.read_excel(file_name)
+            # Especifica as colunas a serem carregadas
+            columns_to_load = ['item_num', 'catalogo', 'descricao_tr', 'unidade_fornecimento']
+            self.dataframe = pd.read_excel(file_name, usecols=columns_to_load)
+
+            # Aplicar strip em todas as colunas de texto
+            for col in ['item_num', 'catalogo', 'descricao_tr', 'unidade_fornecimento']:
+                self.dataframe[col] = self.dataframe[col].astype(str).str.strip()
+
             self.update_table_view()
             print("Arquivo de tabela carregado com sucesso!")
 
@@ -91,33 +98,20 @@ class IRPDialog(QDialog):
         self.model.clear()  # Limpa o modelo existente
         if self.dataframe is not None:
             # Definir cabeçalhos das colunas no modelo
-            self.model.setHorizontalHeaderLabels(self.dataframe.columns)
+            self.model.setHorizontalHeaderLabels(['Número do Item', 'Catálogo', 'Descrição', 'Unidade de Fornecimento'])
 
             # Adiciona os dados ao modelo
             for index, row in self.dataframe.iterrows():
-                formatted_row = []
-                for key, cell in row.items():
-                    if key in ['valor_unitario', 'valor_total_do_item'] and cell:
-                        # Formatar como moeda se a célula não estiver vazia
-                        formatted_cell = locale.currency(cell, grouping=True)
-                    else:
-                        formatted_cell = str(cell)
-                    formatted_row.append(QStandardItem(formatted_cell))
-
+                formatted_row = [QStandardItem(str(cell)) for cell in row]  # Formata cada célula como string
                 self.model.appendRow(formatted_row)
 
             self.dataframe_table_view.setModel(self.model)
 
-            # Ajustar o tamanho das colunas
-            self.dataframe_table_view.setColumnWidth(0, 50)  # item_num
-            self.dataframe_table_view.setColumnWidth(1, 50)  # catalogo
-            self.dataframe_table_view.setColumnWidth(2, 80)  # descricao_tr
-            self.dataframe_table_view.setColumnWidth(3, 80)  # descricao_detalhada
-            self.dataframe_table_view.setColumnWidth(4, 80)  # caracteristicas
-            self.dataframe_table_view.setColumnWidth(5, 50)  # unidade_fornecimento
-            self.dataframe_table_view.setColumnWidth(6, 80)  # valor_unitario
-            self.dataframe_table_view.setColumnWidth(7, 50)  # quantidade
-            self.dataframe_table_view.setColumnWidth(8, 50)  # valor_total_do_item
+            # Ajustar o tamanho das colunas para melhor visualização
+            self.dataframe_table_view.setColumnWidth(0, 100)  # Largura para item_num
+            self.dataframe_table_view.setColumnWidth(1, 200)  # Largura para catalogo
+            self.dataframe_table_view.setColumnWidth(2, 300)  # Largura para descricao_tr
+            self.dataframe_table_view.setColumnWidth(3, 200)  # Largura para unidade_fornecimento
 
         # Definir o tamanho mínimo da janela de diálogo
         self.setMinimumSize(600, 400)
