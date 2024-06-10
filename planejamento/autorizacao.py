@@ -24,8 +24,28 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.config_manager = config_manager 
         self.df_registro = df_registro
 
-        # Certifique-se de que df_registro tem pelo menos um registro
-        if not self.df_registro.empty:
+        if self.df_registro.empty or self.df_registro is None:
+            QMessageBox.warning(self, "Dados Insuficientes", "Não há dados disponíveis para criar o documento.")
+            self.close()
+            return
+
+        if 'id' in self.df_registro.columns and not pd.isnull(self.df_registro['id'].iloc[0]):
+            self.setup_dialog()
+        else:
+            QMessageBox.critical(self, "Erro", "Dados essenciais estão faltando no registro fornecido.")
+            self.close()
+            return
+        
+        self.setup_ui()
+        self.aplicar_estilos()
+        self.setLayout(self.layoutPrincipal)
+        
+        self.config_manager.config_updated.connect(self.update_save_location)
+        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
+
+
+    def setup_dialog(self):
+        try:
             self.id = self.df_registro['id'].iloc[0]
             id_processo_original = self.df_registro['id_processo'].iloc[0]
             self.id_processo = id_processo_original.replace('/', '-')
@@ -41,38 +61,50 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             self.sigla_om = self.df_registro['sigla_om'].iloc[0]
             self.material_servico = self.df_registro['material_servico'].iloc[0]
             self.pregoeiro = self.df_registro['pregoeiro'].iloc[0]
-        self.setWindowTitle("Autorização para abertura de processo administrativo")
-        self.setFixedSize(1250, 550)        
-        self.pasta = ''
+            self.setWindowTitle("Autorização para abertura de processo administrativo")
+            self.setFixedSize(1250, 550)
+            self.setup_ui()  # Setup the UI components
+        except KeyError as e:
+            QMessageBox.critical(self, "Erro de Dados", f"Faltam dados obrigatórios: {e}")
+            return
+        except Exception as e:
+            QMessageBox.critical(self, "Erro Inesperado", f"Um erro inesperado ocorreu: {str(e)}")
+            return    
+        
+    def update_save_location(self, key, new_path):
+        if key == 'save_location':
+            self.pasta_base = new_path
+            print(f"Local de salvamento atualizado para: {self.pasta_base}")
+
+    def cabecalho_layout(self):
+        try:
+            header_layout = QHBoxLayout()
+            title_text = f"{self.tipo} nº {self.numero}/{self.ano}"
+            objeto_text = f"Objeto: {self.objeto}"
+            title_label = QLabel(f"<div style='font-size: 32px; font-weight: bold; color: navy;'>{title_text}</div>"
+                                f"<div style='font-size: 22px; color: navy; font-style: italic;'>{objeto_text}</div>")
+            header_layout.addWidget(title_label)
+            header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+            self.add_action_buttons(header_layout)
+            pixmap = QPixmap(str(MARINHA_PATH))
+            pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            image_label = QLabel()
+            image_label.setPixmap(pixmap)
+            header_layout.addWidget(image_label)
+            return header_layout
+        except Exception as e:
+            print(f"Erro ao construir o cabeçalho: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao construir o cabeçalho: {e}")
+            return None
+
+    def setup_ui(self):
+        self.setWindowTitle("Autorização para Abertura de Processo Administrativo")
+        self.setFixedSize(1250, 550)
 
         self.layoutPrincipal = QVBoxLayout()
         self.layoutPrincipal.addLayout(self.cabecalho_layout())
-        self.criar_layouts()
-        self.setupUi()
-        self.aplicar_estilos()
-        self.setLayout(self.layoutPrincipal)
-        
-        self.config_manager.config_updated.connect(self.update_save_location)
 
-        self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
-
-    def cabecalho_layout(self):
-        header_layout = QHBoxLayout()
-        title_text = f"{self.tipo} nº {self.numero}/{self.ano}"
-        objeto_text = f"Objeto: {self.objeto}"
-        title_label = QLabel(f"<div style='font-size: 32px; font-weight: bold; color: navy;'>{title_text}</div>"
-                            f"<div style='font-size: 22px; color: navy; font-style: italic;'>{objeto_text}</div>")
-        header_layout.addWidget(title_label)
-        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        self.add_action_buttons(header_layout)
-        pixmap = QPixmap(str(MARINHA_PATH))
-        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        image_label = QLabel()
-        image_label.setPixmap(pixmap)
-        header_layout.addWidget(image_label)
-        return header_layout
-
-    def criar_layouts(self):
+        # Configuração dos layouts de widgets lado a lado
         horizontal_layout = QHBoxLayout()
         self.widgetEsquerda = QWidget()
         self.widgetDireita = QWidget()
@@ -80,19 +112,14 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.widgetEsquerda.setFixedSize(430, 420)
         self.widgetDireita.setFixedSize(800, 420)
 
-        # Configurando os layouts de esquerda e direita
         self.layoutEsquerda = QVBoxLayout(self.widgetEsquerda)
         self.layoutDireita = QVBoxLayout(self.widgetDireita)
 
-        # Adicionando os widgets ao layout horizontal
         horizontal_layout.addWidget(self.widgetEsquerda)
         horizontal_layout.addWidget(self.widgetDireita)
 
-        # Adicionando o layout horizontal ao layout principal
         self.layoutPrincipal.addLayout(horizontal_layout)  # Adiciona abaixo do cabeçalho
 
-    def setupUi(self):
-        settings = QSettings("SuaOrganizacao", "SeuAplicativo")
         self.createGroups()
         self.addWidgetsToLeftLayout()
         self.addWidgetsToRightLayout()
@@ -140,11 +167,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
                 padding: 0 3px 0 3px;
             }
         """)
-
-    def update_save_location(self, key, new_path):
-        if key == 'save_location':
-            self.pasta_base = new_path
-            print(f"Local de salvamento atualizado para: {self.pasta_base}")
 
     def createGroups(self):
         self.grupoAutoridade = QGroupBox("Autoridade Competente")

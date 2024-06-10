@@ -12,28 +12,25 @@ def create_button(text, icon, callback, tooltip_text, icon_size=QSize(40, 40), p
         btn.setIconSize(icon_size)
     btn.clicked.connect(callback)
     btn.setToolTip(tooltip_text)
+
     btn.setStyleSheet("""
-        QPushButton {
-            background-color: #f9f9f9;
-            color: #333; 
-            font-size: 16px; 
-            min-height: 35px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        QPushButton:hover {
-            background-color: #d3d3d3; 
-            border: 1px solid #ccc;
-        }
-        QPushButton:pressed {
-            background-color: #b0c4de;
-            color: white; 
-        }
-        QPushButton:focus {
-            border: 1px solid #b0c4de; 
-        }
+    QPushButton {
+        background-color: black;
+        color: white;
+        font-size: 14pt;
+        min-height: 35px;
+        padding: 5px;      
+    }
+    QPushButton:hover {
+        background-color: white;
+        color: black;
+    }
+    QPushButton:pressed {
+        background-color: #ddd;
+        color: black;
+    }
     """)
+
     return btn
 
 def load_icons(icons_dir):

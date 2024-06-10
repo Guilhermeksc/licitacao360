@@ -73,17 +73,24 @@ class TableMenu(QMenu):
         # Configuração do estilo do menu
         self.setStyleSheet("""
             QMenu {
-                background-color: #333;
-                padding: 4px;
-                border: 0.5px solid #dcdcdc;
-                color: white;
-                font-size: 12pt;
+                background-color: #f9f9f9;
+                color: #333;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                font-weight: bold;
             }
             QMenu::item {
                 background-color: transparent;
+                padding: 5px 20px 5px 20px;
             }
             QMenu::item:selected {
-                background-color: #565656;
+                background-color: #b0c4de;
+                color: white;
+            }
+            QMenu::separator {
+                height: 2px;
+                background-color: #d3d3d3;
+                margin: 5px 0;
             }
         """)
 
@@ -301,42 +308,16 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
-class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def paint(self, painter, option, index):
-        if hasattr(index.model(), 'mapToSource'):
-            # Se o modelo tem 'mapToSource', é um proxy e precisa mapear o índice
-            source_index = index.model().mapToSource(index)
-            source_model = index.model().sourceModel()
-        else:
-            # Se não, o próprio índice já é do modelo fonte
-            source_index = index
-            source_model = index.model()
-
-        if source_index.column() == source_model.fieldIndex("id_processo") or source_index.column() == source_model.fieldIndex("objeto"):
-            painter.save()
-            painter.setPen(QColor("#fcc200"))
-            painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, str(source_model.data(source_index, Qt.ItemDataRole.DisplayRole)))
-            painter.restore()
-        else:
-            super().paint(painter, option, index)
-
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        # Garante que o alinhamento centralizado seja aplicado
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
         self.app = app
         self.icons_dir = Path(icons_dir)
+        self.icons = load_and_map_icons(self.icons_dir)  # Carrega os ícones
         self.setup_managers()
         self.load_initial_data()
         self.model = self.init_model()  # Inicializa e configura o modelo SQL antes de tudo
-        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)  # Passa o modelo para UIManager
+        self.ui_manager = UIManager(self, self.icons, self.config_manager, self.model)  # Passa os ícones para UIManager
         self.setup_signals()
         self.init_ui()
 
@@ -361,11 +342,8 @@ class ApplicationUI(QMainWindow):
         return model
     
     def init_ui(self):
-        print("Inicializando UI no ApplicationUI...")
-        # self.table_view = CustomTableView(main_app=self, config_manager=self.config_manager, parent=self)
         self.setCentralWidget(self.ui_manager.main_widget)  # Define o widget central como o widget principal do UIManager
         self.ui_manager.configure_table_model()
-        print("UI do ApplicationUI inicializada.")
 
     def setup_signals(self):
         self.event_manager.controle_dados_dir_updated.connect(self.handle_database_dir_update)
@@ -378,7 +356,7 @@ class ApplicationUI(QMainWindow):
     def atualizar_tabela(self):
         self.model.select()
         self.table_view.viewport().update()
-        logging.debug("Tabela atualizada.")
+        # logging.debug("Tabela atualizada.")
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(config_manager=self.config_manager, parent=self)
@@ -482,8 +460,8 @@ class ApplicationUI(QMainWindow):
     def salvar_tabela(self):
         # Define as colunas desejadas
         colunas_desejadas = [
-            "ID Processo", "NUP", "Objeto", "UASG", "OM", "setor_responsavel", 
-            "coordenador_planejamento", "Etapa", "Pregoeiro", "Item PCA"
+            "Status", "ID Processo", "NUP", "Objeto", "UASG", "OM", "setor_responsavel", 
+            "coordenador_planejamento", "Pregoeiro", "Item PCA"
         ]
         
         # Cria um DataFrame vazio
@@ -611,7 +589,7 @@ class ApplicationUI(QMainWindow):
 
     def resetModels(self):
         """Reseta o modelo de tabela SQL e o modelo de filtro proxy."""
-        self.init_sql_model()  # Reinicializa o modelo SQL
+        self.init_model()  # Reinicializa o modelo SQL
         self.proxy_model.setSourceModel(self.model)
 
         # Verifica se os dados foram recarregados corretamente
@@ -638,9 +616,9 @@ class ApplicationUI(QMainWindow):
         self.update_database_file()
 
 class UIManager:
-    def __init__(self, parent, icons_dir, config_manager, model):
+    def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
-        self.icons_dir = icons_dir
+        self.icons = icons
         self.config_manager = config_manager
         self.model = model
         self.main_widget = QWidget(parent)
@@ -694,23 +672,39 @@ class UIManager:
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
         self.apply_custom_style()
-
-        # Configura um delegado de alinhamento central para todas as colunas
+        
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
+
+        status_index = self.model.fieldIndex("etapa")
+        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view))
+
+        # Só mova a coluna 'Etapa' se necessário
+        self.move_columns()
+
+    def move_columns(self):
+        index_etapa = self.model.fieldIndex('etapa')
+        index_id_processo = self.model.fieldIndex('id_processo')
+        if index_etapa != -1 and index_id_processo != -1:
+            self.table_view.horizontalHeader().moveSection(index_etapa, 0)  # Mover para a primeira posição
+            print(f"Coluna 'Etapa' movida para a posição inicial.")
+        else:
+            print("Falha ao mover colunas: Índices não encontrados.")
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
         self.parent.proxy_model.setSourceModel(self.model)
         self.parent.proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.parent.proxy_model.setFilterKeyColumn(-1)
+        self.parent.proxy_model.setSortRole(Qt.ItemDataRole.UserRole)
         self.table_view.setModel(self.parent.proxy_model)
 
-        # Conectar sinal de edição do modelo ao método de atualização da tabela
+        # Configura ordenação inicial
+        self.initial_sort()
+
         self.model.dataChanged.connect(self.table_view.update)
 
-        # Configurações de seleção da tabela
         if self.table_view.selectionModel():
             self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
             self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
@@ -719,6 +713,14 @@ class UIManager:
         self.update_column_headers()
         self.hide_unwanted_columns()
 
+    def initial_sort(self):
+        index_status = self.model.fieldIndex('etapa')
+        if index_status != -1:
+            self.parent.proxy_model.sort(index_status, Qt.SortOrder.AscendingOrder)
+            print("Ordenação inicial por 'Etapa' aplicada.")
+        else:
+            print("Erro: Coluna 'Etapa' não encontrada para ordenação inicial.")
+            
     def adjust_columns(self):
         # Ajustar automaticamente as larguras das colunas ao conteúdo
         self.table_view.resizeColumnsToContents()
@@ -734,13 +736,15 @@ class UIManager:
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Stretch) 
+        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed) 
         # Definir tamanhos específicos onde necessário
         header.resizeSection(4, 110)
         header.resizeSection(5, 175)
         header.resizeSection(8, 70)
         header.resizeSection(10, 100)
+        header.resizeSection(13, 230)
+        header.resizeSection(14, 180)
 
     def apply_custom_style(self):
         # Aplica um estilo CSS personalizado ao tableView
@@ -805,7 +809,7 @@ class UIManager:
             6: "Objeto",
             8: "UASG",
             10: "OM",
-            13: "Etapa",
+            13: "Status",
             14: "Pregoeiro"
         }
         for column, title in titles.items():
@@ -823,19 +827,24 @@ class CustomSqlTableModel(QSqlTableModel):
         self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
         self.etapa_order = etapa_order if etapa_order is not None else {}
 
+    def flags(self, index):
+        if index.column() in self.non_editable_columns:
+            return super().flags(index) & ~Qt.ItemFlag.ItemIsEditable  # Remove a permissão de edição
+        return super().flags(index)
+
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.UserRole and index.column() == self.fieldIndex('Etapa'):
+        # Verifica se a coluna deve ser não editável e ajusta o retorno para DisplayRole
+        if role == Qt.ItemDataRole.DisplayRole and index.column() in self.non_editable_columns:
+            return super().data(index, role)
+
+        # Mantém a funcionalidade de ordenação personalizada para o UserRole
+        if role == Qt.ItemDataRole.UserRole and self.headerData(index.column(), Qt.Orientation.Horizontal) == 'Status':
             etapa = super().data(index, Qt.ItemDataRole.DisplayRole)
-            return self.etapa_order.get(etapa, 999)  # Assume 999 as a high value for undefined stages
+            ordered_value = self.etapa_order.get(etapa, 999)  # Assume 999 as a high value for undefined stages
+            return ordered_value
+
         return super().data(index, role)
 
-    def flags(self, index):
-        original_flags = super().flags(index)
-        if index.column() in self.non_editable_columns:
-            # Remove a flag de edição e mantém a possibilidade de seleção
-            return original_flags & ~Qt.ItemFlag.ItemIsEditable
-        return original_flags
-    
 class SqlModel:
     def __init__(self, database_manager, parent=None):
         self.database_manager = database_manager
@@ -846,38 +855,25 @@ class SqlModel:
             'AGU': 8, 'Nota Técnica': 9, 'Montagem do Processo': 10, 'IRP': 11, 
             'Setor Responsável': 12, 'Planejamento': 13
         }
-        # Inicia uma nova conexão QSqlDatabase
         self.init_database()
 
     def init_database(self):
-        # Remova qualquer conexão existente com o mesmo nome para evitar conflitos
         if QSqlDatabase.contains("my_conn"):
             QSqlDatabase.removeDatabase("my_conn")
         self.db = QSqlDatabase.addDatabase('QSQLITE', "my_conn")
-        self.db.setDatabaseName(str(self.database_manager.db_path))  # Convertendo WindowsPath para string
+        self.db.setDatabaseName(str(self.database_manager.db_path))
         if not self.db.open():
             print("Não foi possível abrir a conexão com o banco de dados.")
+        else:
+            print("Conexão com o banco de dados aberta com sucesso.")
 
     def setup_model(self, table_name, editable=False):
-        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13])
+        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13], etapa_order=self.etapa_order)
         self.model.setTable(table_name)
         if editable:
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
         self.model.select()
         return self.model
-
-    def sort(self, column, order):
-        if self.model.headerData(column, Qt.Orientation.Horizontal) == 'Etapa':
-            self.model.setSortRole(Qt.ItemDataRole.UserRole)
-        else:
-            self.model.setSortRole(Qt.ItemDataRole.DisplayRole)
-        self.model.sort(column, order)
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.UserRole and self.model.headerData(index.column(), Qt.Orientation.Horizontal) == 'Etapa':
-            etapa = self.model.data(index, Qt.ItemDataRole.DisplayRole)
-            return self.etapa_order.get(etapa, 999)  # Default for undefined stages
-        return self.model.data(index, role)
 
     def configure_columns(self, table_view, visible_columns):
         for column in range(self.model.columnCount()):
@@ -942,4 +938,54 @@ class ButtonManager:
 class CenterAlignDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
+def load_and_map_icons(icons_dir):
+    icons = {}
+    icon_mapping = {
+        'Concluído': 'concluido.png',
+        'Em recurso': 'alarm.png',
+        'Impugnado': 'alert.png',
+        'Pré-Publicação': 'arrows.png',
+        'Montagem do Processo': 'arrows.png',
+        'IRP': 'icon_warning.png'
+    }
+    for status, filename in icon_mapping.items():
+        icon_path = Path(icons_dir) / filename
+        if icon_path.exists():
+            pixmap = QPixmap(str(icon_path))
+            pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            icons[status] = QIcon(pixmap)
+        else:
+            print(f"Ignore warning: Icon file {filename} not found in {icons_dir}")
+    return icons
+
+class CustomItemDelegate(QStyledItemDelegate):
+    def __init__(self, icons, parent=None):
+        super().__init__(parent)
+        self.icons = icons
+
+    def paint(self, painter, option, index):
+        painter.save()
+        super().paint(painter, option, index)  # Draw default text and background first
+        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+        icon = self.icons.get(status, None)
+
+        if icon:
+            icon_size = 24  # Using the original size of the icon
+            icon_x = option.rect.left() + 5  # X position with a small offset to the left
+            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2  # Centered Y position
+
+            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
+            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        size = super().sizeHint(option, index)
+        size.setWidth(size.width() + 30)  # Add extra width for the icon
+        return size
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        # Garante que o alinhamento centralizado seja aplicado
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter

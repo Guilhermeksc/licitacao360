@@ -686,3 +686,4 @@ class GerarManifestoIRP(QDialog):
             QMessageBox.warning(None, "Erro", f"Erro ao gerar documento PDF: {e}")
             print(f"Erro ao gerar documento PDF: {e}")
             return None
+
