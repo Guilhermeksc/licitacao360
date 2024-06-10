@@ -1,6 +1,0 @@
-Item: , Descrição: Grupo 21, Unidade de Fornecimento: -, Quantidade: -
-Descrição detalhada: 
-Valor Estimado: 0,00, Valor Homologado: 22.614,21, Valor Total do Item: 22.614,21
-Marca: , Fabricante: , Modelo / Versão: 
-
-Valor Total da Ata: R$ 22.614,21

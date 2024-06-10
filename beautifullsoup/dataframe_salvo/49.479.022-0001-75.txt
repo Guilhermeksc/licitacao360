@@ -1,6 +1,0 @@
-Item: 217, Descrição: Estabilizador tensão, Unidade de Fornecimento: Unidade, Quantidade: 33
-Descrição detalhada: Estabilizador tensão  bivolt 1,5kva
-Valor Estimado: 25.245,00, Valor Homologado: 22.440,00, Valor Total do Item: 22.440,00
-Marca: CR, Fabricante: CR, Modelo / Versão: KSB
-
-Valor Total da Ata: R$ 22.440,00

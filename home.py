@@ -289,9 +289,9 @@ class MainWindow(QMainWindow):
             self.active_buttonin = self.buttons[button_name]
 
 def main():
-    logging.basicConfig(level=logging.DEBUG,  # Mudança para DEBUG para mais detalhes
-                        format='%(asctime)s %(levelname)s:%(message)s',
-                        handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
+    # logging.basicConfig(level=logging.DEBUG,  # Mudança para DEBUG para mais detalhes
+    #                     format='%(asctime)s %(levelname)s:%(message)s',
+    #                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
     app = QApplication(sys.argv)
     
     def handle_exit():
@@ -304,7 +304,7 @@ def main():
         window.show()
         sys.exit(app.exec())
     except Exception as e:
-        logging.error("Unhandled exception", exc_info=True)
+        # logging.error("Unhandled exception", exc_info=True)
         raise e  # Opcional: re-lance a exceção se você desejar que o programa pare completamente
 
 if __name__ == "__main__":

@@ -1,6 +1,0 @@
-Item: 45, Descrição: Cabo áudio e vídeo, Unidade de Fornecimento: Unidade, Quantidade: 46
-Descrição detalhada: Cabo Áudio E Vídeo Aplicação: Caixa/Mesa Som , Comprimento: 15 M, Tipo Cabo: Xlr Fêmea/Xlr Macho
-Valor Estimado: 6.685,18, Valor Homologado: 5.520,00, Valor Total do Item: 5.520,00
-Marca: MXT, Fabricante: MXT, Modelo / Versão: CABO XLR
-
-Valor Total da Ata: R$ 5.520,00
