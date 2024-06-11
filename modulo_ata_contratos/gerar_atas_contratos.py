@@ -11,7 +11,6 @@ from modulo_ata_contratos.utils import create_button, load_icons, apply_standard
 from modulo_ata_contratos.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
 from modulo_ata_contratos.canvas_gerar_atas import *
 from diretorios import *
-import geopandas as gpd
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

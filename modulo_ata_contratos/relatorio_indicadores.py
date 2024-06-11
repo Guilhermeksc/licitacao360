@@ -6,7 +6,7 @@ from modulo_ata_contratos.regex_termo_homolog import *
 from modulo_ata_contratos.regex_sicaf import *
 from modulo_ata_contratos.canvas_gerar_atas import *
 from diretorios import *
-import geopandas as gpd
+# import geopandas as gpd
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -412,52 +412,52 @@ class RelatorioIndicadores(QDialog):
         plt.savefig(grafico_path)
         plt.close()
 
-    def grafico_localidade_geografica(self):
-        grafico_localidade_geografica_path = str(INDICADORES_NORMCEIM / "grafico_02.png")
-        if self.current_dataframe is not None:
-            try:
-                # Normalizar os nomes dos municípios
-                self.current_dataframe['municipio_normalizado'] = self.current_dataframe['municipio'].apply(
-                    lambda x: x.split('/')[0].strip() if x else ''
-                )
+    # def grafico_localidade_geografica(self):
+    #     grafico_localidade_geografica_path = str(INDICADORES_NORMCEIM / "grafico_02.png")
+    #     if self.current_dataframe is not None:
+    #         try:
+    #             # Normalizar os nomes dos municípios
+    #             self.current_dataframe['municipio_normalizado'] = self.current_dataframe['municipio'].apply(
+    #                 lambda x: x.split('/')[0].strip() if x else ''
+    #             )
 
-                # Contar o número de fornecedores por município normalizado
-                fornecedor_por_municipio = self.current_dataframe.groupby('municipio_normalizado').size().reset_index(name='contagem')
-                fornecedor_por_municipio.rename(columns={'municipio_normalizado': 'NM_MUN'}, inplace=True)
+    #             # Contar o número de fornecedores por município normalizado
+    #             fornecedor_por_municipio = self.current_dataframe.groupby('municipio_normalizado').size().reset_index(name='contagem')
+    #             fornecedor_por_municipio.rename(columns={'municipio_normalizado': 'NM_MUN'}, inplace=True)
 
-                # Carregar o shapefile do Brasil e projetar
-                brasil = gpd.read_file(str(SHAPEFILE_MUNICIPIOS)).to_crs(epsg=3857)
+    #             # Carregar o shapefile do Brasil e projetar
+    #             brasil = gpd.read_file(str(SHAPEFILE_MUNICIPIOS)).to_crs(epsg=3857)
 
-                # Filtrar os municípios de interesse
-                municípios_para_plotar = brasil.loc[brasil['NM_MUN'].isin(fornecedor_por_municipio['NM_MUN'])].copy()
-                municípios_para_plotar.loc[:, 'centroid'] = municípios_para_plotar.geometry.centroid
+    #             # Filtrar os municípios de interesse
+    #             municípios_para_plotar = brasil.loc[brasil['NM_MUN'].isin(fornecedor_por_municipio['NM_MUN'])].copy()
+    #             municípios_para_plotar.loc[:, 'centroid'] = municípios_para_plotar.geometry.centroid
 
-                # Merge com contagens
-                municípios_para_plotar = municípios_para_plotar.merge(fornecedor_por_municipio, how='left', on='NM_MUN')
-                municípios_para_plotar.loc[:, 'contagem'] = municípios_para_plotar['contagem'].fillna(0)
+    #             # Merge com contagens
+    #             municípios_para_plotar = municípios_para_plotar.merge(fornecedor_por_municipio, how='left', on='NM_MUN')
+    #             municípios_para_plotar.loc[:, 'contagem'] = municípios_para_plotar['contagem'].fillna(0)
 
-                # Plotar o mapa
-                fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-                municípios_para_plotar.plot(ax=ax, color='red', markersize=50, marker='o')
-                ctx.add_basemap(ax, crs=municípios_para_plotar.crs.to_string(), source=ctx.providers.OpenStreetMap.Mapnik)
-                bounds = municípios_para_plotar.total_bounds
-                dx = (bounds[2] - bounds[0]) * 0.1  # 10% padding
-                dy = (bounds[3] - bounds[1]) * 0.1  # 10% padding
-                ax.set_xlim([bounds[0] - dx, bounds[2] + dx])
-                ax.set_ylim([bounds[1] - dy, bounds[3] + dy])
-                ax.set_axis_off()
-                plt.title('Distribuição Geográfica dos Fornecedores')
+    #             # Plotar o mapa
+    #             fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    #             municípios_para_plotar.plot(ax=ax, color='red', markersize=50, marker='o')
+    #             ctx.add_basemap(ax, crs=municípios_para_plotar.crs.to_string(), source=ctx.providers.OpenStreetMap.Mapnik)
+    #             bounds = municípios_para_plotar.total_bounds
+    #             dx = (bounds[2] - bounds[0]) * 0.1  # 10% padding
+    #             dy = (bounds[3] - bounds[1]) * 0.1  # 10% padding
+    #             ax.set_xlim([bounds[0] - dx, bounds[2] + dx])
+    #             ax.set_ylim([bounds[1] - dy, bounds[3] + dy])
+    #             ax.set_axis_off()
+    #             plt.title('Distribuição Geográfica dos Fornecedores')
 
-                # Salvar o gráfico como imagem PNG
-                plt.savefig(grafico_localidade_geografica_path)
-                plt.close()
+    #             # Salvar o gráfico como imagem PNG
+    #             plt.savefig(grafico_localidade_geografica_path)
+    #             plt.close()
 
-            except Exception as e:
-                error_msg = str(e) + "\n\n" + traceback.format_exc()
-                print("Falha ao gerar o gráfico:\n" + error_msg)
-                QMessageBox.warning(self, "Aviso", "Falha ao gerar gráfico de localidade geográfica.")
-        else:
-            QMessageBox.warning(self, "Aviso", "Nenhum DataFrame carregado para gerar indicadores.")
+    #         except Exception as e:
+    #             error_msg = str(e) + "\n\n" + traceback.format_exc()
+    #             print("Falha ao gerar o gráfico:\n" + error_msg)
+    #             QMessageBox.warning(self, "Aviso", "Falha ao gerar gráfico de localidade geográfica.")
+    #     else:
+    #         QMessageBox.warning(self, "Aviso", "Nenhum DataFrame carregado para gerar indicadores.")
 
     def gerarPdf(self, docx_path):
         if docx_path is None or not os.path.isfile(docx_path):
