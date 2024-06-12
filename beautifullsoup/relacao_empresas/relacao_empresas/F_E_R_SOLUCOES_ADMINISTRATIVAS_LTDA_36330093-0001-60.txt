@@ -1,0 +1,153 @@
+Número da Ata:
+787000/2024-026/00
+
+Dados Empresa:
+
+Razão Social: F & R SOLUCOES ADMINISTRATIVAS LTDA,
+CNPJ: 36.330.093/0001-60,
+Endereço:
+Município-UF:
+CEP:
+Telefone:
+E-mail:
+Representada neste ato, por seu representante legal, o(a) Sr(a)
+
+Dados Itens:
+Item 44 - Cabo áudio e vídeo
+Descrição Detalhada: Cabo Áudio E Vídeo Aplicação: Caixa/Mesa Som , Comprimento: 15 M, Tipo Cabo: P10/Xlr Macho
+Unidade de Fornecimento: Unidade
+Quantidade: 49   |   Valor Unitário: R$ 98,00   |   Valor Total do Item: R$ 4.802,00
+----------------------------------------------------------------------------------------------------------------------------------
+Item 46 - Cabo Áudio E Vídeo
+Descrição Detalhada: Cabo Áudio E Vídeo Material Cobertura: Pvc Emborrachado , Aplicação: Microfone , Comprimento: 1 M, Material Condutor: Cobre , Material Isolamento Condutor: Pvc , Acessórios: Conector Xlr
+Unidade de Fornecimento: Unidade
+Quantidade: 16   |   Valor Unitário: R$ 70,56   |   Valor Total do Item: R$ 1.128,96
+----------------------------------------------------------------------------------------------------------------------------------
+Item 47 - Cabo áudio e vídeo
+Descrição Detalhada: Cabo Áudio E Vídeo Material Cobertura: Pvc Emborrachado , Aplicação: Microfone , Comprimento: 20 M, Material Condutor: Cobre , Material Isolamento Condutor: Pvc , Acessórios: Conector Xlr Macho E Fêmea
+Unidade de Fornecimento: Unidade
+Quantidade: 31   |   Valor Unitário: R$ 142,10   |   Valor Total do Item: R$ 4.405,10
+----------------------------------------------------------------------------------------------------------------------------------
+Item 50 - Microfone
+Descrição Detalhada: Microfone Material: Corpo De Metal , Resposta Freqüência: 55-18000 HZ, Aplicação: Auditório , Tipo Receptor: Padrão Rack 19 Polegadas Com 2 Antenas , Alcance: Mínimo 100 M, Referência Fabricante: Beyerdinamic Ne 900d , Alimentação Externa Receptor: 110/220 V, Alimentação Receptor: 3 V, Relação Sinal / Ruido: Menor Que 110 DB, Potência De Saída: Mínima 10 MW, Cor: Preta , Tipo: De Mão , Características Adicionais: Uhf, Kit De Montagem , Padrão: Polar Hipercardióide
+Unidade de Fornecimento: Unidade
+Quantidade: 18   |   Valor Unitário: R$ 431,00   |   Valor Total do Item: R$ 7.758,00
+----------------------------------------------------------------------------------------------------------------------------------
+Item 52 - Microfone
+Descrição Detalhada: Microfone Material: Corpo Em Alumínio , Resposta Freqüência: Uhf Acima De 700 Mhz MHZ, Sensibilidade: +/- 3 DB, Aplicação: Auditório , Tipo Receptor: Uhf , Alcance: 50 M, Cor: Preta , Tipo: Sem Fio , Alimentação: Pilha , Padrão: Polar Cardióide
+Unidade de Fornecimento: Unidade
+Quantidade: 16   |   Valor Unitário: R$ 333,20   |   Valor Total do Item: R$ 5.331,20
+----------------------------------------------------------------------------------------------------------------------------------
+Item 54 - Pedestal caixa acústica
+Descrição Detalhada: Pedestal Caixa Acústica Altura: Aberto Máx. 1,90m Fechado Máx. 1,60 M, Cor: Preta , Material Haste: Aço Carbono
+Unidade de Fornecimento: Unidade
+Quantidade: 20   |   Valor Unitário: R$ 139,16   |   Valor Total do Item: R$ 2.783,20
+----------------------------------------------------------------------------------------------------------------------------------
+Item 55 - Pedestal microfone
+Descrição Detalhada: Pedestal Microfone Acabamento Superficial: Pintura Eletrostática , Formato Base: Redondo , Cor: Preta , Tipo: De Mesa , Tipo Haste: Flexível Com Suporte , Comprimento Haste: 30 CM, Material Base Sustentação: Ferro
+Unidade de Fornecimento: Unidade
+Quantidade: 19   |   Valor Unitário: R$ 62,60   |   Valor Total do Item: R$ 1.189,40
+----------------------------------------------------------------------------------------------------------------------------------
+Item 56 - Pedestal microfone
+Descrição Detalhada: Pedestal Microfone Acabamento Superficial: Pintura Eletrostática , Altura: 1,95 M, Formato Base: Tripé Dobrável , Tipo: Girafa , Características Adicionais: Haste Com Regulagem De Altura E Inclinação , Tipo Haste: Telescópica , Material Base Sustentação: Aço Carbono
+Unidade de Fornecimento: Unidade
+Quantidade: 20   |   Valor Unitário: R$ 127,40   |   Valor Total do Item: R$ 2.548,00
+----------------------------------------------------------------------------------------------------------------------------------
+Item 119 - Disjuntor baixa tensão
+Descrição Detalhada: Disjuntor Baixa Tensão Tensão Máxima Operação: 127/220 V, Aplicação: Instalações Elétricas , Número De Fases: Monopolar , Curva De Disparo: C , Corrente Nominal: 4 A, Funcionamento: Termomagnético , Padrão: Din
+Unidade de Fornecimento: Unidade
+Quantidade: 16   |   Valor Unitário: R$ 47,50   |   Valor Total do Item: R$ 760,00
+----------------------------------------------------------------------------------------------------------------------------------
+Item 123 - Disjuntor baixa tensão
+Descrição Detalhada: Disjuntor Baixa Tensão Tensão Máxima Operação: 127/220 V, Aplicação: Instalações Elétricas , Número De Fases: Tripolar , Curva De Disparo: C , Corrente Nominal: 63 A, Funcionamento: Termomagnético , Padrão: Din
+Unidade de Fornecimento: Unidade
+Quantidade: 25   |   Valor Unitário: R$ 34,69   |   Valor Total do Item: R$ 867,25
+----------------------------------------------------------------------------------------------------------------------------------
+Item 131 - Eletroduto
+Descrição Detalhada: Material: Polietileno Alta Densidade, Aplicação: Cabo Subterrâneo, Referência Fabricante: Kanaflex, Cor: Preta, Tipo: Corrugado, Características Adicionais: Flexível ,Impermeavel E Esforço Com Compressão Dia, Diâmetro Nominal: 1 1/2 POL, Acessórios: Guia,
+Unidade de Fornecimento: Metro
+Quantidade: 280   |   Valor Unitário: R$ 5,38   |   Valor Total do Item: R$ 1.506,40
+----------------------------------------------------------------------------------------------------------------------------------
+Item 181 - Refletor
+Descrição Detalhada: Refletor Material Corpo: Alumínio , Altura: 210 MM, Aplicação: Sistema De Iluminação , Fluxo Luminoso: 18.000 LM, Ângulo De Abertura Da Lente: 120° , Comprimento: 70 MM, Cor: Preta , Tipo: Rgb  200w , Largura: 280 MM, Tensão Alimentação: Bivolt , Tipo Lâmpada: Microled , Grau Proteção: Ip-66 , Formato: Retangular
+Unidade de Fornecimento: Unidade
+Quantidade: 90   |   Valor Unitário: R$ 46,15   |   Valor Total do Item: R$ 4.153,50
+----------------------------------------------------------------------------------------------------------------------------------
+Item 213 - Estabilizador tensão
+Descrição Detalhada: Estabilizador Tensão Bateria: Selada , Tipo Alarme: Led Indicador Bateria Baixa E Sobrecarga , Tensão Alimentação Entrada: 110/220 V, Variação Entrada: +/- 15% , Autonomia Bateria: 20 Min , Quantidade Tomadas Saída: 4 Com 3 Pinos , Características Adicionais: Certificado Inmetro; Garantia 12 Meses , Capacidade Nominal: 600 V
+Unidade de Fornecimento: Unidade
+Quantidade: 58   |   Valor Unitário: R$ 269,50   |   Valor Total do Item: R$ 15.631,00
+----------------------------------------------------------------------------------------------------------------------------------
+Item 215 - Estabilizador tensão
+Descrição Detalhada: Estabilizador Tensão Tipo Onda: Senoidal , Tipo: Nobreak , Normas Técnicas: Nbr14136 , Capacidade Nominal: 2 KV
+Unidade de Fornecimento: Unidade
+Quantidade: 26   |   Valor Unitário: R$ 1.097,11   |   Valor Total do Item: R$ 28.524,86
+----------------------------------------------------------------------------------------------------------------------------------
+Item 221 - Fonte auxiliar partida
+Descrição Detalhada: Fonte Auxiliar Partida Componentes: Carregador Inteligente/Cabo Macho-Macho , Finalidade: Veículo Automotor , Altura: 290 MM, Corrente De Partida: 460 A, Comprimento: 290 MM, Largura: 200 MM, Tensão Saída: 12 VDC, Corrente Saída: 40 AH, Peso: 10 K
+Unidade de Fornecimento: Unidade
+Quantidade: 3   |   Valor Unitário: R$ 2.421,42   |   Valor Total do Item: R$ 7.264,26
+----------------------------------------------------------------------------------------------------------------------------------
+Item 231 - Resistência elétrica
+Descrição Detalhada: Resistência Elétrica Uso: Chuveiro Elétrico , Compatibilidade: Modelo 020 , Potência: 4.400 W, Tensão: 220 VOL
+Unidade de Fornecimento: Unidade
+Quantidade: 58   |   Valor Unitário: R$ 24,30   |   Valor Total do Item: R$ 1.409,40
+----------------------------------------------------------------------------------------------------------------------------------
+Item 233 - Resistência elétrica
+Descrição Detalhada: Resistência Elétrica Potência Nominal: 5500 W, Aplicação: Chuveiro Elétrico, Marca Lorenzetti , Características Adicionais: 3 Temperaturas , Tensão Nominal: 220
+Unidade de Fornecimento: Unidade
+Quantidade: 182   |   Valor Unitário: R$ 32,68   |   Valor Total do Item: R$ 5.947,76
+----------------------------------------------------------------------------------------------------------------------------------
+Item 258 - Alicate bico
+Descrição Detalhada: Alicate Bico Material: Aço Cromo Vanádio , Aplicação: Manutenção Equipamentos Eletrônicos , Comprimento: 8 POL, Tipo: Fino E Curvo , Tipo Cabo: Isolado
+Unidade de Fornecimento: Unidade
+Quantidade: 44   |   Valor Unitário: R$ 90,24   |   Valor Total do Item: R$ 3.970,56
+----------------------------------------------------------------------------------------------------------------------------------
+Item 259 - Alicate de corte
+Descrição Detalhada: Alicate De Corte Tipo Corte: Diagonal , Material: Aço Cromo Vanádio , Comprimento: 6 POL, Tipo Cabo: Isolado 1.Ooo Volts , Material Cabo: Plástico
+Unidade de Fornecimento: Unidade
+Quantidade: 76   |   Valor Unitário: R$ 27,24   |   Valor Total do Item: R$ 2.070,24
+----------------------------------------------------------------------------------------------------------------------------------
+Item 260 - Alicate descascar fio
+Descrição Detalhada: Alicate Descascar Fio Material: Aço , Acabamento: Revestimento Isolado , Comprimento: 112 MM, Características Adicionais: Cabo Utp/Ftp Cftv Rg58/Rg59/Rg62,Cabos Elétricos
+Unidade de Fornecimento: Unidade
+Quantidade: 33   |   Valor Unitário: R$ 39,64   |   Valor Total do Item: R$ 1.308,12
+----------------------------------------------------------------------------------------------------------------------------------
+Item 275 - Multímetro
+Descrição Detalhada: Multímetro Sensibilidade: 20 Kohm/V (Dc) E 5 Kohm/V (Ac) , Tensão Ac: 2,5 A 1.000 V, Corrente Dc: 50 Ma A 10 A, Tensão Dc: 250 Mv A 1.000 V, Dimensões: 180 X 140 X 80 MM, Tipo: Analógico E Portátil , Funcionamento: Baterias 1,5v (Aa) , Características Adicionais: Com Proteção De Sobrecarga E Baterias Internas , Tensão: 1.000 V, Peso: 1.400 G, Resistência: 0-2 Kohm A 0-20 MOH
+Unidade de Fornecimento: Unidade
+Quantidade: 34   |   Valor Unitário: R$ 57,81   |   Valor Total do Item: R$ 1.965,54
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 80 - Conexão eletrocalha
+Descrição Detalhada: Conexão Eletrocalha Material: Aço Galvanizado , Aplicação: Cabeamento Lógico E Elétrico , Angulação: 90° , Tipo: "T" Horizontal , Tamanho: 200 X 50 MM, Características Adicionais: Com Tampa Galvanizada
+Unidade de Fornecimento: Unidade
+Quantidade: 30   |   Valor Unitário: R$ 40,35   |   Valor Total do Item: R$ 1.210,50
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 82 - Suporte eletrocalha
+Descrição Detalhada: Suporte Eletrocalha Aplicação: Instalação De Cabeamento Estruturado , Tipo: Vertical
+Unidade de Fornecimento: Unidade
+Quantidade: 100   |   Valor Unitário: R$ 4,50   |   Valor Total do Item: R$ 450,00
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 83 - Conexão eletrocalha
+Descrição Detalhada: Conexão Eletrocalha Material: Aço Galvanizado , Aplicação: Eletrocalha De 100 X 50 Mm , Tipo: Cotovelo Reto
+Unidade de Fornecimento: Unidade
+Quantidade: 50   |   Valor Unitário: R$ 49,00   |   Valor Total do Item: R$ 2.450,00
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 84 - Conexão Eletrocalha
+Descrição Detalhada: Conexão Eletrocalha Material: Aço Galvanizado , Aplicação: Cabeamento Lógico E Elétrico , Angulação: 90° , Tipo: Curva Horizontal , Tamanho: 200 X 50 MM, Características Adicionais: Com Tampa Galvanizada
+Unidade de Fornecimento: Unidade
+Quantidade: 10   |   Valor Unitário: R$ 38,80   |   Valor Total do Item: R$ 388,00
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 86 - Conexão eletrocalha
+Descrição Detalhada: Conexão Eletrocalha Material: Aço Galvanizado , Aplicação: Cabeamento Lógico E Elétrico , Angulação: 90° , Tipo: Curva Vertical Interna , Tamanho: 200 X 50 MM, Características Adicionais: Com Tampa Galvanizada
+Unidade de Fornecimento: Unidade
+Quantidade: 20   |   Valor Unitário: R$ 36,97   |   Valor Total do Item: R$ 739,40
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 15 - Item 129 - Eletrocalha
+Descrição Detalhada: Material: Aço Galvanizado, Altura: 50 MM, Comprimento: 3.000 MM, Tipo: Chapa Perfurada, Largura: 200 MM,
+Unidade de Fornecimento: Metro
+Quantidade: 51   |   Valor Unitário: R$ 91,35   |   Valor Total do Item: R$ 4.658,85
+----------------------------------------------------------------------------------------------------------------------------------
+
+Valor total homologado para a empresa:
+R$ 115.221,50 (cento e quinze mil, duzentos e vinte e um reais e cinquenta centavos)
