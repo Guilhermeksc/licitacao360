@@ -313,11 +313,12 @@ class ApplicationUI(QMainWindow):
         super().__init__()
         self.app = app
         self.icons_dir = Path(icons_dir)
-        self.icons = load_and_map_icons(self.icons_dir)  # Carrega os ícones
+        self.icons = load_and_map_icons(self.icons_dir) # Carrega os ícones
         self.setup_managers()
         self.load_initial_data()
-        self.model = self.init_model()  # Inicializa e configura o modelo SQL antes de tudo
-        self.ui_manager = UIManager(self, self.icons, self.config_manager, self.model)  # Passa os ícones para UIManager
+        self.model = self.init_model() # Inicializa e configura o modelo SQL antes de tudo
+        self.ui_manager = UIManager(self, self.icons, self.config_manager, self.model) # Passa os ícones para UIManager
+        self.table_view = self.ui_manager.table_view # Atribui table_view da UIManager para o ApplicationUI
         self.setup_signals()
         self.init_ui()
 
@@ -455,7 +456,7 @@ class ApplicationUI(QMainWindow):
                       data['nup'], data['orgao_responsavel'], data['uasg'])
             )
             conn.commit()
-        self.init_sql_model()
+        self.init_model()
 
     def salvar_tabela(self):
         # Define as colunas desejadas
@@ -630,6 +631,7 @@ class UIManager:
         self.setup_search_bar()
         self.setup_buttons_layout()
         self.setup_table_view()
+        self.parent.setCentralWidget(self.main_widget) 
 
     def setup_search_bar(self):
         self.search_bar = QLineEdit(self.parent)
@@ -680,7 +682,6 @@ class UIManager:
         status_index = self.model.fieldIndex("etapa")
         self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view))
 
-        # Só mova a coluna 'Etapa' se necessário
         self.move_columns()
 
     def move_columns(self):
@@ -739,7 +740,7 @@ class UIManager:
         header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed) 
         # Definir tamanhos específicos onde necessário
-        header.resizeSection(4, 110)
+        header.resizeSection(4, 140)
         header.resizeSection(5, 175)
         header.resizeSection(8, 70)
         header.resizeSection(10, 100)
@@ -950,9 +951,12 @@ def load_and_map_icons(icons_dir):
         'Montagem do Processo': 'arrows.png',
         'IRP': 'icon_warning.png'
     }
+    print(f"Verificando ícones no diretório: {icons_dir}")
     for status, filename in icon_mapping.items():
         icon_path = Path(icons_dir) / filename
+        print(f"Procurando ícone para status '{status}': {icon_path}")
         if icon_path.exists():
+            print(f"Ícone encontrado: {filename}")
             pixmap = QPixmap(str(icon_path))
             pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icons[status] = QIcon(pixmap)
@@ -989,3 +993,4 @@ class CustomItemDelegate(QStyledItemDelegate):
         super().initStyleOption(option, index)
         # Garante que o alinhamento centralizado seja aplicado
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+

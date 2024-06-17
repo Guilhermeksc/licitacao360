@@ -33,11 +33,17 @@ def create_button(text, icon, callback, tooltip_text, icon_size=QSize(40, 40), p
 
     return btn
 
-def load_icons(icons_dir):
+def load_icons(icons_dir, file_extension="*.png"):
     icons = {}
+    print(f"Verificando ícones no diretório: {icons_dir}")
     for icon_file in Path(icons_dir).glob("*.png"):  # Procura por arquivos .png no diretório
         icon_name = icon_file.stem  # Obtém o nome do arquivo sem a extensão
-        icons[icon_name] = QIcon(str(icon_file))  # Cria o QIcon e adiciona ao dicionário
+        icon = QIcon(str(icon_file))
+        if icon.isNull():
+            print(f"Falha ao carregar ícone: {icon_file}")
+        else:
+            icons[icon_name] = icon
+            print(f"Ícone carregado: {icon_name} - {icon_file}")
     return icons
 
 def apply_standard_style(widget):

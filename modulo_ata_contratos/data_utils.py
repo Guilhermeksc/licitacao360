@@ -68,26 +68,66 @@ class DatabaseDialog(QDialog):
         self.callback = callback
         self.setup_ui()
         self.connect_signals()
+        self.setFixedSize(600, 350) 
+
+    def cabecalho_layout(self):
+        header_layout = QHBoxLayout()
+        title_label = QLabel("<div style='font-size: 32px; font-weight: bold; color: navy;'>Gerenciamento do Database</div>")
+        header_layout.addWidget(title_label)
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        
+        pixmap = QPixmap(str(MARINHA_PATH))
+        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap)
+        header_layout.addWidget(image_label)
+        
+        return header_layout
 
     def setup_ui(self):
         self.setWindowTitle("Gerenciamento de Dados")
+        self.setFont(QFont('Arial', 16))  # Define a fonte para Arial tamanho 16 para todo o diálogo
+
         layout = QVBoxLayout(self)
+        
+        layout.addLayout(self.cabecalho_layout())
 
         self.info_label = QLabel("Escolha uma opção:")
-        self.save_button = QPushButton("Salvar")
-        self.load_button = QPushButton("Carregar")
-        self.delete_button = QPushButton("Excluir Database")
-        self.table_combobox = QComboBox()
-
-        self.save_button.setEnabled(self.dataframe is not None)  # Habilita o botão de salvar apenas se há um DataFrame
-
+        self.info_label.setFont(QFont('Arial', 16))
         layout.addWidget(self.info_label)
-        layout.addWidget(self.save_button)
-        layout.addWidget(self.load_button)
-        layout.addWidget(self.delete_button)
+
+        # Cria e adiciona os botões de ação
+        self.add_action_buttons(layout)
+
+        self.table_combobox = QComboBox()
+        self.table_combobox.setFont(QFont('Arial', 14))
         layout.addWidget(self.table_combobox)
         
         self.setLayout(layout)
+
+    def add_action_buttons(self, layout):
+        icon_save = QIcon(str(ICONS_DIR / "save_to_drive.png"))
+        icon_load = QIcon(str(ICONS_DIR / "processing.png"))
+        icon_delete = QIcon(str(ICONS_DIR / "delete.png"))
+
+        self.save_button = self.create_button("Salvar", icon_save, self.save_data, "Salvar dados atuais no banco de dados")
+        self.load_button = self.create_button("Carregar", icon_load, self.load_data, "Carregar dados de uma tabela do banco de dados")
+        self.delete_button = self.create_button("Excluir Database", icon_delete, self.populate_and_show_delete_options, "Excluir uma tabela selecionada do banco de dados")
+
+        layout.addWidget(self.save_button)
+        layout.addWidget(self.load_button)
+        layout.addWidget(self.delete_button)
+
+    def create_button(self, text, icon, callback, tooltip_text, icon_size=None):
+        btn = QPushButton(text)
+        btn.setIcon(icon)
+        btn.setFont(QFont('Arial', 14))
+        if icon_size is None:
+            icon_size = QSize(40, 40)
+        btn.setIconSize(icon_size)
+        btn.clicked.connect(callback)
+        btn.setToolTip(tooltip_text)
+        return btn
 
     def connect_signals(self):
         self.save_button.clicked.connect(self.save_data)
@@ -97,14 +137,18 @@ class DatabaseDialog(QDialog):
     def populate_and_show_delete_options(self):
         with self.db_manager as conn:
             cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%UASG%';")
+            cur.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' 
+                AND name NOT IN ('controle_agentes_responsaveis', 'controle_om', 'controle_prazos', 'controle_processos', 'sqlite_sequence');
+            """)
             tables = [row[0] for row in cur.fetchall()]
         
         self.table_combobox.clear()
         if tables:
             self.table_combobox.addItems(tables)
         else:
-            QMessageBox.warning(self, "Aviso", "Nenhuma tabela com 'ATA' no nome foi encontrada.")
+            QMessageBox.warning(self, "Aviso", "Nenhuma tabela elegível foi encontrada.")
             return
         
         self.delete_button.setText("Confirmar Exclusão")
@@ -114,18 +158,19 @@ class DatabaseDialog(QDialog):
     def confirm_deletion(self):
         selected_table = self.table_combobox.currentText()
         if selected_table:
-            # Confirmação de exclusão com o usuário
             confirm = QMessageBox.question(self, "Confirmar Exclusão", f"Tem certeza que deseja excluir a tabela '{selected_table}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if confirm == QMessageBox.StandardButton.Yes:
-                with self.db_manager as conn:
-                    cur = conn.cursor()
-                    # Uso seguro de aspas duplas para delimitar o nome da tabela
-                    cur.execute(f'DROP TABLE "{selected_table}"')
-                    conn.commit()
-                QMessageBox.information(self, "Sucesso", f"Tabela '{selected_table}' excluída com sucesso!")
-                self.populate_and_show_delete_options()  # Re-populate list and reset state
-            else:
-                self.populate_and_show_delete_options()  # Re-populate list and reset state
+                try:
+                    with self.db_manager as conn:
+                        cur = conn.cursor()
+                        cur.execute(f'DROP TABLE "{selected_table}"')
+                        conn.commit()
+                    QMessageBox.information(self, "Sucesso", f"Tabela '{selected_table}' excluída com sucesso!")
+                except Exception as e:
+                    QMessageBox.critical(self, "Erro", f"Erro ao excluir a tabela: {e}")
+                finally:
+                    self.populate_and_show_delete_options()  # Re-populate list and reset state
+
                     
     def save_data(self):
         if isinstance(self.dataframe, pd.DataFrame) and not self.dataframe.empty:
@@ -150,7 +195,7 @@ class DatabaseDialog(QDialog):
             return
 
         # Filtrar por nomes que possivelmente contenham o padrão desejado
-        pattern = re.compile(r"PE-\d{2}-\d{4}")
+        pattern = re.compile(r"\d{4}")
         pe_tables = [table for table in tables if pattern.search(table)]
 
         item, ok = QInputDialog.getItem(self, "Carregar DataFrame", "Selecione a tabela:", pe_tables, 0, False)

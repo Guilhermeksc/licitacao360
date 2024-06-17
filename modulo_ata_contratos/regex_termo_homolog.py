@@ -70,23 +70,25 @@ def processar_item(match, conteudo: str, ultima_posicao_processada: int, padrao_
     }
 
     # Somente tenta buscar correspondências de padrões adicionais se a situação não for 'Anulado e Homologado'
-    if item_data['situacao'] != 'Anulado e Homologado':
+    if item_data['situacao'] not in ['Anulado e Homologado', 'Revogado e Homologado']:
+        # Processamento do padrão 3
         match_3 = re.search(padrao_3, conteudo[ultima_posicao_processada:])
         if match_3:
             ultima_posicao_processada += match_3.end()
             item_data.update({
-                "melhor_lance": match_3.group('melhor_lance') if match_3.group('melhor_lance') else 'N/A',
-                "valor_negociado": match_3.group('valor_negociado') if match_3.group('valor_negociado') else 'N/A',
-                "ordenador_despesa": match_3.group('ordenador_despesa') if match_3.group('ordenador_despesa') else 'N/A',
-                "empresa": match_3.group('empresa') if match_3.group('empresa') else 'N/A',
+                "melhor_lance": match_3.group('melhor_lance') or 'N/A',
+                "valor_negociado": match_3.group('valor_negociado') or 'N/A',
+                "ordenador_despesa": match_3.group('ordenador_despesa') or 'N/A',
+                "empresa": match_3.group('empresa') or 'N/A',
                 "cnpj": ajuste_cnpj(match_3.group('cnpj')) if match_3.group('cnpj') else 'N/A',
             })
 
+        # Processamento do padrão 4
         match_4 = re.search(padrao_4, conteudo[ultima_posicao_processada:])
         if match_4:
             item_data.update({
-                "marca_fabricante": match_4.group('marca_fabricante') if match_4.group('marca_fabricante') else 'N/A',
-                "modelo_versao": match_4.group('modelo_versao') if match_4.group('modelo_versao') else 'N/A',
+                "marca_fabricante": match_4.group('marca_fabricante') or 'N/A',
+                "modelo_versao": match_4.group('modelo_versao') or 'N/A',
             })
 
     return item_data, ultima_posicao_processada

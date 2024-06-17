@@ -32,11 +32,15 @@ def build_executable():
     ]
 
    # Adicionando importações ocultas
-    pyinstaller_args.extend(["--hidden-import", "PyQt6"])
-    pyinstaller_args.extend(["--hidden-import", "qdarkstyle"])
-    pyinstaller_args.extend(["--hidden-import", "pdfplumber"])
-    pyinstaller_args.extend(["--hidden-import", "openpyxl"])
-
+    pyinstaller_args.extend([
+        "--hidden-import", "PyQt6",
+        "--hidden-import", "qdarkstyle",
+        "--hidden-import", "pdfplumber",
+        "--hidden-import", "openpyxl",
+        "--hidden-import", "rasterio",
+        "--hidden-import", "rasterio.sample",
+        "--hidden-import", "rasterio._io"
+    ])
 
     # Adicionando recursos com o separador correto
     for src, dest in resources:

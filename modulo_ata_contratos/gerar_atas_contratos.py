@@ -89,28 +89,44 @@ class CustomTreeView(QTreeView):
 class HTMLDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         painter.save()
-        options = option
+        options = QStyleOptionViewItem(option)  # Faz uma cópia para evitar modificar o original
         self.initStyleOption(options, index)
-        style = options.widget.style() if options.widget else QApplication.style()
+
+        # Definição do espaçamento vertical para o ícone
+        vertical_padding = 5  # Adiciona um espaçamento vertical para baixar o ícone
+
+        # Desenho do ícone
+        icon = options.icon
+        iconSize = options.decorationSize
+        iconRect = QRect(options.rect.x(), options.rect.y() + vertical_padding, iconSize.width(), iconSize.height())
+        icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignTop)  # Uso correto da flag de alinhamento
+
+        # Ajustar o rect para o texto
+        textRect = options.rect.adjusted(iconSize.width() + 2, 0, 0, 0)  # Ajusta o rect para o texto baseado no tamanho do ícone
+
+        # Configuração e desenho do texto HTML
         doc = QTextDocument()
         doc.setHtml(options.text)
-        options.text = ""
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, options, painter)
-        ctx = QAbstractTextDocumentLayout.PaintContext()
-
-        textRect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, options, None)
+        options.text = ""  # Limpa o texto para evitar desenho pelo estilo padrão
+        style = QApplication.style() if options.widget is None else options.widget.style()
         painter.translate(textRect.topLeft())
         painter.setClipRect(textRect.translated(-textRect.topLeft()))
+        doc.setTextWidth(textRect.width())
+        ctx = QAbstractTextDocumentLayout.PaintContext()
         doc.documentLayout().draw(painter, ctx)
+
         painter.restore()
 
     def sizeHint(self, option, index):
-        options = option
+        options = QStyleOptionViewItem(option)
         self.initStyleOption(options, index)
         doc = QTextDocument()
         doc.setHtml(options.text)
-        doc.setTextWidth(options.rect.width())
-        return QSize(int(doc.idealWidth()), int(doc.size().height()))
+        doc.setTextWidth(options.rect.width() - options.decorationSize.width() - 2)  # Subtrai o tamanho do ícone
+        vertical_padding = 5  # Mesmo espaçamento vertical definido no paint
+        return QSize(int(doc.idealWidth() + options.decorationSize.width()), max(int(doc.size().height()), options.decorationSize.height() + vertical_padding))
+
+
     
 class GerarAtasWidget(QWidget):
     def __init__(self, icons_dir, parent=None):
@@ -128,6 +144,7 @@ class GerarAtasWidget(QWidget):
         self.setup_ui()
         self.progressDialog = ProgressDialog(self.pdf_dir, self)
         self.setup_pdf_processing_thread()        
+        self.db_manager = DatabaseManager(CONTROLE_DADOS)
         
     def obter_mapeamento_colunas(self):
         return {
@@ -264,19 +281,25 @@ class GerarAtasWidget(QWidget):
         """)
 
     def setup_pdf_processing_thread(self):
+        if not self.pdf_dir.exists() or not self.txt_dir.exists():
+            QMessageBox.critical(self, "Erro", "Diretório de PDF ou TXT não encontrado.")
+            return
         self.processing_thread = PDFProcessingThread(self.pdf_dir, self.txt_dir)
         self.processing_thread.progress_updated.connect(self.progressDialog.update_progress)
         self.processing_thread.processing_complete.connect(self.progressDialog.on_conversion_finished)
 
     def import_tr(self):
-        arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
-        if arquivo:
-            self.tr_variavel_df_carregado = pd.read_excel(arquivo)
-            colunas_relevantes = ["item_num", "catalogo", "descricao_tr", "descricao_detalhada"]
-            df_relevante = self.tr_variavel_df_carregado[colunas_relevantes]
-            QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{QFileInfo(arquivo).fileName()}' foi carregado com sucesso!")
-            self.atualizar_modelo_com_dados(df_relevante)
-            self.atualizar_alerta_apos_importar_tr()
+        try:
+            arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
+            if arquivo:
+                self.tr_variavel_df_carregado = pd.read_excel(arquivo)
+                colunas_relevantes = ["item_num", "catalogo", "descricao_tr", "descricao_detalhada"]
+                df_relevante = self.tr_variavel_df_carregado[colunas_relevantes]
+                QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{QFileInfo(arquivo).fileName()}' foi carregado com sucesso!")
+                self.atualizar_modelo_com_dados(df_relevante)
+                self.atualizar_alerta_apos_importar_tr()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao importar o arquivo: {e}")
 
     def atualizar_alerta_apos_importar_tr(self):
         icon_path = str(self.icons_dir / 'confirm.png')
@@ -331,10 +354,47 @@ class GerarAtasWidget(QWidget):
             self.current_dataframe = self.homologacao_dataframe  # Atualiza o DataFrame corrente
             self.update_treeview_with_dataframe(self.homologacao_dataframe)
             self.atualizar_alerta_apos_processar_homologacao()
+            
+            # Verifica se as colunas necessárias existem
+            if {'num_pregao', 'ano_pregao', 'uasg'}.issubset(self.current_dataframe.columns):
+                # Filtra linhas onde qualquer uma das colunas chave contém NaN
+                filtered_df = self.current_dataframe.dropna(subset=['num_pregao', 'ano_pregao', 'uasg'])
+                
+                # Gera o nome da tabela apenas para linhas sem NaN
+                def create_table_name(row):
+                    return f"{row['num_pregao']}-{row['ano_pregao']}-{row['uasg']}-Homolog"
+
+                filtered_df['table_name'] = filtered_df.apply(create_table_name, axis=1)
+                
+                # Debugging output
+                print("Valores de 'num_pregao':", filtered_df['num_pregao'].unique())
+                print("Valores de 'ano_pregao':", filtered_df['ano_pregao'].unique())
+                print("Valores de 'uasg':", filtered_df['uasg'].unique())
+                print("Nomes de tabelas gerados:", filtered_df['table_name'].unique())
+                
+                if filtered_df['table_name'].nunique() == 1:
+                    table_name = filtered_df['table_name'].iloc[0]
+                    self.save_data(table_name)  # Chama a função de salvar com o nome da tabela
+                else:
+                    QMessageBox.critical(self, "Erro", "A combinação de 'num_pregao', 'ano_pregao', e 'uasg' não é única. Por favor, verifique os dados.")
+            else:
+                QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
             return self.current_dataframe  # Retorna o DataFrame atualizado
         else:
             QMessageBox.warning(self, "Erro", "Falha ao salvar os dados.")
             return None  # Retorna None para indicar que o processo falhou
+
+    def save_data(self, table_name):
+        if isinstance(self.current_dataframe, pd.DataFrame) and not self.current_dataframe.empty:
+            print("Salvando DataFrame com as colunas:", self.current_dataframe.columns)
+            try:
+                with self.db_manager as conn:
+                    self.current_dataframe.to_sql(table_name, conn, if_exists='replace', index=False)
+                QMessageBox.information(self, "Sucesso", f"DataFrame salvo com sucesso em '{table_name}'!")
+            except Exception as e:
+                QMessageBox.critical(self, "Erro", f"Erro ao salvar os dados no banco de dados: {e}")
+        else:
+            QMessageBox.critical(self, "Erro", "Nenhum DataFrame válido disponível para salvar ou o objeto não é um DataFrame.")
 
     def processar_sicaf(self):
         if self.current_dataframe is not None:
@@ -358,7 +418,32 @@ class GerarAtasWidget(QWidget):
             self.current_dataframe = df_final  # Atualize o DataFrame atual
             print("DataFrame final recebido do SICAF:")
             print(df_final)
-            return self.current_dataframe
+
+            # Verifica se as colunas necessárias existem
+            if {'num_pregao', 'ano_pregao', 'uasg'}.issubset(self.current_dataframe.columns):
+                # Filtra linhas onde qualquer uma das colunas chave contém NaN
+                filtered_df = self.current_dataframe.dropna(subset=['num_pregao', 'ano_pregao', 'uasg'])
+                
+                # Gera o nome da tabela apenas para linhas sem NaN
+                def create_table_name(row):
+                    return f"{row['num_pregao']}-{row['ano_pregao']}-{row['uasg']}-Homolog-Sicaf"
+
+                filtered_df['table_name'] = filtered_df.apply(create_table_name, axis=1)
+                
+                # Debugging output
+                print("Valores de 'num_pregao':", filtered_df['num_pregao'].unique())
+                print("Valores de 'ano_pregao':", filtered_df['ano_pregao'].unique())
+                print("Valores de 'uasg':", filtered_df['uasg'].unique())
+                print("Nomes de tabelas gerados:", filtered_df['table_name'].unique())
+                
+                if filtered_df['table_name'].nunique() == 1:
+                    table_name = filtered_df['table_name'].iloc[0]
+                    self.save_data(table_name)  # Chama a função de salvar com o nome da tabela
+                else:
+                    QMessageBox.critical(self, "Erro", "A combinação de 'num_pregao', 'ano_pregao', e 'uasg' não é única. Por favor, verifique os dados.")
+            else:
+                QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
+            return self.current_dataframe  # Retorna o DataFrame atualizado
         else:
             QMessageBox.warning(self, "Erro", "Dados recebidos não são válidos.")
 
@@ -430,6 +515,32 @@ class GerarAtasWidget(QWidget):
         print("DataFrame atualizado recebido do diálogo Atas:")
         print(self.current_dataframe[['numero_ata', 'item_num']])
 
+        # Verifica se as colunas necessárias existem
+        if {'num_pregao', 'ano_pregao', 'uasg'}.issubset(self.current_dataframe.columns):
+            # Filtra linhas onde qualquer uma das colunas chave contém NaN
+            filtered_df = self.current_dataframe.dropna(subset=['num_pregao', 'ano_pregao', 'uasg'])
+            
+            # Gera o nome da tabela apenas para linhas sem NaN
+            def create_table_name(row):
+                return f"{row['num_pregao']}-{row['ano_pregao']}-{row['uasg']}-Final"
+
+            filtered_df['table_name'] = filtered_df.apply(create_table_name, axis=1)
+            
+            # Debugging output
+            print("Valores de 'num_pregao':", filtered_df['num_pregao'].unique())
+            print("Valores de 'ano_pregao':", filtered_df['ano_pregao'].unique())
+            print("Valores de 'uasg':", filtered_df['uasg'].unique())
+            print("Nomes de tabelas gerados:", filtered_df['table_name'].unique())
+            
+            if filtered_df['table_name'].nunique() == 1:
+                table_name = filtered_df['table_name'].iloc[0]
+                self.save_data(table_name)  # Chama a função de salvar com o nome da tabela
+            else:
+                QMessageBox.critical(self, "Erro", "A combinação de 'num_pregao', 'ano_pregao', e 'uasg' não é única. Por favor, verifique os dados.")
+        else:
+            QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
+
+
     def salvar_tabela(self):
         if self.current_dataframe is not None:
             # Define o caminho do arquivo a ser salvo
@@ -451,10 +562,30 @@ class GerarAtasWidget(QWidget):
 
 class ModeloTreeview:
     def __init__(self, icons_dir):
-        self.check_icon = QIcon(str(icons_dir / 'checked.png'))
-        self.uncheck_icon = QIcon(str(icons_dir / 'unchecked.png'))
-        self.alert_icon = QIcon(str(icons_dir / 'alert.png'))
+        print(f"Carregando ícones de: {icons_dir}")
+        self.icons = load_icons(icons_dir)
 
+    def determinar_itens_iguais(self, row, empresa_items):
+        empresa_name = str(row['empresa']) if pd.notna(row['empresa']) else ""
+        cnpj = str(row['cnpj']) if pd.notna(row['cnpj']) else ""
+        situacao = str(row['situacao']) if pd.notna(row['situacao']) else "Não definido"
+        is_situacao_only = not empresa_name and not cnpj
+        parent_key = f"{situacao}" if is_situacao_only else f"{cnpj} - {empresa_name}".strip(" -")
+        
+        if parent_key not in empresa_items:
+            parent_item = QStandardItem()
+            parent_item.setEditable(False)
+            icon_key = 'alert' if is_situacao_only else ('checked' if pd.notna(row['endereco']) else 'unchecked')
+            icon = self.icons.get(icon_key, QIcon())  # Obtém o ícone ou um ícone vazio se não encontrado
+            parent_item.setIcon(icon)
+            return parent_key, parent_item
+
+        return parent_key, None
+
+    def update_view(self, view):
+        # Força a atualização da view para garantir que os ícones sejam exibidos
+        view.viewport().update()
+        
     def criar_modelo(self, dataframe):
         model, header = self.initializar_modelo(dataframe)
         empresa_items = self.processar_linhas(dataframe, model)
@@ -544,19 +675,6 @@ class ModeloTreeview:
             info_item = QStandardItem(info)
             info_item.setEditable(False)
             parent_item.appendRow(info_item)
-
-    def determinar_itens_iguais(self, row, empresa_items):
-        empresa_name = str(row['empresa']) if pd.notna(row['empresa']) else ""
-        cnpj = str(row['cnpj']) if pd.notna(row['cnpj']) else ""
-        situacao = str(row['situacao']) if pd.notna(row['situacao']) else "Não definido"
-        is_situacao_only = not empresa_name and not cnpj
-        parent_key = f"{situacao}" if is_situacao_only else f"{cnpj} - {empresa_name}".strip(" -")
-        if parent_key not in empresa_items:
-            parent_item = QStandardItem()
-            parent_item.setEditable(False)
-            parent_item.setIcon(self.alert_icon if is_situacao_only else (self.check_icon if pd.notna(row['endereco']) else self.uncheck_icon))
-            return parent_key, parent_item
-        return parent_key, None
 
     def criar_dados_sicaf_do_item(self, row):
         fields = ['endereco', 'cep', 'municipio', 'telefone', 'email', 'responsavel_legal']

@@ -197,7 +197,6 @@ class RelatorioIndicadores(QDialog):
         self.grafico_desconto_btn = QPushButton("Gráfico por Percentual de Desconto")
         self.report_button = QPushButton("Gerar Relatório de Indicadores")
         
-        self.grafico_local_btn.clicked.connect(self.grafico_localidade_geografica)
         self.grafico_desconto_btn.clicked.connect(self.grafico_percentual_desconto)
         self.report_button.clicked.connect(self.report_button_clicked)
 
