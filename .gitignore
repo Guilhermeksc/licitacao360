@@ -1,5 +1,6 @@
 venv/
 __pycache__/
 dist/
+build/
 settings_comprasnet.json
 config.py
