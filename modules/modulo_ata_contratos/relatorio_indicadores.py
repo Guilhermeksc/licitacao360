@@ -24,7 +24,7 @@ import sys
 import time
 from win32com.client import Dispatch
 
-ATA_CONTRATO_DIR = BASE_DIR / "modules.modulo_ata_contratos"
+ATA_CONTRATO_DIR = MODULES_DIR / "modulo_ata_contratos"
 INDICADORES_NORMCEIM = ATA_CONTRATO_DIR / "indicadores_normceim"
 TEMPLATE_INDICADORES_PATH = INDICADORES_NORMCEIM / "template_indicadores.docx"
 SHAPEFILE_MUNICIPIOS = DATABASE_DIR / "BR_Municipios_2022.shp"
