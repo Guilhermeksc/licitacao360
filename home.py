@@ -3,10 +3,9 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 import logging
 import sys
-from diretorios import ICONS_DIR, IMAGE_PATH, DATABASE_DIR, LV_FINAL_DIR, ITEM_SELECIONADO_PATH, BASE_DIR
+from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import (
-    get_menu_button_style, get_menu_title_style, get_content_title_style, 
-    get_menu_button_activated_style, get_updated_background
+    get_menu_button_style, get_menu_button_activated_style, get_updated_background
 )
 from modules.modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from modules.planejamento.planejamento_button import ApplicationUI
@@ -193,8 +192,8 @@ class MainWindow(QMainWindow):
         content_actions = {
             "Planejamento": self.setup_planejamento,
             # "Controle de Contratos": self.setup_controle_contratos,
-            "Gerar Ata e Contrato": self.setup_atas_contratos_novo,
-            # "Atas e Contratos": self.setup_atas_contratos,
+            "Atas e Contratos": self.setup_atas_contratos_novo,
+            "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             "Limite de Dispensa": self.setup_limite_dispensa,
             "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
             "Selenium": self.setup_selenium_automacao,
@@ -217,8 +216,8 @@ class MainWindow(QMainWindow):
                 "Início": self.open_initial_page,
                 "Planejamento": self.setup_planejamento,
                 # "Controle de Contratos": self.setup_controle_contratos,
-                "Gerar Ata e Contrato": self.setup_atas_contratos_novo,
-                # "Atas e Contratos": self.setup_atas_contratos,
+                "Atas e Contratos": self.setup_atas_contratos_novo,
+                "Dispensa Eletrônica": self.setup_dispensa_eletronica,
                 "Limite de Dispensa": self.setup_limite_dispensa,
                 "Consulta CATMAT/CATSER": self.setup_controle_pdm,
                 "Selenium": self.setup_selenium_automacao,
@@ -245,6 +244,11 @@ class MainWindow(QMainWindow):
         self.atas_contratos_novo_widget = GerarAtasWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_novo_widget)
 
+    def setup_dispensa_eletronica(self):
+        self.clear_content_area()
+        self.dispensa_eletronica_widget = DispensaEletronicaWidget(self)
+        self.content_layout.addWidget(self.dispensa_eletronica_widget)
+        
     def setup_controle_pdm(self):
         self.clear_content_area()
         self.controle_pdf_catser_widget = ConsultaPDMCatser(self)

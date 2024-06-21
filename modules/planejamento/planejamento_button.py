@@ -308,6 +308,15 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
+class DispensaEletronicaWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        label = QLabel("Dispensa Eletrônica")
+        layout.addWidget(label)
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
