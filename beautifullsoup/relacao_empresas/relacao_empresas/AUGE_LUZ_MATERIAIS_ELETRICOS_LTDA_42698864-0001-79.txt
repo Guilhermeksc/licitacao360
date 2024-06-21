@@ -1,0 +1,53 @@
+Número da Ata:
+787000/2024-028/00
+
+Dados Empresa:
+
+Razão Social: AUGE LUZ MATERIAIS ELETRICOS LTDA,
+CNPJ: 42.698.864/0001-79,
+Endereço:
+Município-UF:
+CEP:
+Telefone:
+E-mail:
+Representada neste ato, por seu representante legal, o(a) Sr(a)
+
+Dados Itens:
+Item 71 - Conector elétrico
+Descrição Detalhada: Conector Elétrico Material: Cobre Eletrolítico , Aplicação: Manutenção Elétrica , Tipo: Split Bolt , Característica Condutor: Cabo - 95mm²
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 77   |   Valor Unitário: R$ 18,50   |   Valor Total do Item: R$ 1.424,50
+----------------------------------------------------------------------------------------------------------------------------------
+Item 163 - Luminária
+Descrição Detalhada: Luminária Material Corpo: Alumínio , Componentes: Drive Interno , Material Difusor: Policarbonato Leitoso , Fixação: Garra De Pressão Em Aço , Temperatura De Cor: 6500 K, Fluxo Luminoso: 1500 LM, Características Adicionais: Circunf.Frontal 23cm Borda Máx. 5cm , Potência Nominal Lâmpada: 15 W, Tensão Nominal: 220 V, Tipo Lâmpada: Super Led , Posição Relativa: Embutir , Formato: Redondo
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 120   |   Valor Unitário: R$ 19,76   |   Valor Total do Item: R$ 2.371,20
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 30 - Item 175 - Plugue
+Descrição Detalhada: Plugue Material: Plástico Poliamida Anti-Chama , Número Pólos: 2 P + T , Corrente Nominal: 20 A, Tipo: Fêmea , Tensão Nominal: 250
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 560   |   Valor Unitário: R$ 5,59   |   Valor Total do Item: R$ 3.130,40
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 30 - Item 176 - Plugue
+Descrição Detalhada: Plugue Número Pólos: 2 P + T , Corrente Nominal: 10 A, Tipo: Fêmea , Normas Técnicas: Nbr 14136 , Padrão: Brasileiro , Tensão Nominal: 250 V, Número Pinos: 3 UN, Formato Pinos: Cilíndrico
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 570   |   Valor Unitário: R$ 5,60   |   Valor Total do Item: R$ 3.192,00
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 30 - Item 177 - Plugue
+Descrição Detalhada: Plugue Material: Plástico , Número Pólos: 2 P , Corrente Nominal: 10 A, Tipo: Macho , Características Adicionais: Com Prensa Cabo , Tensão Nominal: 250
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 570   |   Valor Unitário: R$ 2,35   |   Valor Total do Item: R$ 1.339,50
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 30 - Item 178 - Plugue
+Descrição Detalhada: Plugue Número Pólos: 2 P , Corrente Nominal: 20 A, Tipo: Macho , Tensão Nominal: 250
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 550   |   Valor Unitário: R$ 5,00   |   Valor Total do Item: R$ 2.750,00
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 30 - Item 179 - Plugue
+Descrição Detalhada: Plugue Número Pólos: 2 P + T , Corrente Nominal: 10 A, Tipo: Macho , Normas Técnicas: Nbr 14136 , Padrão: Brasileiro , Tensão Nominal: 250 V, Número Pinos: 3 UN, Formato Pinos: Cilíndrico
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 590   |   Valor Unitário: R$ 4,34   |   Valor Total do Item: R$ 2.560,60
+----------------------------------------------------------------------------------------------------------------------------------
+
+Valor total homologado para a empresa:
+R$ 16.768,20 (dezesseis mil, setecentos e sessenta e oito reais e vinte centavos)

@@ -43,7 +43,7 @@ def load_icons(icons_dir, file_extension="*.png"):
             print(f"Falha ao carregar ícone: {icon_file}")
         else:
             icons[icon_name] = icon
-            print(f"Ícone carregado: {icon_name} - {icon_file}")
+            # print(f"Ícone carregado: {icon_name} - {icon_file}")
     return icons
 
 def apply_standard_style(widget):

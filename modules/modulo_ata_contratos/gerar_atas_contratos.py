@@ -127,7 +127,6 @@ class HTMLDelegate(QStyledItemDelegate):
         return QSize(int(doc.idealWidth() + options.decorationSize.width()), max(int(doc.size().height()), options.decorationSize.height() + vertical_padding))
 
 
-    
 class GerarAtasWidget(QWidget):
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
@@ -513,6 +512,11 @@ class GerarAtasWidget(QWidget):
         # Atualiza o DataFrame atual com as modificações recebidas
         self.current_dataframe = updated_dataframe
         print("DataFrame atualizado recebido do diálogo Atas:")
+
+        # Verifica se o DataFrame é None ou se as colunas necessárias estão ausentes
+        if self.current_dataframe is None or not {'numero_ata', 'item_num'}.issubset(self.current_dataframe.columns):
+            return 
+
         print(self.current_dataframe[['numero_ata', 'item_num']])
 
         # Verifica se as colunas necessárias existem
@@ -738,6 +742,7 @@ class AtasDialog(QDialog):
         self.pe_pattern = pe_pattern
         self.nup_data = None
         self.dataframe = dataframe 
+        self.settings = QSettings("YourCompany", "YourApp")  # Adjust these values for your app
         self.configurar_ui()
 
     def closeEvent(self, event):
@@ -749,11 +754,87 @@ class AtasDialog(QDialog):
         self.setWindowTitle("Geração de Atas / Contratos")
         self.setFont(QFont('Arial', 14))
         layout = QVBoxLayout(self)
+
+        # Configuração do editor de cabeçalho
+        header_label = QLabel("Editar Cabeçalho:")
+        header_label.setFont(QFont('Arial', 14))
+        layout.addWidget(header_label)
+
+        self.header_editor = QTextEdit()
+        self.header_editor.setFont(QFont('Arial', 12))
+        initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
+                        "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
+                        "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
+                        "{{ordenador_despesa}}, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
+                        "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
+                        "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
+                        "{{num_pregao}}/{{ano_pregao}}, processo administrativo n.º {{nup}}, RESOLVE registrar os preços da(s) "
+                        "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
+                        "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
+                        "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
+                        "31 de março de 2023, e em conformidade com as disposições a seguir:")
+        self.header_editor.setText(initial_text)
+        layout.addWidget(self.header_editor)
+        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+
+        # Configurar o combobox das cidades
+        city_label = QLabel("Selecione Cidade:")
+        city_label.setFont(QFont('Arial', 14))
+        city_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(city_label)
+
+        self.city_combobox = QComboBox()
+        cities = ["Brasília-DF", "São Pedro da Aldeia-RJ", "Rio de Janeiro-RJ", "Natal-RN", "Manaus-MA"]
+        self.city_combobox.addItems(cities)
+        self.city_combobox.setFont(QFont('Arial', 14))
+        self.city_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.city_combobox.setMaximumWidth(300)  # Ajusta a largura máxima do combobox
+
+        # Carregar a última cidade selecionada
+        last_city = self.settings.value("last_selected_city", "Brasília-DF")
+        index = self.city_combobox.findText(last_city)
+        if index != -1:
+            self.city_combobox.setCurrentIndex(index)
         
+        layout.addWidget(self.city_combobox)
+
+        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+
+        # Configuração para seleção da organização gerenciadora
+        org_label = QLabel("Selecione a Organização Gerenciadora:")
+        org_label.setFont(QFont('Arial', 14))
+        layout.addWidget(org_label)
+
+        self.org_combobox = QComboBox()
+        organizations = [
+            "Centro de Intendência da Marinha em Brasília (CeIMBra)",
+            "Centro de Intendência da Marinha em Natal (CeIMNa)",
+            "Centro de Intendência da Marinha em Manaus (CeIMMa)",
+            "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)"
+        ]
+        self.org_combobox.addItems(organizations)
+        self.org_combobox.setFont(QFont('Arial', 14))
+        self.org_combobox.setMaximumWidth(700)
+        last_org = self.settings.value("last_selected_org", organizations[0])
+        self.org_combobox.setCurrentText(last_org)
+        layout.addWidget(self.org_combobox)
+
+        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+
+
         self.configurar_rotulos(layout)
         self.configurar_entrada_e_botao_confirmar(layout)
         self.configurar_botoes_acao(layout)
         self.carregar_e_exibir_ultimo_contrato()
+
+        self.setLayout(layout)
+
+    def closeEvent(self, event):
+        # Salvar as últimas seleções
+        self.settings.setValue("last_selected_city", self.city_combobox.currentText())
+        self.settings.setValue("last_selected_org", self.org_combobox.currentText())
+        self.dataframe_updated.emit(self.dataframe)
+        super().closeEvent(event)
 
     def configurar_rotulos(self, layout):
         self.rotulo_ultimo_contrato = QLabel("O último contrato gerado foi:")
@@ -903,10 +984,20 @@ class AtasDialog(QDialog):
         caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
         for char in caracteres_invalidos:
             nome_empresa = nome_empresa.replace(char, '_')
+        
+        # Remover pontos extras apenas no final do nome da empresa
+        if nome_empresa.endswith('.'):
+            nome_empresa = nome_empresa.rstrip('.')
+        
+        # Remover sublinhados extras no final do nome da empresa resultantes da substituição
+        nome_empresa = nome_empresa.rstrip('_')
+
         return nome_empresa
+
 
     def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):
         nome_empresa_limpo = self.limpar_nome_empresa(empresa)
+        print(f"Preparando diretórios para empresa original: {empresa}, empresa limpa: {nome_empresa_limpo}")
         nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
         path_dir_principal = relatorio_path / nome_dir_principal
         nome_subpasta = nome_empresa_limpo
@@ -914,6 +1005,8 @@ class AtasDialog(QDialog):
         if not path_subpasta.exists():
             path_subpasta.mkdir(parents=True, exist_ok=True)
         return path_dir_principal, path_subpasta
+
+
     
     def processar_empresa(self, registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado):
         if not registros_empresa.empty:

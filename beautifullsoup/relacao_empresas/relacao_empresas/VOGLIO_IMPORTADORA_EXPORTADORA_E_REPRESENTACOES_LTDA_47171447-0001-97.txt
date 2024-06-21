@@ -1,0 +1,33 @@
+Número da Ata:
+787000/2024-041/00
+
+Dados Empresa:
+
+Razão Social: VOGLIO IMPORTADORA, EXPORTADORA E REPRESENTACOES LTDA.,
+CNPJ: 47.171.447/0001-97,
+Endereço:
+Município-UF:
+CEP:
+Telefone:
+E-mail:
+Representada neste ato, por seu representante legal, o(a) Sr(a)
+
+Dados Itens:
+Grupo: 21 - Item 158 - Lâmpada led
+Descrição Detalhada: Lâmpada Led Modelo: Ultra Led , Potência Nominal: 12 W, Aplicação: Ambiente Interno , Cor: Luz Branco Frio , Tipo Base: E-27 , Tipo Bulbo: A60 , Tensão Nominal: Bivolt
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 990   |   Valor Unitário: R$ 3,71   |   Valor Total do Item: R$ 3.672,90
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 21 - Item 159 - Lâmpada led
+Descrição Detalhada: Lâmpada Led Potência Nominal: 18 W, Vida Média: 30.000 H, Temperatura De Cor: 6500 K, Fluxo Luminoso: Mín. 1850 LM, Índice De Reprodução De Cor - Irc: >0,80 , Comprimento: 1200 MM, Equivalência: Fluorescente De 40w , Cor: Branca Fria , Tipo Base: G13 , Tipo Bulbo: Policarbonato Leitoso , Tensão Nominal: Bivolt , Fator Potência: > 0,92 , Frequência Nominal: 60 HZ, Formato: Tubular T8
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 2287   |   Valor Unitário: R$ 6,05   |   Valor Total do Item: R$ 13.836,35
+----------------------------------------------------------------------------------------------------------------------------------
+Grupo: 21 - Item 161 - Lâmpada led
+Descrição Detalhada: Lâmpada Led Potência Nominal: 9 W, Vida Média: 25.000 H, Temperatura De Cor: 6500 K, Fluxo Luminoso: 900 LM, Índice De Reprodução De Cor - Irc: >0,80 , Comprimento: 600 MM, Equivalência: Fluorescente De 20w , Cor: Branca Fria , Tipo Base: G13 , Tipo Bulbo: Policarbonato Leitoso , Tensão Nominal: Bivolt , Fator Potência: > 0,92 , Frequência Nominal: 50/60 HZ, Formato: Tubular T8
+Unidade de Fornecimento: Unidade
+Marca:   | Modelo:    | Fabricante:   Quantidade: 848   |   Valor Unitário: R$ 6,02   |   Valor Total do Item: R$ 5.104,96
+----------------------------------------------------------------------------------------------------------------------------------
+
+Valor total homologado para a empresa:
+R$ 22.614,21 (vinte e dois mil, seiscentos e catorze reais e vinte e um centavos)

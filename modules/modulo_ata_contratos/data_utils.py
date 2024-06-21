@@ -67,7 +67,7 @@ class DatabaseDialog(QDialog):
         self.db_manager = DatabaseManager(CONTROLE_DADOS)
         self.callback = callback
         self.setup_ui()
-        self.connect_signals()
+        # self.connect_signals()
         self.setFixedSize(600, 350) 
 
     def cabecalho_layout(self):

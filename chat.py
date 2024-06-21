@@ -67,6 +67,10 @@ No planejamento da contratação deve ser considerado que as demandas serão par
 
         # Formatar a pergunta com o contexto
         formatted_question = f"""
+A identificação da necessidade da contratação é o primeiro aspecto a ser abordado em um estudo técnico preliminar, justamente para permitir a reflexão sobre os motivos pelos quais determinada contratação foi solicitada, investigando assim qual a necessidade final a ser atendida, que pode inclusive ser distinta a depender da finalidade do órgão ou entidade, ainda que o objeto indicado pelo setor requisitante seja o mesmo.
+Essa investigação inicial é expressamente demandada no art. 18, I e §1º, I da NLLC, já reproduzidos no presente parecer. Trata-se de etapa fundamental do processo, por meio da qual o problema colocado para a Administração pode vir a ser compreendido sob outra perspectiva e assim contribuir para que outras soluções se mostrem propícias a atender a demanda, quando se passar à fase de levantamento de mercado, tratada mais à frente. A clareza da necessidade administrativa é a base para possíveis inovações.
+Também por meio dela é possível fazer uma reflexão para extrair quais os requisitos essenciais sem os quais a necessidade não seria atendida. Trata-se de requisitos da própria necessidade, portanto, e não de eventuais soluções a serem adotadas, até porque, nessa primeira etapa, ainda não se sabe quais as soluções disponíveis. Nesse sentido, o art. 18, §1º da Lei n. 14.133, de 2022, que estabelece os elementos do ETP, prevê os requisitos da contratação no seu inciso III, enquanto o levantamento de mercado (quando se buscam as soluções disponíveis) somente no inciso V.
+Além disso, a descrição da necessidade de contratação deve conter manifestação acerca da essencialidade e interesse público da contratação, para os fins do previsto no art. 3º do Decreto nº 8.540/2015, a ser interpretado em consonância com a Lei n. 14.133, de 2022, devendo portanto ser avaliado o interesse público também na perspectiva de se haverá impacto ambiental negativo decorrente da contratação e se há opções que atendam ao princípio do desenvolvimento nacional sustentável, considerando o ciclo de vida do objeto (artigo 11, I, Lei n. 14.133, de 2021)
     Desenvolva uma Descrição Detalhada da Necessidade para justificar uma contratação de {user_input1}
 
     Inclua na sua descrição:
@@ -165,12 +169,18 @@ Conclua que o registro de preço é a melhor solução para o objeto a ser contr
 
             # Terceira pergunta sobre a Descrição da Solução como todo
             follow_up_question_3 = f"""
+Uma vez identificada a necessidade administrativa, o próximo passo é buscar soluções que tenham o potencial de atendê-la. Não se trata, portanto, de realizar estimativa de preços, e sim estudar as práticas do mercado e de outros órgãos e entidades públicas, a fim de verificar se existe alguma outra solução para atender a necessidade administrativa ou então novas metodologias de execução/contratação que gerem ganhos de produtividade ou economia para a Administração.
+Já o art. 44 da Lei nº 14.133, de 2021, determina que a Administração promova a avaliação dos custos e benefícios das opções de compra e locação de bens, quando ambas as soluções foram viáveis, de modo a indicar a alternativa que se revelou mais vantajosa no caso concreto. Neste ponto, ressalte-se que a vantajosidade deve considerar o ciclo de vida do objeto, nos termos dos artigos 11, I e 18, VIII, da mesma lei.
+Assim, essa prospecção e avaliação deverá ser realizada, ainda que leve à conclusão de que as metodologias já tradicionalmente empregadas em contratações anteriores são as mais aptas à satisfação da necessidade administrativa. Seja qual for a solução adotada, sua escolha deve ser expressamente motivada nos autos.
+
 Gere um texto detalhado descrevendo o procedimento de levantamento de mercado para a aquisição de {user_input1}.
 O texto deve ser em parágrafos, sem tópicos e deve ser articulado, claro e abrangente, variando entre 25 a 35 linhas e deve abranger todos os aspectos essenciais do levantamento de mercado, incluindo a compatibilidade entre os requisitos propostos pela área demandante e as soluções disponíveis no mercado.
 Destaque que, após consultas ao histórico de aquisições e a sítios de internet, foi verificado que existe uma grande oferta de empresas capazes de fornecer os itens requeridos, o que sugere uma competição acirrada e preços mais baixos.
 Ressalte também que, por ser uma demanda de material comum e não complexa, não foram identificados obstáculos para a participação de microempresas e empresas de pequeno porte (ME/EPP).
 Adicionalmente, mencione que no levantamento foram consideradas as licitações realizadas pelo Comando do 7º Distrito Naval (Com7ºDN) e por outras organizações militares da Marinha, com o objetivo de identificar novas metodologias, tecnologias ou inovações que possam melhor atender às necessidades da Administração.
 O texto deve enfatizar a importância de um levantamento de mercado eficaz para evitar direcionamento ou conluio e garantir a transparência e eficácia do processo de aquisição.
+
+busca por soluções de mercado, não tendo justificado, entretanto, recomendando-se que o faça, o que pode inclusive alterar o próprio objeto licitatório, em se encontrando uma solução mais adequada à necessidade administrativa.
 """
             # # Atualizar o contexto incluindo a resposta inicial
             # updated_context= context + "\n" + initial_answer + "\n" + follow_up_answer

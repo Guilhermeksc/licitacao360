@@ -58,14 +58,17 @@ def criar_pastas_com_subpastas(dataframe) -> None:
     for num_pregao, ano_pregao, empresa in combinacoes:
         if pd.isna(num_pregao) or pd.isna(ano_pregao) or pd.isna(empresa):
             continue
-        
+
+        print(f"Original: {empresa}")  # Print antes da limpeza
         empresa_limpa = limpar_nome_empresa(empresa)
+        print(f"Limpo: {empresa_limpa}")  # Print após a limpeza
         
         nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
         path_dir_principal = relatorio_path / Path(nome_dir_principal)
         
         if not path_dir_principal.exists():
             path_dir_principal.mkdir(parents=True)
+            print(f"Criado diretório principal: {path_dir_principal}")
         
         if empresa not in NOMES_INVALIDOS and empresa:
             nome_subpasta = empresa_limpa
@@ -73,13 +76,21 @@ def criar_pastas_com_subpastas(dataframe) -> None:
         
             if not path_subpasta.exists():
                 path_subpasta.mkdir(parents=True)
+                print(f"Criado subdiretório: {path_subpasta}")
+
 
 def limpar_nome_empresa(nome_empresa):
     # Substituir caracteres não permitidos por "_" ou remover
     caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
     for char in caracteres_invalidos:
         nome_empresa = nome_empresa.replace(char, '_')
+
+    # Remover pontos extras apenas no final do nome da empresa
+    if nome_empresa.endswith('.'):
+        nome_empresa = nome_empresa.rstrip('.')
+
     return nome_empresa
+
 
 import os
 import subprocess

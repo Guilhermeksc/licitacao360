@@ -1,10 +1,3 @@
-# config.py
-
-# Seletores CSS para elementos da página de login
-# LOGIN_BUTTON_SELECTOR = ".is-primary"
-# USERNAME_FIELD_SELECTOR = "#username"
-# PASSWORD_FIELD_SELECTOR = "#password"
-
 # Constantes para seletores
 LOGIN_BUTTON_SELECTOR = ".is-primary"
 USER_FIELD_SELECTOR = "#txtLogin"
