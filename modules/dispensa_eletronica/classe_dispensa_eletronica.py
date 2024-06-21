@@ -5,7 +5,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQuery
 from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
-from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos
+from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 import pandas as pd
 import os
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
@@ -22,14 +22,104 @@ class CustomTableView(QTableView):
         super().__init__(parent)
         self.main_app = main_app
         self.config_manager = config_manager
-        # self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        # self.customContextMenuRequested.connect(self.showContextMenu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
 
-    # def showContextMenu(self, pos):
-    #     index = self.indexAt(pos)
-    #     if index.isValid():
-    #         contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
-    #         contextMenu.exec(self.viewport().mapToGlobal(pos))
+    def showContextMenu(self, pos):
+        index = self.indexAt(pos)
+        if index.isValid():
+            contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
+            contextMenu.exec(self.viewport().mapToGlobal(pos))
+
+class TableMenu(QMenu):
+    def __init__(self, main_app, index, model=None, config_manager=None):
+        super().__init__()
+        self.main_app = main_app
+        self.index = index
+        self.config_manager = config_manager 
+        self.model = model
+
+        # Configuração do estilo do menu
+        self.setStyleSheet("""
+            QMenu {
+                background-color: #f9f9f9;
+                color: #333;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 5px 20px 5px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #b0c4de;
+                color: white;
+            }
+            QMenu::separator {
+                height: 2px;
+                background-color: #d3d3d3;
+                margin: 5px 0;
+            }
+        """)
+
+        # Opções do menu principal
+        actions = [
+            "Editar Dados do Processo",
+            "1. Autorização para Abertura de Processo",
+            "2. Documentos de Planejamento",
+            "3. Aviso de Dispensa Eletrônica",
+        ]
+        
+        for actionText in actions:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+    def trigger_sub_action(self, funcao):
+        if self.index.isValid():
+            source_index = self.model.mapToSource(self.index)
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            if not df_registro_selecionado.empty:
+                funcao(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Dados não encontrados.")
+
+    def trigger_action(self, actionText):
+        if self.index.isValid():
+            if isinstance(self.model, QSortFilterProxyModel):
+                source_index = self.model.mapToSource(self.index)
+            else:
+                source_index = self.index
+            
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
+            if not df_registro_selecionado.empty:
+                if actionText == "Editar Dados do Processo":
+                    self.editar_dados(df_registro_selecionado)
+                elif actionText == "1. Autorização para Abertura de Processo":
+                    self.AutorizacaoDispensa(df_registro_selecionado)
+                elif actionText == "2. Documentos de Planejamento":
+                    self.DocumentosPlanejamento(df_registro_selecionado)
+                elif actionText == "3. Aviso de Dispensa Eletrônica":
+                    self.AvisoDispensaEletronica(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+    def editar_dados(self, df_registro_selecionado):
+        pass
+
+    def AutorizacaoDispensa(self, df_registro_selecionado):
+        pass
+
+    def DocumentosPlanejamento(self, df_registro_selecionado):
+        pass
+
+    def AvisoDispensaEletronica(self, df_registro_selecionado):
+        pass
 
 class DispensaEletronicaWidget(QMainWindow):
     def __init__(self, icons_dir, parent=None):
@@ -242,18 +332,18 @@ class UIManager:
             }
         """)
 
-    # def linhaSelecionada(self, selected, deselected):
-    #     if selected.indexes():
-    #         proxy_index = selected.indexes()[0]
-    #         source_index = self.parent.proxy_model.mapToSource(proxy_index)
-    #         print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
+    def linhaSelecionada(self, selected, deselected):
+        if selected.indexes():
+            proxy_index = selected.indexes()[0]
+            source_index = self.parent.proxy_model.mapToSource(proxy_index)
+            print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
 
-    #         df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.parent.database_path)
-    #         if not df_registro_selecionado.empty:
-    #             logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
-    #         else:
-    #             logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
-    #             QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+            df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.parent.database_path)
+            if not df_registro_selecionado.empty:
+                logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
+            else:
+                logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+                QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
 
     def update_column_headers(self):
         titles = {

@@ -8,6 +8,8 @@ import os
 from datetime import datetime
 import json
 import pandas as pd
+import locale
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def convert_pdf_to_txt(pdf_dir, txt_dir, progress_bar, progress_callback):    
     # Verifica se TXT_DIR existe. Se não, cria o diretório.
@@ -44,9 +46,6 @@ def ler_arquivos_txt(file_path: str) -> str:
     """Lê o conteúdo de um arquivo TXT."""
     with open(file_path, 'r', encoding='utf-8') as file:
         return file.read()
-
-import locale
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def formatar_brl(valor):
     try:

@@ -9,7 +9,7 @@ from database.styles.styless import (
 )
 from modules.modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from modules.planejamento.planejamento_button import ApplicationUI
-from modules.planejamento.classe_dispensa_eletronica import DispensaEletronicaWidget
+from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.controle_contratos.painel_contratos_novo import ControleContratosWidget
 from modules.controle_dispensa.limite_dispensa import LimiteDispensa
