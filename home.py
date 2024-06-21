@@ -9,6 +9,7 @@ from database.styles.styless import (
 )
 from modules.modulo_ata_contratos.gerar_atas_contratos import GerarAtasWidget
 from modules.planejamento.planejamento_button import ApplicationUI
+from modules.planejamento.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.controle_contratos.painel_contratos_novo import ControleContratosWidget
 from modules.controle_dispensa.limite_dispensa import LimiteDispensa
@@ -119,10 +120,11 @@ class MainWindow(QMainWindow):
             (" Início", ICONS_DIR / "x.png"),
             (" Planejamento", ICONS_DIR / "x.png"), 
             # (" Controle de Contratos", ICONS_DIR / "x.png"), 
-            (" Gerar Ata e Contrato", ICONS_DIR / "x.png"), 
-            # (" Atas e Contratos", ICONS_DIR / "x.png"),
+            (" Atas e Contratos", ICONS_DIR / "x.png"), 
+            (" Dispensa Eletrônica", ICONS_DIR / "x.png"),
             (" Limite de Dispensa", ICONS_DIR / "x.png"), 
-            (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),       
+            (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),
+            (" Cantinho do Pregoeiro", ICONS_DIR / "x.png"),              
             (" Selenium", ICONS_DIR / "x.png"),  
         ]
 
@@ -195,7 +197,8 @@ class MainWindow(QMainWindow):
             "Atas e Contratos": self.setup_atas_contratos_novo,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             "Limite de Dispensa": self.setup_limite_dispensa,
-            "Consulta CATMAT/CATSER": self.setup_controle_pdm,            
+            "Consulta CATMAT/CATSER": self.setup_controle_pdm,
+            "Cantinho do Pregoeiro": self.setup_pregoeiro,                
             "Selenium": self.setup_selenium_automacao,
         }
         action = content_actions.get(content_name)
@@ -220,6 +223,7 @@ class MainWindow(QMainWindow):
                 "Dispensa Eletrônica": self.setup_dispensa_eletronica,
                 "Limite de Dispensa": self.setup_limite_dispensa,
                 "Consulta CATMAT/CATSER": self.setup_controle_pdm,
+                "Cantinho do Pregoeiro": self.setup_pregoeiro,                
                 "Selenium": self.setup_selenium_automacao,
             }
         
@@ -246,13 +250,16 @@ class MainWindow(QMainWindow):
 
     def setup_dispensa_eletronica(self):
         self.clear_content_area()
-        self.dispensa_eletronica_widget = DispensaEletronicaWidget(self)
+        self.dispensa_eletronica_widget = DispensaEletronicaWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.dispensa_eletronica_widget)
         
     def setup_controle_pdm(self):
         self.clear_content_area()
         self.controle_pdf_catser_widget = ConsultaPDMCatser(self)
         self.content_layout.addWidget(self.controle_pdf_catser_widget)
+
+    def setup_pregoeiro(self):
+        pass
 
     def setup_limite_dispensa(self):
         self.clear_content_area()

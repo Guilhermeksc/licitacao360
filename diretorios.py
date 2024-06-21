@@ -42,8 +42,9 @@ def update_file_path(title, key, default_value, parent=None, file_type="All File
         return Path(new_file)
     return default_value
 
-MODULES_DIR = BASE_DIR / "modules"
-PLANEJAMENTO_DIR = BASE_DIR / "planejamento"
+
+MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
+PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
 ICONS_DIR = DATABASE_DIR / "icons"
 ICONE = ICONS_DIR / "icone.ico"

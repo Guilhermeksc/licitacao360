@@ -778,25 +778,25 @@ class AtasDialog(QDialog):
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         # Configurar o combobox das cidades
-        city_label = QLabel("Selecione Cidade:")
-        city_label.setFont(QFont('Arial', 14))
-        city_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        layout.addWidget(city_label)
+        cidades_label = QLabel("Selecione Cidade:")
+        cidades_label.setFont(QFont('Arial', 14))
+        cidades_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(cidades_label)
 
-        self.city_combobox = QComboBox()
-        cities = ["Brasília-DF", "São Pedro da Aldeia-RJ", "Rio de Janeiro-RJ", "Natal-RN", "Manaus-MA"]
-        self.city_combobox.addItems(cities)
-        self.city_combobox.setFont(QFont('Arial', 14))
-        self.city_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.city_combobox.setMaximumWidth(300)  # Ajusta a largura máxima do combobox
+        self.cidades_combobox = QComboBox()
+        cidades = ["Brasília-DF", "Rio Grande-RS", "São Pedro da Aldeia-RJ", "Rio de Janeiro-RJ", "Natal-RN", "Manaus-MA"]
+        self.cidades_combobox.addItems(cidades)
+        self.cidades_combobox.setFont(QFont('Arial', 14))
+        self.cidades_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.cidades_combobox.setMaximumWidth(300)  # Ajusta a largura máxima do combobox
 
         # Carregar a última cidade selecionada
         last_city = self.settings.value("last_selected_city", "Brasília-DF")
-        index = self.city_combobox.findText(last_city)
+        index = self.cidades_combobox.findText(last_city)
         if index != -1:
-            self.city_combobox.setCurrentIndex(index)
+            self.cidades_combobox.setCurrentIndex(index)
         
-        layout.addWidget(self.city_combobox)
+        layout.addWidget(self.cidades_combobox)
 
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
@@ -810,6 +810,7 @@ class AtasDialog(QDialog):
             "Centro de Intendência da Marinha em Brasília (CeIMBra)",
             "Centro de Intendência da Marinha em Natal (CeIMNa)",
             "Centro de Intendência da Marinha em Manaus (CeIMMa)",
+            "Centro de Intendência da Marinha em Rio Grande (CeIMRG)",
             "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)"
         ]
         self.org_combobox.addItems(organizations)
@@ -831,7 +832,7 @@ class AtasDialog(QDialog):
 
     def closeEvent(self, event):
         # Salvar as últimas seleções
-        self.settings.setValue("last_selected_city", self.city_combobox.currentText())
+        self.settings.setValue("last_selected_city", self.cidades_combobox.currentText())
         self.settings.setValue("last_selected_org", self.org_combobox.currentText())
         self.dataframe_updated.emit(self.dataframe)
         super().closeEvent(event)
@@ -1028,6 +1029,11 @@ class AtasDialog(QDialog):
         num_contrato = f"{registro['uasg']}/{ano_atual}-{NUMERO_ATA_atualizado:03}/00"
         texto_substituto = f"Pregão Eletrônico nº {registro['num_pregao']}/{registro['ano_pregao']}\n{num_contrato}"
         soma_valor_homologado = gerar_soma_valor_homologado(itens_relacionados)
+
+        dados_da_ug_contratante_cabecalho = self.header_editor.toPlainText()
+        cidade_selecionada = self.cidades_combobox.currentText()
+        organizacao_selecionada = self.org_combobox.currentText()
+
         return ({
             "num_pregao": registro['num_pregao'],
             "ano_pregao": registro['ano_pregao'],
@@ -1036,6 +1042,7 @@ class AtasDialog(QDialog):
             "numero_ata": NUMERO_ATA_atualizado,
             "soma_valor_homologado": soma_valor_homologado,
             "cabecalho": texto_substituto,
+            "dados_ug_contratante": dados_da_ug_contratante_cabecalho,
             "contrato": num_contrato,
             "endereco": registro["endereco"],
             "cnpj": registro["cnpj"],
@@ -1043,7 +1050,9 @@ class AtasDialog(QDialog):
             "ordenador_despesa": registro["ordenador_despesa"],
             "responsavel_legal": registro["responsavel_legal"],
             "nup": nup,
-            "email": registro["email"]
+            "email": registro["email"],
+            "cidade": cidade_selecionada,
+            "organizacao": organizacao_selecionada
         }, num_contrato)
 
     def salvar_email(self, path_subpasta, context):

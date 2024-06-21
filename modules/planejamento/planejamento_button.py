@@ -308,15 +308,6 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
-class DispensaEletronicaWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        label = QLabel("Dispensa Eletrônica")
-        layout.addWidget(label)
 class ApplicationUI(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
@@ -403,7 +394,7 @@ class ApplicationUI(QMainWindow):
                 cursor.execute("DELETE FROM controle_prazos WHERE chave_processo = ?", (id_processo,))
                 conn.commit()
 
-            self.init_sql_model()  # Atualiza o modelo para refletir as mudanças
+            self.init_model()  # Atualiza o modelo para refletir as mudanças
             QMessageBox.information(self, "Exclusão", "Os registros foram excluídos com sucesso.")
 
     def on_report(self):

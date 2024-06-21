@@ -3,7 +3,7 @@ from diretorios import *
 import os
 def build_executable():
     # Caminho para o script principal
-    main_script = "home.py"
+    main_script = "pyqt6/home.py"
     
     # Recursos para adicionar
     resources = [
@@ -19,9 +19,9 @@ def build_executable():
         (WEBDRIVER_DIR, "database/selenium"),
         (TEMPLATE_DIR, "database/template"),
         (CP_DIR, "database/template/comunicacao_padronizada"),
-        (CONTROLE_CONTRATOS_DIR, "controle_contratos"),
-        (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
-        (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")
+        # (CONTROLE_CONTRATOS_DIR, "controle_contratos"),
+        # (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
+        # (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")
     ]
     pyinstaller_args = [
         "pyinstaller",

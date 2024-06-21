@@ -237,7 +237,7 @@ class RelatorioIndicadores(QDialog):
             total_homologado = df_valid['valor_homologado_total_item'].sum()
 
             if total_estimado > 0:
-                percentual_desconto = ((total_estimado - total_homologado) / total_estimado) * 100
+                percentual_desconto = (1 - (total_homologado / total_estimado))* 100
             else:
                 percentual_desconto = 0
             return percentual_desconto, total_estimado, total_homologado
