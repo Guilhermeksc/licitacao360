@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 import os
 import re
-from bs4 import BeautifulSoup 
+# from bs4 import BeautifulSoup 
 from datetime import datetime
 from pathlib import Path
 from PyQt6.QtWidgets import QFileDialog

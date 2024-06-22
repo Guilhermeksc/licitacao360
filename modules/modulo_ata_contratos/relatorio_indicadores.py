@@ -10,13 +10,13 @@ from diretorios import *
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import contextily as ctx
+# import contextily as ctx
 import traceback
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm 
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE
-import seaborn as sns
+# import seaborn as sns
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 import logging
 import os

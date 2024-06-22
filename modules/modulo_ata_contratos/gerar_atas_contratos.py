@@ -14,13 +14,13 @@ from diretorios import *
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import contextily as ctx
+# import contextily as ctx
 import traceback
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm 
 from datetime import datetime
 
-import seaborn as sns
+# import seaborn as sns
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 
 NUMERO_ATA_GLOBAL = None

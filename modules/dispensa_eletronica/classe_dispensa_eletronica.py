@@ -4,10 +4,13 @@ from PyQt6.QtCore import *
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQuery
 from pathlib import Path
 from diretorios import *
-from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
+from database.utils.treeview_utils import load_images, create_button
+# from modules.dispensa_eletronica.utilidades_dispensa_eletronica import save_dataframe_to_excel
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 import pandas as pd
 import os
+import psutil
+import subprocess
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
@@ -17,6 +20,30 @@ from datetime import datetime
 import logging
 import sqlite3
 
+class ExportThread(QThread):
+    finished = pyqtSignal(str)
+
+    def __init__(self, model, filepath):
+        super().__init__()
+        self.model = model
+        self.filepath = filepath
+
+    def run(self):
+        try:
+            df = self.model_to_dataframe(self.model)
+            df.to_excel(self.filepath, index=False)
+            self.finished.emit('Completed successfully!')
+        except Exception as e:
+            self.finished.emit(f"Failed: {str(e)}")
+
+    def model_to_dataframe(self, model):
+        headers = [model.headerData(i, Qt.Orientation.Horizontal) for i in range(model.columnCount())]
+        data = [
+            [model.data(model.index(row, col)) for col in range(model.columnCount())]
+            for row in range(model.rowCount())
+        ]
+        return pd.DataFrame(data, columns=headers)
+    
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
@@ -128,12 +155,13 @@ class DispensaEletronicaWidget(QMainWindow):
         self.setup_managers()
         self.load_initial_data()
         self.model = self.init_model()
-        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)  # Passa os ícones para UIManager
+        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
         self.setup_ui()
+        self.export_thread = None
+        self.output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica.xlsx")
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)  # Define o widget central como o widget principal do UIManager
-        self.ui_manager.configure_table_model()
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
@@ -144,7 +172,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def load_initial_data(self):
         print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", 
+            "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", 
             "excel.png", "calendar.png", "report.png", "management.png"
         ])
         self.selectedIndex = None
@@ -152,8 +180,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def init_model(self):
         # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
         sql_model = SqlModel(self.database_manager, self)
-        model = sql_model.setup_model("controle_dispensas", editable=True)
-        return model
+        return sql_model.setup_model("controle_dispensas", editable=True)
     
     def teste(self):
         print("Teste de botão")
@@ -164,19 +191,152 @@ class DispensaEletronicaWidget(QMainWindow):
             item_data = dialog.get_data()
             self.save_to_database(item_data)
 
+    def excluir_linha(self):
+        selection_model = self.ui_manager.table_view.selectionModel()
+
+        if selection_model.hasSelection():
+            # Supondo que a coluna 0 é 'id_processo'
+            index_list = selection_model.selectedRows(0)
+
+            if not index_list:
+                QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
+                return
+
+            selected_id_processo = index_list[0].data()  # Pega o 'id_processo' da primeira linha selecionada
+            print(f"Excluindo linha com id_processo: {selected_id_processo}")
+
+            # Confirmar a exclusão
+            reply = QMessageBox.question(
+                self, 'Confirmar exclusão',
+                f"Tem certeza que deseja excluir o registro com ID Processo '{selected_id_processo}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.Yes:
+                try:
+                    with self.database_manager as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM controle_dispensas WHERE id_processo = ?", (selected_id_processo,))
+                        conn.commit()
+                        QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
+                        self.init_model()  # Atualizar o modelo
+                except Exception as e:
+                    QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
+                    print(f"Erro ao excluir o registro: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
+
+    def salvar_tabela(self):
+        if self.is_file_open(self.output_path):
+            QMessageBox.warning(self, "Erro ao salvar", "O arquivo já está aberto. Por favor, feche-o antes de tentar salvar novamente.")
+            return
+
+        self.export_thread = ExportThread(self.model, self.output_path)
+        self.export_thread.finished.connect(self.handle_export_finished)
+        self.export_thread.start()
+
+    def handle_export_finished(self, message):
+        if 'successfully' in message:
+            QMessageBox.information(self, "Exportação de Dados", "Dados exportados com sucesso!")
+            try:
+                # Tentar abrir o arquivo com o Excel
+                subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
+            except Exception as e:
+                QMessageBox.warning(self, "Erro ao abrir o arquivo", str(e))
+        else:
+            QMessageBox.warning(self, "Exportação de Dados", message)
+
+    def carregar_tabela(self):
+        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods)")
+        if filepath:
+            try:
+                df = pd.read_excel(filepath)
+                required_columns = ['ID Processo', 'NUP', 'Objeto', 'UASG']
+                if not all(col in df.columns for col in required_columns):
+                    missing_columns = [col for col in required_columns if col not in df.columns]
+                    QMessageBox.warning(self, "Erro ao carregar", f"O arquivo não contém todos os índices necessários. Faltando: {', '.join(missing_columns)}")
+                    return
+                rename_map = {'ID Processo': 'id_processo', 'NUP': 'nup', 'Objeto': 'objeto', 'UASG': 'uasg'}
+                df.rename(columns=rename_map, inplace=True)
+                print("Registros salvos:")
+                print(df)
+
+                # Obter dados de OM com base na UASG
+                self.salvar_detalhes_uasg_sigla_nome(df)
+                # Desmembrar 'id_processo' em 'tipo', 'numero', e 'ano'
+                self.desmembramento_id_processo(df)
+
+                self.save_to_database(df)
+                QMessageBox.information(self, "Carregamento concluído", "Os dados foram carregados e transformados com sucesso.")
+            except Exception as e:
+                QMessageBox.warning(self, "Erro ao carregar", f"Um erro ocorreu: {str(e)}")
+                print(f"Erro ao carregar o arquivo: {str(e)}")
+
+    def desmembramento_id_processo(self, df):
+        # Extraíndo valores de 'id_processo' e atribuindo a 'tipo', 'numero', e 'ano'
+        # Assume que o formato de 'id_processo' é sempre 'DE xx/yyyy'
+        df[['tipo', 'numero', 'ano']] = df['id_processo'].str.extract(r'(\D+)(\d+)/(\d+)')
+        # Mapeando o tipo para um valor mais descritivo
+        df['tipo'] = df['tipo'].map({'DE ': 'Dispensa Eletrônica'}).fillna('Tipo Desconhecido')
+
+        print("Colunas desmembradas de 'id_processo':")
+        print(df[['tipo', 'numero', 'ano']])
+        
+    def salvar_detalhes_uasg_sigla_nome(self, df):
+        with sqlite3.connect(self.database_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
+            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
+        
+        df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
+        df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
+        print("Dados enriquecidos com detalhes de OM:")
+        print(df[['uasg', 'sigla_om', 'orgao_responsavel']])
+                
+    def is_file_open(self, file_path):
+        """ Verifica se o arquivo está aberto por algum processo """
+        for proc in psutil.process_iter(['pid', 'name', 'open_files']):
+            if proc.info['open_files']:
+                for fl in proc.info['open_files']:
+                    if fl.path == file_path:
+                        return True
+        return False
+
     def save_to_database(self, data):
         with self.database_manager as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO controle_dispensas (
-                    tipo, numero, ano, objeto, sigla_om, material_servico, 
-                    id_processo, nup, orgao_responsavel, uasg) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                      data['sigla_om'], data['material_servico'], data['id_processo'], 
-                      data['nup'], data['orgao_responsavel'], data['uasg'])
-            )
+            upsert_sql = '''
+            INSERT INTO controle_dispensas (id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, material_servico, orgao_responsavel)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id_processo) DO UPDATE SET
+                nup=excluded.nup,
+                objeto=excluded.objeto,
+                uasg=excluded.uasg,
+                tipo=excluded.tipo,
+                numero=excluded.numero,
+                ano=excluded.ano,
+                sigla_om=excluded.sigla_om,
+                material_servico=excluded.material_servico,
+                orgao_responsavel=excluded.orgao_responsavel;
+            '''
+            try:
+                if isinstance(data, pd.DataFrame):
+                    for _, row in data.iterrows():
+                        cursor.execute(upsert_sql, (
+                            row['id_processo'], row['nup'], row['objeto'], row['uasg'], 
+                            row.get('tipo', ''), row.get('numero', ''), row.get('ano', ''),
+                            row.get('sigla_om', ''), row.get('material_servico', ''), row.get('orgao_responsavel', '')
+                        ))
+                        print(f"Updating or inserting {row['id_processo']}")
+                else:
+                    cursor.execute(upsert_sql, (
+                        data['id_processo'], data['nup'], data['objeto'], data['uasg'],
+                        data['tipo'], data['numero'], data['ano'],
+                        data['sigla_om'], data['material_servico'], data['orgao_responsavel']
+                    ))
+                    print(f"Updating or inserting single item {data['id_processo']}")
+            except Exception as e:
+                print(f"Database error during upsert: {e}")
             conn.commit()
         self.init_model()
 
@@ -274,16 +434,16 @@ class UIManager:
         header = self.table_view.horizontalHeader()
         
         # Configurações específicas de redimensionamento para colunas selecionadas
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed) 
         # Definir tamanhos específicos onde necessário
-        header.resizeSection(4, 140)
-        header.resizeSection(5, 175)
+        header.resizeSection(0, 140)
+        header.resizeSection(4, 175)
         header.resizeSection(8, 70)
         header.resizeSection(10, 100)
         header.resizeSection(13, 230)
@@ -347,9 +507,9 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
-            4: "ID Processo",
-            5: "NUP",
-            6: "Objeto",
+            0: "ID Processo",
+            4: "NUP",
+            5: "Objeto",
             8: "UASG",
             10: "OM",
             13: "Status",
@@ -359,32 +519,32 @@ class UIManager:
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def hide_unwanted_columns(self):
-        visible_columns = {4, 5, 6, 8, 10, 13, 14}
+        visible_columns = {0, 4, 5, 8, 10, 13, 14}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
 
-    def on_add_item(self):
-        dialog = AddItemDialog(self)
-        if dialog.exec():
-            item_data = dialog.get_data()
-            self.save_to_database(item_data)
+    # def on_add_item(self):
+    #     dialog = AddItemDialog(self)
+    #     if dialog.exec():
+    #         item_data = dialog.get_data()
+    #         self.save_to_database(item_data)
 
-    def save_to_database(self, data):
-        with self.database_manager as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO controle_processos (
-                    tipo, numero, ano, objeto, sigla_om, material_servico, 
-                    id_processo, nup, orgao_responsavel, uasg) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                      data['sigla_om'], data['material_servico'], data['id_processo'], 
-                      data['nup'], data['orgao_responsavel'], data['uasg'])
-            )
-            conn.commit()
-        self.init_model()
+    # def save_to_database(self, data):
+    #     with self.database_manager as conn:
+    #         cursor = conn.cursor()
+    #         cursor.execute(
+    #             '''
+    #             INSERT INTO controle_processos (
+    #                 tipo, numero, ano, objeto, sigla_om, material_servico, 
+    #                 id_processo, nup, orgao_responsavel, uasg) 
+    #             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    #             ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
+    #                   data['sigla_om'], data['material_servico'], data['id_processo'], 
+    #                   data['nup'], data['orgao_responsavel'], data['uasg'])
+    #         )
+    #         conn.commit()
+    #     self.init_model()
 
 class ButtonManager:
     def __init__(self, parent):
@@ -394,11 +554,11 @@ class ButtonManager:
 
     def create_buttons(self):
         button_specs = [
-            ("Adicionar Item", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
-            ("Salvar", self.parent.image_cache['excel'], self.parent.teste, "Salva o dataframe em um arquivo excel('.xlsx')"),
-            ("Excluir", self.parent.image_cache['delete'], self.parent.teste, "Exclui um item selecionado"),
-            ("Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
-            ("Configurações", self.parent.image_cache['management'], self.parent.teste, "Abre as configurações da aplicação"),
+            ("  Adicionar", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
+            ("  Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("  Importar", self.parent.image_cache['import_de'], self.parent.carregar_tabela, "Carregar dados de uma tabela"),
+            ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
+            ("  Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
@@ -531,82 +691,42 @@ class SqlModel:
             self.adjust_table_structure()
 
     def adjust_table_structure(self):
-        # Verifica se a tabela existe
         query = QSqlQuery(self.db)
-        query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_dispensas'")
+        if not query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_dispensas'"):
+            print("Erro ao verificar existência da tabela:", query.lastError().text())
         if not query.next():
-            # Se a tabela não existir, crie-a
+            print("Tabela 'controle_dispensas' não existe. Criando tabela...")
             self.create_table_if_not_exists()
         else:
-            # Se a tabela existir, obtenha a informação das colunas
-            query.exec("PRAGMA table_info(controle_dispensas)")
-            existing_columns = {}
-            while query.next():
-                existing_columns[query.value(1)] = query.value(2)  # mapeia nome da coluna para o tipo
-            
-            # Schema esperado
-            expected_columns = {
-                "id": "INTEGER",
-                "tipo": "VARCHAR(100)",
-                "numero": "VARCHAR(100)",
-                "ano": "VARCHAR(100)",
-                "id_processo": "VARCHAR(100)",
-                "nup": "VARCHAR(100)",
-                "objeto": "VARCHAR(100)",
-                "objeto_completo": "TEXT",
-                "valor_total": "REAL",
-                "uasg": "VARCHAR(10)",
-                "orgao_responsavel": "VARCHAR(250)",
-                "sigla_om": "VARCHAR(100)",
-                "setor_responsavel": "TEXT",
-                "operador": "VARCHAR(100)",
-                "data_sessao": "DATE",
-                "material_servico": "VARCHAR(30)",
-                "link_pncp": "TEXT",
-                "link_portal_marinha": "TEXT",
-                "comentarios": "TEXT"
-            }
+            print("Tabela 'controle_dispensas' existe. Verificando estrutura da coluna...")
+            self.ensure_id_processo_primary_key()
 
-            # Identificar colunas para manter ou adicionar
-            columns_to_keep = set(existing_columns.keys()).intersection(set(expected_columns.keys()))
-            columns_to_add = set(expected_columns.keys()).difference(set(existing_columns.keys()))
-
-            # Criar nova tabela temporária com a estrutura correta
-            temp_table_name = "new_controle_dispensas"
-            column_defs = ", ".join([f"{col} {expected_columns[col]}" for col in expected_columns])
-            query.exec(f"CREATE TABLE {temp_table_name} ({column_defs})")
-
-            # Copiar dados para a nova tabela apenas nas colunas que existem na tabela original
-            if columns_to_keep:
-                columns_str = ", ".join(columns_to_keep)
-                query.exec(f"INSERT INTO {temp_table_name} ({columns_str}) SELECT {columns_str} FROM controle_dispensas")
-
-            # Excluir a tabela antiga e renomear a nova
-            query.exec("DROP TABLE controle_dispensas")
-            query.exec(f"ALTER TABLE {temp_table_name} RENAME TO controle_dispensas")
-
-            # Adicionar colunas que estavam faltando, se necessário
-            for column in columns_to_add:
-                data_type = expected_columns[column]
-                query.exec(f"ALTER TABLE controle_dispensas ADD COLUMN {column} {data_type}")
-                if not query.isActive():
-                    print(f"Falha ao adicionar coluna '{column}':", query.lastError().text())
-
-            if query.isActive():
-                print("Ajuste da tabela 'controle_dispensas' realizado com sucesso.")
-            else:
-                print("Falha ao ajustar a tabela 'controle_dispensas':", query.lastError().text())
-
+    def ensure_id_processo_primary_key(self):
+        query = QSqlQuery(self.db)
+        query.exec("PRAGMA table_info(controle_dispensas)")
+        id_processo_is_primary = False
+        while query.next():
+            if query.value(1) == 'id_processo' and query.value(5) == 1:
+                id_processo_is_primary = True
+                print("Coluna 'id_processo' já é PRIMARY KEY.")
+                break
+        if not id_processo_is_primary:
+            print("Atualizando 'id_processo' para ser PRIMARY KEY.")
+            query.exec("ALTER TABLE controle_dispensas ADD COLUMN new_id_processo VARCHAR(100) PRIMARY KEY")
+            query.exec("UPDATE controle_dispensas SET new_id_processo = id_processo")
+            query.exec("ALTER TABLE controle_dispensas DROP COLUMN id_processo")
+            query.exec("ALTER TABLE controle_dispensas RENAME COLUMN new_id_processo TO id_processo")
+            if not query.isActive():
+                print("Erro ao atualizar chave primária:", query.lastError().text())
 
     def create_table_if_not_exists(self):
         query = QSqlQuery(self.db)
-        query.exec("""
+        if not query.exec("""
             CREATE TABLE IF NOT EXISTS controle_dispensas (
-                id INTEGER PRIMARY KEY,
+                id_processo VARCHAR(100) PRIMARY KEY,
                 tipo VARCHAR(100),
                 numero VARCHAR(100),
                 ano VARCHAR(100),
-                id_processo VARCHAR(100),
                 nup VARCHAR(100),
                 objeto VARCHAR(100),
                 objeto_completo TEXT,
@@ -622,11 +742,10 @@ class SqlModel:
                 link_portal_marinha TEXT,
                 comentarios TEXT
             )
-        """)
-        if query.isActive():
-            print("Tabela 'controle_dispensas' criada com sucesso.")
-        else:
+        """):
             print("Falha ao criar a tabela 'controle_dispensas':", query.lastError().text())
+        else:
+            print("Tabela 'controle_dispensas' criada com sucesso.")
 
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13])
