@@ -552,6 +552,20 @@ def carregar_dados_pregao(index, caminho_banco_dados):
         return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
 
 
+def carregar_dados_dispensa(id_processo, caminho_banco_dados):
+    try:
+        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
+        connection = sqlite3.connect(caminho_banco_dados)
+        query = f"SELECT * FROM controle_dispensas WHERE id_processo='{id_processo}'"
+        logging.debug(f"Executando consulta SQL: {query}")
+        df_registro_selecionado = pd.read_sql_query(query, connection)
+        connection.close()
+        logging.debug(f"Dados carregados com sucesso para id_processo {id_processo}: {df_registro_selecionado}")
+        return df_registro_selecionado
+    except Exception as e:
+        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
+        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+
 def carregar_dados_processos(controle_processos_path):
     try:
         conn = sqlite3.connect(str(controle_processos_path))
