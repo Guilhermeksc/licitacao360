@@ -123,7 +123,7 @@ def get_relatorio_path():
     global RELATORIO_PATH
     # Atualize RELATORIO_PATH conforme necessário
     return RELATORIO_PATH
-
+# pyqt6 pandas pdfplumber docxtpl num2words matplotlib pywin32 pypdf2 reportlab openpyxl fitz frontend tools selenium comtypes xlsxwriter
 class ConfigManager(QObject):
     config_updated = pyqtSignal(str, Path)  # sinal emitido quando uma configuração é atualizada
 

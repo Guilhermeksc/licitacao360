@@ -3,7 +3,7 @@ from diretorios import *
 import os
 def build_executable():
     # Caminho para o script principal
-    main_script = "pyqt6/home.py"
+    main_script = "home.py"
     
     # Recursos para adicionar
     resources = [
@@ -14,14 +14,8 @@ def build_executable():
         (TEMPLATE_PLANEJAMENTO_DIR, "planejamento/template"),
         (PASTA_TEMPLATE, "database/template"),
         (RELATORIO_PATH, "database"),
-        (LV_FINAL_DIR, "database/Nova pasta"),
-        (LV_BASE_DIR, "database/Nova pasta"),
         (WEBDRIVER_DIR, "database/selenium"),
         (TEMPLATE_DIR, "database/template"),
-        (CP_DIR, "database/template/comunicacao_padronizada"),
-        # (CONTROLE_CONTRATOS_DIR, "controle_contratos"),
-        # (DATABASE_CONTRATOS, "controle_contratos/data_contratos"),
-        # (CP_CONTRATOS_DIR, "controle_contratos/comunicacao_padronizada")
     ]
     pyinstaller_args = [
         "pyinstaller",
@@ -30,17 +24,6 @@ def build_executable():
         f"--icon={ICONE}",  # Especifique o caminho para o seu ícone aqui
         "--windowed",  # Se você quiser que o programa rode sem console
     ]
-
-   # Adicionando importações ocultas
-    pyinstaller_args.extend([
-        "--hidden-import", "PyQt6",
-        "--hidden-import", "qdarkstyle",
-        "--hidden-import", "pdfplumber",
-        "--hidden-import", "openpyxl",
-        "--hidden-import", "rasterio",
-        "--hidden-import", "rasterio.sample",
-        "--hidden-import", "rasterio._io"
-    ])
 
     # Adicionando recursos com o separador correto
     for src, dest in resources:
