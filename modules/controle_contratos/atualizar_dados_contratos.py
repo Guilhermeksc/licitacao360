@@ -9,7 +9,7 @@ from pathlib import Path
 from diretorios import *
 import re
 from docxtpl import DocxTemplate
-import comtypes.client
+# import comtypes.client
 import os
 import numpy as np
 

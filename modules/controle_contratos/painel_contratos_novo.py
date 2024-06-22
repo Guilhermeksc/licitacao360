@@ -7,7 +7,7 @@ from modules.controle_contratos.gerar_tabela import *
 from datetime import datetime, timedelta
 from num2words import num2words
 from docxtpl import DocxTemplate
-import comtypes.client
+# import comtypes.client
 import os
 import re
 

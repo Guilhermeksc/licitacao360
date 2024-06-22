@@ -4,19 +4,43 @@ from PyQt6.QtCore import *
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQuery
 from pathlib import Path
 from diretorios import *
-from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
-from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
+from database.utils.treeview_utils import load_images, create_button
+from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao, carregar_dados_dispensa
 import pandas as pd
 import os
-df_uasg = pd.read_excel(TABELA_UASG_DIR)
-global df_registro_selecionado
-df_registro_selecionado = None
+import psutil
+import subprocess
 from functools import partial
-from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from datetime import datetime
 import logging
 import sqlite3
+import re
+import locale
 
+class ExportThread(QThread):
+    finished = pyqtSignal(str)
+
+    def __init__(self, model, filepath):
+        super().__init__()
+        self.model = model
+        self.filepath = filepath
+
+    def run(self):
+        try:
+            df = self.model_to_dataframe(self.model)
+            df.to_excel(self.filepath, index=False)
+            self.finished.emit('Completed successfully!')
+        except Exception as e:
+            self.finished.emit(f"Failed: {str(e)}")
+
+    def model_to_dataframe(self, model):
+        headers = [model.headerData(i, Qt.Orientation.Horizontal) for i in range(model.columnCount())]
+        data = [
+            [model.data(model.index(row, col)) for col in range(model.columnCount())]
+            for row in range(model.rowCount())
+        ]
+        return pd.DataFrame(data, columns=headers)
+    
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
@@ -31,109 +55,27 @@ class CustomTableView(QTableView):
             contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
             contextMenu.exec(self.viewport().mapToGlobal(pos))
 
-class TableMenu(QMenu):
-    def __init__(self, main_app, index, model=None, config_manager=None):
-        super().__init__()
-        self.main_app = main_app
-        self.index = index
-        self.config_manager = config_manager 
-        self.model = model
-
-        # Configuração do estilo do menu
-        self.setStyleSheet("""
-            QMenu {
-                background-color: #f9f9f9;
-                color: #333;
-                border: 1px solid #ccc;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QMenu::item {
-                background-color: transparent;
-                padding: 5px 20px 5px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #b0c4de;
-                color: white;
-            }
-            QMenu::separator {
-                height: 2px;
-                background-color: #d3d3d3;
-                margin: 5px 0;
-            }
-        """)
-
-        # Opções do menu principal
-        actions = [
-            "Editar Dados do Processo",
-            "1. Autorização para Abertura de Processo",
-            "2. Documentos de Planejamento",
-            "3. Aviso de Dispensa Eletrônica",
-        ]
-        
-        for actionText in actions:
-            action = QAction(actionText, self)
-            action.triggered.connect(partial(self.trigger_action, actionText))
-            self.addAction(action)
-
-    def trigger_sub_action(self, funcao):
-        if self.index.isValid():
-            source_index = self.model.mapToSource(self.index)
-            selected_row = source_index.row()
-            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
-            if not df_registro_selecionado.empty:
-                funcao(df_registro_selecionado)
-            else:
-                QMessageBox.warning(self, "Atenção", "Dados não encontrados.")
-
-    def trigger_action(self, actionText):
-        if self.index.isValid():
-            if isinstance(self.model, QSortFilterProxyModel):
-                source_index = self.model.mapToSource(self.index)
-            else:
-                source_index = self.index
-            
-            selected_row = source_index.row()
-            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
-            if not df_registro_selecionado.empty:
-                if actionText == "Editar Dados do Processo":
-                    self.editar_dados(df_registro_selecionado)
-                elif actionText == "1. Autorização para Abertura de Processo":
-                    self.AutorizacaoDispensa(df_registro_selecionado)
-                elif actionText == "2. Documentos de Planejamento":
-                    self.DocumentosPlanejamento(df_registro_selecionado)
-                elif actionText == "3. Aviso de Dispensa Eletrônica":
-                    self.AvisoDispensaEletronica(df_registro_selecionado)
-            else:
-                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
-        else:
-            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
-
-    def editar_dados(self, df_registro_selecionado):
-        pass
-
-    def AutorizacaoDispensa(self, df_registro_selecionado):
-        pass
-
-    def DocumentosPlanejamento(self, df_registro_selecionado):
-        pass
-
-    def AvisoDispensaEletronica(self, df_registro_selecionado):
-        pass
-
 class DispensaEletronicaWidget(QMainWindow):
+    dataUpdated = pyqtSignal()
+
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
         self.icons_dir = Path(icons_dir)
         self.setup_managers()
         self.load_initial_data()
         self.model = self.init_model()
-        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)  # Passa os ícones para UIManager
+        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
         self.setup_ui()
+        self.export_thread = None
+        self.output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica.xlsx")
+        self.dataUpdated.connect(self.refresh_model)
+
+    def refresh_model(self):
+        # Atualiza o modelo de dados e a visualização da tabela
+        self.model.select()
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)  # Define o widget central como o widget principal do UIManager
-        self.ui_manager.configure_table_model()
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
@@ -144,7 +86,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def load_initial_data(self):
         print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", 
+            "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", 
             "excel.png", "calendar.png", "report.png", "management.png"
         ])
         self.selectedIndex = None
@@ -152,8 +94,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def init_model(self):
         # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
         sql_model = SqlModel(self.database_manager, self)
-        model = sql_model.setup_model("controle_dispensas", editable=True)
-        return model
+        return sql_model.setup_model("controle_dispensas", editable=True)
     
     def teste(self):
         print("Teste de botão")
@@ -164,21 +105,161 @@ class DispensaEletronicaWidget(QMainWindow):
             item_data = dialog.get_data()
             self.save_to_database(item_data)
 
-    def save_to_database(self, data):
+    def excluir_linha(self):
+        selection_model = self.ui_manager.table_view.selectionModel()
+
+        if selection_model.hasSelection():
+            # Supondo que a coluna 0 é 'id_processo'
+            index_list = selection_model.selectedRows(0)
+
+            if not index_list:
+                QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
+                return
+
+            selected_id_processo = index_list[0].data()  # Pega o 'id_processo' da primeira linha selecionada
+            print(f"Excluindo linha com id_processo: {selected_id_processo}")
+
+            # Confirmar a exclusão
+            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com ID Processo '{selected_id_processo}'?"):
+                data_to_delete = {'id_processo': selected_id_processo}
+                try:
+                    self.save_to_database(data_to_delete, delete=True)  # Passa o dado a ser deletado com uma flag de exclusão
+                    QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
+                except Exception as e:
+                    QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
+                    print(f"Erro ao excluir o registro: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
+
+    def salvar_tabela(self):
+        if self.is_file_open(self.output_path):
+            QMessageBox.warning(self, "Erro ao salvar", "O arquivo já está aberto. Por favor, feche-o antes de tentar salvar novamente.")
+            return
+
+        self.export_thread = ExportThread(self.model, self.output_path)
+        self.export_thread.finished.connect(self.handle_export_finished)
+        self.export_thread.start()
+
+    def handle_export_finished(self, message):
+        if 'successfully' in message:
+            QMessageBox.information(self, "Exportação de Dados", "Dados exportados com sucesso!")
+            try:
+                # Tentar abrir o arquivo com o Excel
+                subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
+            except Exception as e:
+                QMessageBox.warning(self, "Erro ao abrir o arquivo", str(e))
+        else:
+            QMessageBox.warning(self, "Exportação de Dados", message)
+
+    def carregar_tabela(self):
+        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods)")
+        if filepath:
+            try:
+                df = pd.read_excel(filepath)
+                required_columns = ['ID Processo', 'NUP', 'Objeto', 'UASG']
+                if not all(col in df.columns for col in required_columns):
+                    missing_columns = [col for col in required_columns if col not in df.columns]
+                    QMessageBox.warning(self, "Erro ao carregar", f"O arquivo não contém todos os índices necessários. Faltando: {', '.join(missing_columns)}")
+                    return
+                rename_map = {'ID Processo': 'id_processo', 'NUP': 'nup', 'Objeto': 'objeto', 'UASG': 'uasg'}
+                df.rename(columns=rename_map, inplace=True)
+                print("Registros salvos:")
+                print(df)
+
+                # Obter dados de OM com base na UASG
+                self.salvar_detalhes_uasg_sigla_nome(df)
+                # Desmembrar 'id_processo' em 'tipo', 'numero', e 'ano'
+                self.desmembramento_id_processo(df)
+
+                self.save_to_database(df)
+                QMessageBox.information(self, "Carregamento concluído", "Os dados foram carregados e transformados com sucesso.")
+            except Exception as e:
+                QMessageBox.warning(self, "Erro ao carregar", f"Um erro ocorreu: {str(e)}")
+                print(f"Erro ao carregar o arquivo: {str(e)}")
+
+    def desmembramento_id_processo(self, df):
+        # Extraíndo valores de 'id_processo' e atribuindo a 'tipo', 'numero', e 'ano'
+        # Assume que o formato de 'id_processo' é sempre 'DE xx/yyyy'
+        df[['tipo', 'numero', 'ano']] = df['id_processo'].str.extract(r'(\D+)(\d+)/(\d+)')
+        # Mapeando o tipo para um valor mais descritivo
+        df['tipo'] = df['tipo'].map({'DE ': 'Dispensa Eletrônica'}).fillna('Tipo Desconhecido')
+
+        print("Colunas desmembradas de 'id_processo':")
+        print(df[['tipo', 'numero', 'ano']])
+        
+    def salvar_detalhes_uasg_sigla_nome(self, df):
+        with sqlite3.connect(self.database_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
+            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
+        
+        df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
+        df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
+        print("Dados enriquecidos com detalhes de OM:")
+        print(df[['uasg', 'sigla_om', 'orgao_responsavel']])
+                
+    def is_file_open(self, file_path):
+        """ Verifica se o arquivo está aberto por algum processo usando psutil. """
+        try:
+            for proc in psutil.process_iter(attrs=['open_files']):
+                if file_path in (fl.path for fl in proc.info['open_files'] or []):
+                    return True
+        except psutil.Error as e:
+            print(f"Erro ao verificar arquivos abertos: {e}")
+        return False
+
+    def save_to_database(self, data, delete=False):
         with self.database_manager as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                '''
+
+            if delete:
+                try:
+                    delete_sql = "DELETE FROM controle_dispensas WHERE id_processo = ?"
+                    cursor.execute(delete_sql, (data['id_processo'],))
+                    print(f"Deleting {data['id_processo']}")
+                except Exception as e:
+                    print(f"Error deleting record: {e}")
+                    raise e
+            else:
+                upsert_sql = '''
                 INSERT INTO controle_dispensas (
-                    tipo, numero, ano, objeto, sigla_om, material_servico, 
-                    id_processo, nup, orgao_responsavel, uasg) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                      data['sigla_om'], data['material_servico'], data['id_processo'], 
-                      data['nup'], data['orgao_responsavel'], data['uasg'])
-            )
+                    id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, material_servico, orgao_responsavel
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id_processo) DO UPDATE SET
+                    nup=excluded.nup,
+                    objeto=excluded.objeto,
+                    uasg=excluded.uasg,
+                    tipo=excluded.tipo,
+                    numero=excluded.numero,
+                    ano=excluded.ano,
+                    sigla_om=excluded.sigla_om,
+                    material_servico=excluded.material_servico,
+                    orgao_responsavel=excluded.orgao_responsavel;
+                '''
+                try:
+                    if isinstance(data, pd.DataFrame):
+                        for _, row in data.iterrows():
+                            cursor.execute(upsert_sql, (
+                                row['id_processo'], row['nup'], row['objeto'], row['uasg'], 
+                                row.get('tipo', ''), row.get('numero', ''), row.get('ano', ''),
+                                row.get('sigla_om', ''), row.get('material_servico', ''), row.get('orgao_responsavel', '')
+                            ))
+                            print(f"Updating or inserting {row['id_processo']}")
+                    else:
+                        cursor.execute(upsert_sql, (
+                            data['id_processo'], data['nup'], data['objeto'], data['uasg'],
+                            data['tipo'], data['numero'], data['ano'],
+                            data['sigla_om'], data['material_servico'], data['orgao_responsavel']
+                        ))
+                        print(f"Updating or inserting single item {data['id_processo']}")
+                except Exception as e:
+                    print(f"Database error during upsert: {e}")
+
             conn.commit()
-        self.init_model()
+
+        # Emita o sinal para atualizar a tabela
+        self.dataUpdated.emit()
+        print("Database operation completed and table view updated.")
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -274,16 +355,16 @@ class UIManager:
         header = self.table_view.horizontalHeader()
         
         # Configurações específicas de redimensionamento para colunas selecionadas
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed) 
         # Definir tamanhos específicos onde necessário
-        header.resizeSection(4, 140)
-        header.resizeSection(5, 175)
+        header.resizeSection(0, 140)
+        header.resizeSection(4, 175)
         header.resizeSection(8, 70)
         header.resizeSection(10, 100)
         header.resizeSection(13, 230)
@@ -347,9 +428,9 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
-            4: "ID Processo",
-            5: "NUP",
-            6: "Objeto",
+            0: "ID Processo",
+            4: "NUP",
+            5: "Objeto",
             8: "UASG",
             10: "OM",
             13: "Status",
@@ -359,32 +440,10 @@ class UIManager:
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def hide_unwanted_columns(self):
-        visible_columns = {4, 5, 6, 8, 10, 13, 14}
+        visible_columns = {0, 4, 5, 8, 10, 13, 14}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
-
-    def on_add_item(self):
-        dialog = AddItemDialog(self)
-        if dialog.exec():
-            item_data = dialog.get_data()
-            self.save_to_database(item_data)
-
-    def save_to_database(self, data):
-        with self.database_manager as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO controle_processos (
-                    tipo, numero, ano, objeto, sigla_om, material_servico, 
-                    id_processo, nup, orgao_responsavel, uasg) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                      data['sigla_om'], data['material_servico'], data['id_processo'], 
-                      data['nup'], data['orgao_responsavel'], data['uasg'])
-            )
-            conn.commit()
-        self.init_model()
 
 class ButtonManager:
     def __init__(self, parent):
@@ -394,11 +453,11 @@ class ButtonManager:
 
     def create_buttons(self):
         button_specs = [
-            ("Adicionar Item", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
-            ("Salvar", self.parent.image_cache['excel'], self.parent.teste, "Salva o dataframe em um arquivo excel('.xlsx')"),
-            ("Excluir", self.parent.image_cache['delete'], self.parent.teste, "Exclui um item selecionado"),
-            ("Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
-            ("Configurações", self.parent.image_cache['management'], self.parent.teste, "Abre as configurações da aplicação"),
+            ("  Adicionar", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
+            ("  Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("  Importar", self.parent.image_cache['import_de'], self.parent.carregar_tabela, "Carregar dados de uma tabela"),
+            ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
+            ("  Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
@@ -438,64 +497,6 @@ class ButtonManager:
 
         return btn
 
-class CenterAlignDelegate(QStyledItemDelegate):
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
-def load_and_map_icons(icons_dir):
-    icons = {}
-    icon_mapping = {
-        'Concluído': 'concluido.png',
-        'Em recurso': 'alarm.png',
-        'Impugnado': 'alert.png',
-        'Pré-Publicação': 'arrows.png',
-        'Montagem do Processo': 'arrows.png',
-        'IRP': 'icon_warning.png'
-    }
-    print(f"Verificando ícones no diretório: {icons_dir}")
-    for status, filename in icon_mapping.items():
-        icon_path = Path(icons_dir) / filename
-        print(f"Procurando ícone para status '{status}': {icon_path}")
-        if icon_path.exists():
-            print(f"Ícone encontrado: {filename}")
-            pixmap = QPixmap(str(icon_path))
-            pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            icons[status] = QIcon(pixmap)
-        else:
-            print(f"Ignore warning: Icon file {filename} not found in {icons_dir}")
-    return icons
-
-class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, icons, parent=None):
-        super().__init__(parent)
-        self.icons = icons
-
-    def paint(self, painter, option, index):
-        painter.save()
-        super().paint(painter, option, index)  # Draw default text and background first
-        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        icon = self.icons.get(status, None)
-
-        if icon:
-            icon_size = 24  # Using the original size of the icon
-            icon_x = option.rect.left() + 5  # X position with a small offset to the left
-            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2  # Centered Y position
-
-            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
-            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
-        painter.restore()
-
-    def sizeHint(self, option, index):
-        size = super().sizeHint(option, index)
-        size.setWidth(size.width() + 30)  # Add extra width for the icon
-        return size
-
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        # Garante que o alinhamento centralizado seja aplicado
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
 class CustomSqlTableModel(QSqlTableModel):
     def __init__(self, parent=None, db=None, non_editable_columns=None):
         super().__init__(parent, db)
@@ -531,82 +532,42 @@ class SqlModel:
             self.adjust_table_structure()
 
     def adjust_table_structure(self):
-        # Verifica se a tabela existe
         query = QSqlQuery(self.db)
-        query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_dispensas'")
+        if not query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_dispensas'"):
+            print("Erro ao verificar existência da tabela:", query.lastError().text())
         if not query.next():
-            # Se a tabela não existir, crie-a
+            print("Tabela 'controle_dispensas' não existe. Criando tabela...")
             self.create_table_if_not_exists()
         else:
-            # Se a tabela existir, obtenha a informação das colunas
-            query.exec("PRAGMA table_info(controle_dispensas)")
-            existing_columns = {}
-            while query.next():
-                existing_columns[query.value(1)] = query.value(2)  # mapeia nome da coluna para o tipo
-            
-            # Schema esperado
-            expected_columns = {
-                "id": "INTEGER",
-                "tipo": "VARCHAR(100)",
-                "numero": "VARCHAR(100)",
-                "ano": "VARCHAR(100)",
-                "id_processo": "VARCHAR(100)",
-                "nup": "VARCHAR(100)",
-                "objeto": "VARCHAR(100)",
-                "objeto_completo": "TEXT",
-                "valor_total": "REAL",
-                "uasg": "VARCHAR(10)",
-                "orgao_responsavel": "VARCHAR(250)",
-                "sigla_om": "VARCHAR(100)",
-                "setor_responsavel": "TEXT",
-                "operador": "VARCHAR(100)",
-                "data_sessao": "DATE",
-                "material_servico": "VARCHAR(30)",
-                "link_pncp": "TEXT",
-                "link_portal_marinha": "TEXT",
-                "comentarios": "TEXT"
-            }
+            print("Tabela 'controle_dispensas' existe. Verificando estrutura da coluna...")
+            self.ensure_id_processo_primary_key()
 
-            # Identificar colunas para manter ou adicionar
-            columns_to_keep = set(existing_columns.keys()).intersection(set(expected_columns.keys()))
-            columns_to_add = set(expected_columns.keys()).difference(set(existing_columns.keys()))
-
-            # Criar nova tabela temporária com a estrutura correta
-            temp_table_name = "new_controle_dispensas"
-            column_defs = ", ".join([f"{col} {expected_columns[col]}" for col in expected_columns])
-            query.exec(f"CREATE TABLE {temp_table_name} ({column_defs})")
-
-            # Copiar dados para a nova tabela apenas nas colunas que existem na tabela original
-            if columns_to_keep:
-                columns_str = ", ".join(columns_to_keep)
-                query.exec(f"INSERT INTO {temp_table_name} ({columns_str}) SELECT {columns_str} FROM controle_dispensas")
-
-            # Excluir a tabela antiga e renomear a nova
-            query.exec("DROP TABLE controle_dispensas")
-            query.exec(f"ALTER TABLE {temp_table_name} RENAME TO controle_dispensas")
-
-            # Adicionar colunas que estavam faltando, se necessário
-            for column in columns_to_add:
-                data_type = expected_columns[column]
-                query.exec(f"ALTER TABLE controle_dispensas ADD COLUMN {column} {data_type}")
-                if not query.isActive():
-                    print(f"Falha ao adicionar coluna '{column}':", query.lastError().text())
-
-            if query.isActive():
-                print("Ajuste da tabela 'controle_dispensas' realizado com sucesso.")
-            else:
-                print("Falha ao ajustar a tabela 'controle_dispensas':", query.lastError().text())
-
+    def ensure_id_processo_primary_key(self):
+        query = QSqlQuery(self.db)
+        query.exec("PRAGMA table_info(controle_dispensas)")
+        id_processo_is_primary = False
+        while query.next():
+            if query.value(1) == 'id_processo' and query.value(5) == 1:
+                id_processo_is_primary = True
+                print("Coluna 'id_processo' já é PRIMARY KEY.")
+                break
+        if not id_processo_is_primary:
+            print("Atualizando 'id_processo' para ser PRIMARY KEY.")
+            query.exec("ALTER TABLE controle_dispensas ADD COLUMN new_id_processo VARCHAR(100) PRIMARY KEY")
+            query.exec("UPDATE controle_dispensas SET new_id_processo = id_processo")
+            query.exec("ALTER TABLE controle_dispensas DROP COLUMN id_processo")
+            query.exec("ALTER TABLE controle_dispensas RENAME COLUMN new_id_processo TO id_processo")
+            if not query.isActive():
+                print("Erro ao atualizar chave primária:", query.lastError().text())
 
     def create_table_if_not_exists(self):
         query = QSqlQuery(self.db)
-        query.exec("""
+        if not query.exec("""
             CREATE TABLE IF NOT EXISTS controle_dispensas (
-                id INTEGER PRIMARY KEY,
+                id_processo VARCHAR(100) PRIMARY KEY,
                 tipo VARCHAR(100),
                 numero VARCHAR(100),
                 ano VARCHAR(100),
-                id_processo VARCHAR(100),
                 nup VARCHAR(100),
                 objeto VARCHAR(100),
                 objeto_completo TEXT,
@@ -622,11 +583,10 @@ class SqlModel:
                 link_portal_marinha TEXT,
                 comentarios TEXT
             )
-        """)
-        if query.isActive():
-            print("Tabela 'controle_dispensas' criada com sucesso.")
-        else:
+        """):
             print("Falha ao criar a tabela 'controle_dispensas':", query.lastError().text())
+        else:
+            print("Tabela 'controle_dispensas' criada com sucesso.")
 
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13])
@@ -644,95 +604,139 @@ class SqlModel:
             else:
                 self.model.setHeaderData(column, Qt.Orientation.Horizontal, header)
 
+class CenterAlignDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
+class CustomItemDelegate(QStyledItemDelegate):
+    def __init__(self, icons, parent=None):
+        super().__init__(parent)
+        self.icons = icons
+
+    def paint(self, painter, option, index):
+        painter.save()
+        super().paint(painter, option, index)  # Draw default text and background first
+        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+        icon = self.icons.get(status, None)
+
+        if icon:
+            icon_size = 24  # Using the original size of the icon
+            icon_x = option.rect.left() + 5  # X position with a small offset to the left
+            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2  # Centered Y position
+
+            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
+            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        size = super().sizeHint(option, index)
+        size.setWidth(size.width() + 30)  # Add extra width for the icon
+        return size
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        # Garante que o alinhamento centralizado seja aplicado
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+
 class AddItemDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.database_path = Path(CONTROLE_DADOS) 
+        self.database_path = Path(CONTROLE_DADOS)
         self.setWindowTitle("Adicionar Item")
-        # Definindo o tamanho fixo do diálogo
         self.setFixedSize(900, 250)
-        
-        # Definindo o tamanho fixo do diálogo através de CSS
-        self.setStyleSheet("""
-            QDialog, QLabel, QComboBox, QLineEdit, QPushButton, QRadioButton {
-                font-size: 14pt;
-            }
-        """)
 
         self.layout = QVBoxLayout(self)
-
-        self.options = [
-            ("Dispensa Eletrônica (DE)", "Dispensa Eletrônica"),
-        ]
-
-        # Linha 1: Tipo, Número, Ano
-        hlayout1 = QHBoxLayout()
-        self.tipo_cb = QComboBox()
-        self.numero_le = QLineEdit()
-        self.ano_le = QLineEdit()
-
-        # Carregar o próximo número disponível
-        self.load_next_numero()
-
-        [self.tipo_cb.addItem(text) for text, _ in self.options]
-        self.tipo_cb.setCurrentText("Dispensa Eletrônica (DE)")  # Valor padrão
-        hlayout1.addWidget(QLabel("Tipo:"))
-        hlayout1.addWidget(self.tipo_cb)
-        
-        hlayout1.addWidget(QLabel("Número:"))
-        hlayout1.addWidget(self.numero_le)
-
-        # Ano QLineEdit predefinido com o ano atual e validação para quatro dígitos
-        
-        self.ano_le.setValidator(QIntValidator(1000, 9999))  # Restringe a entrada para quatro dígitos
-        current_year = datetime.now().year
-        self.ano_le.setText(str(current_year))
-        hlayout1.addWidget(QLabel("Ano:"))
-        hlayout1.addWidget(self.ano_le)
-
-        self.layout.addLayout(hlayout1)
-
-        # Linha 3: Objeto
-        hlayout3 = QHBoxLayout()
-        self.objeto_le = QLineEdit()
-        hlayout3.addWidget(QLabel("Objeto:"))
-        self.objeto_le.setPlaceholderText("Exemplo: 'Material de Limpeza' (Utilizar no máximo 3 palavras)") 
-        hlayout3.addWidget(self.objeto_le)
-        self.layout.addLayout(hlayout3)
-
-        # Linha 4: OM
-        hlayout4 = QHBoxLayout()
-        self.nup_le = QLineEdit()
-        self.sigla_om_cb = QComboBox()  # Alterado para QComboBox
-        hlayout4.addWidget(QLabel("Nup:"))
-        self.nup_le.setPlaceholderText("Exemplo: '00000.00000/0000-00'")       
-        hlayout4.addWidget(self.nup_le)
-        hlayout4.addWidget(QLabel("OM:"))
-        hlayout4.addWidget(self.sigla_om_cb)  # Usando QComboBox
-        self.layout.addLayout(hlayout4)
-
-        # Linha 5: Material/Serviço
-        hlayout5 = QHBoxLayout()
-        self.material_servico_group = QButtonGroup(self)  # Grupo para os botões de rádio
-
-        self.material_radio = QRadioButton("Material")
-        self.servico_radio = QRadioButton("Serviço")
-        self.material_servico_group.addButton(self.material_radio)
-        self.material_servico_group.addButton(self.servico_radio)
-
-        hlayout5.addWidget(QLabel("Material/Serviço:"))
-        hlayout5.addWidget(self.material_radio)
-        hlayout5.addWidget(self.servico_radio)
-        self.layout.addLayout(hlayout5)
-
-        # Configurando um valor padrão
-        self.material_radio.setChecked(True)
-
-        # Botão de Salvar
-        self.save_btn = QPushButton("Adicionar Item")
-        self.save_btn.clicked.connect(self.accept)
-        self.layout.addWidget(self.save_btn)
+        self.setup_ui()
         self.load_sigla_om()
+
+    def setup_ui(self):
+        self.tipo_cb, self.numero_le, self.ano_le = self.setup_first_line()
+        self.objeto_le = self.setup_third_line()
+        self.nup_le, self.sigla_om_cb = self.setup_fourth_line()
+        self.material_radio, self.servico_radio = self.setup_fifth_line()
+        self.setup_save_button()
+
+    def setup_first_line(self):
+        hlayout = QHBoxLayout()
+        tipo_cb = QComboBox()
+        numero_le = QLineEdit()
+        ano_le = QLineEdit()
+
+        [tipo_cb.addItem(option[0]) for option in [("Dispensa Eletrônica (DE)", "Dispensa Eletrônica")]]
+        tipo_cb.setCurrentText("Dispensa Eletrônica (DE)")
+        numero_le.setValidator(QIntValidator(1, 99999))
+        ano_le.setValidator(QIntValidator(1000, 9999))
+        ano_le.setText(str(datetime.now().year))
+
+        hlayout.addWidget(QLabel("Tipo:"))
+        hlayout.addWidget(tipo_cb)
+        hlayout.addWidget(QLabel("Número:"))
+        hlayout.addWidget(numero_le)
+        hlayout.addWidget(QLabel("Ano:"))
+        hlayout.addWidget(ano_le)
+        self.layout.addLayout(hlayout)
+
+        return tipo_cb, numero_le, ano_le
+
+    def setup_third_line(self):
+        hlayout = QHBoxLayout()
+        objeto_le = QLineEdit()
+        objeto_le.setPlaceholderText("Exemplo: 'Material de Limpeza' (Utilizar no máximo 3 palavras)")
+        hlayout.addWidget(QLabel("Objeto:"))
+        hlayout.addWidget(objeto_le)
+        self.layout.addLayout(hlayout)
+        return objeto_le
+
+    def setup_fourth_line(self):
+        hlayout = QHBoxLayout()
+        nup_le = QLineEdit()
+        sigla_om_cb = QComboBox()
+        nup_le.setPlaceholderText("Exemplo: '00000.00000/0000-00'")
+        hlayout.addWidget(QLabel("Nup:"))
+        hlayout.addWidget(nup_le)
+        hlayout.addWidget(QLabel("OM:"))
+        hlayout.addWidget(sigla_om_cb)
+        self.layout.addLayout(hlayout)
+        return nup_le, sigla_om_cb
+
+    def setup_fifth_line(self):
+        hlayout = QHBoxLayout()
+        material_radio = QRadioButton("Material")
+        servico_radio = QRadioButton("Serviço")
+        group = QButtonGroup(self)
+        group.addButton(material_radio)
+        group.addButton(servico_radio)
+        material_radio.setChecked(True)
+
+        hlayout.addWidget(QLabel("Material/Serviço:"))
+        hlayout.addWidget(material_radio)
+        hlayout.addWidget(servico_radio)
+        self.layout.addLayout(hlayout)
+        return material_radio, servico_radio
+
+    def setup_save_button(self):
+        btn = QPushButton("Adicionar Item")
+        btn.clicked.connect(self.on_save)
+        self.layout.addWidget(btn)
+
+    def on_save(self):
+        if self.check_id_exists():
+            res = QMessageBox.question(self, "Confirmação", "ID do processo já existe. Deseja sobrescrever?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            if res == QMessageBox.StandardButton.Yes:
+                self.accept()  # Substitui o diálogo aceitar com a sobreposição
+        else:
+            self.accept()  # Aceita normalmente se o ID do processo não existir
+
+    def check_id_exists(self):
+        id_processo = f"{self.tipo_cb.currentText()} {self.numero_le.text()}/{self.ano_le.text()}"
+        query = f"SELECT COUNT(*) FROM controle_dispensas WHERE id_processo = ?"
+        conn = sqlite3.connect(self.database_path)
+        cursor = conn.cursor()
+        cursor.execute(query, (id_processo,))
+        exists = cursor.fetchone()[0] > 0
+        conn.close()
+        return exists
 
     def load_next_numero(self):
         try:
@@ -748,8 +752,10 @@ class AddItemDialog(QDialog):
     def get_data(self):
         sigla_selected = self.sigla_om_cb.currentText()
         material_servico = "Material" if self.material_radio.isChecked() else "Serviço"
+        tipo_de_processo = self.tipo_cb.currentText()
+        
         data = {
-            'tipo': self.tipo_cb.currentText(),
+            'tipo': tipo_de_processo,  # Este é o texto visível no ComboBox
             'numero': self.numero_le.text(),
             'ano': self.ano_le.text(),
             'nup': self.nup_le.text(),
@@ -760,14 +766,21 @@ class AddItemDialog(QDialog):
             'material_servico': material_servico
         }
 
-        # Mapeando o tipo para o valor a ser salvo no banco de dados
-        type_map = {option[0]: option[1] for option in self.options}
-        abrev_map = {
-            "Dispensa Eletrônica (DE)": "DE",
+        # Utilize um único mapa que combina os dois propósitos, se possível
+        # Isso mapeia o tipo visível para seu código abreviado e nome no banco de dados
+        tipo_map = {
+            "Dispensa Eletrônica (DE)": ("DE", "Dispensa Eletrônica"),
         }
-        tipo_abreviado = abrev_map[data['tipo']]
-        data['tipo'] = type_map[data['tipo']]
-        data['id_processo'] = f"{tipo_abreviado} {data['numero']}/{data['ano']}"
+
+        # Se o tipo de processo está no mapa, use a abreviação e o nome interno; caso contrário, use valores padrão
+        if tipo_de_processo in tipo_map:
+            abreviatura, nome_interno = tipo_map[tipo_de_processo]
+            data['tipo'] = nome_interno
+            data['id_processo'] = f"{abreviatura} {data['numero']}/{data['ano']}"
+        else:
+            data['tipo'] = "Tipo Desconhecido"  # ou algum valor padrão
+            data['id_processo'] = f"Desconhecido {data['numero']}/{data['ano']}"
+
         return data
 
     def import_uasg_to_db(self, filepath):
@@ -799,4 +812,300 @@ class AddItemDialog(QDialog):
                 if ceimbra_found:
                     self.sigla_om_cb.setCurrentIndex(default_index)  # Define CeIMBra como valor padrão
         except Exception as e:
-            print(f"Erro ao carregar siglas de OM: {e}")      
+            print(f"Erro ao carregar siglas de OM: {e}")
+
+class Dialogs:
+    @staticmethod
+    def info(parent, title, message):
+        QMessageBox.information(parent, title, message)
+
+    @staticmethod
+    def warning(parent, title, message):
+        QMessageBox.warning(parent, title, message)
+
+    @staticmethod
+    def error(parent, title, message):
+        QMessageBox.critical(parent, title, message)
+
+    @staticmethod
+    def confirm(parent, title, message):
+        reply = QMessageBox.question(parent, title, message,
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        return reply == QMessageBox.StandardButton.Yes
+
+class TableMenu(QMenu):
+    def __init__(self, main_app, index, model=None, config_manager=None):
+        super().__init__()
+        self.main_app = main_app
+        self.index = index
+        self.model = model
+        self.config_manager = config_manager
+        self.setup_menu_style()
+        self.add_menu_actions()
+
+    def setup_menu_style(self):
+        self.setStyleSheet("""
+            QMenu {
+                background-color: #f9f9f9;
+                color: #333;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 5px 20px 5px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #b0c4de;
+                color: white;
+            }
+            QMenu::separator {
+                height: 2px;
+                background-color: #d3d3d3;
+                margin: 5px 0;
+            }
+        """)
+
+    def add_menu_actions(self):
+        actions = [
+            "Editar Dados do Processo",
+            "1. Autorização para Abertura de Processo",
+            "2. Documentos de Planejamento",
+            "3. Aviso de Dispensa Eletrônica",
+        ]
+        for actionText in actions:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+    def trigger_action(self, actionText):
+        if self.index.isValid():
+            source_index = self.model.mapToSource(self.index)
+            # Assumindo que a chave primária é a primeira coluna do modelo
+            id_processo = self.model.data(self.model.index(source_index.row(), 0))  
+            df_registro_selecionado = carregar_dados_dispensa(id_processo, str(self.main_app.database_path))
+            if not df_registro_selecionado.empty:
+                self.perform_action(actionText, df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+
+
+    def perform_action(self, actionText, df_registro_selecionado):
+        actions = {
+            "Editar Dados do Processo": self.editar_dados,
+            "1. Autorização para Abertura de Processo": self.AutorizacaoDispensa,
+            "2. Documentos de Planejamento": self.DocumentosPlanejamento,
+            "3. Aviso de Dispensa Eletrônica": self.AvisoDispensaEletronica
+        }
+        action = actions.get(actionText)
+        if action:
+            action(df_registro_selecionado)
+
+    def editar_dados(self, df_registro_selecionado):
+        dialog = EditDataDialog(df_registro_selecionado, self.main_app.icons_dir)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.main_app.refresh_model()
+
+    def AutorizacaoDispensa(self, df_registro_selecionado):
+        pass
+
+    def DocumentosPlanejamento(self, df_registro_selecionado):
+        pass
+
+    def AvisoDispensaEletronica(self, df_registro_selecionado):
+        pass
+
+class EditDataDialog(QDialog):
+    def __init__(self, df_registro_selecionado, icons_dir, parent=None):
+        super().__init__(parent)
+        self.df_registro_selecionado = df_registro_selecionado
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+        self.setWindowTitle("Editar Dados do Processo")
+        self.setObjectName("EditarDadosDialog")
+        self.setStyleSheet("#EditarDadosDialog { background-color: #050f41; }")
+        self.setGeometry(300, 300, 900, 700)
+        self.titleLabel = QLabel()
+        self.layout.addLayout(self.update_title_label())
+        self.layout = QVBoxLayout(self)
+        self.setup_frames()
+        self.setLayout(self.layout)
+
+    def update_title_label(self):
+        # Assume que o DataFrame tem pelo menos uma linha e que os campos 'tipo', 'numero', 'ano', 'orgao_responsavel' e 'uasg' existem
+        tipo = self.df_registro_selecionado['tipo'].iloc[0]
+        numero = self.df_registro_selecionado['numero'].iloc[0]
+        ano = self.df_registro_selecionado['ano'].iloc[0]
+        orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
+        uasg = self.df_registro_selecionado['uasg'].iloc[0]
+
+        # Define o texto do título
+        html_text = (
+            f"{tipo} nº {numero}/{ano} - Edição de Dados<br>"
+            f"<span style='font-size: 20px; color: #ADD8E6;'>OM RESPONSÁVEL: {orgao_responsavel} (UASG: {uasg})</span>"
+        )
+        self.titleLabel.setText(html_text)
+        self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
+        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        self.titleLabel.setWordWrap(True)
+
+        # Cria um layout horizontal para incluir o título e a imagem
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(self.titleLabel)
+
+        # Adiciona um spacer para empurrar a imagem para o lado direito
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+
+        # Carrega e configura a imagem
+        pixmap = QPixmap(str(MARINHA_PATH))  # Certifique-se que MARINHA_PATH é o caminho correto para a imagem
+        pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap)
+        header_layout.addWidget(image_label)
+
+        # Retorna o layout para ser adicionado ao layout principal do QDialog
+        return header_layout
+
+    def setup_frames(self):
+        # Primeiro, adiciona o título no topo do layout principal
+        self.layout.addWidget(self.titleLabel)
+
+        # Configura os layouts horizontais para os frames de dados gerais e detalhes financeiros
+        topRow = QHBoxLayout()
+        self.frame1, self.frame1_layout = self.create_frame("Dados Gerais")
+        self.frame2, self.frame2_layout = self.create_frame("Detalhes Financeiros")
+        topRow.addWidget(self.frame1)
+        topRow.addWidget(self.frame2)
+        self.layout.addLayout(topRow)  # Adiciona o QHBoxLayout com os dois primeiros frames ao layout principal
+
+        # Configura o frame para comentários e links
+        self.frame3, self.frame3_layout = self.create_frame("Comentários e Links")
+        self.layout.addWidget(self.frame3)  # Adiciona o terceiro frame diretamente ao layout principal
+
+        # Preenche os frames com os campos apropriados
+        self.fill_frame1()
+        self.fill_frame2()
+        self.fill_frame3()
+
+        # Configura o QHBoxLayout para os botões e os adiciona ao layout principal
+        buttonsRow = QHBoxLayout()
+        save_button = QPushButton("Salvar")
+        save_button.clicked.connect(self.save_changes)
+        cancel_button = QPushButton("Cancelar")
+        cancel_button.clicked.connect(self.reject)
+        buttonsRow.addWidget(save_button)
+        buttonsRow.addWidget(cancel_button)
+        self.layout.addLayout(buttonsRow)  # Adiciona o QHBoxLayout com os botões ao layout principal
+
+
+    def create_frame(self, title):
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame.setFrameShadow(QFrame.Shadow.Raised)
+        frame_layout = QVBoxLayout()
+        frame_label = QLabel(title)
+        frame_layout.addWidget(frame_label)
+        frame.setLayout(frame_layout)  # Definindo o layout do frame
+        return frame, frame_layout  # Retorna tanto o frame quanto seu layout
+
+
+    def fill_frame1(self):
+        # Suponha que 'frame1' contenha campos gerais como nome, data e ID
+        self.add_label_line_edit(self.frame1_layout, "Nome", "nome")
+        self.add_date_edit(self.frame1_layout, "Data de Início", "data_inicio")
+
+    def fill_frame2(self):
+        # Suponha que 'frame2' contenha detalhes financeiros
+        self.add_label_line_edit(self.frame2_layout, "Valor", "valor_total")
+        self.add_label_line_edit(self.frame2_layout, "Custo Adicional", "custo_adicional")
+
+    def fill_frame3(self):
+        # Suponha que 'frame3' contenha comentários e links
+        self.add_label_line_edit(self.frame3_layout, "Link do Documento", "link_documento")
+        self.add_label_line_edit(self.frame3_layout, "Comentários", "comentarios")
+
+    def add_label_line_edit(self, layout, label_text, data_key):
+        label = QLabel(label_text)
+        line_edit = QLineEdit()
+        line_edit.setText(str(self.df_registro_selecionado.get(data_key, "")))
+        layout.addWidget(label)
+        layout.addWidget(line_edit)
+
+    def add_date_edit(self, layout, label_text, data_key):
+        label = QLabel(label_text)
+        date_edit = QDateEdit()
+        date_edit.setCalendarPopup(True)
+        date_str = self.df_registro_selecionado.get(data_key, "")
+        date = QDate.fromString(date_str, "yyyy-MM-dd") if date_str else QDate.currentDate()
+        date_edit.setDate(date)
+        layout.addWidget(label)
+        layout.addWidget(date_edit)
+
+    def add_action_buttons(self):
+        save_button = QPushButton("Salvar")
+        save_button.clicked.connect(self.save_changes)
+        cancel_button = QPushButton("Cancelar")
+        cancel_button.clicked.connect(self.reject)
+        self.layout.addWidget(save_button)
+        self.layout.addWidget(cancel_button)
+
+    def setup_ui(self):
+        self.titleLabel = QLabel("Editar Dados")
+        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        self.layout.addWidget(self.titleLabel)
+        
+        # Criar campos de entrada para cada coluna no DataFrame
+        for column in self.df_registro_selecionado.columns:
+            if "data" in column:  # Se a coluna representar uma data
+                label = QLabel(column)
+                date_edit = QDateEdit()
+                date_edit.setCalendarPopup(True)
+                try:
+                    date_value = QDate.fromString(self.df_registro_selecionado.iloc[0][column], "yyyy-MM-dd")
+                    date_edit.setDate(date_value)
+                except:
+                    date_edit.setDate(QDate.currentDate())
+                self.date_inputs[column] = date_edit
+                self.layout.addWidget(label)
+                self.layout.addWidget(date_edit)
+            else:
+                label = QLabel(column)
+                line_edit = QLineEdit()
+                line_edit.setText(str(self.df_registro_selecionado.iloc[0][column]))
+                self.inputs[column] = line_edit
+                self.layout.addWidget(label)
+                self.layout.addWidget(line_edit)
+
+        # Adiciona botões de Salvar e Cancelar
+        save_button = QPushButton("Salvar")
+        save_button.clicked.connect(self.save_changes)
+        cancel_button = QPushButton("Cancelar")
+        cancel_button.clicked.connect(self.reject)
+
+        self.layout.addWidget(save_button)
+        self.layout.addWidget(cancel_button)
+
+    def save_changes(self):
+        # Atualiza o DataFrame com as novas entradas e salva no banco de dados
+        try:
+            updated_values = {}
+            for column, input_field in self.inputs.items():
+                updated_values[column] = input_field.text()
+            for column, date_field in self.date_inputs.items():
+                updated_values[column] = date_field.date().toString("yyyy-MM-dd")
+            
+            connection = sqlite3.connect("path_to_your_database.db")
+            cursor = connection.cursor()
+            set_part = ', '.join([f"{key} = ?" for key in updated_values.keys()])
+            values = list(updated_values.values())
+            values.append(self.df_registro_selecionado.iloc[0]['id'])  # Assume 'id' as primary key
+            cursor.execute(f"UPDATE your_table_name SET {set_part} WHERE id = ?", values)
+            connection.commit()
+            connection.close()
+            
+            self.accept()  # Fecha o diálogo com sucesso
+            QMessageBox.information(self, "Sucesso", "Dados atualizados com sucesso!")
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Não foi possível salvar as alterações: {str(e)}")
+            self.reject()  # Fecha o diálogo com falha
