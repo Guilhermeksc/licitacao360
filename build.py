@@ -22,7 +22,7 @@ def build_executable():
         "--noconfirm",
         "--name=licitacao360",
         f"--icon={ICONE}",  # Especifique o caminho para o seu ícone aqui
-        "--windowed",  # Se você quiser que o programa rode sem console
+        # "--windowed",  # Se você quiser que o programa rode sem console
     ]
 
     # Adicionando recursos com o separador correto

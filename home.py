@@ -122,9 +122,9 @@ class MainWindow(QMainWindow):
             # (" Controle de Contratos", ICONS_DIR / "x.png"), 
             (" Atas e Contratos", ICONS_DIR / "x.png"), 
             (" Dispensa Eletrônica", ICONS_DIR / "x.png"),
-            (" Limite de Dispensa", ICONS_DIR / "x.png"), 
-            (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),
-            (" Cantinho do Pregoeiro", ICONS_DIR / "x.png"),              
+            # (" Limite de Dispensa", ICONS_DIR / "x.png"), 
+            # (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),
+            # (" Cantinho do Pregoeiro", ICONS_DIR / "x.png"),              
             (" Selenium", ICONS_DIR / "x.png"),  
         ]
 
@@ -196,9 +196,9 @@ class MainWindow(QMainWindow):
             # "Controle de Contratos": self.setup_controle_contratos,
             "Atas e Contratos": self.setup_atas_contratos_novo,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
-            "Limite de Dispensa": self.setup_limite_dispensa,
-            "Consulta CATMAT/CATSER": self.setup_controle_pdm,
-            "Cantinho do Pregoeiro": self.setup_pregoeiro,                
+            # "Limite de Dispensa": self.setup_limite_dispensa,
+            # "Consulta CATMAT/CATSER": self.setup_controle_pdm,
+            # "Cantinho do Pregoeiro": self.setup_pregoeiro,                
             "Selenium": self.setup_selenium_automacao,
         }
         action = content_actions.get(content_name)
@@ -221,9 +221,9 @@ class MainWindow(QMainWindow):
                 # "Controle de Contratos": self.setup_controle_contratos,
                 "Atas e Contratos": self.setup_atas_contratos_novo,
                 "Dispensa Eletrônica": self.setup_dispensa_eletronica,
-                "Limite de Dispensa": self.setup_limite_dispensa,
-                "Consulta CATMAT/CATSER": self.setup_controle_pdm,
-                "Cantinho do Pregoeiro": self.setup_pregoeiro,                
+                # "Limite de Dispensa": self.setup_limite_dispensa,
+                # "Consulta CATMAT/CATSER": self.setup_controle_pdm,
+                # "Cantinho do Pregoeiro": self.setup_pregoeiro,                
                 "Selenium": self.setup_selenium_automacao,
             }
         

@@ -919,6 +919,8 @@ class TableMenu(QMenu):
         pass
 
 class EditDataDialog(QDialog):
+    dados_atualizados = pyqtSignal()
+    
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
@@ -941,7 +943,9 @@ class EditDataDialog(QDialog):
         self.setup_frames()
         self.setLayout(self.layout)
         self.setup_ui()
-        
+
+        self.move(QPoint(0, 0))
+
     def extract_registro_data(self):
         # Extrai dados do registro selecionado
         data = {
@@ -1058,36 +1062,36 @@ class EditDataDialog(QDialog):
         # Grupo para ID do Processo
         id_group_box = QGroupBox("ID")
         id_group_layout = QVBoxLayout()
-        id_processo_edit = QLineEdit(data['id_processo'])
+        self.id_processo_edit = QLineEdit(data['id_processo'])
         self.apply_widget_style(id_group_box)
-        self.apply_widget_style(id_processo_edit)
-        id_processo_edit.setReadOnly(True)
-        id_processo_edit.setFixedWidth(120)
-        id_group_layout.addWidget(id_processo_edit)
+        self.apply_widget_style(self.id_processo_edit)
+        self.id_processo_edit.setReadOnly(True)
+        self.id_processo_edit.setFixedWidth(120)
+        id_group_layout.addWidget(self.id_processo_edit)
         id_group_box.setLayout(id_group_layout)
         detalhes_layout.addWidget(id_group_box)
 
         # Grupo para NUP
         nup_group_box = QGroupBox("NUP")
         nup_group_layout = QVBoxLayout()
-        nup_edit = QLineEdit(data['nup'])
+        self.nup_edit = QLineEdit(data['nup'])
         self.apply_widget_style(nup_group_box)
-        self.apply_widget_style(nup_edit)
-        nup_edit.setReadOnly(False)
-        nup_edit.setFixedWidth(230)
-        nup_group_layout.addWidget(nup_edit)
+        self.apply_widget_style(self.nup_edit)
+        self.nup_edit.setReadOnly(False)
+        self.nup_edit.setFixedWidth(230)
+        nup_group_layout.addWidget(self.nup_edit)
         nup_group_box.setLayout(nup_group_layout)
         detalhes_layout.addWidget(nup_group_box)
 
         # Grupo para Objeto
         objeto_group_box = QGroupBox("Objeto")
         objeto_group_layout = QVBoxLayout()
-        objeto_edit = QLineEdit(data['objeto'])
+        self.objeto_edit = QLineEdit(data['objeto'])
         self.apply_widget_style(objeto_group_box)
-        self.apply_widget_style(objeto_edit)
-        objeto_edit.setReadOnly(False)
-        objeto_edit.setFixedWidth(280)
-        objeto_group_layout.addWidget(objeto_edit)
+        self.apply_widget_style(self.objeto_edit)
+        self.objeto_edit.setReadOnly(False)
+        self.objeto_edit.setFixedWidth(280)
+        objeto_group_layout.addWidget(self.objeto_edit)
         objeto_group_box.setLayout(objeto_group_layout)
         detalhes_layout.addWidget(objeto_group_box)
 
@@ -1097,33 +1101,33 @@ class EditDataDialog(QDialog):
         # Detalhes adicionais para Objeto Detalhado
         objeto_det_group_box = QGroupBox("Objeto Detalhado")
         objeto_det_layout = QVBoxLayout()
-        objeto_det_edit = QLineEdit(data['objeto_completo'])
+        self.objeto_det_edit = QLineEdit(data['objeto_completo'])
         self.apply_widget_style(objeto_det_group_box)
-        self.apply_widget_style(objeto_det_edit)
-        objeto_det_edit.setReadOnly(False)
-        objeto_det_layout.addWidget(objeto_det_edit)
+        self.apply_widget_style(self.objeto_det_edit)
+        self.objeto_det_edit.setReadOnly(False)
+        objeto_det_layout.addWidget(self.objeto_det_edit)
         objeto_det_group_box.setLayout(objeto_det_layout)
         self.frame1_layout.addWidget(objeto_det_group_box)
 
         # Detalhes adicionais para Link PNCp
         link_pncp_group_box = QGroupBox("Link PNCP")
         link_pncp_layout = QVBoxLayout()
-        link_pncp_edit = QLineEdit(data['link_pncp'])
+        self.link_pncp_edit = QLineEdit(data['link_pncp'])
         self.apply_widget_style(link_pncp_group_box)
-        self.apply_widget_style(link_pncp_edit)
-        link_pncp_edit.setReadOnly(False)
-        link_pncp_layout.addWidget(link_pncp_edit)
+        self.apply_widget_style(self.link_pncp_edit)
+        self.link_pncp_edit.setReadOnly(False)
+        link_pncp_layout.addWidget(self.link_pncp_edit)
         link_pncp_group_box.setLayout(link_pncp_layout)
         self.frame1_layout.addWidget(link_pncp_group_box)
 
         # Detalhes adicionais para Link Portal Marinha
         link_portal_group_box = QGroupBox("Link Portal Marinha")
         link_portal_layout = QVBoxLayout()
-        link_portal_edit = QLineEdit(data['link_portal_marinha'])
+        self.link_portal_edit = QLineEdit(data['link_portal_marinha'])
         self.apply_widget_style(link_portal_group_box)
-        self.apply_widget_style(link_portal_edit)
-        link_portal_edit.setReadOnly(False)
-        link_portal_layout.addWidget(link_portal_edit)
+        self.apply_widget_style(self.link_portal_edit)
+        self.link_portal_edit.setReadOnly(False)
+        link_portal_layout.addWidget(self.link_portal_edit)
         link_portal_group_box.setLayout(link_portal_layout)
         self.frame1_layout.addWidget(link_portal_group_box)
         
@@ -1140,49 +1144,49 @@ class EditDataDialog(QDialog):
         # Valor Estimado
         valor_estimado_group_box = QGroupBox("Valor Estimado")
         valor_layout = QVBoxLayout()
-        valor_edit = QLineEdit(str(data.get('valor_total', '')))
+        self.valor_edit = QLineEdit(str(data.get('valor_total', '')))
         self.apply_widget_style(valor_estimado_group_box)
-        self.apply_widget_style(valor_edit)
-        valor_layout.addWidget(valor_edit)
+        self.apply_widget_style(self.valor_edit)
+        valor_layout.addWidget(self.valor_edit)
         valor_estimado_group_box.setLayout(valor_layout)
         self.frame2_layout.addWidget(valor_estimado_group_box)
 
         # Setor Responsávelx("Setor Responsável pela Demanda")
         setor_responsavel_group_box = QGroupBox("Setor Responsável pela Demanda")
         setor_responsavel_layout = QVBoxLayout()
-        setor_responsavel_edit = QLineEdit(data.get('setor_responsavel', ''))
+        self.setor_responsavel_edit = QLineEdit(data.get('setor_responsavel', ''))
         self.apply_widget_style(setor_responsavel_group_box)
-        self.apply_widget_style(setor_responsavel_edit)
-        setor_responsavel_layout.addWidget(setor_responsavel_edit)
+        self.apply_widget_style(self.setor_responsavel_edit)
+        setor_responsavel_layout.addWidget(self.setor_responsavel_edit)
         setor_responsavel_group_box.setLayout(setor_responsavel_layout)
         self.frame2_layout.addWidget(setor_responsavel_group_box)
 
         # Operador
         operador_group_box = QGroupBox("Operador")
         operador_layout = QVBoxLayout()
-        operador_edit = QLineEdit(data.get('operador', ''))
+        self.operador_edit = QLineEdit(data.get('operador', ''))
         self.apply_widget_style(operador_group_box)
-        self.apply_widget_style(operador_edit)
-        operador_edit.setFixedWidth(220)
-        operador_layout.addWidget(operador_edit)
+        self.apply_widget_style(self.operador_edit)
+        self.operador_edit.setFixedWidth(220)
+        operador_layout.addWidget(self.operador_edit)
         operador_group_box.setLayout(operador_layout)
         operador_data_layout.addWidget(operador_group_box)
                 
         # Data da Sessão
         data_sessao_group_box = QGroupBox("Data da Sessão")
         data_sessao_layout = QVBoxLayout()
-        data_edit = QDateEdit()
-        data_edit.setCalendarPopup(True)
+        self.data_edit = QDateEdit()
+        self.data_edit.setCalendarPopup(True)
         # Configura a data inicial
         data_sessao_str = data.get('data_sessao', '')
         if data_sessao_str:
-            data_edit.setDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
+            self.data_edit.setDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
         else:
-            data_edit.setDate(QDate.currentDate())
+            self.data_edit.setDate(QDate.currentDate())
         self.apply_widget_style(data_sessao_group_box)
-        self.apply_widget_style(data_edit)
-        data_edit.setFixedWidth(220)
-        data_sessao_layout.addWidget(data_edit)
+        self.apply_widget_style(self.data_edit)
+        self.data_edit.setFixedWidth(220)
+        data_sessao_layout.addWidget(self.data_edit)
         data_sessao_group_box.setLayout(data_sessao_layout)
         operador_data_layout.addWidget(data_sessao_group_box)
 
@@ -1192,26 +1196,26 @@ class EditDataDialog(QDialog):
         # Material/Serviço
         material_group_box = QGroupBox("Material/Serviço")
         material_layout = QVBoxLayout()
-        material_edit = QComboBox()
-        material_edit.addItems(["Material", "Serviço"])
-        material_edit.setCurrentText(data.get('material_servico', 'Material'))
+        self.material_edit = QComboBox()
+        self.material_edit.addItems(["Material", "Serviço"])
+        self.material_edit.setCurrentText(data.get('material_servico', 'Material'))
         self.apply_widget_style(material_group_box)
-        self.apply_widget_style(material_edit)
-        material_edit.setFixedWidth(220)
-        material_layout.addWidget(material_edit)
+        self.apply_widget_style(self.material_edit)
+        self.material_edit.setFixedWidth(220)
+        material_layout.addWidget(self.material_edit)
         material_group_box.setLayout(material_layout)
         material_situacao_layout.addWidget(material_group_box)
 
         # Situação
         situacao_group_box = QGroupBox("Situação")
         situacao_layout = QVBoxLayout()
-        situacao_edit = QComboBox()
-        situacao_edit.addItems(["Planejamento", "Aprovado", "Sessão Publica", "Concluído"])
-        situacao_edit.setCurrentText(data.get('situacao', 'Planejamento'))
+        self.situacao_edit = QComboBox()
+        self.situacao_edit.addItems(["Planejamento", "Aprovado", "Sessão Publica", "Concluído"])
+        self.situacao_edit.setCurrentText(data.get('situacao', 'Planejamento'))
         self.apply_widget_style(situacao_group_box)
-        self.apply_widget_style(situacao_edit)
-        situacao_edit.setFixedWidth(220)
-        situacao_layout.addWidget(situacao_edit)
+        self.apply_widget_style(self.situacao_edit)
+        self.situacao_edit.setFixedWidth(220)
+        situacao_layout.addWidget(self.situacao_edit)
         situacao_group_box.setLayout(situacao_layout)
         material_situacao_layout.addWidget(situacao_group_box)
 
@@ -1339,22 +1343,23 @@ class EditDataDialog(QDialog):
                 'valor_total': self.valor_edit.text().strip(),
                 'setor_responsavel': self.setor_responsavel_edit.text().strip(),
                 'operador': self.operador_edit.text().strip(),
-                'data_sessao': self.data_sessao_edit.date().toString("yyyy-MM-dd"),  # Ajustado para capturar a data correta
+                'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),  # Ajustado para capturar a data correta
                 'link_pncp': self.link_pncp_edit.text().strip(),
                 'link_portal_marinha': self.link_portal_edit.text().strip(),
-                'material_servico': 'servico' if self.radio_servico.isChecked() else 'material',
-                'srp': 'Sim' if self.radio_srp_sim.isChecked() else 'Não'
+                'material_servico': self.material_edit.currentText(),
+                'situacao': self.situacao_edit.currentText()
             }
 
             # Preparação da consulta SQL
             set_part = ', '.join([f"{key} = ?" for key in dados_atualizados.keys()])
             valores = list(dados_atualizados.values())
-            valores.append(self.dados['id'])  # ID do registro a ser atualizado, assumindo que 'dados' é uma propriedade da classe
+            valores.append(self.df_registro_selecionado['id_processo'].iloc[0])  # Ajuste conforme a estrutura do DataFrame
 
-            query = f"UPDATE controle_dispensas SET {set_part} WHERE id = ?"
+            query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
+            print(valores)  # Debugging
             cursor.execute(query, valores)
             connection.commit()
 
-        self.dados_atualizados.emit()  # Assumindo que há um sinal que notifica outras partes da aplicação sobre a atualização
-        self.accept()  # Fecha o diálogo com sucesso
+        self.dados_atualizados.emit()  # Emitir sinal corretamente
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+        self.accept()

@@ -754,7 +754,7 @@ class AtasDialog(QDialog):
         self.setWindowTitle("Geração de Atas / Contratos")
         self.setFont(QFont('Arial', 14))
         layout = QVBoxLayout(self)
-
+        self.resize(1000, 650)
         # Configuração do editor de cabeçalho
         header_label = QLabel("Editar Cabeçalho:")
         header_label.setFont(QFont('Arial', 14))
@@ -762,13 +762,14 @@ class AtasDialog(QDialog):
 
         self.header_editor = QTextEdit()
         self.header_editor.setFont(QFont('Arial', 12))
+        self.header_editor.setMinimumHeight(180)
         initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
                         "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
                         "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
-                        "{{ordenador_despesa}}, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
+                        "Thiago Martins Amorim, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
                         "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
                         "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
-                        "{{num_pregao}}/{{ano_pregao}}, processo administrativo n.º {{nup}}, RESOLVE registrar os preços da(s) "
+                        "{{num_pregao}}/2024, processo administrativo nº {{nup}}, RESOLVE registrar os preços da(s) "
                         "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
                         "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
                         "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
@@ -821,7 +822,6 @@ class AtasDialog(QDialog):
         layout.addWidget(self.org_combobox)
 
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
-
 
         self.configurar_rotulos(layout)
         self.configurar_entrada_e_botao_confirmar(layout)
@@ -991,10 +991,9 @@ class AtasDialog(QDialog):
             nome_empresa = nome_empresa.rstrip('.')
         
         # Remover sublinhados extras no final do nome da empresa resultantes da substituição
-        nome_empresa = nome_empresa.rstrip('_')
+        nome_empresa = nome_empresa.rstrip(' _.')
 
         return nome_empresa
-
 
     def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):
         nome_empresa_limpo = self.limpar_nome_empresa(empresa)
@@ -1007,8 +1006,6 @@ class AtasDialog(QDialog):
             path_subpasta.mkdir(parents=True, exist_ok=True)
         return path_dir_principal, path_subpasta
 
-
-    
     def processar_empresa(self, registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado):
         if not registros_empresa.empty:
             registro = registros_empresa.iloc[0].to_dict()
@@ -1070,17 +1067,24 @@ class AtasDialog(QDialog):
             arquivo_txt.write(texto_email)
 
     def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados, num_contrato):
-        empresa_limpa = self.limpar_nome_empresa(empresa)
+        max_len = 45  # Definindo o limite máximo para o nome da empresa
+        empresa_limpa = self.limpar_nome_empresa(empresa)[:max_len]
         contrato_limpo = self.limpar_nome_empresa(num_contrato)
+
+        # Preparar o template do documento
         tpl = DocxTemplate(TEMPLATE_PATH)
         tpl.render(context)
-        nome_documento = f"{contrato_limpo} - {empresa_limpa}.docx"  # Novo formato do nome do arquivo
+
+        # Montar o nome do arquivo, garantindo que não ultrapasse os limites comuns de sistemas de arquivos
+        nome_documento = f"{contrato_limpo} - {empresa_limpa}.docx"
         path_documento = path_subpasta / nome_documento
+
+        # Salvar o documento
         tpl.save(path_documento)
-        
+
         # Alterar o documento após a criação inicial para incluir informações detalhadas
         self.alterar_documento_criado(path_documento, registro, registro["cnpj"], itens_relacionados)
-        
+
         # Salvando o arquivo de email associado
         self.salvar_email(path_subpasta, context)
 
