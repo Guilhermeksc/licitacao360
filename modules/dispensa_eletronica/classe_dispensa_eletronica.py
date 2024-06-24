@@ -932,7 +932,13 @@ class EditDataDialog(QDialog):
         self.setWindowTitle("Editar Dados do Processo")
         self.setObjectName("EditarDadosDialog")
         self.setStyleSheet("#EditarDadosDialog { background-color: #050f41; }")
+<<<<<<< HEAD
         self.setGeometry(300, 300, 1300, 600)
+=======
+        self.setGeometry(300, 300, 900, 700)
+        self.titleLabel = QLabel()
+        self.layout.addLayout(self.update_title_label())
+>>>>>>> 1ee2f7453f361052759cdb99d079bf3e04a8948a
         self.layout = QVBoxLayout(self)
         
         self.titleLabel = QLabel()
@@ -1014,6 +1020,7 @@ class EditDataDialog(QDialog):
         btn.clicked.connect(callback)
         return btn
 
+<<<<<<< HEAD
     def setup_frames(self):
         # Configura os layouts horizontais para os frames
         topRow = QHBoxLayout()
@@ -1031,6 +1038,58 @@ class EditDataDialog(QDialog):
         linhaDeBaixo.addWidget(self.frame4)
         linhaDeBaixo.addWidget(self.frame5)
         self.layout.addLayout(linhaDeBaixo)  # Adiciona o QHBoxLayout com os três frames ao layout principal
+=======
+    def update_title_label(self):
+        # Assume que o DataFrame tem pelo menos uma linha e que os campos 'tipo', 'numero', 'ano', 'orgao_responsavel' e 'uasg' existem
+        tipo = self.df_registro_selecionado['tipo'].iloc[0]
+        numero = self.df_registro_selecionado['numero'].iloc[0]
+        ano = self.df_registro_selecionado['ano'].iloc[0]
+        orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
+        uasg = self.df_registro_selecionado['uasg'].iloc[0]
+
+        # Define o texto do título
+        html_text = (
+            f"{tipo} nº {numero}/{ano} - Edição de Dados<br>"
+            f"<span style='font-size: 20px; color: #ADD8E6;'>OM RESPONSÁVEL: {orgao_responsavel} (UASG: {uasg})</span>"
+        )
+        self.titleLabel.setText(html_text)
+        self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
+        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        self.titleLabel.setWordWrap(True)
+
+        # Cria um layout horizontal para incluir o título e a imagem
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(self.titleLabel)
+
+        # Adiciona um spacer para empurrar a imagem para o lado direito
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+
+        # Carrega e configura a imagem
+        pixmap = QPixmap(str(MARINHA_PATH))  # Certifique-se que MARINHA_PATH é o caminho correto para a imagem
+        pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap)
+        header_layout.addWidget(image_label)
+
+        # Retorna o layout para ser adicionado ao layout principal do QDialog
+        return header_layout
+
+    def setup_frames(self):
+        # Primeiro, adiciona o título no topo do layout principal
+        self.layout.addWidget(self.titleLabel)
+
+        # Configura os layouts horizontais para os frames de dados gerais e detalhes financeiros
+        topRow = QHBoxLayout()
+        self.frame1, self.frame1_layout = self.create_frame("Dados Gerais")
+        self.frame2, self.frame2_layout = self.create_frame("Detalhes Financeiros")
+        topRow.addWidget(self.frame1)
+        topRow.addWidget(self.frame2)
+        self.layout.addLayout(topRow)  # Adiciona o QHBoxLayout com os dois primeiros frames ao layout principal
+
+        # Configura o frame para comentários e links
+        self.frame3, self.frame3_layout = self.create_frame("Comentários e Links")
+        self.layout.addWidget(self.frame3)  # Adiciona o terceiro frame diretamente ao layout principal
+>>>>>>> 1ee2f7453f361052759cdb99d079bf3e04a8948a
 
         # Preenche os frames com os campos apropriados
         self.fill_frame1()
@@ -1039,6 +1098,7 @@ class EditDataDialog(QDialog):
         self.fill_frame4()
         self.fill_frame5()
 
+<<<<<<< HEAD
     def create_frame(self):
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)  # Mantém o estilo do frame
@@ -1222,6 +1282,44 @@ class EditDataDialog(QDialog):
         # Criar botão apenas com ícone, sem texto
         button = self.create_button("", QIcon(str(self.ICONS_DIR / "pdf128.png")), self.teste, "Autorização para abertura do processo de Dispensa Eletrônica", QSize(100, 100), QSize(80, 80))
         self.frame3_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
+=======
+        # Configura o QHBoxLayout para os botões e os adiciona ao layout principal
+        buttonsRow = QHBoxLayout()
+        save_button = QPushButton("Salvar")
+        save_button.clicked.connect(self.save_changes)
+        cancel_button = QPushButton("Cancelar")
+        cancel_button.clicked.connect(self.reject)
+        buttonsRow.addWidget(save_button)
+        buttonsRow.addWidget(cancel_button)
+        self.layout.addLayout(buttonsRow)  # Adiciona o QHBoxLayout com os botões ao layout principal
+
+
+    def create_frame(self, title):
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame.setFrameShadow(QFrame.Shadow.Raised)
+        frame_layout = QVBoxLayout()
+        frame_label = QLabel(title)
+        frame_layout.addWidget(frame_label)
+        frame.setLayout(frame_layout)  # Definindo o layout do frame
+        return frame, frame_layout  # Retorna tanto o frame quanto seu layout
+
+
+    def fill_frame1(self):
+        # Suponha que 'frame1' contenha campos gerais como nome, data e ID
+        self.add_label_line_edit(self.frame1_layout, "Nome", "nome")
+        self.add_date_edit(self.frame1_layout, "Data de Início", "data_inicio")
+
+    def fill_frame2(self):
+        # Suponha que 'frame2' contenha detalhes financeiros
+        self.add_label_line_edit(self.frame2_layout, "Valor", "valor_total")
+        self.add_label_line_edit(self.frame2_layout, "Custo Adicional", "custo_adicional")
+
+    def fill_frame3(self):
+        # Suponha que 'frame3' contenha comentários e links
+        self.add_label_line_edit(self.frame3_layout, "Link do Documento", "link_documento")
+        self.add_label_line_edit(self.frame3_layout, "Comentários", "comentarios")
+>>>>>>> 1ee2f7453f361052759cdb99d079bf3e04a8948a
 
         # Criar label abaixo do botão
         label = QLabel("Autorização para abertura de processo")
