@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['home.py'],
+    ['C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\home.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database', 'database'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\icons', 'database/icons'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\image', 'database/image'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\modules\\planejamento', 'planejamento'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\modules\\planejamento\\template', 'planejamento/template'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\template', 'database/template'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\relatorio', 'database'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\selenium', 'database/selenium'), ('C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\template', 'database/template')],
+    datas=[('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database', 'database'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\icons', 'database/icons'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\image', 'database/image'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\modules\\planejamento', 'planejamento'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\modules\\planejamento\\template', 'planejamento/template'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\template', 'database/template'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\relatorio', 'database'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\selenium', 'database/selenium'), ('C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\template', 'database/template')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\guilh\\OneDrive\\Área de Trabalho\\projeto_licitacao360\\licitacao360\\database\\icons\\icone.ico'],
+    icon=['C:\\Users\\Guilherme\\Documents\\Nova pasta\\projeto_licitacao360\\licitacao360\\database\\icons\\icone.ico'],
 )
 coll = COLLECT(
     exe,

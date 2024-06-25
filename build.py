@@ -1,9 +1,18 @@
 import subprocess
 from diretorios import *
 import os
+
 def build_executable():
-    # Caminho para o script principal
-    main_script = "home.py"
+    # Imprime o diretório de trabalho atual para diagnóstico
+    print("Current working directory:", os.getcwd())
+
+    # Caminho absoluto para o script principal dentro do subdiretório 'licitacao360'
+    main_script = os.path.join(os.getcwd(), "licitacao360", "home.py")
+
+    # Verifica se o arquivo principal existe
+    if not os.path.exists(main_script):
+        print("Script file 'home.py' does not exist in the current directory.")
+        return
     
     # Recursos para adicionar
     resources = [

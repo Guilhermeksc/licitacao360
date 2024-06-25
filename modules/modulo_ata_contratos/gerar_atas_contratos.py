@@ -19,7 +19,7 @@ import traceback
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm 
 from datetime import datetime
-
+import json
 # import seaborn as sns
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 
@@ -750,32 +750,102 @@ class AtasDialog(QDialog):
         self.dataframe_updated.emit(self.dataframe)
         super().closeEvent(event)
 
+    def update_title_label(self):
+        html_text = (
+            f"<span style='font-size: 28px; color: black;'>Painel de Geração de Atas/Contratos</span>"
+        )
+        self.titleLabel.setText(html_text)
+        self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
+        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(self.titleLabel)
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        # Adicionando os botões antes do spacer e do pixmap
+        self.add_action_buttons(header_layout)
+        pixmap = QPixmap(str(MARINHA_PATH))
+        pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        image_label = QLabel()
+        image_label.setPixmap(pixmap)
+        header_layout.addWidget(image_label)
+
+        return header_layout
+
+    def add_action_buttons(self, layout):
+        # Caminhos para os ícones
+        icon_confirm = QIcon(str(ICONS_DIR / "confirm.png"))  # Caminho para o ícone de confirmação
+        icon_x = QIcon(str(ICONS_DIR / "cancel.png"))  # Caminho para o ícone de cancelamento
+        
+        # Criação dos botões
+        button_confirm = self.create_button("  Gerar", icon_confirm, self.gerar_ata_de_registro_de_precos, "Após inserir as informações, clique para gerar as Atas", QSize(130, 50), QSize(40, 40))
+        button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
+        
+        # Adicionando os botões ao layout
+        layout.addWidget(button_confirm)
+        layout.addWidget(button_x)
+        self.apply_widget_style(button_confirm)
+        self.apply_widget_style(button_x)
+
+    def apply_widget_style(self, widget):
+        widget.setStyleSheet("font-size: 14pt;") 
+
+    def create_button(self, text, icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):
+        btn = QPushButton(text, self)
+        if icon:
+            btn.setIcon(icon)
+            btn.setIconSize(icon_size if icon_size else QSize(40, 40))
+        if button_size:
+            btn.setFixedSize(button_size)
+        btn.setToolTip(tooltip_text)
+        btn.setFont(QFont('Arial', 14))
+        if callback:
+            btn.clicked.connect(callback)
+        return btn
+
+    def salvar_alteracoes(self):
+        texto_header = self.header_editor.toHtml()  # Captura o texto HTML do QTextEdit
+        salvar_configuracoes({'header_text': texto_header})
+
     def configurar_ui(self):
-        self.setWindowTitle("Geração de Atas / Contratos")
+        self.setWindowTitle("Atas / Contratos")
         self.setFont(QFont('Arial', 14))
+
+        # Cria um QVBoxLayout principal para o QDialog
         layout = QVBoxLayout(self)
         self.resize(1000, 650)
-        # Configuração do editor de cabeçalho
+
+        # Cria e configura o titleLabel
+        self.titleLabel = QLabel()
+        header_layout = self.update_title_label()
+        layout.addLayout(header_layout)
+
         header_label = QLabel("Editar Cabeçalho:")
         header_label.setFont(QFont('Arial', 14))
         layout.addWidget(header_label)
-
+        
         self.header_editor = QTextEdit()
         self.header_editor.setFont(QFont('Arial', 12))
         self.header_editor.setMinimumHeight(180)
-        initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
-                        "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
-                        "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
-                        "Thiago Martins Amorim, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
-                        "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
-                        "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
-                        "{{num_pregao}}/2024, processo administrativo nº {{nup}}, RESOLVE registrar os preços da(s) "
-                        "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
-                        "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
-                        "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
-                        "31 de março de 2023, e em conformidade com as disposições a seguir:")
-        self.header_editor.setText(initial_text)
+
+        configuracoes = carregar_configuracoes()
+        initial_text = configuracoes.get('header_text', '')  # Carrega o texto salvo ou usa string vazia
+        self.header_editor.setHtml(initial_text)
         layout.addWidget(self.header_editor)
+                
+        # # Texto inicial com HTML para formatação
+        # initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
+        #                 "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
+        #                 "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
+        #                 "Thiago Martins Amorim, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
+        #                 "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
+        #                 "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
+        #                 "<span style='color: blue;'>{{num_pregao}}</span>/2024, processo administrativo nº <span style='color: blue;'>{{nup}}</span>, RESOLVE registrar os preços da(s) "
+        #                 "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
+        #                 "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
+        #                 "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
+        #                 "31 de março de 2023, e em conformidade com as disposições a seguir:")
+        # self.header_editor.setHtml(initial_text)
+        # layout.addWidget(self.header_editor)
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         # Configurar o combobox das cidades
@@ -824,8 +894,8 @@ class AtasDialog(QDialog):
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         self.configurar_rotulos(layout)
-        self.configurar_entrada_e_botao_confirmar(layout)
-        self.configurar_botoes_acao(layout)
+        # self.configurar_entrada_e_botao_confirmar(layout)
+        # self.configurar_botoes_acao(layout)
         self.carregar_e_exibir_ultimo_contrato()
 
         self.setLayout(layout)
@@ -842,42 +912,27 @@ class AtasDialog(QDialog):
         self.rotulo_ultimo_contrato.setFont(QFont('Arial', 14))
         layout.addWidget(self.rotulo_ultimo_contrato)
 
-        rotulo = QLabel("\nDigite o próximo Número de Controle de Atas/Contratos:\n")
+        rotulo = QLabel("Digite o próximo Número de Controle de Atas/Contratos:")
         rotulo.setFont(QFont('Arial', 14))
-        layout.addWidget(rotulo)
 
-    def configurar_entrada_e_botao_confirmar(self, layout):
-        layout_entrada_botao = QHBoxLayout()
-        layout_entrada_botao.addStretch()
+        # Criar um QHBoxLayout para o rótulo e o campo de entrada
+        linha_rotulo_entrada = QHBoxLayout()
+        linha_rotulo_entrada.addWidget(rotulo)
 
         self.entradaAta = QLineEdit(self)
+        self.entradaAta.setFont(QFont('Arial', 14))
         self.entradaAta.setPlaceholderText("Digite um número até 4 dígitos")
         self.entradaAta.setMaxLength(4)
-        self.entradaAta.setFixedWidth(self.entradaAta.fontMetrics().horizontalAdvance('0') * 6)
-        layout_entrada_botao.addWidget(self.entradaAta)
+        self.entradaAta.setFixedWidth(self.entradaAta.fontMetrics().horizontalAdvance('0000') + 20)
+        linha_rotulo_entrada.addWidget(self.entradaAta)
 
-        self.botaoConfirmar = QPushButton("Confirmar", self)
-        self.botaoConfirmar.clicked.connect(self.confirmar_numero_ata_e_nup_do_processo)
-        layout_entrada_botao.addWidget(self.botaoConfirmar)
+        # Usando a função create_button para criar o botão de confirmar
+        self.botaoConfirmar = self.create_button("Confirmar", None, self.confirmar_numero_ata_e_nup_do_processo, "Clique para confirmar o número")
+        linha_rotulo_entrada.addWidget(self.botaoConfirmar)
 
-        layout_entrada_botao.addStretch()
-        layout.addLayout(layout_entrada_botao)
-
-    def configurar_botoes_acao(self, layout):
-        layout_botoes = QHBoxLayout()
-        layout_botoes.addStretch()
-
-        self.botaoGerarAtas = self.criar_botao_especial("Gerar\nAtas", str(ICONS_DIR / 'gerar_atas.png'))
-        self.botaoGerarAtas.clicked.connect(self.gerar_ata_de_registro_de_precos)
-        layout_botoes.addWidget(self.botaoGerarAtas)
-
-        self.botaoGerarDocumentos = self.criar_botao_especial("Gerar\nContratos", str(ICONS_DIR / 'gerar_contrato.png'))
-        self.botaoGerarDocumentos.clicked.connect(self.gerar_ata_de_registro_de_precos)
-        layout_botoes.addWidget(self.botaoGerarDocumentos)
-
-        layout_botoes.addStretch()
-        layout.addLayout(layout_botoes)
-
+        # Adiciona o layout horizontal ao layout vertical principal
+        layout.addLayout(linha_rotulo_entrada)
+        
     def carregar_e_exibir_ultimo_contrato(self):
         ultimo_numero_contrato = self.carregar_ultimo_contrato()
         if ultimo_numero_contrato is not None:
@@ -933,23 +988,34 @@ class AtasDialog(QDialog):
 
     def confirmar_numero_ata_e_nup_do_processo(self):
         numero_ata = self.entradaAta.text()
+        print(f"Valor inserido pelo usuário: '{numero_ata}'")  # Use aspas para capturar espaços em branco ou strings vazias
+
         if numero_ata.isdigit() and len(numero_ata) <= 4:
             AtasDialog.NUMERO_ATA_GLOBAL = int(numero_ata)
             self.nup_data = self.obter_nup(self.convert_pe_format(self.pe_pattern))
             QMessageBox.information(self, "Número Confirmado", f"Número da ata definido para: {numero_ata}")
+            print(f"Número da ATA confirmado e definido como {numero_ata}.")
         else:
             QMessageBox.warning(self, "Número Inválido", "Por favor, digite um número válido de até 4 dígitos.")
+            print("Tentativa de inserção de um número inválido.")
 
     def gerar_ata_de_registro_de_precos(self):
         if not self.nup_data:  # Verifica se nup_data está vazia ou é None
             self.nup_data = "(INSIRA O NUP)"  # Atribui um valor padrão caso não exista nup_data
+        
+        # Chama salvar_alteracoes para garantir que todas as mudanças sejam salvas antes de processar
+        self.salvar_alteracoes()
+        
         self.processar_ata_de_registro_de_precos(self.nup_data, self.dataframe)
 
     def processar_ata_de_registro_de_precos(self, nup_data, dataframe):
+        # Verifica se o número da ATA já está definido
         if AtasDialog.NUMERO_ATA_GLOBAL is None:
-            raise ValueError("O número da ATA não foi definido!")
+            # Mostra uma mensagem para que o usuário insira o número da ATA
+            QMessageBox.information(self, "Inserir Número da ATA", "Por favor, insira o número da ATA para continuar.")
+            return  # Interrompe o processamento até que o número da ATA seja confirmado
 
-        # Chama as outras funções que dependem de NUMERO_ATA_GLOBAL
+        # Se o número da ATA está definido, continua o processo
         criar_pastas_com_subpastas(dataframe)
         ultimo_num_ata = self.processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
 
@@ -957,9 +1023,12 @@ class AtasDialog(QDialog):
         self.salvar_ultimo_contrato(ultimo_num_ata)
         self.atualizar_rotulo_ultimo_contrato(ultimo_num_ata)
 
-    def processar_ata(self, NUMERO_ATA: int, nup_data, dataframe):
+    def processar_ata(self, NUMERO_ATA, nup_data, dataframe):
+        if isinstance(nup_data, dict) and 'nup' in nup_data:
+            nup = nup_data['nup']
+        else:
+            nup = "(INSIRA O NUP)" 
         relatorio_path = get_relatorio_path()
-        nup = nup_data['nup'] if nup_data else "(INSIRA O NUP)"
         combinacoes = dataframe[['uasg', 'num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
         NUMERO_ATA_atualizado = NUMERO_ATA
 
@@ -1015,11 +1084,13 @@ class AtasDialog(QDialog):
             # Passando num_contrato para salvar_documento
             self.salvar_documento(path_subpasta, empresa, context, registro, itens_relacionados, num_contrato)
 
-            NUMERO_ATA_atualizado += 1  # Atualiza o número da ATA após processar com sucesso
+            # Garanta que NUMERO_ATA_atualizado é um inteiro antes de incrementar
+            NUMERO_ATA_atualizado = int(NUMERO_ATA_atualizado) + 1  # Atualiza o número da ATA após processar com sucesso
         else:
             print(f"Nenhum registro encontrado para a empresa: {empresa}")
             num_contrato = None
         return NUMERO_ATA_atualizado, num_contrato
+
 
     def criar_contexto(self, registro, empresa, NUMERO_ATA_atualizado, nup, itens_relacionados):
         ano_atual = datetime.now().year
@@ -1138,3 +1209,14 @@ class AtasDialog(QDialog):
         
         adicione_texto_formatado(paragrafo, "Representada neste ato, por seu representante legal, o(a) Sr(a) ", False)
         adicione_texto_formatado(paragrafo, f'{registro["responsavel_legal"]}.\n', False)
+
+def salvar_configuracoes(dados):
+    with open('configuracoes.json', 'w') as arquivo:
+        json.dump(dados, arquivo)
+
+def carregar_configuracoes():
+    try:
+        with open('configuracoes.json', 'r') as arquivo:
+            return json.load(arquivo)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}  # Retorna um dicionário vazio se o arquivo não existir ou estiver corrompido
