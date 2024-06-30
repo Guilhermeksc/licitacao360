@@ -193,7 +193,12 @@ class AlteracaoIRPDialog(QDialog):
         self.setWindowTitle("Carregue a table para atualizar o IRP")
 
     def format_currency(self, value):
-        return locale.currency(value, grouping=True)
+        try:
+            # Formata o valor como moeda, usando ponto para milhares e vírgula para decimais
+            return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except (TypeError, ValueError):
+            # Tratamento de erro se 'value' não for um número
+            return "Valor inválido"
     
     def convert_currency_to_number(self, value):
         if not isinstance(value, str):

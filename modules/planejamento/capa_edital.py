@@ -24,10 +24,10 @@ def formatar_valor_monetario(valor):
     # Limpa a string e converte para float
     valor = re.sub(r'[^\d,]', '', str(valor)).replace(',', '.')
     valor_float = float(valor) if valor else 0
-    # Formata para a moeda local
-    valor_monetario = locale.currency(valor_float, grouping=True)
+    # Formata para a moeda local sem usar locale
+    valor_monetario = f"R$ {valor_float:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     # Converte para extenso
-    valor_extenso = num2words(valor_float, lang='pt_BR', to='currency')
+    valor_extenso = num2words.num2words(valor_float, lang='pt_BR', to='currency')
     return valor_monetario, valor_extenso
 
 class CapaEdital(QDialog):

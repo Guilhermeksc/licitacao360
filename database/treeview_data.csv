@@ -1,16 +1,14 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
-01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
+01,Capa de Abertura de Chamada Pública e Termo de Autuacao,termo_autuacao,1,4,4
 02,Autorização para Abertura de Processo,termo_abertura,5,6,2
-03,"Portaria n 12-2024, do CeIMBra de Designação de Equipe de Planejamento",portaria_plan,7,10,4
-04,"Portaria n 84-2023, do Com7ºDN de Designação de Ordenador de Despesas",portaria_od,11,15,5
-05,"Portaria n 4-2024, do CeIMBra de Designação de Militares para Agente de Contratação e Pregoeiro",portaria_comissao,16,19,4
-06,Documento de Formalização da Demanda (DFD) e anexos,dfd,20,33,14
-07,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,34,36,3
-08,Declaração de Adequação Orçamentária,dec_adeq_orc,37,39,3
-09,Mapa de Riscos,mr,40,43,4
-10,Termo de Referência,termo_referencia,44,70,27
-11,Estudo Técnico Preliminar (ETP),etp,71,167,97
-12,Minuta do Edital,minuta_edital,168,188,21
-13,Minuta do Contrato,minuta_contrato,189,199,11
-14,Minuta da Ata de Registro de Preços,minuta_arp,200,207,8
-15,Pesquisa de Preços,pesquisa_precos,208,242,35
+03,Documento de Formalização da Demanda (DFD),dfd,7,21,15
+04,Estudo Técnico Preliminar (ETP),etp,22,146,125
+05,Pesquisa de Preços,pesquisa_precos,147,297,151
+06,Minuta do Edital,minuta_edital,298,310,13
+07,Minuta do Contrato,minuta_contrato,311,316,6
+08,Demais Anexos,anexos,317,326,10
+09,Portaria 4-2024 de Designacao de Militares para Agente de Contratação e Pregoeiro,portaria_comissao,327,331,5
+10,Portaria 84-2024 de Designacao de Ordenador de Despesa,portaria_od,332,335,4
+11,Nota Técnica,nota_tecnica,336,344,9
+12,Lista de Verificação,checklist,345,354,10
+13,CP 01.2-25 Envio CJACM e Despacho de ENC,cp,355,358,4

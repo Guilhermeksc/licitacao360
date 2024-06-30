@@ -9,7 +9,13 @@ from datetime import datetime
 import json
 import pandas as pd
 import locale
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+
+try:
+    # Tenta a configuração comum em sistemas baseados em Unix
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    # Tenta a configuração comum em sistemas Windows
+    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
 
 def convert_pdf_to_txt(pdf_dir, txt_dir, progress_bar, progress_callback):    
     # Verifica se TXT_DIR existe. Se não, cria o diretório.
@@ -49,10 +55,12 @@ def ler_arquivos_txt(file_path: str) -> str:
 
 def formatar_brl(valor):
     try:
-        valor_float = float(valor)
-    except (ValueError, TypeError):  # Se a conversão falhar ou o valor for None, usar 0.0
-        valor_float = 0.0
-    return locale.currency(valor_float, grouping=True, symbol=None)
+        if valor is None:
+            return "Não disponível"  # Retorna uma string informativa caso o valor seja None
+        # Formata o número no formato monetário brasileiro sem utilizar a biblioteca locale
+        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except (ValueError, TypeError):
+        return "Valor inválido"  # Retorna isso se não puder converter para float
 
 def save_to_excel(df, filepath):
     df.to_excel(filepath, index=False, engine='openpyxl')

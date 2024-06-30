@@ -11,7 +11,12 @@ import locale
 from num2words import num2words
 
 # Define a localização para o formato de moeda brasileiro
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+try:
+    # Tenta a configuração comum em sistemas baseados em Unix
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    # Tenta a configuração comum em sistemas Windows
+    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
 
 # Esta variável global e gerador precisam ser inicializados em algum lugar no início do seu aplicativo PyQt5
 NUMERO_ATA_GLOBAL = None  # Deve ser definido em algum ponto antes de iniciar_processo
@@ -423,11 +428,13 @@ def inserir_relacao_itens(paragrafo, itens):
 
 def formatar_brl(valor):
     try:
-        valor_float = float(valor)
-    except (ValueError, TypeError):  # Se a conversão falhar ou o valor for None, usar 0.0
-        valor_float = 0.0
-    return locale.currency(valor_float, grouping=True, symbol=None)
-
+        if valor is None:
+            return "Não disponível"  # Retorna uma string informativa caso o valor seja None
+        # Formata o número no formato monetário brasileiro sem utilizar a biblioteca locale
+        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except (ValueError, TypeError):
+        return "Valor inválido"  # Retorna isso se não puder converter para float
+       
 def valor_por_extenso(valor):
     extenso = num2words(valor, lang='pt_BR', to='currency')
     return extenso.capitalize()

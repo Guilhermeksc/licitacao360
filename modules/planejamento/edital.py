@@ -312,7 +312,7 @@ class EditalDialog(QDialog):
                 # Carregar apenas os dados relevantes da tabela em um DataFrame
                 sql_query = """
                 SELECT * FROM controle_agentes_responsaveis
-                WHERE funcao LIKE 'Ordenador de Despesas%' OR funcao LIKE 'Ordenador de Despesas Substituto%'
+                WHERE funcao LIKE 'Ordenador de Despesa%' OR funcao LIKE 'Ordenador de Despesa Substituto%'
                 """
                 self.ordenador_despesas_df = pd.read_sql_query(sql_query, conn)
 
