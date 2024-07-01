@@ -188,6 +188,19 @@ class SqlModel:
                 link_pncp TEXT,
                 link_portal_marinha TEXT,
                 situacao TEXT,
+                cod_par TEXT,
+                justificativa TEXT,
+                email TEXT,
+                telefone TEXT,
+                endereco TEXT,
+                cep TEXT,
+                previsao_contratacao TEXT,
+                comunicacao_padronizada TEXT,
+                acao_interna TEXT,
+                fonte_recursos TEXT,
+                natureza_despesa TEXT,
+                unidade_orcamentaria TEXT,
+                programa_trabalho_resuminho TEXT,
                 comentarios TEXT
             )
         """):

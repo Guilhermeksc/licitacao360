@@ -182,7 +182,6 @@ class DispensaEletronicaWidget(QMainWindow):
             conn.commit()
         self.dataUpdated.emit()
 
-
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
@@ -287,10 +286,10 @@ class UIManager:
         # Definir tamanhos específicos onde necessário
         header.resizeSection(0, 140)
         header.resizeSection(4, 175)
-        header.resizeSection(8, 70)
+        header.resizeSection(8, 100)
         header.resizeSection(10, 100)
-        header.resizeSection(17, 230)
-        header.resizeSection(12, 180)
+        header.resizeSection(17, 200)
+        header.resizeSection(12, 170)
 
     def apply_custom_style(self):
         # Aplica um estilo CSS personalizado ao tableView
