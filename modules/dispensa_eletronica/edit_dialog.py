@@ -25,15 +25,22 @@ class EditDataDialog(QDialog):
         self.setFixedSize(1250, 800)  # Define o tamanho fixo da janela
         self.layout = QVBoxLayout(self)
         
-        header_layout = self.update_title_label()
-        self.layout.addLayout(header_layout)
-        self.setup_frames()
+        header_widget = self.update_title_label()
+        self.layout.addWidget(header_widget)
 
+        self.selected_tooltip = "Autorização para abertura do processo de Dispensa Eletrônica"
+        self.selected_button = None
+
+        self.frame4_group_box = None
+
+        self.setup_frames()
+        
         self.move(QPoint(0, 0))
 
         # Conectar o sinal ao método de atualização do título
         self.title_updated.connect(self.update_title_label)
-        
+
+
     def extract_registro_data(self):
         # Extrai dados do registro selecionado
         data = {
@@ -61,7 +68,7 @@ class EditDataDialog(QDialog):
         data = self.extract_registro_data()
         html_text = (
             f"{data['tipo']} nº {data['numero']}/{data['ano']} - Edição de Dados<br>"
-            f"<span style='font-size: 20px; color: #ADD8E6;'>OM RESPONSÁVEL: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
+            f"<span style='font-size: 20px; color: #ADD8E6;'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
         )
         if not hasattr(self, 'titleLabel'):
             self.titleLabel = QLabel()
@@ -81,7 +88,13 @@ class EditDataDialog(QDialog):
             self.image_label.setPixmap(pixmap)
             self.header_layout.addWidget(self.image_label)
 
-        return self.header_layout
+            # Define uma altura fixa para o layout do cabeçalho
+            header_widget = QWidget()
+            header_widget.setLayout(self.header_layout)
+            header_widget.setFixedHeight(100)  # Ajuste essa altura conforme necessário
+            self.header_widget = header_widget
+
+        return self.header_widget
 
     def add_action_buttons(self, layout):
         icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
@@ -119,7 +132,7 @@ class EditDataDialog(QDialog):
         self.frame4, self.frame4_layout = self.create_frame()
         linhaDeBaixo.addWidget(self.frame3)
         linhaDeBaixo.addWidget(self.frame4)
-        self.layout.addLayout(linhaDeBaixo)  # Adiciona o QHBoxLayout com os três frames ao layout principal
+        self.layout.addLayout(linhaDeBaixo)  # Adiciona o QVBoxLayout com os três frames ao layout principal
 
         # Preenche os frames com os campos apropriados
         self.fill_frame1()
@@ -136,7 +149,7 @@ class EditDataDialog(QDialog):
         return frame, frame_layout    # Retorna tanto o frame quanto seu layout
 
     def apply_widget_style(self, widget):
-        widget.setStyleSheet("font-size: 14pt;") 
+        widget.setStyleSheet("font-size: 12pt;") 
 
     def fill_frame1(self):
         data = self.extract_registro_data()
@@ -323,83 +336,157 @@ class EditDataDialog(QDialog):
         self.frame2_layout.addLayout(material_situacao_layout)
 
     def fill_frame3(self):
-        # Define o fundo específico para frame3
         self.frame3.setObjectName("fill_frame3")
         self.frame3.setStyleSheet("#fill_frame3 { background-color: #050f41; }")
-        
-        # Adiciona o título antes dos botões
-        html_text = "Gerar Documentos:"
-        title_label = QLabel(html_text)
-        title_label.setTextFormat(Qt.TextFormat.RichText)
-        title_label.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
-        self.frame3_layout.addWidget(title_label)
-        
+                
         button_texts = [
-            "Abertura de Processo",
-            "Documentos de Planejamento",
-            "Aviso de Dispensa Eletrônica"
+            "   Abertura de Processo",
+            "   Documentos de Planejamento",
+            "   Aviso de Dispensa Eletrônica"
         ]
         tooltips = [
             "Autorização para abertura do processo de Dispensa Eletrônica",
             "Documentos de Planejamento (CP, DFD, TR, etc.)",
             "Aviso de dispensa eletrônica"
         ]
-        button_callbacks = [self.teste, self.teste, self.teste]  # Substitua por funções específicas
+        icon_files = ["1.png", "2.png", "3.png"]
+        button_callbacks = [self.create_callback(tooltip) for tooltip in tooltips]
 
         button_layout = QHBoxLayout()
         
-        for text, tooltip, callback in zip(button_texts, tooltips, button_callbacks):
-            button = self.create_button(text, QIcon(), callback, tooltip, QSize(400, 50))
-            self.apply_button_style(button)
+        for text, tooltip, icon_file, callback in zip(button_texts, tooltips, icon_files, button_callbacks):
+            icon_path = self.ICONS_DIR / icon_file
+            icon = QIcon(str(icon_path))
+            button = self.create_button(text, icon, callback, tooltip, QSize(400, 50))
+            self.apply_button_style(button, selected=(tooltip == self.selected_tooltip))
             button_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignTop)
         
         self.frame3_layout.addLayout(button_layout)
+        
+        # Atualizar título inicialmente
+        self.update_frame4_title()
 
+    def create_callback(self, tooltip):
+        def callback():
+            self.selected_tooltip = tooltip
+            self.update_frame4_title()
+            self.update_button_styles()
+            self.update_frame4_content()
+        return callback
 
-    def apply_button_style(self, widget):
-        widget.setStyleSheet("""
-            QPushButton, QPushButton::tooltip {
-                font-size: 14pt; 
-            }
-            QPushButton {
-                background-color: #B4B7C6;
-                border: none;  
-                border-radius: 5px;  
-                padding: 5px;  
-            }
-            QPushButton:hover {  
-                background-color: #A0A4B1;
-                border: 1px solid #0078D4;  
-            }
-        """)
+    def update_frame4_title(self):
+        if self.frame4_group_box:  # Verifica se frame4_group_box foi inicializado
+            self.frame4_group_box.setTitle(self.selected_tooltip)
 
-    def teste(self):
-        print("Teste")
+    def update_button_styles(self):
+        for button in self.frame3.findChildren(QPushButton):
+            self.apply_button_style(button, selected=(button.toolTip() == self.selected_tooltip))
+        
+    def apply_button_style(self, button, selected=False):
+        if selected:
+            button.setStyleSheet("""
+                QPushButton, QPushButton::tooltip {
+                    font-size: 14pt; 
+                }
+                QPushButton {
+                    background-color: white;
+                    color: black;
+                    border: none;  
+                    border-radius: 5px;  
+                    padding: 5px;  
+                }
+                QPushButton:hover {  
+                    background-color: #A0A4B1;
+                    border: 1px solid #0078D4;  
+                }
+            """)
+        else:
+            button.setStyleSheet("""
+                QPushButton, QPushButton::tooltip {
+                    font-size: 14pt; 
+                }
+                QPushButton {
+                    background-color: #B4B7C6;
+                    border: none;  
+                    border-radius: 5px;  
+                    padding: 5px;  
+                }
+                QPushButton:hover {  
+                    background-color: #A0A4B1;
+                    border: 1px solid #0078D4;  
+                }
+            """)
 
     def fill_frame4(self):
-        # Define o fundo específico para frame4
         self.frame4.setObjectName("fill_frame4")
         self.frame4.setStyleSheet("#fill_frame4 { background-color: #050f41; }")
+
+        self.frame4_group_box = QGroupBox(self.selected_tooltip)
+        self.frame4_group_box.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid white;
+                border-radius: 5px;
+                margin-top: 10px;
+                font: bold 12pt 'Arial';
+                color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 3px;
+            }
+        """)
+        self.frame4_group_box_layout = QVBoxLayout()
+        self.frame4_group_box.setLayout(self.frame4_group_box_layout)
+
+        # Define um tamanho fixo para frame4_group_box
+        self.frame4_group_box.setFixedWidth(1200)  # Ajuste a largura conforme necessário
+        self.frame4_group_box.setFixedHeight(250)  # Ajuste a altura conforme necessário
+
+        self.frame4_layout.addWidget(self.frame4_group_box)
+
+        # Configurar conteúdo inicial
+        self.update_frame4_content()
+
+    def update_frame4_content(self):
+        for i in reversed(range(self.frame4_group_box_layout.count())):
+            widget_to_remove = self.frame4_group_box_layout.itemAt(i).widget()
+            if widget_to_remove is not None:
+                widget_to_remove.setParent(None)
+
+        if self.selected_tooltip == "Autorização para abertura do processo de Dispensa Eletrônica":
+            self.add_common_widgets()
+        elif self.selected_tooltip == "Documentos de Planejamento (CP, DFD, TR, etc.)":
+            self.add_common_widgets()
+            text_edit = QTextEdit()
+            text_edit.setStyleSheet("color: white; font-size: 14pt; background-color: #1e2a56;")
+            self.frame4_group_box_layout.addWidget(text_edit)
+        elif self.selected_tooltip == "Aviso de dispensa eletrônica":
+            self.add_common_widgets()
+
+    def add_common_widgets(self):
+        ordenador_group_box = QGroupBox("Ordenador de Despesas")
+        ordenador_layout = QVBoxLayout()
+        ordenador_combo = QComboBox()
+        ordenador_layout.addWidget(ordenador_combo)
+        ordenador_group_box.setLayout(ordenador_layout)
         
-        # Criação de um QTextEdit com 4 linhas
-        text_edit = QTextEdit()
-        text_edit.setFixedHeight(100)  # Aproximadamente 4 linhas de altura
-        text_edit.setStyleSheet("color: white; font-size: 14pt; background-color: #1e2a56;")
+        # Define uma altura fixa para o QGroupBox
+        ordenador_group_box.setFixedHeight(100)
         
-        self.frame4_layout.addWidget(text_edit)
+        self.frame4_group_box_layout.addWidget(ordenador_group_box)
 
+        gerar_pdf_button = QPushButton("Gerar PDF")
+        self.apply_button_style(gerar_pdf_button)
+        
+        # Define uma altura fixa para o botão
+        gerar_pdf_button.setFixedHeight(50)
+        
+        self.frame4_group_box_layout.addWidget(gerar_pdf_button)
 
-    def fill_frame5(self):
-        # Criar botão com ícone
-        button = self.create_button("", QIcon(str(self.ICONS_DIR / "pdf128.png")), self.teste, "Aviso de dispensa eletrônica", QSize(100, 100), QSize(80, 80))
-        self.frame5_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Criar label abaixo do botão
-        label = QLabel("Aviso de dispensa eletrônica")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.frame5_layout.addWidget(label)
-        self.apply_button_style(button)  # Aplica o estilo ao botão
-        self.apply_widget_style(label)   # Aplica o estilo ao rótulo
+        
+    def teste(self):
+        print("Teste")
 
     def add_date_edit(self, layout, label_text, data_key):
         label = QLabel(label_text)
