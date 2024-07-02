@@ -517,7 +517,6 @@ class EditDataDialog(QDialog):
         # Emitir o sinal inicial para definir o texto do botão como "Autorização"
         self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
 
-
     def create_callback(self, tooltip, function):
         def callback():
             self.selected_tooltip = tooltip
@@ -630,8 +629,9 @@ class EditDataDialog(QDialog):
         labelAssunto.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelAssunto)
         self.textEditAssunto = QTextEdit()
+        self.textEditAssunto.setStyleSheet("font-size: 12pt;")
         self.textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica")
-        self.textEditAssunto.setMaximumHeight(50)
+        self.textEditAssunto.setMaximumHeight(60)
 
         icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))  # Caminho para o ícone de Word
         btnCopyAssunto = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditAssunto.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
@@ -646,29 +646,18 @@ class EditDataDialog(QDialog):
         labelSinopse.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelSinopse)
         self.textEditSinopse = QTextEdit()
+        self.textEditSinopse.setStyleSheet("font-size: 12pt;")
         descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
-        sinopse_text = (f"Termo de Abertura referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                        f"Processo Administrativo NUP: {self.nup}")
+        sinopse_text = (f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                        f"Processo Administrativo NUP: {self.nup}\n"
+                        f"Setor Demandante: {self.setor_responsavel}")
         self.textEditSinopse.setPlainText(sinopse_text)
-        self.textEditSinopse.setMaximumHeight(60)
+        self.textEditSinopse.setMaximumHeight(140)
         btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
         layoutHSinopse = QHBoxLayout()
         layoutHSinopse.addWidget(self.textEditSinopse)
         layoutHSinopse.addWidget(btnCopySinopse)
         layout.addLayout(layoutHSinopse)
-
-        # Campo "Observações"
-        labelObservacoes = QLabel("No campo “Observações”, deverá constar:")
-        labelObservacoes.setStyleSheet("color: white; font-size: 12pt;")
-        layout.addWidget(labelObservacoes)
-        self.textEditObservacoes = QTextEdit()
-        self.textEditObservacoes.setPlainText(f"Setor Demandante: {self.setor_responsavel}")
-        self.textEditObservacoes.setMaximumHeight(100)
-        btnCopyObservacoes = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditObservacoes.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
-        layoutHObservacoes = QHBoxLayout()
-        layoutHObservacoes.addWidget(self.textEditObservacoes)
-        layoutHObservacoes.addWidget(btnCopyObservacoes)
-        layout.addLayout(layoutHObservacoes)
 
         # Campo "Temporalidade"
         labelTemporalidade = QLabel("Temporalidade: 004")
@@ -715,11 +704,11 @@ class EditDataDialog(QDialog):
             self.add_common_widgets(layout_esquerda)
             # Adiciona o texto central específico
             authorization_text = """
-                Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada para "Aprovado"<br><br>
-                '1 Abertura de Processo' no botão <span style="color: red;">"Autorização"</span><br><br>
-                '2 Documentos de Planejamento' é a Comunicação Padronizada com os documentos<br><br>
-                '3 Aviso de Dispensa Eletrônica' é o aviso de dispensa eletrônica<br><br>
-                '4 Lista de Verificação' é a lista de verificação
+                Instruções<br><br>
+                Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada de "Planejamento" para <span style="color: red;">"Aprovado"</span><br><br>
+                Após publicado no PNCP a situação deverá ser alterada de "Aprovado" para <span style="color: red;">"Sessão Pública"</span><br><br>
+                Após a homologação situação deverá ser alterada de "Sessão Pública" para <span style="color: red;">"Homologado"</span><br><br>
+                Após a o empenho a situação deverá ser alterada de "Homologado" para <span style="color: red;">"Concluído"</span>
             """
             text_edit = QTextEdit()
             text_edit.setReadOnly(True)
@@ -736,26 +725,61 @@ class EditDataDialog(QDialog):
         elif self.selected_tooltip == "Lista de Verificação":
             self.add_common_widgets(layout_esquerda)
 
+        self.carregarOrdenadorDespesas()
         self.setupGrupoSIGDEM(layout_direita)
 
+
+    def carregarOrdenadorDespesas(self):
+        try:
+            print("Tentando conectar ao banco de dados...")
+            with sqlite3.connect(self.database_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_agentes_responsaveis'")
+                exists = cursor.fetchone()
+
+                if not exists:
+                    raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesa no Módulo 'Configurações'.")
+
+                print("Tabela 'controle_agentes_responsaveis' encontrada. Carregando dados...")
+                sql_query = """
+                SELECT * FROM controle_agentes_responsaveis
+                WHERE funcao LIKE 'Ordenador de Despesa%' OR funcao LIKE 'Ordenador de Despesa Substituto%'
+                """
+                self.ordenador_despesas_df = pd.read_sql_query(sql_query, conn)
+
+            print(f"Dados carregados: {self.ordenador_despesas_df}")
+
+            self.ordenador_combo.clear()  # Limpar o comboBox antes de adicionar novos itens
+            for index, row in self.ordenador_despesas_df.iterrows():
+                texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
+                print(f"Adicionando ao comboBox: {texto_display}")
+                self.ordenador_combo.addItem(texto_display, row['nome'])
+
+        except Exception as e:
+            print(f"Erro ao carregar Ordenadores de Despesas: {e}")
+
     def update_text_edit_fields(self, tooltip):
-        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
         sinopse_text_map = {
             "Autorização para abertura do processo de Dispensa Eletrônica": (
                 f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}"
+                f"Processo Administrativo NUP: {self.nup}\n"
+                f"Setor Demandante: {self.setor_responsavel}"
             ),
             "Documentos de Planejamento (CP, DFD, TR, etc.)": (
                 f"Documentos de Planejamento referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}"
+                f"Processo Administrativo NUP: {self.nup}\n"
+                f"Setor Demandante: {self.setor_responsavel}"
             ),
             "Aviso de dispensa eletrônica": (
                 f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}"
+                f"Processo Administrativo NUP: {self.nup}\n"
+                f"Setor Demandante: {self.setor_responsavel}"
             ),
             "Lista de Verificação": (
                 f"Lista de Verificação referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}"
+                f"Processo Administrativo NUP: {self.nup}\n"
+                f"Setor Demandante: {self.setor_responsavel}"
             )
         }
         assunto_text_map = {
@@ -778,7 +802,7 @@ class EditDataDialog(QDialog):
             group_box.setLayout(layout)
             group_box.setFixedHeight(60)
             group_box.setFixedWidth(300)
-            
+
             # Aplicar folha de estilo CSS
             group_box.setStyleSheet("""
                 QGroupBox {
@@ -793,23 +817,26 @@ class EditDataDialog(QDialog):
                     subcontrol-position: top center;
                     padding: 0 3px;
                 }
+                QComboBox {
+                    font-size: 14pt;
+                }
             """)
-            return group_box
+            return group_box, combo
 
         # Ordenador de Despesas
-        ordenador_group_box = create_group_box_with_combo("Ordenador de Despesas")
+        ordenador_group_box, self.ordenador_combo = create_group_box_with_combo("Ordenador de Despesas")
         parent_layout.addWidget(ordenador_group_box)
 
         # Agente Fiscal
-        agente_fiscal_group_box = create_group_box_with_combo("Agente Fiscal")
+        agente_fiscal_group_box, self.agente_fiscal_combo = create_group_box_with_combo("Agente Fiscal")
         parent_layout.addWidget(agente_fiscal_group_box)
 
         # Gerente de Credito
-        gerente_credito_group_box = create_group_box_with_combo("Gerente de Credito da Ação Interna")
+        gerente_credito_group_box, self.gerente_credito_combo = create_group_box_with_combo("Gerente de Credito da Ação Interna")
         parent_layout.addWidget(gerente_credito_group_box)
 
         # Responsável pela Demanda
-        responsavel_demanda_group_box = create_group_box_with_combo("Responsável pela Demanda")
+        responsavel_demanda_group_box, self.responsavel_demanda_combo = create_group_box_with_combo("Responsável pela Demanda")
         parent_layout.addWidget(responsavel_demanda_group_box)
 
         # Layout para centralizar o botão
