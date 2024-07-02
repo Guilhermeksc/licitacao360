@@ -33,12 +33,18 @@ class EditDataDialog(QDialog):
 
         self.frame4_group_box = None
 
+        self.initialize_gerar_pdf_button()  # Inicializar o botão aqui
+        
         self.setup_frames()
         
         self.move(QPoint(0, 0))
 
         # Conectar o sinal ao método de atualização do título
         self.title_updated.connect(self.update_title_label)
+        self.title_updated.connect(self.update_pdf_button_text)
+        
+        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
+        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
 
     def extract_registro_data(self):
         # Extrai dados do registro selecionado e armazena como atributos de instância
@@ -112,20 +118,19 @@ class EditDataDialog(QDialog):
 
         return data
 
-
     def update_title_label(self):
         data = self.extract_registro_data()
         html_text = (
-            f"{data['tipo']} nº {data['numero']}/{data['ano']} - Edição de Dados<br>"
+            f"{data['tipo']} nº {data['numero']}/{data['ano']} - {data['objeto']}<br>"
             f"<span style='font-size: 20px; color: #ADD8E6;'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
         )
         if not hasattr(self, 'titleLabel'):
             self.titleLabel = QLabel()
             self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-            self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+            self.titleLabel.setStyleSheet("color: white; font-size: 30px; font-weight: bold;")
 
         self.titleLabel.setText(html_text)
-        print(f"Title updated: {html_text}")
+        # print(f"Title updated: {html_text}")
 
         if not hasattr(self, 'header_layout'):
             self.header_layout = QHBoxLayout()
@@ -170,9 +175,8 @@ class EditDataDialog(QDialog):
         btn.setToolTip(tooltip_text)
         btn.clicked.connect(callback)
         return btn
-
+    
     def setup_frames(self):
-        # Configura os layouts horizontais para os frames
         topRow = QHBoxLayout()
         self.frame1, self.frame1_layout = self.create_frame()
         self.frame2, self.frame2_layout = self.create_frame()
@@ -471,7 +475,7 @@ class EditDataDialog(QDialog):
     def fill_frame3(self):
         self.frame3.setObjectName("fill_frame3")
         self.frame3.setStyleSheet("#fill_frame3 { background-color: #050f41; }")
-                
+        
         button_texts = [
             "   Abertura de Processo",
             "   Documentos de Planejamento",
@@ -485,7 +489,12 @@ class EditDataDialog(QDialog):
             "Lista de Verificação"
         ]
         icon_files = ["1.png", "2.png", "3.png", "4.png"]
-        button_callbacks = [self.create_callback(tooltip) for tooltip in tooltips]
+        button_callbacks = [
+            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerar_autorizacao),
+            self.create_callback("Documentos de Planejamento (CP, DFD, TR, etc.)", self.gerar_documentos),
+            self.create_callback("Aviso de dispensa eletrônica", self.gerar_aviso),
+            self.create_callback("Lista de Verificação", self.gerar_lista)
+        ]
 
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0) 
@@ -501,14 +510,41 @@ class EditDataDialog(QDialog):
         
         # Atualizar título inicialmente
         self.update_frame4_title()
+        
+        # Conectar sinal para atualizar texto do botão Gerar PDF
+        self.title_updated.connect(self.update_pdf_button_text)
+        
+        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
+        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
 
-    def create_callback(self, tooltip):
+
+    def create_callback(self, tooltip, function):
         def callback():
             self.selected_tooltip = tooltip
             self.update_frame4_title()
             self.update_button_styles()
             self.update_frame4_content()
+            self.update_text_edit_fields(tooltip)
+            self.title_updated.emit(tooltip)  # Emitir sinal quando o botão é clicado
+            
+            # Desconectar qualquer função anterior e conectar a função específica
+            try:
+                self.gerar_pdf_button.clicked.disconnect()  
+            except TypeError:
+                pass  # Ignorar erro se não houver conexões anteriores
+            self.gerar_pdf_button.clicked.connect(function)
+            
         return callback
+
+    def update_pdf_button_text(self, tooltip):
+        text_map = {
+            "Autorização para abertura do processo de Dispensa Eletrônica": "Autorização",
+            "Documentos de Planejamento (CP, DFD, TR, etc.)": "Documentos",
+            "Aviso de dispensa eletrônica": "Aviso",
+            "Lista de Verificação": "Lista de Verificação"
+        }
+        new_text = text_map.get(tooltip, "Gerar PDF")
+        self.gerar_pdf_button.setText(f"  {new_text}")
 
     def update_frame4_title(self):
         if self.frame4_group_box:  # Verifica se frame4_group_box foi inicializado
@@ -517,7 +553,7 @@ class EditDataDialog(QDialog):
     def update_button_styles(self):
         for button in self.frame3.findChildren(QPushButton):
             self.apply_button_style(button, selected=(button.toolTip() == self.selected_tooltip))
-        
+                
     def apply_button_style(self, button, selected=False):
         if selected:
             button.setStyleSheet("""
@@ -542,7 +578,8 @@ class EditDataDialog(QDialog):
                     font-size: 14pt; 
                 }
                 QPushButton {
-                    background-color: #B4B7C6;
+                    background-color: #2D2F33;
+                    color: white;
                     border: none;  
                     border-radius: 5px;  
                     padding: 5px;  
@@ -560,16 +597,14 @@ class EditDataDialog(QDialog):
         self.frame4_group_box_layout = QHBoxLayout()
         self.frame4.setLayout(self.frame4_group_box_layout)
 
-        self.frame4.setFixedWidth(1505)  # Ajuste a largura conforme necessário
-        self.frame4.setFixedHeight(340)  # Ajuste a altura conforme necessário
+        self.frame4.setFixedWidth(1505)
+        self.frame4.setFixedHeight(340)
 
         self.frame4_layout.setContentsMargins(0, 0, 0, 0)
         self.frame4_layout.addLayout(self.frame4_group_box_layout)
 
-        # Adicionar um QSpacerItem para empurrar o layout para cima
         self.frame4_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
-        # Configurar conteúdo inicial
         self.update_frame4_content()
 
     def setupGrupoSIGDEM(self, layout_direita):
@@ -592,53 +627,56 @@ class EditDataDialog(QDialog):
 
         # Campo "Assunto"
         labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
+        labelAssunto.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelAssunto)
-        textEditAssunto = QTextEdit()
-        textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica")
-        textEditAssunto.setMaximumHeight(50)
+        self.textEditAssunto = QTextEdit()
+        self.textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica")
+        self.textEditAssunto.setMaximumHeight(50)
 
         icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))  # Caminho para o ícone de Word
-        btnCopyAssunto = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditAssunto.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
+        btnCopyAssunto = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditAssunto.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
 
         layoutHAssunto = QHBoxLayout()
-        layoutHAssunto.addWidget(textEditAssunto)
+        layoutHAssunto.addWidget(self.textEditAssunto)
         layoutHAssunto.addWidget(btnCopyAssunto)
         layout.addLayout(layoutHAssunto)
 
         # Campo "Sinopse"
         labelSinopse = QLabel("No campo “Sinopse”, deverá constar:")
+        labelSinopse.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelSinopse)
-        textEditSinopse = QTextEdit()
-
-        # Definir descrição com base em material_servico
-        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        self.textEditSinopse = QTextEdit()
+        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
         sinopse_text = (f"Termo de Abertura referente ao {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
                         f"Processo Administrativo NUP: {self.nup}")
-        textEditSinopse.setPlainText(sinopse_text)
-        textEditSinopse.setMaximumHeight(60)
-        btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
+        self.textEditSinopse.setPlainText(sinopse_text)
+        self.textEditSinopse.setMaximumHeight(60)
+        btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
         layoutHSinopse = QHBoxLayout()
-        layoutHSinopse.addWidget(textEditSinopse)
+        layoutHSinopse.addWidget(self.textEditSinopse)
         layoutHSinopse.addWidget(btnCopySinopse)
         layout.addLayout(layoutHSinopse)
 
         # Campo "Observações"
         labelObservacoes = QLabel("No campo “Observações”, deverá constar:")
+        labelObservacoes.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelObservacoes)
-        textEditObservacoes = QTextEdit()
-        textEditObservacoes.setPlainText(f"Setor Demandante: {self.setor_responsavel}")
-        textEditObservacoes.setMaximumHeight(100)
-        btnCopyObservacoes = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(textEditObservacoes.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
+        self.textEditObservacoes = QTextEdit()
+        self.textEditObservacoes.setPlainText(f"Setor Demandante: {self.setor_responsavel}")
+        self.textEditObservacoes.setMaximumHeight(100)
+        btnCopyObservacoes = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditObservacoes.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
         layoutHObservacoes = QHBoxLayout()
-        layoutHObservacoes.addWidget(textEditObservacoes)
+        layoutHObservacoes.addWidget(self.textEditObservacoes)
         layoutHObservacoes.addWidget(btnCopyObservacoes)
         layout.addLayout(layoutHObservacoes)
 
         # Campo "Temporalidade"
         labelTemporalidade = QLabel("Temporalidade: 004")
+        labelTemporalidade.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelTemporalidade)  
 
-        labelTramitacao = QLabel("Tramitação: 30>02>MSG>30>Setor Demandante")
+        labelTramitacao = QLabel("Tramitação: 33>30>02>SEC01>01>30>Setor Demandante")
+        labelTramitacao.setStyleSheet("color: white; font-size: 12pt;")
         layout.addWidget(labelTramitacao)
 
         layout_direita.addWidget(grupoSIGDEM)
@@ -646,7 +684,6 @@ class EditDataDialog(QDialog):
     def copyToClipboard(self, text):
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
-        # Mostra a tooltip na posição atual do mouse
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def update_frame4_content(self):
@@ -667,7 +704,6 @@ class EditDataDialog(QDialog):
         centro_widget.setLayout(layout_centro)
         direita_widget.setLayout(layout_direita)
 
-        # Definir largura máxima para o widget esquerdo
         esquerda_widget.setFixedWidth(320)
         centro_widget.setFixedWidth(600)
 
@@ -677,6 +713,19 @@ class EditDataDialog(QDialog):
 
         if self.selected_tooltip == "Autorização para abertura do processo de Dispensa Eletrônica":
             self.add_common_widgets(layout_esquerda)
+            # Adiciona o texto central específico
+            authorization_text = """
+                Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada para "Aprovado"<br><br>
+                '1 Abertura de Processo' no botão <span style="color: red;">"Autorização"</span><br><br>
+                '2 Documentos de Planejamento' é a Comunicação Padronizada com os documentos<br><br>
+                '3 Aviso de Dispensa Eletrônica' é o aviso de dispensa eletrônica<br><br>
+                '4 Lista de Verificação' é a lista de verificação
+            """
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            text_edit.setHtml(authorization_text)
+            text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
+            layout_centro.addWidget(text_edit)
         elif self.selected_tooltip == "Documentos de Planejamento (CP, DFD, TR, etc.)":
             self.add_common_widgets(layout_esquerda)
             text_edit = QTextEdit()
@@ -684,8 +733,40 @@ class EditDataDialog(QDialog):
             layout_centro.addWidget(text_edit)
         elif self.selected_tooltip == "Aviso de dispensa eletrônica":
             self.add_common_widgets(layout_esquerda)
+        elif self.selected_tooltip == "Lista de Verificação":
+            self.add_common_widgets(layout_esquerda)
 
         self.setupGrupoSIGDEM(layout_direita)
+
+    def update_text_edit_fields(self, tooltip):
+        descricao_servico = "aquisição de" if self.material_servico == "material" else "contratação de empresa especializada em"
+        sinopse_text_map = {
+            "Autorização para abertura do processo de Dispensa Eletrônica": (
+                f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                f"Processo Administrativo NUP: {self.nup}"
+            ),
+            "Documentos de Planejamento (CP, DFD, TR, etc.)": (
+                f"Documentos de Planejamento referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                f"Processo Administrativo NUP: {self.nup}"
+            ),
+            "Aviso de dispensa eletrônica": (
+                f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                f"Processo Administrativo NUP: {self.nup}"
+            ),
+            "Lista de Verificação": (
+                f"Lista de Verificação referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+                f"Processo Administrativo NUP: {self.nup}"
+            )
+        }
+        assunto_text_map = {
+            "Autorização para abertura do processo de Dispensa Eletrônica": f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica",
+            "Documentos de Planejamento (CP, DFD, TR, etc.)": f"{self.id_processo} – Documentos de Planejamento",
+            "Aviso de dispensa eletrônica": f"{self.id_processo} – Aviso de Dispensa Eletrônica",
+            "Lista de Verificação": f"{self.id_processo} – Lista de Verificação"
+        }
+
+        self.textEditAssunto.setPlainText(assunto_text_map.get(tooltip, ""))
+        self.textEditSinopse.setPlainText(sinopse_text_map.get(tooltip, ""))
 
     def add_common_widgets(self, parent_layout):
         def create_group_box_with_combo(title):
@@ -731,19 +812,46 @@ class EditDataDialog(QDialog):
         responsavel_demanda_group_box = create_group_box_with_combo("Responsável pela Demanda")
         parent_layout.addWidget(responsavel_demanda_group_box)
 
-        # Ícone do botão
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-
-        # Botão Gerar PDF
-        gerar_pdf_button = self.create_button("  Gerar PDF", icon_pdf, self.teste, "Gerar PDF", QSize(200, 50), QSize(40, 40))
-        self.apply_button_style(gerar_pdf_button)
-        gerar_pdf_button.setFixedHeight(50)  # Define uma altura fixa para o botão
-        
         # Layout para centralizar o botão
         button_layout = QHBoxLayout()
-        button_layout.addWidget(gerar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
+        button_layout.addWidget(self.gerar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         parent_layout.addLayout(button_layout)
+
+    def initialize_gerar_pdf_button(self):
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        self.gerar_pdf_button = self.create_button("  Autorização", icon_pdf, self.gerar_autorizacao, "Gerar PDF", QSize(300, 65), QSize(50, 50))
+        self.apply_dark_red_style(self.gerar_pdf_button)
+
+    def apply_dark_red_style(self, button):
+        button.setStyleSheet("""
+            QPushButton, QPushButton::tooltip {
+                font-size: 16pt;
+                font-weight: bold; 
+            }
+            QPushButton {
+                background-color: #8B0000;
+                color: white;
+                border: none;  
+                border-radius: 5px;  
+                padding: 5px;  
+            }
+            QPushButton:hover {  
+                background-color: #A52A2A; 
+                border: 1px solid #FF6347;
+            }
+        """)
+
+    def gerar_autorizacao(self):
+        print("Gerando autorização...")
+
+    def gerar_documentos(self):
+        print("Gerando documentos...")
+
+    def gerar_aviso(self):
+        print("Gerando aviso...")
+
+    def gerar_lista(self):
+        print("Gerando lista de verificação...")
 
     def teste(self):
         print("Teste")
