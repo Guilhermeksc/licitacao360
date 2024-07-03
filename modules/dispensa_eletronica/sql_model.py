@@ -89,10 +89,15 @@ class TableMenu(QMenu):
         if action:
             action(df_registro_selecionado)
 
+    def atualizar_interface(self):
+        print("Interface atualizada com os novos dados.")
+        self.main_app.refresh_model() 
+
     def editar_dados(self, df_registro_selecionado):
         dialog = EditDataDialog(df_registro_selecionado, self.main_app.icons_dir)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.main_app.refresh_model()
+        dialog.dados_atualizados.connect(self.atualizar_interface)  # Conectar o sinal ao método de atualização
+        dialog.exec()
+
 
     def AutorizacaoDispensa(self, df_registro_selecionado):
         pass

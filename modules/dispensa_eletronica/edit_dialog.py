@@ -1,12 +1,15 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
-import re
-import locale
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 from diretorios import *
 import pandas as pd
 import sqlite3
+from docxtpl import DocxTemplate
+import os
+import subprocess
+from pathlib import Path
+import win32com.client
 
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -490,7 +493,7 @@ class EditDataDialog(QDialog):
         ]
         icon_files = ["1.png", "2.png", "3.png", "4.png"]
         button_callbacks = [
-            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerar_autorizacao),
+            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerarAutorizacao),
             self.create_callback("Documentos de Planejamento (CP, DFD, TR, etc.)", self.gerar_documentos),
             self.create_callback("Aviso de dispensa eletrônica", self.gerar_aviso),
             self.create_callback("Lista de Verificação", self.gerar_lista)
@@ -725,38 +728,52 @@ class EditDataDialog(QDialog):
         elif self.selected_tooltip == "Lista de Verificação":
             self.add_common_widgets(layout_esquerda)
 
-        self.carregarOrdenadorDespesas()
+        self.carregarAgentesResponsaveis()
         self.setupGrupoSIGDEM(layout_direita)
 
-
-    def carregarOrdenadorDespesas(self):
+    def carregarAgentesResponsaveis(self):
         try:
             print("Tentando conectar ao banco de dados...")
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_agentes_responsaveis'")
-                exists = cursor.fetchone()
-
-                if not exists:
+                if cursor.fetchone() is None:
                     raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesa no Módulo 'Configurações'.")
 
                 print("Tabela 'controle_agentes_responsaveis' encontrada. Carregando dados...")
-                sql_query = """
-                SELECT * FROM controle_agentes_responsaveis
-                WHERE funcao LIKE 'Ordenador de Despesa%' OR funcao LIKE 'Ordenador de Despesa Substituto%'
-                """
-                self.ordenador_despesas_df = pd.read_sql_query(sql_query, conn)
+                # Carregar dados para comboboxes específicos
+                self.carregarDadosCombo(conn, cursor, "Ordenador de Despesa%", self.ordenador_combo)
+                self.carregarDadosCombo(conn, cursor, "Agente Fiscal%", self.agente_fiscal_combo)
+                self.carregarDadosCombo(conn, cursor, "Gerente de Crédito%", self.gerente_credito_combo)
+                # Carregar dados para o combobox de responsável pela demanda, excluindo os outros cargos
+                self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
 
-            print(f"Dados carregados: {self.ordenador_despesas_df}")
-
-            self.ordenador_combo.clear()  # Limpar o comboBox antes de adicionar novos itens
-            for index, row in self.ordenador_despesas_df.iterrows():
-                texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
-                print(f"Adicionando ao comboBox: {texto_display}")
-                self.ordenador_combo.addItem(texto_display, row['nome'])
+                # Print para verificar o valor corrente e dados associados ao item selecionado
+                current_text = self.ordenador_combo.currentText()
+                current_data = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
+                print(f"Current ordenador_combo Text: {current_text}")
+                print(f"Current ordenador_combo Data: {current_data}")
 
         except Exception as e:
             print(f"Erro ao carregar Ordenadores de Despesas: {e}")
+
+    def carregarDadosCombo(self, conn, cursor, funcao_like, combo_widget):
+        if "NOT LIKE" in funcao_like:
+            sql_query = """
+                SELECT nome, posto, funcao FROM controle_agentes_responsaveis
+                WHERE funcao NOT LIKE 'Ordenador de Despesa%' AND
+                    funcao NOT LIKE 'Agente Fiscal%' AND
+                    funcao NOT LIKE 'Gerente de Crédito%'
+            """
+        else:
+            sql_query = f"SELECT nome, posto, funcao FROM controle_agentes_responsaveis WHERE funcao LIKE '{funcao_like}'"
+        
+        agentes_df = pd.read_sql_query(sql_query, conn)
+        for index, row in agentes_df.iterrows():
+            texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
+            # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
+            data_dict = {'nome': row['nome'], 'posto': row['posto'], 'funcao': row['funcao']}
+            combo_widget.addItem(row['nome'], data_dict)
 
     def update_text_edit_fields(self, tooltip):
         descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
@@ -798,12 +815,26 @@ class EditDataDialog(QDialog):
             layout = QVBoxLayout()
             combo = QComboBox()
             combo.setFixedHeight(30)
+            # Criando e aplicando o delegate
+            delegate = ItemDelegate()
+            combo.setItemDelegate(delegate)
+            
+            # Aplicar folha de estilo CSS ao QComboBox
+            combo.setStyleSheet("""
+                QComboBox {
+                    background-color: white; 
+                    border: 1px solid gray;
+                    border-radius: 3px;     
+                    padding: 1px 18px 1px 3px; 
+  
+                }
+            """)
             layout.addWidget(combo)
             group_box.setLayout(layout)
             group_box.setFixedHeight(60)
             group_box.setFixedWidth(300)
 
-            # Aplicar folha de estilo CSS
+            # Aplicar folha de estilo CSS ao QGroupBox
             group_box.setStyleSheet("""
                 QGroupBox {
                     border: 1px solid white;
@@ -817,25 +848,19 @@ class EditDataDialog(QDialog):
                     subcontrol-position: top center;
                     padding: 0 3px;
                 }
-                QComboBox {
-                    font-size: 14pt;
-                }
             """)
             return group_box, combo
 
-        # Ordenador de Despesas
+        # Criar e adicionar comboboxes com estilos personalizados
         ordenador_group_box, self.ordenador_combo = create_group_box_with_combo("Ordenador de Despesas")
         parent_layout.addWidget(ordenador_group_box)
 
-        # Agente Fiscal
         agente_fiscal_group_box, self.agente_fiscal_combo = create_group_box_with_combo("Agente Fiscal")
         parent_layout.addWidget(agente_fiscal_group_box)
 
-        # Gerente de Credito
         gerente_credito_group_box, self.gerente_credito_combo = create_group_box_with_combo("Gerente de Credito da Ação Interna")
         parent_layout.addWidget(gerente_credito_group_box)
 
-        # Responsável pela Demanda
         responsavel_demanda_group_box, self.responsavel_demanda_combo = create_group_box_with_combo("Responsável pela Demanda")
         parent_layout.addWidget(responsavel_demanda_group_box)
 
@@ -846,7 +871,7 @@ class EditDataDialog(QDialog):
 
     def initialize_gerar_pdf_button(self):
         icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        self.gerar_pdf_button = self.create_button("  Autorização", icon_pdf, self.gerar_autorizacao, "Gerar PDF", QSize(300, 65), QSize(50, 50))
+        self.gerar_pdf_button = self.create_button("  Autorização", icon_pdf, self.gerarAutorizacao, "Gerar PDF", QSize(300, 65), QSize(50, 50))
         self.apply_dark_red_style(self.gerar_pdf_button)
 
     def apply_dark_red_style(self, button):
@@ -868,7 +893,7 @@ class EditDataDialog(QDialog):
             }
         """)
 
-    def gerar_autorizacao(self):
+    def gerarDocumento(self):
         print("Gerando autorização...")
 
     def gerar_documentos(self):
@@ -961,7 +986,8 @@ class EditDataDialog(QDialog):
 
         self.dados_atualizados.emit()
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
-        self.accept()
+        # Remover o fechamento do diálogo para mantê-lo aberto
+        # self.accept()
 
     def formatar_brl(self, valor):
         try:
@@ -984,4 +1010,114 @@ class EditDataDialog(QDialog):
             QMessageBox.warning(self, "Valor Inválido", "Por favor, informe um valor numérico válido.")
             self.valor_edit.setText("R$ 0,00")  # Define um valor padrão
 
+    def gerarAutorizacao(self):
+        # Gera o documento no formato DOCX e obtém o caminho do arquivo gerado
+        docx_path = self.gerarDocumento("docx")
+        
+        # Verifica se um caminho foi retornado e, em caso afirmativo, abre o documento
+        if docx_path:
+            self.abrirDocumento(docx_path)
+        
+        return docx_path
+    
+    def abrirDocumento(self, docx_path):
+        try:
+            # Convertendo o caminho para um objeto Path se ainda não for
+            docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
+            
+            # Definindo o caminho do arquivo PDF usando with_suffix
+            pdf_path = docx_path.with_suffix('.pdf')
 
+            # Convertendo DOCX para PDF usando o Microsoft Word
+            word = win32com.client.Dispatch("Word.Application")
+            doc = word.Documents.Open(str(docx_path))
+            doc.SaveAs(str(pdf_path), FileFormat=17)  # 17 é o valor do formato PDF
+            doc.Close()
+            word.Quit()
+
+            # Verificando se o arquivo PDF foi criado com sucesso
+            if pdf_path.exists():
+                # Abrindo o PDF gerado
+                os.startfile(pdf_path)  # 'startfile' abre o arquivo com o aplicativo padrão no Windows
+                print(f"Documento PDF aberto: {pdf_path}")
+            else:
+                raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
+
+        except Exception as e:
+            print(f"Erro ao abrir ou converter o documento: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao abrir ou converter o documento: {e}")
+
+    def gerarDocumento(self, tipo="docx"):
+        if self.df_registro_selecionado is None:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+            print("Nenhum registro selecionado.")
+            return
+
+        try:
+            # Define os caminhos para salvar o documento
+            template_filename = f"template_autorizacao_dispensa.{tipo}"
+            template_path = TEMPLATE_DISPENSA_DIR / template_filename
+            if not template_path.exists():
+                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")                
+                print(f"O arquivo de template não foi encontrado: {template_path}")
+                return
+            nome_pasta = f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - {self.df_registro_selecionado['objeto'].iloc[0]}"
+            pasta_base = Path.home() / 'Desktop' / nome_pasta / "1. Autorizacao para abertura de Processo Administrativo"
+            
+            print(f"Caminho do template: {template_path}")
+            print(f"Pasta base para salvar documentos: {pasta_base}")
+
+            # Cria as pastas se não existirem
+            pasta_base.mkdir(parents=True, exist_ok=True)  # Cria a pasta se não existir
+            save_path = pasta_base / f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - Autorizacao para abertura de Processo Administrativo.{tipo}"
+            print(f"Caminho completo para salvar o documento: {save_path}")
+            doc = DocxTemplate(str(template_path))
+            context = self.df_registro_selecionado.to_dict('records')[0]
+            descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
+            ordenador_de_despesas = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
+
+            context.update({
+                'descricao_servico': descricao_servico,
+                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}"
+
+            })
+
+            print("Contexto para renderização:", context)
+            doc.render(context)
+            doc.save(str(save_path))
+            return str(save_path)
+
+        except Exception as e:
+            QMessageBox.warning(None, "Erro", f"Erro ao gerar ou salvar o documento: {e}")
+            print(f"Erro ao gerar ou salvar o documento: {e}")
+
+class ItemDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        painter.save()
+
+        # Aplica um estilo de fundo diferente dependendo do estado do item
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, QColor(200, 200, 200))  # Cor de seleção
+        elif option.state & QStyle.StateFlag.State_MouseOver:
+            painter.fillRect(option.rect, QColor(220, 220, 220))  # Cor ao passar o mouse
+        else:
+            painter.fillRect(option.rect, QColor(255, 255, 255))  # Cor padrão
+
+        text_option = QTextOption(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
+        text_option.setWrapMode(QTextOption.WrapMode.WordWrap)
+        painter.setPen(QPen(Qt.GlobalColor.black))
+        rect = QRectF(option.rect.adjusted(5, 0, -5, 0))
+        
+        data = index.data(Qt.ItemDataRole.UserRole)
+        # Converte o dicionário em uma string formatada
+        display_text = f"{data['nome']}\n{data['posto']}\n{data['funcao']}" if isinstance(data, dict) else "Informação não disponível"
+        
+        painter.drawText(rect, display_text, text_option)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        # Customiza o tamanho do item baseado no conteúdo
+        size = super().sizeHint(option, index)
+        size.setHeight(60)  # Ajusta a altura para acomodar o texto multi-linha
+        return size

@@ -46,6 +46,8 @@ def update_file_path(title, key, default_value, parent=None, file_type="All File
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
+DISPENSA_DIR = MODULES_DIR / "dispensa_eletronica"
+TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
 ICONS_DIR = DATABASE_DIR / "icons"
 ICONE = ICONS_DIR / "icone.ico"
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))

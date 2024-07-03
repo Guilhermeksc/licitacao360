@@ -43,7 +43,6 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         self.config_manager.config_updated.connect(self.update_save_location)
         self.pasta_base = Path(self.config_manager.get_config('save_location', str(Path.home() / 'Desktop')))
 
-
     def setup_dialog(self):
         try:
             self.id = self.df_registro['id'].iloc[0]
