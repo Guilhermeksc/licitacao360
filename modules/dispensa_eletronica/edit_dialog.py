@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
+from modules.dispensa_eletronica.configuracao_dispensa_eletronica import ConfiguracoesDispensaDialog
 from diretorios import *
 import pandas as pd
 import sqlite3
@@ -160,7 +161,7 @@ class EditDataDialog(QDialog):
         
         button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(130, 50), QSize(40, 40))
         button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
-        button_config = self.create_button(" Configurações", icon_config, self.reject, "Alterar local de salvamento, entre outras configurações", QSize(160, 50), QSize(30, 30))
+        button_config = self.create_button(" Agentes Responsáveis", icon_config, self.open_config_dialog, "Alterar local de salvamento, entre outras configurações", QSize(200, 50), QSize(30, 30))
         
         layout.addWidget(button_confirm)
         layout.addWidget(button_x)
@@ -178,7 +179,16 @@ class EditDataDialog(QDialog):
         btn.setToolTip(tooltip_text)
         btn.clicked.connect(callback)
         return btn
-    
+
+    def open_config_dialog(self):
+        config_dialog = ConfiguracoesDispensaDialog(self)
+        config_dialog.config_updated.connect(self.update_frame4_content)
+        if config_dialog.exec():
+            print("Configurações salvas")
+        else:
+            print("Configurações canceladas")
+
+
     def setup_frames(self):
         topRow = QHBoxLayout()
         self.frame1, self.frame1_layout = self.create_frame()
