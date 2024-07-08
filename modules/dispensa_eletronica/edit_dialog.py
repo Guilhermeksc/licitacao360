@@ -3,6 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 from modules.dispensa_eletronica.configuracao_dispensa_eletronica import ConfiguracoesDispensaDialog
+from modules.dispensa_eletronica.documentos_cp_dfd_tr import DocumentDetailsWidget, PDFAddDialog
 from diretorios import *
 import pandas as pd
 import sqlite3
@@ -15,6 +16,7 @@ import win32com.client
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
     title_updated = pyqtSignal(str) 
+    button_changed = pyqtSignal(str)
 
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
@@ -32,23 +34,23 @@ class EditDataDialog(QDialog):
         header_widget = self.update_title_label()
         self.layout.addWidget(header_widget)
 
-        self.selected_tooltip = "Autorização para abertura do processo de Dispensa Eletrônica"
-        self.selected_button = None
+        self.selected_button = " Abertura de Processo"  # Inicializa com o botão padrão selecionado
 
         self.frame4_group_box = None
 
-        self.initialize_gerar_pdf_button()  # Inicializar o botão aqui
+        self.painel_layout = QVBoxLayout()  # Inicializa painel_layout antes de setup_frames
+
+        self.gerar_pdf_button = QPushButton("Gerar PDF")
+        self.apply_button_style(self.gerar_pdf_button, selected=False)
+
+        # Conectar o sinal ao método de atualização do layout
+        self.button_changed.connect(self.update_painel_layout)
         
         self.setup_frames()
         
         self.move(QPoint(0, 0))
-
-        # Conectar o sinal ao método de atualização do título
-        self.title_updated.connect(self.update_title_label)
-        self.title_updated.connect(self.update_pdf_button_text)
         
-        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
-        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
+        self.update_painel_layout(self.selected_button)  # Atualização inicial
 
     def extract_registro_data(self):
         # Extrai dados do registro selecionado e armazena como atributos de instância
@@ -141,7 +143,7 @@ class EditDataDialog(QDialog):
             self.header_layout.addWidget(self.titleLabel)
             self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
             self.add_action_buttons(self.header_layout)
-            pixmap = QPixmap(str(MARINHA_PATH)).scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.image_label = QLabel()
             self.image_label.setPixmap(pixmap)
             self.header_layout.addWidget(self.image_label)
@@ -149,7 +151,7 @@ class EditDataDialog(QDialog):
             # Define uma altura fixa para o layout do cabeçalho
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)
-            header_widget.setFixedHeight(100)  # Ajuste essa altura conforme necessário
+            header_widget.setFixedHeight(80)  # Ajuste essa altura conforme necessário
             self.header_widget = header_widget
 
         return self.header_widget
@@ -157,11 +159,11 @@ class EditDataDialog(QDialog):
     def add_action_buttons(self, layout):
         icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
         icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
-        icon_config = QIcon(str(self.ICONS_DIR / "gear_menu.png"))
+        icon_config = QIcon(str(self.ICONS_DIR / "excel.png"))
         
         button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(130, 50), QSize(40, 40))
         button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
-        button_config = self.create_button(" Agentes Responsáveis", icon_config, self.open_config_dialog, "Alterar local de salvamento, entre outras configurações", QSize(200, 50), QSize(30, 30))
+        button_config = self.create_button(" Importar", icon_config, self.open_config_dialog, "Alterar local de salvamento, entre outras configurações", QSize(130, 50), QSize(30, 30))
         
         layout.addWidget(button_confirm)
         layout.addWidget(button_x)
@@ -180,7 +182,7 @@ class EditDataDialog(QDialog):
         btn.clicked.connect(callback)
         return btn
 
-    def open_config_dialog(self):
+    def open_editar_responsaveis_dialog(self):
         config_dialog = ConfiguracoesDispensaDialog(self)
         config_dialog.config_updated.connect(self.update_frame4_content)
         if config_dialog.exec():
@@ -189,34 +191,50 @@ class EditDataDialog(QDialog):
             print("Configurações canceladas")
 
 
+    def open_config_dialog(self):
+        config_dialog = ConfiguracoesDispensaDialog(self)
+        config_dialog.config_updated.connect(self.update_frame4_content)
+        if config_dialog.exec():
+            print("Configurações salvas")
+        else:
+            print("Configurações canceladas")
+
     def setup_frames(self):
         topRow = QHBoxLayout()
+        self.frame_agentes_responsaveis, self.frame_agentes_responsaveis_layout = self.create_frame()
         self.frame1, self.frame1_layout = self.create_frame()
         self.frame2, self.frame2_layout = self.create_frame()
         self.frame_classificacao_orcamentaria, self.frame_classificacao_orcamentaria_layout = self.create_frame()
+        topRow.addWidget(self.frame_agentes_responsaveis)
         topRow.addWidget(self.frame1)
         topRow.addWidget(self.frame2)
         topRow.addWidget(self.frame_classificacao_orcamentaria)
         self.layout.addLayout(topRow)  # Adiciona o QHBoxLayout com os dois frames ao layout principal
 
         linhaDeBaixo = QVBoxLayout()
-        self.frame3, self.frame3_layout = self.create_frame()
-        self.frame4, self.frame4_layout = self.create_frame()
-        linhaDeBaixo.addWidget(self.frame3)
+        self.frame4, self.frame4_layout = self.create_frame("CustomStyledFrame")
+
         linhaDeBaixo.addWidget(self.frame4)
         self.layout.addLayout(linhaDeBaixo)  # Adiciona o QVBoxLayout com os três frames ao layout principal
 
         # Preenche os frames com os campos apropriados
+        self.fill_frame_agentes_responsaveis()
         self.fill_frame1()
         self.fill_frame2()
         self.fill_frame_classificacao_orcamentaria()
-        self.fill_frame3()
         self.fill_frame4()
 
-    def create_frame(self):
+    def create_frame(self, object_name=None):
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)  # Mantém o estilo do frame
         frame.setFrameShadow(QFrame.Shadow.Raised)     # Mantém a sombra para destacar o frame
+        if object_name:
+            frame.setObjectName(object_name)  # Define o nome do objeto para o frame
+            frame.setStyleSheet(f"""
+                #{object_name} {{
+                    background-color: #050f41;
+                }}
+            """)  # Aplica o estilo com fundo e borda somente ao frame com esse nome de objeto
         frame_layout = QVBoxLayout()  # Continua usando QVBoxLayout para organizar os widgets dentro do frame
         frame.setLayout(frame_layout)  # Define o layout do frame
         return frame, frame_layout    # Retorna tanto o frame quanto seu layout
@@ -224,212 +242,280 @@ class EditDataDialog(QDialog):
     def apply_widget_style(self, widget):
         widget.setStyleSheet("font-size: 12pt;") 
 
+    def fill_frame_agentes_responsaveis(self):
+        # Define o layout e o grupo para os agentes responsáveis
+        agente_responsavel = QHBoxLayout()
+        agente_responsavel_group_box = QGroupBox("Agentes Responsáveis")
+        self.apply_widget_style(agente_responsavel_group_box)
+        agente_responsavel_layout = QVBoxLayout()
+
+        # Cria as labels e ComboBoxes para cada agente responsável
+        ordenador_despesa_label = QLabel("Ordenador de Despesas:")
+        self.ordenador_combo = QComboBox()
+        self.ordenador_combo.setFixedWidth(260)
+        agente_fiscal_label = QLabel("Agente Fiscal:")
+        self.agente_fiscal_combo = QComboBox()
+        self.agente_fiscal_combo.setFixedWidth(260)
+        gerente_de_credito_label = QLabel("Gerente de Crédito:")
+        self.gerente_credito_combo = QComboBox()
+        self.gerente_credito_combo.setFixedWidth(260)
+
+        # Adiciona as labels e ComboBoxes ao layout
+        agente_responsavel_layout.addWidget(ordenador_despesa_label)
+        agente_responsavel_layout.addWidget(self.ordenador_combo)
+        agente_responsavel_layout.addWidget(agente_fiscal_label)
+        agente_responsavel_layout.addWidget(self.agente_fiscal_combo)
+        agente_responsavel_layout.addWidget(gerente_de_credito_label)
+        agente_responsavel_layout.addWidget(self.gerente_credito_combo)
+        agente_responsavel_group_box.setLayout(agente_responsavel_layout)
+
+        # Adiciona o grupo ao layout principal do frame
+        agente_responsavel.addWidget(agente_responsavel_group_box)
+        self.frame_agentes_responsaveis_layout.addLayout(agente_responsavel)
+
+        # Botão para editar responsáveis
+        editar_responsaveis_button = QPushButton("Editar Responsáveis")
+        self.apply_widget_style(editar_responsaveis_button)  # Estilize conforme necessário
+        editar_responsaveis_button.clicked.connect(self.open_editar_responsaveis_dialog)  # Conecta o botão ao método
+        self.frame_agentes_responsaveis_layout.addWidget(editar_responsaveis_button)  # Adiciona o botão ao layout
+
+        # Carrega os dados nos ComboBoxes
+        self.carregarAgentesResponsaveis()
+
     def fill_frame1(self):
         data = self.extract_registro_data()
-        # Layouts detalhados
+        # Layout principal para detalhes
         detalhes_layout = QHBoxLayout()
 
+        # Grupo de Contratação
+        contratacao_group_box = QGroupBox("Contratação")
+        self.apply_widget_style(contratacao_group_box)
+        contratacao_layout = QVBoxLayout()
+        contratacao_group_box.setLayout(contratacao_layout)
+
         # Situação
-        situacao_group_box = QGroupBox("Situação")
-        situacao_layout = QVBoxLayout()
+        situacao_layout = QHBoxLayout()
+        situacao_label = QLabel("Situação:")
         self.situacao_edit = QComboBox()
+        self.situacao_edit.setFixedWidth(210)
         self.situacao_edit.addItems(["Planejamento", "Aprovado", "Sessão Publica", "Concluído"])
         self.situacao_edit.setCurrentText(data.get('situacao', 'Planejamento'))
-        self.apply_widget_style(situacao_group_box)
+        self.apply_widget_style(situacao_label)
         self.apply_widget_style(self.situacao_edit)
-        self.situacao_edit.setFixedWidth(130)
+        situacao_layout.addWidget(situacao_label)
         situacao_layout.addWidget(self.situacao_edit)
-        situacao_group_box.setLayout(situacao_layout)
-        situacao_group_box.setFixedWidth(150)
-        detalhes_layout.addWidget(situacao_group_box)
-        
-        # Grupo para ID do Processo
-        id_group_box = QGroupBox("ID")
-        id_group_layout = QVBoxLayout()
-        self.id_processo_edit = QLineEdit(data['id_processo'])
-        self.apply_widget_style(id_group_box)
-        self.apply_widget_style(self.id_processo_edit)
-        self.id_processo_edit.setReadOnly(True)
-        self.id_processo_edit.setFixedWidth(100)
-        id_group_layout.addWidget(self.id_processo_edit)
-        id_group_box.setLayout(id_group_layout)
-        id_group_box.setFixedWidth(120)
-        detalhes_layout.addWidget(id_group_box)
 
-        # Grupo para NUP
-        nup_group_box = QGroupBox("NUP")
-        nup_group_layout = QVBoxLayout()
+        # Adicionar o layout de situação ao grupo de contratação
+        contratacao_layout.addLayout(situacao_layout)
+
+        # NUP
+        nup_layout = QHBoxLayout()
+        nup_label = QLabel("NUP:")
         self.nup_edit = QLineEdit(data['nup'])
-        self.apply_widget_style(nup_group_box)
         self.apply_widget_style(self.nup_edit)
         self.nup_edit.setReadOnly(False)
-        self.nup_edit.setFixedWidth(185)
-        nup_group_layout.addWidget(self.nup_edit)
-        nup_group_box.setLayout(nup_group_layout)
-        nup_group_box.setFixedWidth(205)
-        detalhes_layout.addWidget(nup_group_box)
+        nup_layout.addWidget(nup_label)
+        nup_layout.addWidget(self.nup_edit)
+        # Adicionar o layout de situação ao grupo de contratação
+        contratacao_layout.addLayout(nup_layout)
 
         # Material/Serviço
-        material_group_box = QGroupBox("Material/Serviço")
-        material_layout = QVBoxLayout()
+        material_layout = QHBoxLayout()
+        material_label = QLabel("Material/Serviço:")
         self.material_edit = QComboBox()
         self.material_edit.addItems(["Material", "Serviço"])
         self.material_edit.setCurrentText(data.get('material_servico', 'Material'))
-        self.apply_widget_style(material_group_box)
+        self.apply_widget_style(material_label)
         self.apply_widget_style(self.material_edit)
-        self.material_edit.setFixedWidth(120)
+        material_layout.addWidget(material_label)
         material_layout.addWidget(self.material_edit)
-        material_group_box.setLayout(material_layout)
-        material_group_box.setFixedWidth(140)
-        detalhes_layout.addWidget(material_group_box)
+        contratacao_layout.addLayout(material_layout)
 
-        om_group_box = QGroupBox("OM")
-        om_layout = QVBoxLayout()
-        self.om_combo = QComboBox()
-        self.load_sigla_om()
-        self.om_combo.setCurrentText(data.get('sigla_om', ''))
-        self.apply_widget_style(om_group_box)
-        self.apply_widget_style(self.om_combo)
-        self.om_combo.setFixedWidth(120)
-        om_layout.addWidget(self.om_combo)
-        om_group_box.setLayout(om_layout)
-        om_group_box.setFixedWidth(140)
-        detalhes_layout.addWidget(om_group_box)
-
-        # Adicionar o layout horizontal ao layout principal do frame
-        self.frame1_layout.addLayout(detalhes_layout)
-
-        # Novo layout horizontal para Objeto e Objeto Detalhado
+        # Objeto
         objeto_layout = QHBoxLayout()
-
-        # Grupo para Objeto com dimensão fixa
-        objeto_group_box = QGroupBox("Objeto Resumido")
-        objeto_group_layout = QVBoxLayout()
+        objeto_label = QLabel("Objeto:")
         self.objeto_edit = QLineEdit(data['objeto'])
-        self.apply_widget_style(objeto_group_box)
         self.apply_widget_style(self.objeto_edit)
         self.objeto_edit.setReadOnly(False)
-        self.objeto_edit.setFixedWidth(250)
-        objeto_group_layout.addWidget(self.objeto_edit)
-        objeto_group_box.setLayout(objeto_group_layout)
-        objeto_group_box.setFixedWidth(270)
-        objeto_layout.addWidget(objeto_group_box)
+        objeto_layout.addWidget(objeto_label)
+        objeto_layout.addWidget(self.objeto_edit)
+        contratacao_layout.addLayout(objeto_layout)
 
-        # Detalhes adicionais para Objeto Detalhado
-        objeto_det_group_box = QGroupBox("Objeto Detalhado")
-        objeto_det_layout = QVBoxLayout()
-        self.objeto_det_edit = QLineEdit(data['objeto_completo'])
-        self.apply_widget_style(objeto_det_group_box)
-        self.apply_widget_style(self.objeto_det_edit)
-        self.objeto_det_edit.setReadOnly(False)
-        objeto_det_layout.addWidget(self.objeto_det_edit)
-        objeto_det_group_box.setLayout(objeto_det_layout)
-        objeto_layout.addWidget(objeto_det_group_box)
+        # Vigência da Contratação
+        vigencia_layout = QHBoxLayout()
+        vigencia_label = QLabel("Vigência:")
+        self.vigencia_edit = QLineEdit("12 (doze) meses")
+        self.apply_widget_style(self.vigencia_edit)
+        self.vigencia_edit.setReadOnly(False)
+        vigencia_layout.addWidget(vigencia_label)
+        vigencia_layout.addWidget(self.vigencia_edit)
+        contratacao_layout.addLayout(vigencia_layout)
 
-        # Adicionar o layout horizontal de objetos ao layout principal do frame
-        self.frame1_layout.addLayout(objeto_layout)
+        # Data da Sessão em linha própria
+        data_sessao_layout = QHBoxLayout()
+        data_sessao_label = QLabel("Data da Sessão:")
+        self.data_edit = QDateEdit()
+        self.data_edit.setFixedWidth(120)
+        self.data_edit.setCalendarPopup(True)
+        data_sessao_str = data.get('data_sessao', '')
+        if data_sessao_str:
+            self.data_edit.setDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
+        else:
+            self.data_edit.setDate(QDate.currentDate())
+        self.apply_widget_style(data_sessao_label)
+        self.apply_widget_style(self.data_edit)
+        data_sessao_layout.addWidget(data_sessao_label)
+        data_sessao_layout.addWidget(self.data_edit)
+        contratacao_layout.addLayout(data_sessao_layout)
 
-        # Novo layout horizontal para Links
-        link_layout = QHBoxLayout()
+        # Operador
+        operador_layout = QHBoxLayout()
+        operador_label = QLabel("Operador:")
+        self.operador_edit = QLineEdit(data['operador'])
+        self.apply_widget_style(operador_label)
+        self.apply_widget_style(self.operador_edit)
+        operador_layout.addWidget(operador_label)
+        operador_layout.addWidget(self.operador_edit)
 
-        # Detalhes adicionais para Link PNCp
-        link_pncp_group_box = QGroupBox("Link PNCP")
-        link_pncp_layout = QVBoxLayout()
-        self.link_pncp_edit = QLineEdit(data['link_pncp'])
-        self.apply_widget_style(link_pncp_group_box)
-        self.apply_widget_style(self.link_pncp_edit)
-        self.link_pncp_edit.setReadOnly(False)
-        link_pncp_layout.addWidget(self.link_pncp_edit)
-        link_pncp_group_box.setLayout(link_pncp_layout)
-        link_layout.addWidget(link_pncp_group_box)
+        contratacao_layout.addLayout(operador_layout)
 
-        # Detalhes adicionais para Link Portal Marinha
-        link_portal_group_box = QGroupBox("Link Portal Marinha")
-        link_portal_layout = QVBoxLayout()
-        self.link_portal_edit = QLineEdit(data['link_portal_marinha'])
-        self.apply_widget_style(link_portal_group_box)
-        self.apply_widget_style(self.link_portal_edit)
-        self.link_portal_edit.setReadOnly(False)
-        link_portal_layout.addWidget(self.link_portal_edit)
-        link_portal_group_box.setLayout(link_portal_layout)
-        link_portal_group_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)  # Define o tamanho expansível
-        link_layout.addWidget(link_portal_group_box)
+        # Adicionar o grupo de contratação ao layout de detalhes
+        detalhes_layout.addWidget(contratacao_group_box)
 
-        # Adicionar o layout horizontal de links ao layout principal do frame
-        self.frame1_layout.addLayout(link_layout)
+        # Adicionar o layout de detalhes ao layout principal do frame
+        self.frame1_layout.addLayout(detalhes_layout)
         
         detalhes_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
     def fill_frame2(self):
         data = self.extract_registro_data()
 
-        valor_layout = QVBoxLayout()
-        valor_estimado_om_layout = QHBoxLayout()
-        operador_data_layout = QHBoxLayout()
-        material_situacao_layout = QHBoxLayout()
-
-        valor_estimado_group_box = QGroupBox("Valor Estimado")
-        valor_layout = QVBoxLayout()
-        self.valor_edit = QLineEdit(str(data.get('valor_total', '')))
-        self.apply_widget_style(valor_estimado_group_box)
-        self.apply_widget_style(self.valor_edit)
-        valor_layout.addWidget(self.valor_edit)
-        valor_estimado_group_box.setLayout(valor_layout)
-        self.valor_edit.editingFinished.connect(self.ajustar_valor_monetario)
-
-        # Adicionando valor_estimado_group_box e om_group_box ao layout horizontal
-        valor_estimado_om_layout.addWidget(valor_estimado_group_box)
-
-        # Adicionando o layout horizontal à frame2_layout
-        self.frame2_layout.addLayout(valor_estimado_om_layout)
-
-        setor_responsavel_group_box = QGroupBox("Setor Responsável pela Demanda")
-        setor_responsavel_layout = QVBoxLayout()
-        self.setor_responsavel_edit = QLineEdit(data.get('setor_responsavel', ''))
+        setor_responsavel_group_box = QGroupBox("Divisão/Setor Responsável pela Demanda")
         self.apply_widget_style(setor_responsavel_group_box)
+        setor_responsavel_layout = QVBoxLayout()
+
+        sigla_layout = QHBoxLayout()
+        self.om_combo = QComboBox()
+        self.load_sigla_om()
+        self.om_combo.setCurrentText(data.get('sigla_om', ''))
+        self.apply_widget_style(self.om_combo)
+        self.om_combo.setFixedWidth(120)
+        sigla_layout.addWidget(self.om_combo)
+
+
+        responsavel_pela_demanda_label = QLabel("Responsável:")
+        self.responsavel_demanda_combo = QComboBox()
+        sigla_layout.addWidget(responsavel_pela_demanda_label)
+        sigla_layout.addWidget(self.responsavel_demanda_combo)
+        self.responsavel_demanda_combo.setFixedWidth(260)
+        setor_responsavel_layout.addLayout(sigla_layout)       
+
+        divisao_secao_layout = QHBoxLayout()
+        divisao_secao_label = QLabel("Divisão:")
+        self.setor_responsavel_edit = QLineEdit(data['setor_responsavel'])
+        self.apply_widget_style(divisao_secao_label)
         self.apply_widget_style(self.setor_responsavel_edit)
-        setor_responsavel_layout.addWidget(self.setor_responsavel_edit)
+        divisao_secao_layout.addWidget(divisao_secao_label)
+        divisao_secao_layout.addWidget(self.setor_responsavel_edit)
+        setor_responsavel_layout.addLayout(divisao_secao_layout)
+
+        par_layout = QHBoxLayout()
+        par_label = QLabel("PAR/Prioridade:")
+        self.par_edit = QLineEdit(str(data.get('cod_par', '')))
+        self.par_edit.setFixedWidth(90)
+        self.apply_widget_style(par_label)
+        self.apply_widget_style(self.par_edit)
+        par_layout.addWidget(par_label)
+        par_layout.addWidget(self.par_edit)
+        
+        # Adicionando QLabel e QComboBox para Prioridade
+        self.prioridade_combo = QComboBox()
+        self.prioridade_combo.addItems(["Necessário", "Urgente", "Desejável"])
+        self.prioridade_combo.setFixedWidth(100)
+        self.apply_widget_style(self.prioridade_combo)
+        par_layout.addWidget(self.prioridade_combo)
+
+        cep_label = QLabel("CEP:")
+        self.cep_edit = QLineEdit(str(data.get('cep', '')))
+        self.cep_edit.setFixedWidth(120)
+        self.apply_widget_style(cep_label)
+        self.apply_widget_style(self.cep_edit)
+        par_layout.addWidget(cep_label)
+        par_layout.addWidget(self.cep_edit)
+        
+        setor_responsavel_layout.addLayout(par_layout)
+
+        # Endereço
+        endereco_layout = QHBoxLayout()
+        endereco_label = QLabel("Endereço:")
+        self.endereco_edit = QLineEdit(data['endereco'])
+        self.apply_widget_style(endereco_label)
+        self.apply_widget_style(self.endereco_edit)
+        endereco_layout.addWidget(endereco_label)
+        endereco_layout.addWidget(self.endereco_edit)
+        setor_responsavel_layout.addLayout(endereco_layout)
+
+        # E-mail
+        email_telefone_layout = QHBoxLayout()
+        email_label = QLabel("E-mail:")
+        self.email_edit = QLineEdit(data['email'])
+        self.email_edit.setFixedWidth(250)
+        self.apply_widget_style(email_label)
+        self.apply_widget_style(self.email_edit)
+        email_telefone_layout.addWidget(email_label)
+        email_telefone_layout.addWidget(self.email_edit)
+
+        # Telefone
+        telefone_label = QLabel("Telefone:")
+        self.telefone_edit = QLineEdit(data['telefone'])
+        self.telefone_edit.setFixedWidth(120)
+        self.apply_widget_style(telefone_label)
+        self.apply_widget_style(self.telefone_edit)
+        email_telefone_layout.addWidget(telefone_label)
+        email_telefone_layout.addWidget(self.telefone_edit)
+        setor_responsavel_layout.addLayout(email_telefone_layout)
+
         setor_responsavel_group_box.setLayout(setor_responsavel_layout)
+
+        # Dias e horário para Recebimento
+        dias_layout = QHBoxLayout()
+        dias_label = QLabel("Dias para Recebimento:")
+        self.horario_edit = QLineEdit("Segunda à Sexta")
+        self.apply_widget_style(dias_label)
+        self.apply_widget_style(self.horario_edit)
+        dias_layout.addWidget(dias_label)
+        dias_layout.addWidget(self.horario_edit)
+        setor_responsavel_layout.addLayout(dias_layout)
+
+        horario_layout = QHBoxLayout()
+        horario_label = QLabel("Horário para Recebimento:")
+        self.horario_edit = QLineEdit("09 às 11h20 e 14 às 16h30")
+        self.apply_widget_style(horario_label)
+        self.apply_widget_style(self.horario_edit)
+        horario_layout.addWidget(horario_label)
+        horario_layout.addWidget(self.horario_edit)
+        setor_responsavel_layout.addLayout(horario_layout)
+        setor_responsavel_group_box.setLayout(setor_responsavel_layout)
+
         self.frame2_layout.addWidget(setor_responsavel_group_box)
-
-        # Operador
-        operador_group_box = QGroupBox("Operador")
-        operador_layout = QVBoxLayout()
-        self.operador_edit = QLineEdit(data.get('operador', ''))
-        self.apply_widget_style(operador_group_box)
-        self.apply_widget_style(self.operador_edit)
-        self.operador_edit.setFixedWidth(180)
-        operador_layout.addWidget(self.operador_edit)
-        operador_group_box.setLayout(operador_layout)
-        operador_data_layout.addWidget(operador_group_box)
-                
-        # Data da Sessão
-        data_sessao_group_box = QGroupBox("Data da Sessão")
-        data_sessao_layout = QVBoxLayout()
-        self.data_edit = QDateEdit()
-        self.data_edit.setCalendarPopup(True)
-        # Configura a data inicial
-        data_sessao_str = data.get('data_sessao', '')
-        if data_sessao_str:
-            self.data_edit.setDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
-        else:
-            self.data_edit.setDate(QDate.currentDate())
-        self.apply_widget_style(data_sessao_group_box)
-        self.apply_widget_style(self.data_edit)
-        self.data_edit.setFixedWidth(120)
-        data_sessao_layout.addWidget(self.data_edit)
-        data_sessao_group_box.setLayout(data_sessao_layout)
-        operador_data_layout.addWidget(data_sessao_group_box)
-
-        # Adicionar o layout horizontal ao layout principal do frame2
-        self.frame2_layout.addLayout(operador_data_layout)
-
+        self.carregarAgentesResponsaveis()
+        
     def fill_frame_classificacao_orcamentaria(self):
         data = self.extract_registro_data()
 
         classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
         self.apply_widget_style(classificacao_orcamentaria_group_box)
         classificacao_orcamentaria_layout = QVBoxLayout()
+
+        # Ação Interna
+        valor_estimado_layout = QHBoxLayout()
+        valor_estimado_label = QLabel("Valor Estimado:")
+        self.valor_edit = QLineEdit(data['valor_total'])
+        self.apply_widget_style(valor_estimado_label)
+        self.apply_widget_style(self.valor_edit)
+        valor_estimado_layout.addWidget(valor_estimado_label)
+        valor_estimado_layout.addWidget(self.valor_edit)
+        classificacao_orcamentaria_layout.addLayout(valor_estimado_layout)
 
         # Ação Interna
         acao_interna_layout = QHBoxLayout()
@@ -485,86 +571,150 @@ class EditDataDialog(QDialog):
 
         self.frame_classificacao_orcamentaria_layout.addWidget(classificacao_orcamentaria_group_box)
 
-    def fill_frame3(self):
-        self.frame3.setObjectName("fill_frame3")
-        self.frame3.setStyleSheet("#fill_frame3 { background-color: #050f41; }")
-        
+    def create_callback(self, tooltip, function):
+        def callback():
+            self.selected_button = tooltip
+            self.update_button_styles()
+            self.update_text_edit_fields(tooltip)
+            self.title_updated.emit(tooltip)  # Emitir sinal quando o botão é clicado
+
+            # Emitir o sinal button_changed
+            self.button_changed.emit(tooltip)
+
+            # Desconectar qualquer função anterior e conectar a função específica
+            try:
+                self.gerar_pdf_button.clicked.disconnect()
+            except TypeError:
+                pass  # Ignorar erro se não houver conexões anteriores
+            self.gerar_pdf_button.clicked.connect(function)
+        return callback
+
+    def update_button_styles(self):
+        # Percorrer todos os widgets no layout do menu e aplicar o estilo adequado
+        for i in range(self.menu_layout.count()):
+            widget = self.menu_layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                selected = (widget.text().strip() == self.selected_button)
+                self.apply_button_style(widget, selected)
+
+    def gerar_pdf_button(self):
+        pass
+
+    def fill_frame4(self):
+        self.menu_layout = QVBoxLayout()  # Armazene menu_layout como um atributo da classe
+        self.sigdem_layout = QVBoxLayout()
+
         button_texts = [
-            "   Abertura de Processo",
-            "   Documentos de Planejamento",
-            "   Aviso de Dispensa Eletrônica",
-            "   Lista de Verificação"
+            " Abertura de Processo",
+            " Documentos",
+            " Aviso de Dispensa",
+            " Lista de Verificação",
+            " Configurações"
         ]
         tooltips = [
             "Autorização para abertura do processo de Dispensa Eletrônica",
             "Documentos de Planejamento (CP, DFD, TR, etc.)",
             "Aviso de dispensa eletrônica",
-            "Lista de Verificação"
+            "Lista de Verificação",
+            "Configurações"
         ]
-        icon_files = ["1.png", "2.png", "3.png", "4.png"]
+        icon_files = ["1.png", "2.png", "3.png", "4.png", "5.png"]
         button_callbacks = [
-            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerarAutorizacao),
-            self.create_callback("Documentos de Planejamento (CP, DFD, TR, etc.)", self.gerar_documentos),
-            self.create_callback("Aviso de dispensa eletrônica", self.gerar_aviso),
-            self.create_callback("Lista de Verificação", self.gerar_lista)
+            self.create_callback(" Abertura de Processo", self.gerarAutorizacao),
+            self.create_callback(" Documentos", self.gerar_documentos),
+            self.create_callback(" Aviso de Dispensa", self.gerar_aviso),
+            self.create_callback(" Lista de Verificação", self.gerar_lista),
+            self.create_callback(" Configurações", self.gerar_lista)  # Supondo que existe uma função chamada gerar_configuracoes
         ]
 
-        button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(0, 0, 0, 0) 
-        
         for text, tooltip, icon_file, callback in zip(button_texts, tooltips, icon_files, button_callbacks):
             icon_path = self.ICONS_DIR / icon_file
             icon = QIcon(str(icon_path))
-            button = self.create_button(text, icon, callback, tooltip, QSize(350, 40))
-            self.apply_button_style(button, selected=(tooltip == self.selected_tooltip))
-            button_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignTop)
-        
-        self.frame3_layout.addLayout(button_layout)
-        
-        # Atualizar título inicialmente
-        self.update_frame4_title()
-        
-        # Conectar sinal para atualizar texto do botão Gerar PDF
-        self.title_updated.connect(self.update_pdf_button_text)
-        
-        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
-        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
+            button = self.create_button(text, icon, callback, tooltip, QSize(270, 40))
+            self.apply_button_style(button, selected=(text == self.selected_button))
+            self.menu_layout.addWidget(button)
 
-    def create_callback(self, tooltip, function):
-        def callback():
-            self.selected_tooltip = tooltip
-            self.update_frame4_title()
-            self.update_button_styles()
-            self.update_frame4_content()
-            self.update_text_edit_fields(tooltip)
-            self.title_updated.emit(tooltip)  # Emitir sinal quando o botão é clicado
-            
-            # Desconectar qualquer função anterior e conectar a função específica
-            try:
-                self.gerar_pdf_button.clicked.disconnect()  
-            except TypeError:
-                pass  # Ignorar erro se não houver conexões anteriores
-            self.gerar_pdf_button.clicked.connect(function)
-            
-        return callback
+        h_layout = QHBoxLayout()
+        h_layout.addLayout(self.menu_layout, 1)
+        h_layout.addLayout(self.painel_layout, 2)
+        h_layout.addLayout(self.sigdem_layout, 1)
 
-    def update_pdf_button_text(self, tooltip):
-        text_map = {
-            "Autorização para abertura do processo de Dispensa Eletrônica": "Autorização",
-            "Documentos de Planejamento (CP, DFD, TR, etc.)": "Documentos",
-            "Aviso de dispensa eletrônica": "Aviso",
-            "Lista de Verificação": "Lista de Verificação"
-        }
-        new_text = text_map.get(tooltip, "Gerar PDF")
-        self.gerar_pdf_button.setText(f"  {new_text}")
+        self.frame4_layout.addLayout(h_layout)
 
-    def update_frame4_title(self):
-        if self.frame4_group_box:  # Verifica se frame4_group_box foi inicializado
-            self.frame4_group_box.setTitle(self.selected_tooltip)
+        # # Chama setupGrupoSIGDEM aqui para a configuração inicial
+        # self.setupGrupoSIGDEM(self.sigdem_layout, self.selected_button)
 
-    def update_button_styles(self):
-        for button in self.frame3.findChildren(QPushButton):
-            self.apply_button_style(button, selected=(button.toolTip() == self.selected_tooltip))
+    def update_painel_layout(self, selected_button):
+        self.clear_layout(self.painel_layout)
+        self.clear_layout(self.sigdem_layout)  # Adicione essa linha para limpar o sigdem_layout
+
+        if selected_button == " Abertura de Processo":
+            self.add_autorizacao_text(self.painel_layout)
+        elif selected_button == " Documentos":
+            self.add_document_details(self.painel_layout)
+        elif selected_button == " Aviso de Dispensa":
+            self.add_aviso_dispensation(self.painel_layout)
+        elif selected_button == " Lista de Verificação":
+            self.add_lista_verificacao(self.painel_layout)
+        elif selected_button == " Configurações":
+            self.add_configurations(self.painel_layout)
+
+        # Atualize o layout direito com setupGrupoSIGDEM
+        self.setupGrupoSIGDEM(self.sigdem_layout, selected_button)
+
+    def clear_layout(self, layout):
+        for i in reversed(range(layout.count())):
+            widget_to_remove = layout.itemAt(i).widget()
+            if widget_to_remove:
+                widget_to_remove.deleteLater()
+
+    def add_autorizacao_text(self, layout):
+        authorization_text = """
+            Instruções<br><br>
+            Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada de "Planejamento" para <span style="color: red;">"Aprovado"</span><br><br>
+            Após publicado no PNCP a situação deverá ser alterada de "Aprovado" para <span style="color: red;">"Sessão Pública"</span><br><br>
+            Após a homologação situação deverá ser alterada de "Sessão Pública" para <span style="color: red;">"Homologado"</span><br><br>
+            Após a o empenho a situação deverá ser alterada de "Homologado" para <span style="color: red;">"Concluído"</span>
+        """
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(authorization_text)
+        text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
+        layout.addWidget(text_edit)
+
+    def add_document_details(self, layout):
+        document_details_widget = DocumentDetailsWidget(self.df_registro_selecionado, self)
+        layout.addWidget(document_details_widget)
+
+    def add_aviso_dispensation(self, layout):
+        aviso_text = """
+            Instruções para Aviso de Dispensa
+        """
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(aviso_text)
+        text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
+        layout.addWidget(text_edit)
+    
+    def add_lista_verificacao(self, layout):
+        lista_text = """
+            Instruções para Lista de Verificação
+        """
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(lista_text)
+        text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
+        layout.addWidget(text_edit)
+    
+    def add_configurations(self, layout):
+        configurations_text = """
+            Configurações do Sistema
+        """
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(configurations_text)
+        text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
+        layout.addWidget(text_edit)
                 
     def apply_button_style(self, button, selected=False):
         if selected:
@@ -602,24 +752,9 @@ class EditDataDialog(QDialog):
                 }
             """)
 
-    def fill_frame4(self):
-        self.frame4.setObjectName("fill_frame4")
-        self.frame4.setStyleSheet("#fill_frame4 { background-color: #050f41; }")
-
-        self.frame4_group_box_layout = QHBoxLayout()
-        self.frame4.setLayout(self.frame4_group_box_layout)
-
-        self.frame4.setFixedWidth(1505)
-        self.frame4.setFixedHeight(340)
-
-        self.frame4_layout.setContentsMargins(0, 0, 0, 0)
-        self.frame4_layout.addLayout(self.frame4_group_box_layout)
-
-        self.frame4_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-        self.update_frame4_content()
-
-    def setupGrupoSIGDEM(self, layout_direita):
+    def setupGrupoSIGDEM(self, layout_direita, selected_button):
+        self.clear_layout(layout_direita)  # Adicione esta linha para limpar o layout antes de adicionar novos widgets
+        
         grupoSIGDEM = QGroupBox("SIGDEM")
         grupoSIGDEM.setStyleSheet("""
                 QGroupBox {
@@ -643,7 +778,8 @@ class EditDataDialog(QDialog):
         layout.addWidget(labelAssunto)
         self.textEditAssunto = QTextEdit()
         self.textEditAssunto.setStyleSheet("font-size: 12pt;")
-        self.textEditAssunto.setPlainText(f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica")
+        assunto_text = self.get_assunto_text(selected_button)
+        self.textEditAssunto.setPlainText(assunto_text)
         self.textEditAssunto.setMaximumHeight(60)
 
         icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))  # Caminho para o ícone de Word
@@ -660,10 +796,7 @@ class EditDataDialog(QDialog):
         layout.addWidget(labelSinopse)
         self.textEditSinopse = QTextEdit()
         self.textEditSinopse.setStyleSheet("font-size: 12pt;")
-        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
-        sinopse_text = (f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                        f"Processo Administrativo NUP: {self.nup}\n"
-                        f"Setor Demandante: {self.setor_responsavel}")
+        sinopse_text = self.get_sinopse_text(selected_button)
         self.textEditSinopse.setPlainText(sinopse_text)
         self.textEditSinopse.setMaximumHeight(140)
         btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
@@ -683,63 +816,31 @@ class EditDataDialog(QDialog):
 
         layout_direita.addWidget(grupoSIGDEM)
 
+    def get_assunto_text(self, selected_button):
+        if selected_button == " Abertura de Processo":
+            return f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica"
+        elif selected_button == " Documentos":
+            return f"{self.id_processo} – Documentos de Planejamento"
+        elif selected_button == " Aviso de Dispensa":
+            return f"{self.id_processo} – Aviso de Dispensa Eletrônica"
+        elif selected_button == " Lista de Verificação":
+            return f"{self.id_processo} – Lista de Verificação"
+        else:
+            return ""
+
+    def get_sinopse_text(self, selected_button):
+        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
+        base_text = (
+            f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
+            f"Processo Administrativo NUP: {self.nup}\n"
+            f"Setor Demandante: {self.setor_responsavel}"
+        )
+        return base_text
+
     def copyToClipboard(self, text):
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
-
-    def update_frame4_content(self):
-        for i in reversed(range(self.frame4_group_box_layout.count())):
-            widget_to_remove = self.frame4_group_box_layout.itemAt(i).widget()
-            if widget_to_remove is not None:
-                widget_to_remove.setParent(None)
-
-        layout_esquerda = QVBoxLayout()
-        layout_centro = QVBoxLayout()
-        layout_direita = QVBoxLayout()
-
-        esquerda_widget = QWidget()
-        centro_widget = QWidget()
-        direita_widget = QWidget()
-
-        esquerda_widget.setLayout(layout_esquerda)
-        centro_widget.setLayout(layout_centro)
-        direita_widget.setLayout(layout_direita)
-
-        esquerda_widget.setFixedWidth(320)
-        centro_widget.setFixedWidth(600)
-
-        self.frame4_group_box_layout.addWidget(esquerda_widget)
-        self.frame4_group_box_layout.addWidget(centro_widget)
-        self.frame4_group_box_layout.addWidget(direita_widget)
-
-        if self.selected_tooltip == "Autorização para abertura do processo de Dispensa Eletrônica":
-            self.add_common_widgets(layout_esquerda)
-            # Adiciona o texto central específico
-            authorization_text = """
-                Instruções<br><br>
-                Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada de "Planejamento" para <span style="color: red;">"Aprovado"</span><br><br>
-                Após publicado no PNCP a situação deverá ser alterada de "Aprovado" para <span style="color: red;">"Sessão Pública"</span><br><br>
-                Após a homologação situação deverá ser alterada de "Sessão Pública" para <span style="color: red;">"Homologado"</span><br><br>
-                Após a o empenho a situação deverá ser alterada de "Homologado" para <span style="color: red;">"Concluído"</span>
-            """
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            text_edit.setHtml(authorization_text)
-            text_edit.setStyleSheet("background-color: #050f41; color: white; font-size: 12pt;")
-            layout_centro.addWidget(text_edit)
-        elif self.selected_tooltip == "Documentos de Planejamento (CP, DFD, TR, etc.)":
-            self.add_common_widgets(layout_esquerda)
-            text_edit = QTextEdit()
-            text_edit.setStyleSheet("color: white; font-size: 14pt; background-color: #1e2a56;")
-            layout_centro.addWidget(text_edit)
-        elif self.selected_tooltip == "Aviso de dispensa eletrônica":
-            self.add_common_widgets(layout_esquerda)
-        elif self.selected_tooltip == "Lista de Verificação":
-            self.add_common_widgets(layout_esquerda)
-
-        self.carregarAgentesResponsaveis()
-        self.setupGrupoSIGDEM(layout_direita)
 
     def carregarAgentesResponsaveis(self):
         try:
@@ -779,11 +880,11 @@ class EditDataDialog(QDialog):
             sql_query = f"SELECT nome, posto, funcao FROM controle_agentes_responsaveis WHERE funcao LIKE '{funcao_like}'"
         
         agentes_df = pd.read_sql_query(sql_query, conn)
+        combo_widget.clear()
         for index, row in agentes_df.iterrows():
             texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
             # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
-            data_dict = {'nome': row['nome'], 'posto': row['posto'], 'funcao': row['funcao']}
-            combo_widget.addItem(row['nome'], data_dict)
+            combo_widget.addItem(texto_display, userData=row.to_dict())    
 
     def update_text_edit_fields(self, tooltip):
         descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
@@ -820,69 +921,50 @@ class EditDataDialog(QDialog):
         self.textEditSinopse.setPlainText(sinopse_text_map.get(tooltip, ""))
 
     def add_common_widgets(self, parent_layout):
-        def create_group_box_with_combo(title):
-            group_box = QGroupBox(title)
-            layout = QVBoxLayout()
-            combo = QComboBox()
-            combo.setFixedHeight(30)
-            # Criando e aplicando o delegate
-            delegate = ItemDelegate()
-            combo.setItemDelegate(delegate)
-            
-            # Aplicar folha de estilo CSS ao QComboBox
-            combo.setStyleSheet("""
-                QComboBox {
-                    background-color: white; 
-                    border: 1px solid gray;
-                    border-radius: 3px;     
-                    padding: 1px 18px 1px 3px; 
-  
-                }
-            """)
-            layout.addWidget(combo)
-            group_box.setLayout(layout)
-            group_box.setFixedHeight(60)
-            group_box.setFixedWidth(300)
+        button_texts = [
+            "   Abertura de Processo",
+            "   Documentos",
+            "   Aviso de Dispensa",
+            "   Lista de Verificação"
+        ]
+        tooltips = [
+            "Autorização para abertura do processo de Dispensa Eletrônica",
+            "Documentos de Planejamento (CP, DFD, TR, etc.)",
+            "Aviso de dispensa eletrônica",
+            "Lista de Verificação"
+        ]
+        icon_files = ["1.png", "2.png", "3.png", "4.png"]
+        button_callbacks = [
+            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerarAutorizacao),
+            self.create_callback("Documentos de Planejamento (CP, DFD, TR, etc.)", self.gerar_documentos),
+            self.create_callback("Aviso de dispensa eletrônica", self.gerar_aviso),
+            self.create_callback("Lista de Verificação", self.gerar_lista)
+        ]
 
-            # Aplicar folha de estilo CSS ao QGroupBox
-            group_box.setStyleSheet("""
-                QGroupBox {
-                    border: 1px solid white;
-                    border-radius: 5px;
-                    margin-top: 5px;
-                    font: 12pt 'Arial';
-                    color: white;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    subcontrol-position: top center;
-                    padding: 0 3px;
-                }
-            """)
-            return group_box, combo
-
-        # Criar e adicionar comboboxes com estilos personalizados
-        ordenador_group_box, self.ordenador_combo = create_group_box_with_combo("Ordenador de Despesas")
-        parent_layout.addWidget(ordenador_group_box)
-
-        agente_fiscal_group_box, self.agente_fiscal_combo = create_group_box_with_combo("Agente Fiscal")
-        parent_layout.addWidget(agente_fiscal_group_box)
-
-        gerente_credito_group_box, self.gerente_credito_combo = create_group_box_with_combo("Gerente de Credito da Ação Interna")
-        parent_layout.addWidget(gerente_credito_group_box)
-
-        responsavel_demanda_group_box, self.responsavel_demanda_combo = create_group_box_with_combo("Responsável pela Demanda")
-        parent_layout.addWidget(responsavel_demanda_group_box)
+        button_layout = QVBoxLayout()
+        button_layout.setContentsMargins(0, 0, 0, 0) 
+        
+        for text, tooltip, icon_file, callback in zip(button_texts, tooltips, icon_files, button_callbacks):
+            icon_path = self.ICONS_DIR / icon_file
+            icon = QIcon(str(icon_path))
+            button = self.create_button(text, icon, callback, tooltip, QSize(300, 40))
+            self.apply_button_style(button, selected=(tooltip == self.selected_tooltip))
+            button_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignTop)
+        
+        self.frame4_layout.addLayout(button_layout)
+        
+        # Atualizar título inicialmente
+        self.update_frame4_title()
+        
+        # Conectar sinal para atualizar texto do botão Gerar PDF
+        self.title_updated.connect(self.update_pdf_button_text)
+        
+        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
+        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
 
         # Layout para centralizar o botão
-        button_layout = QHBoxLayout()
         button_layout.addWidget(self.gerar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         parent_layout.addLayout(button_layout)
-
-    def initialize_gerar_pdf_button(self):
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        self.gerar_pdf_button = self.create_button("  Autorização", icon_pdf, self.gerarAutorizacao, "Gerar PDF", QSize(300, 65), QSize(50, 50))
-        self.apply_dark_red_style(self.gerar_pdf_button)
 
     def apply_dark_red_style(self, button):
         button.setStyleSheet("""
@@ -965,13 +1047,13 @@ class EditDataDialog(QDialog):
         data = {
             'nup': self.nup_edit.text().strip(),
             'objeto': self.objeto_edit.text().strip(),
-            'objeto_completo': self.objeto_det_edit.text().strip(),
+            # 'objeto_completo': self.objeto_det_edit.text().strip(),
             'valor_total': self.valor_edit.text().strip(),
             'setor_responsavel': self.setor_responsavel_edit.text().strip(),
             'operador': self.operador_edit.text().strip(),
             'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),
-            'link_pncp': self.link_pncp_edit.text().strip(),
-            'link_portal_marinha': self.link_portal_edit.text().strip(),
+            # 'link_pncp': self.link_pncp_edit.text().strip(),
+            # 'link_portal_marinha': self.link_portal_edit.text().strip(),
             'material_servico': self.material_edit.currentText(),
             'situacao': self.situacao_edit.currentText(),
             'sigla_om': self.om_combo.currentText(),
@@ -982,6 +1064,10 @@ class EditDataDialog(QDialog):
             'natureza_despesa': self.natureza_despesa_edit.text().strip(),
             'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
             'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
+            'telefone': self.telefone_edit.text().strip(),
+            'email': self.email_edit.text().strip(),
+            'endereco': self.endereco_edit.text().strip(),
+            'CEP': self.cep_edit.text().strip(),
         }
 
         with self.database_manager as connection:
