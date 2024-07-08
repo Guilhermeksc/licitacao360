@@ -34,14 +34,11 @@ class EditDataDialog(QDialog):
         header_widget = self.update_title_label()
         self.layout.addWidget(header_widget)
 
-        self.selected_button = " Abertura de Processo"  # Inicializa com o botão padrão selecionado
+        self.selected_button = "Abertura de Processo"  # Inicializa com o botão padrão selecionado
 
         self.frame4_group_box = None
 
         self.painel_layout = QVBoxLayout()  # Inicializa painel_layout antes de setup_frames
-
-        self.gerar_pdf_button = QPushButton("Gerar PDF")
-        self.apply_button_style(self.gerar_pdf_button, selected=False)
 
         # Conectar o sinal ao método de atualização do layout
         self.button_changed.connect(self.update_painel_layout)
@@ -172,19 +169,21 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(button_x)
         self.apply_widget_style(button_config)
 
-    def create_button(self, text, icon, callback, tooltip_text, button_size=None, icon_size=None):
+    def create_button(self, text, icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):
         btn = QPushButton(text)
-        btn.setIcon(icon)
-        btn.setIconSize(icon_size if icon_size else QSize(40, 40))
+        if icon:
+            btn.setIcon(icon)
+            btn.setIconSize(icon_size if icon_size else QSize(40, 40))
         if button_size:
             btn.setFixedSize(button_size)
         btn.setToolTip(tooltip_text)
-        btn.clicked.connect(callback)
+        if callback:
+            btn.clicked.connect(callback)  # Conecta o callback ao evento de clique
         return btn
 
     def open_editar_responsaveis_dialog(self):
         config_dialog = ConfiguracoesDispensaDialog(self)
-        config_dialog.config_updated.connect(self.update_frame4_content)
+        # config_dialog.config_updated.connect(self.update_frame4_content)
         if config_dialog.exec():
             print("Configurações salvas")
         else:
@@ -223,6 +222,7 @@ class EditDataDialog(QDialog):
         self.fill_frame2()
         self.fill_frame_classificacao_orcamentaria()
         self.fill_frame4()
+        self.reapply_special_button_style()
 
     def create_frame(self, object_name=None):
         frame = QFrame()
@@ -573,93 +573,129 @@ class EditDataDialog(QDialog):
 
     def create_callback(self, tooltip, function):
         def callback():
-            self.selected_button = tooltip
-            self.update_button_styles()
-            self.update_text_edit_fields(tooltip)
-            self.title_updated.emit(tooltip)  # Emitir sinal quando o botão é clicado
-
-            # Emitir o sinal button_changed
-            self.button_changed.emit(tooltip)
-
-            # Desconectar qualquer função anterior e conectar a função específica
-            try:
-                self.gerar_pdf_button.clicked.disconnect()
-            except TypeError:
-                pass  # Ignorar erro se não houver conexões anteriores
-            self.gerar_pdf_button.clicked.connect(function)
+            self.selected_button = tooltip.strip()  # Atualiza o botão selecionado
+            self.update_button_styles()  # Atualiza os estilos dos botões
+            self.title_updated.emit(tooltip)  # Emite um sinal com o título atualizado
+            self.button_changed.emit(tooltip)  # Emite um sinal de mudança de botão
+            function()  # Chama a função associada
         return callback
 
     def update_button_styles(self):
+        # Debugging: Verificar o valor de self.selected_button
+        print(f"Botão selecionado atual: '{self.selected_button}'")
         # Percorrer todos os widgets no layout do menu e aplicar o estilo adequado
         for i in range(self.menu_layout.count()):
             widget = self.menu_layout.itemAt(i).widget()
             if isinstance(widget, QPushButton):
-                selected = (widget.text().strip() == self.selected_button)
+                # Usar strip() para garantir que não há espaços extras
+                selected = (widget.text().strip() == self.selected_button.strip())
                 self.apply_button_style(widget, selected)
-
-    def gerar_pdf_button(self):
-        pass
+                print(f"Estilo aplicado em '{widget.text()}': {'Selecionado' if selected else 'Não selecionado'}")
+                widget.update()  # Forçar a atualização do estilo do widget
 
     def fill_frame4(self):
-        self.menu_layout = QVBoxLayout()  # Armazene menu_layout como um atributo da classe
+        self.menu_layout = QVBoxLayout()
         self.sigdem_layout = QVBoxLayout()
 
         button_texts = [
-            " Abertura de Processo",
-            " Documentos",
-            " Aviso de Dispensa",
-            " Lista de Verificação",
-            " Configurações"
-        ]
-        tooltips = [
-            "Autorização para abertura do processo de Dispensa Eletrônica",
-            "Documentos de Planejamento (CP, DFD, TR, etc.)",
-            "Aviso de dispensa eletrônica",
+            "Abertura de Processo",
+            "Documentos",
+            "Aviso de Dispensa",
             "Lista de Verificação",
+            "Dados Adicionais",
             "Configurações"
         ]
-        icon_files = ["1.png", "2.png", "3.png", "4.png", "5.png"]
-        button_callbacks = [
-            self.create_callback(" Abertura de Processo", self.gerarAutorizacao),
-            self.create_callback(" Documentos", self.gerar_documentos),
-            self.create_callback(" Aviso de Dispensa", self.gerar_aviso),
-            self.create_callback(" Lista de Verificação", self.gerar_lista),
-            self.create_callback(" Configurações", self.gerar_lista)  # Supondo que existe uma função chamada gerar_configuracoes
-        ]
 
-        for text, tooltip, icon_file, callback in zip(button_texts, tooltips, icon_files, button_callbacks):
-            icon_path = self.ICONS_DIR / icon_file
-            icon = QIcon(str(icon_path))
-            button = self.create_button(text, icon, callback, tooltip, QSize(270, 40))
+        for text in button_texts:
+            button = self.create_button(
+                text,
+                callback=lambda checked, text=text: self.button_clicked(text) if not checked else None,  # Corrigido para garantir que o sinal seja capturado corretamente
+                button_size=QSize(270, 40)
+            )
             self.apply_button_style(button, selected=(text == self.selected_button))
             self.menu_layout.addWidget(button)
+
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        self.special_button = self.create_button("Selecionar Opção", icon=icon_pdf, button_size=QSize(270, 60))
+        self.special_button.setIconSize(QSize(48, 48))  # Configura o tamanho do ícone
+        self.apply_dark_red_style(self.special_button)
+        self.menu_layout.addWidget(self.special_button)
+
+        self.update_special_button(self.selected_button)
+        self.reapply_special_button_style()
 
         h_layout = QHBoxLayout()
         h_layout.addLayout(self.menu_layout, 1)
         h_layout.addLayout(self.painel_layout, 2)
         h_layout.addLayout(self.sigdem_layout, 1)
-
         self.frame4_layout.addLayout(h_layout)
 
-        # # Chama setupGrupoSIGDEM aqui para a configuração inicial
-        # self.setupGrupoSIGDEM(self.sigdem_layout, self.selected_button)
+    def button_clicked(self, text):
+        if isinstance(text, str):
+            cleaned_text = text.strip()
+            self.selected_button = cleaned_text
+            self.update_special_button(cleaned_text)
+            self.update_painel_layout(cleaned_text)
+            self.update_button_styles()
+            self.reapply_special_button_style()  # Garante que o estilo seja reaplicado após atualizações
+            print(f"Botão '{cleaned_text}' clicado.")
+        else:
+            print("Tipo de dado inválido recebido: ", type(text))
+
+    def update_special_button(self, selected_button):
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))  # Carrega o ícone de PDF
+        special_button_texts = {
+            "Abertura de Processo": ("Gerar Autorização", self.gerarAutorizacao),
+            "Documentos": ("Gerar Documentos", self.gerar_documentos),
+            "Aviso de Dispensa": ("Gerar Aviso", self.gerar_aviso),
+            "Lista de Verificação": ("Gerar LV", self.gerar_lista),
+            "Dados Adicionais": ("Dados Adicionais", self.gerar_lista),
+            "Configurações": ("Configurações", self.gerar_configuracoes)
+        }
+        if selected_button in special_button_texts:
+            text, action = special_button_texts[selected_button]
+            self.special_button.setText(text)
+            self.special_button.setIcon(icon_pdf)  # Configura o ícone do botão
+            self.special_button.setIconSize(QSize(48, 48))  # Define o tamanho do ícone
+            self.special_button.disconnect()
+            self.special_button.clicked.connect(action)
+            self.apply_dark_red_style(self.special_button)
+            self.reapply_special_button_style()
+            print(f"Botão especial configurado para '{text}' com a ação e ícone associados.")
+        else:
+            print(f"Erro: Texto '{selected_button}' não encontrado no mapeamento de botões especiais.")
+
+    def update_button_styles(self):
+        # Este método presume que você mantém o rastreamento do botão selecionado em algum lugar, como self.selected_button
+        for i in range(self.menu_layout.count()):
+            widget = self.menu_layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                selected = (widget.text().strip() == self.selected_button.strip())
+                self.apply_button_style(widget, selected)
+                print(f"Estilo aplicado em '{widget.text()}': {'Selecionado' if selected else 'Não selecionado'}")
+
+    def reapply_special_button_style(self):
+        if hasattr(self, 'special_button'):
+            self.apply_dark_red_style(self.special_button)
+            print("Estilo vermelho escuro reaplicado ao botão especial.")
 
     def update_painel_layout(self, selected_button):
+        print(f"Atualizando layout para o botão '{selected_button}'.")
         self.clear_layout(self.painel_layout)
-        self.clear_layout(self.sigdem_layout)  # Adicione essa linha para limpar o sigdem_layout
+        self.clear_layout(self.sigdem_layout)
 
-        if selected_button == " Abertura de Processo":
+        if selected_button == "Abertura de Processo":
             self.add_autorizacao_text(self.painel_layout)
-        elif selected_button == " Documentos":
+        elif selected_button == "Documentos":
             self.add_document_details(self.painel_layout)
-        elif selected_button == " Aviso de Dispensa":
+        elif selected_button == "Aviso de Dispensa":
             self.add_aviso_dispensation(self.painel_layout)
-        elif selected_button == " Lista de Verificação":
+        elif selected_button == "Lista de Verificação":
             self.add_lista_verificacao(self.painel_layout)
-        elif selected_button == " Configurações":
+        elif selected_button == "Configurações":
             self.add_configurations(self.painel_layout)
 
-        # Atualize o layout direito com setupGrupoSIGDEM
+        # Atualize o layout direito com setupGrupoSIGDEM, se aplicável
         self.setupGrupoSIGDEM(self.sigdem_layout, selected_button)
 
     def clear_layout(self, layout):
@@ -670,12 +706,13 @@ class EditDataDialog(QDialog):
 
     def add_autorizacao_text(self, layout):
         authorization_text = """
-            Instruções<br><br>
-            Após aprovado pelo Ordenador de Despesas a situação deverá ser alterada de "Planejamento" para <span style="color: red;">"Aprovado"</span><br><br>
-            Após publicado no PNCP a situação deverá ser alterada de "Aprovado" para <span style="color: red;">"Sessão Pública"</span><br><br>
-            Após a homologação situação deverá ser alterada de "Sessão Pública" para <span style="color: red;">"Homologado"</span><br><br>
-            Após a o empenho a situação deverá ser alterada de "Homologado" para <span style="color: red;">"Concluído"</span>
+            <strong>Instruções para alteração da "Situação" do processo:</strong><br><br>
+            Após aprovado pelo Ordenador de Despesas, alterar de <span style="color: orange;">"Planejamento"</span> para <span style="color: orange;">"Aprovado"</span><br>
+            Após publicado no PNCP, alterar de <span style="color: orange;">"Aprovado"</span> para <span style="color: orange;">"Sessão Pública"</span><br>
+            Após a homologação, alterar de <span style="color: orange;">"Sessão Pública"</span> para <span style="color: orange;">"Homologado"</span><br>
+            Após o empenho, alterar de <span style="color: orange;">"Homologado"</span> para <span style="color: orange;">"Concluído"</span>
         """
+
         text_edit = QTextEdit()
         text_edit.setReadOnly(True)
         text_edit.setHtml(authorization_text)
@@ -817,13 +854,13 @@ class EditDataDialog(QDialog):
         layout_direita.addWidget(grupoSIGDEM)
 
     def get_assunto_text(self, selected_button):
-        if selected_button == " Abertura de Processo":
+        if selected_button == "Abertura de Processo":
             return f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica"
-        elif selected_button == " Documentos":
+        elif selected_button == "Documentos":
             return f"{self.id_processo} – Documentos de Planejamento"
-        elif selected_button == " Aviso de Dispensa":
+        elif selected_button == "Aviso de Dispensa":
             return f"{self.id_processo} – Aviso de Dispensa Eletrônica"
-        elif selected_button == " Lista de Verificação":
+        elif selected_button == "Lista de Verificação":
             return f"{self.id_processo} – Lista de Verificação"
         else:
             return ""
@@ -920,70 +957,25 @@ class EditDataDialog(QDialog):
         self.textEditAssunto.setPlainText(assunto_text_map.get(tooltip, ""))
         self.textEditSinopse.setPlainText(sinopse_text_map.get(tooltip, ""))
 
-    def add_common_widgets(self, parent_layout):
-        button_texts = [
-            "   Abertura de Processo",
-            "   Documentos",
-            "   Aviso de Dispensa",
-            "   Lista de Verificação"
-        ]
-        tooltips = [
-            "Autorização para abertura do processo de Dispensa Eletrônica",
-            "Documentos de Planejamento (CP, DFD, TR, etc.)",
-            "Aviso de dispensa eletrônica",
-            "Lista de Verificação"
-        ]
-        icon_files = ["1.png", "2.png", "3.png", "4.png"]
-        button_callbacks = [
-            self.create_callback("Autorização para abertura do processo de Dispensa Eletrônica", self.gerarAutorizacao),
-            self.create_callback("Documentos de Planejamento (CP, DFD, TR, etc.)", self.gerar_documentos),
-            self.create_callback("Aviso de dispensa eletrônica", self.gerar_aviso),
-            self.create_callback("Lista de Verificação", self.gerar_lista)
-        ]
-
-        button_layout = QVBoxLayout()
-        button_layout.setContentsMargins(0, 0, 0, 0) 
-        
-        for text, tooltip, icon_file, callback in zip(button_texts, tooltips, icon_files, button_callbacks):
-            icon_path = self.ICONS_DIR / icon_file
-            icon = QIcon(str(icon_path))
-            button = self.create_button(text, icon, callback, tooltip, QSize(300, 40))
-            self.apply_button_style(button, selected=(tooltip == self.selected_tooltip))
-            button_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignTop)
-        
-        self.frame4_layout.addLayout(button_layout)
-        
-        # Atualizar título inicialmente
-        self.update_frame4_title()
-        
-        # Conectar sinal para atualizar texto do botão Gerar PDF
-        self.title_updated.connect(self.update_pdf_button_text)
-        
-        # Emitir o sinal inicial para definir o texto do botão como "Autorização"
-        self.title_updated.emit("Autorização para abertura do processo de Dispensa Eletrônica")
-
-        # Layout para centralizar o botão
-        button_layout.addWidget(self.gerar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        parent_layout.addLayout(button_layout)
-
     def apply_dark_red_style(self, button):
         button.setStyleSheet("""
             QPushButton, QPushButton::tooltip {
                 font-size: 16pt;
-                font-weight: bold; 
+                font-weight: bold;
             }
             QPushButton {
                 background-color: #8B0000;
                 color: white;
-                border: none;  
-                border-radius: 5px;  
-                padding: 5px;  
+                border: none;
+                border-radius: 5px;
+                padding: 5px;
             }
-            QPushButton:hover {  
-                background-color: #A52A2A; 
+            QPushButton:hover {
+                background-color: #A52A2A;
                 border: 1px solid #FF6347;
             }
         """)
+        button.update()  # Força a atualização do widget
 
     def gerarDocumento(self):
         print("Gerando autorização...")
@@ -997,6 +989,9 @@ class EditDataDialog(QDialog):
     def gerar_lista(self):
         print("Gerando lista de verificação...")
 
+    def gerar_configuracoes(self):
+        print("Gerando configurações...")
+        
     def teste(self):
         print("Teste")
 

@@ -22,51 +22,39 @@ class DocumentDetailsWidget(QWidget):
         cp_label = QLabel("CP nº")
         cp_label.setStyleSheet("color: white; font-size: 12pt;")
         self.cp_edit = QLineEdit()
-        self.cp_edit.setStyleSheet("font-size: 12pt;")
+        self.cp_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 12pt;
+                background-color: white;
+            }
+            QLineEdit:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        
         cp_layout.addWidget(cp_label)
         cp_layout.addWidget(self.cp_edit)
             
         main_layout.addLayout(cp_layout)
         
-        # Adicionando "Meta do PAR" na mesma linha do cp_layout
-        par_label = QLabel("Meta do PAR:")
-        par_label.setStyleSheet("color: white; font-size: 12pt;")
-        self.par_edit = QLineEdit()
-        self.par_edit.setText(self.get_value('cod_par'))
-        self.par_edit.setStyleSheet("font-size: 12pt;")
-        cp_layout.addWidget(par_label)
-        cp_layout.addWidget(self.par_edit)
-
-        # Adicionando "Prioridade" na mesma linha do cp_layout
-        prioridade_label = QLabel("Prioridade:")
-        prioridade_label.setStyleSheet("color: white; font-size: 12pt;")
-        self.prioridade_edit = QLineEdit()
-        self.prioridade_edit.setText(self.get_value('cod_par'))
-        self.prioridade_edit.setStyleSheet("font-size: 12pt;")
-        cp_layout.addWidget(prioridade_label)
-        cp_layout.addWidget(self.prioridade_edit)
-
         # Adicionando outros campos
         self.add_label_edit_pair(main_layout, "Do:", "Responsável pela demanda")
         self.add_label_edit_pair(main_layout, "Ao:", "Encarregado da Divisão de Obtenção")
-        self.add_label_edit_pair(main_layout, "Endereço:", self.get_value('endereco'))
         
-        # Adicionando CEP, E-mail e Telefone na mesma linha
-        contact_layout = QHBoxLayout()
-        self.add_label_edit_pair(contact_layout, "CEP:", self.get_value('cep'))
-        self.add_label_edit_pair(contact_layout, "E-mail:", self.get_value('email'))
-        self.add_label_edit_pair(contact_layout, "Telefone:", self.get_value('telefone'))
-        main_layout.addLayout(contact_layout)
-        
+        anexos_layout = QHBoxLayout()
+        anexos_label = QLabel("Anexos:")
+        anexos_label.setStyleSheet("color: white; font-size: 12pt;")
+        add_pdf_button = QPushButton("Editar Anexos")
+        add_pdf_button.setStyleSheet("font-size: 12pt; padding: 5px;")
+        add_pdf_button.clicked.connect(self.add_pdf_to_merger)
+        anexos_layout.addWidget(anexos_label)
+        anexos_layout.addWidget(add_pdf_button)
+            
+        main_layout.addLayout(anexos_layout)   
+
         # Adicionando campo "Justificativa" como QTextEdit
         self.add_label_textedit_pair(main_layout, "Justificativa:", self.get_value('justificativa'))
         
-        editar_anexos_layout = QHBoxLayout()
-        add_pdf_button = QPushButton("Adicionar PDF")
-        add_pdf_button.setStyleSheet("font-size: 12pt; padding: 5px;")
-        add_pdf_button.clicked.connect(self.add_pdf_to_merger)
-        editar_anexos_layout.addWidget(add_pdf_button)
-        main_layout.addLayout(editar_anexos_layout)
 
     def add_label_edit_pair(self, layout, label_text, placeholder_text):
         layout_pair = QHBoxLayout()
