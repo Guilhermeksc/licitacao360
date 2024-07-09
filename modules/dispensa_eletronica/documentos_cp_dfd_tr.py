@@ -6,8 +6,9 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
-import fitz  # PyMuPDF
+import fitz
 from docxtpl import DocxTemplate
+import pandas as pd
 
 class DocumentDetailsWidget(QWidget):
     def __init__(self, df_registro_selecionado, parent=None):
@@ -19,7 +20,7 @@ class DocumentDetailsWidget(QWidget):
         
         # Adicionando QLineEdit "CP nº" e botão "Adicionar PDF"
         cp_layout = QHBoxLayout()
-        cp_label = QLabel("CP nº")
+        cp_label = QLabel("Comunicação Padronizada nº")
         cp_label.setStyleSheet("color: white; font-size: 12pt;")
         self.cp_edit = QLineEdit()
         self.cp_edit.setStyleSheet("""
@@ -37,9 +38,39 @@ class DocumentDetailsWidget(QWidget):
             
         main_layout.addLayout(cp_layout)
         
-        # Adicionando outros campos
-        self.add_label_edit_pair(main_layout, "Do:", "Responsável pela demanda")
-        self.add_label_edit_pair(main_layout, "Ao:", "Encarregado da Divisão de Obtenção")
+        responsavel_layout = QHBoxLayout()
+        responsavel_label = QLabel("Do:")
+        responsavel_label.setStyleSheet("color: white; font-size: 12pt;")
+        self.responsavel_edit = QLineEdit("Responsável pela Demanda")
+        self.responsavel_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 12pt;
+                background-color: white;
+            }
+            QLineEdit:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        responsavel_layout.addWidget(responsavel_label)
+        responsavel_layout.addWidget(self.responsavel_edit)
+        main_layout.addLayout(responsavel_layout)
+
+        encarregado_obtencao_layout = QHBoxLayout()
+        encarregado_obtencao_label = QLabel("Ao:")
+        encarregado_obtencao_label.setStyleSheet("color: white; font-size: 12pt;")
+        self.encarregado_obtencao_edit = QLineEdit("Encarregado da Divisão de Obtenção")
+        self.encarregado_obtencao_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 12pt;
+                background-color: white;
+            }
+            QLineEdit:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        encarregado_obtencao_layout.addWidget(encarregado_obtencao_label)
+        encarregado_obtencao_layout.addWidget(self.encarregado_obtencao_edit)
+        main_layout.addLayout(encarregado_obtencao_layout)
         
         anexos_layout = QHBoxLayout()
         anexos_label = QLabel("Anexos:")
@@ -54,7 +85,6 @@ class DocumentDetailsWidget(QWidget):
 
         # Adicionando campo "Justificativa" como QTextEdit
         self.add_label_textedit_pair(main_layout, "Justificativa:", self.get_value('justificativa'))
-        
 
     def add_label_edit_pair(self, layout, label_text, placeholder_text):
         layout_pair = QHBoxLayout()
@@ -131,14 +161,70 @@ class PDFAddDialog(QDialog):
         self.load_file_paths()
 
     def setup_ui(self):
-        self.setFixedSize(1100, 600) 
-        layout = QVBoxLayout(self)
-        
-        # Add the header with title
-        header_widget = self.create_header()
-        layout.addWidget(header_widget)
+        self.setFixedSize(1500, 780)  # Tamanho ajustado para acomodar todos os componentes
 
-        # data_view
+        # Layout principal vertical
+        main_layout = QVBoxLayout(self)
+
+        # Layout para a visualização, slider e QTreeWidget
+        view_and_slider_and_tree_layout = QHBoxLayout()
+        # Layout vertical para a visualização do PDF e botões de navegação
+        pdf_view_layout = QVBoxLayout()
+
+        # DraggableGraphicsView para visualizar o PDF
+        self.pdf_view = DraggableGraphicsView()
+        self.scene = QGraphicsScene()
+        self.pdf_view.setScene(self.scene)
+        self.pdf_view.setFixedSize(550, 730)  # Tamanho da visualização do PDF
+        pdf_view_layout.addWidget(self.pdf_view)
+
+        # Botões de navegação de páginas abaixo da visualização do PDF
+        navigation_widget = QWidget()
+        nav_buttons_layout = QHBoxLayout(navigation_widget)
+        
+        self.prev_page_button = QPushButton("← Página Anterior")
+        self.prev_page_button.clicked.connect(self.prev_page)
+
+        # Inicializa o QLabel para o contador de páginas
+        self.page_label = QLabel("1 de 1")
+        self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.page_label.setStyleSheet("font-size: 14px; margin: 5px;")
+
+        self.next_page_button = QPushButton("Próxima Página →")
+        self.next_page_button.clicked.connect(self.next_page)
+
+        # Adiciona os botões e o QLabel ao layout de navegação
+        nav_buttons_layout.addWidget(self.prev_page_button)
+        nav_buttons_layout.addWidget(self.page_label, 1)  # O argumento 1 faz com que o QLabel expanda para preencher o espaço
+        nav_buttons_layout.addWidget(self.next_page_button)
+
+        # Define o tamanho máximo para o widget de navegação
+        navigation_widget.setMaximumWidth(540)
+
+        # Adiciona o widget de navegação ao layout principal
+        pdf_view_layout.addWidget(navigation_widget)
+
+        # Adiciona o layout da visualização do PDF ao layout horizontal
+        view_and_slider_and_tree_layout.addLayout(pdf_view_layout)
+        
+        # Slider de Zoom ao lado da visualização
+        self.zoom_slider = QSlider(Qt.Orientation.Vertical)
+        self.zoom_slider.setMinimum(10)  # 10% do zoom original
+        self.zoom_slider.setMaximum(200)  # 200% do zoom original
+        self.zoom_slider.setValue(100)  # Valor inicial do zoom (100%)
+        self.zoom_slider.setTickPosition(QSlider.TickPosition.TicksRight)
+        self.zoom_slider.setTickInterval(10)
+        self.zoom_slider.valueChanged.connect(self.adjust_zoom)
+        view_and_slider_and_tree_layout.addWidget(self.zoom_slider)
+
+        # Layout vertical para o QTreeWidget e seus botões
+        tree_layout = QVBoxLayout()
+
+        # Cria e adiciona o cabeçalho acima do QTreeWidget
+        header_widget = self.create_header()
+        tree_layout.addWidget(header_widget)
+
+        # QTreeWidget para exibir dados
         self.data_view = QTreeWidget()
         self.data_view.setHeaderHidden(True)
         self.data_view.setStyleSheet("""
@@ -146,43 +232,111 @@ class PDFAddDialog(QDialog):
                 height: 40px;
                 font-size: 14px;
             }
-        """)  # Ajusta a altura das linhas e o tamanho da fonte
-        layout.addWidget(self.data_view)
+        """)
+        self.data_view.itemClicked.connect(self.display_pdf)
+        tree_layout.addWidget(self.data_view)
 
-        # Add initial items with sublevels
-        self.add_initial_items()
-
-        # Add buttons to add and delete anexos and sublevels
-        button_layout = QHBoxLayout()
-
+        # Botões relacionados ao QTreeWidget abaixo dele
+        tree_buttons_layout = QHBoxLayout()
         add_button = QPushButton("Adicionar Anexo")
-        add_button.setStyleSheet("font-size: 14px;")  # Aplica o estilo ao botão
+        add_button.setStyleSheet("font-size: 14px;")
         add_button.clicked.connect(self.add_anexo)
-        button_layout.addWidget(add_button)
+        tree_buttons_layout.addWidget(add_button)
 
         add_sublevel_button = QPushButton("Adicionar Subnível")
-        add_sublevel_button.setStyleSheet("font-size: 14px;")  # Aplica o estilo ao botão
+        add_sublevel_button.setStyleSheet("font-size: 14px;")
         add_sublevel_button.clicked.connect(self.add_sublevel)
-        button_layout.addWidget(add_sublevel_button)
+        tree_buttons_layout.addWidget(add_sublevel_button)
 
         delete_button = QPushButton("Deletar")
-        delete_button.setStyleSheet("font-size: 14px;")  # Aplica o estilo ao botão
+        delete_button.setStyleSheet("font-size: 14px;")
         delete_button.clicked.connect(self.delete_item)
-        button_layout.addWidget(delete_button)
+        tree_buttons_layout.addWidget(delete_button)
 
-        # File selection button
         file_button = QPushButton("Selecionar Arquivo")
-        file_button.setStyleSheet("font-size: 14px;")  # Aplica o estilo ao botão
+        file_button.setStyleSheet("font-size: 14px;")
         file_button.clicked.connect(self.select_pdf_file)
-        button_layout.addWidget(file_button)
-        
+        tree_buttons_layout.addWidget(file_button)
+
         reset_button = QPushButton("Resetar")
         reset_button.setStyleSheet("font-size: 14px;")
         reset_button.clicked.connect(self.reset_data)
-        button_layout.addWidget(reset_button)
+        tree_buttons_layout.addWidget(reset_button)
 
-        layout.addLayout(button_layout)
-        self.setLayout(layout)
+        # Adiciona o layout dos botões ao layout do QTreeWidget
+        tree_layout.addLayout(tree_buttons_layout)
+
+        # Adiciona o layout do QTreeWidget ao layout horizontal principal
+        view_and_slider_and_tree_layout.addLayout(tree_layout)
+
+        # Adiciona o layout combinado ao layout principal
+        main_layout.addLayout(view_and_slider_and_tree_layout)
+
+        # Configura o layout geral da janela
+        self.setLayout(main_layout)
+
+    def create_header(self):
+        html_text = f"Anexos da {self.tipo} nº {self.numero}/{self.ano}<br>"
+        
+        self.titleLabel = QLabel()
+        self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
+        self.titleLabel.setStyleSheet("color: black; font-size: 30px; font-weight: bold;")
+        self.titleLabel.setText(html_text)
+
+        self.header_layout = QHBoxLayout()
+        self.header_layout.addWidget(self.titleLabel)
+
+        header_widget = QWidget()
+        header_widget.setLayout(self.header_layout)
+
+        return header_widget
+    
+    def adjust_zoom(self, value):
+        # Calcula o fator de escala baseado no valor do slider
+        scale_factor = value / 100.0
+        # Reseta a transformação atual e aplica o novo zoom
+        self.pdf_view.resetTransform()
+        self.pdf_view.scale(scale_factor, scale_factor)
+
+    def display_pdf(self, item, column):
+        full_text = item.text(column)
+        if " || " in full_text:
+            file_path = full_text.split(" || ", 1)[1]
+        else:
+            file_path = full_text
+        if file_path.endswith('.pdf'):
+            self.load_pdf(file_path)
+
+    def load_pdf(self, file_path):
+        print("Tentando abrir o arquivo PDF:", file_path)  # Confirma o caminho do arquivo antes de tentar abrir
+        try:
+            self.document = fitz.open(file_path)  # Abre o documento e guarda em self.document
+            self.current_page = 0  # Define a primeira página como a atual
+            self.show_page(self.current_page)  # Mostra a primeira página
+        except Exception as e:
+            print("Erro ao abrir o arquivo PDF:", e)  # Printa o erro caso não consiga abrir o arquivo
+
+    def show_page(self, page_number):
+        if self.document:
+            page = self.document.load_page(page_number)
+            mat = fitz.Matrix(5.0, 5.0)  # Ajuste para a escala desejada
+            pix = page.get_pixmap(matrix=mat)
+            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(img)
+            self.scene.clear()
+            self.scene.addPixmap(pixmap)
+            # Atualiza o contador de páginas
+            self.page_label.setText(f"{page_number + 1} de {self.document.page_count}")
+
+    def next_page(self):
+        if self.document and self.current_page < self.document.page_count - 1:
+            self.current_page += 1
+            self.show_page(self.current_page)
+
+    def prev_page(self):
+        if self.document and self.current_page > 0:
+            self.current_page -= 1
+            self.show_page(self.current_page)
 
     def reset_data(self):
         # Cria uma caixa de mensagem de confirmação
@@ -206,7 +360,7 @@ class PDFAddDialog(QDialog):
         if selected_item:
             file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar PDF", "", "PDF Files (*.pdf)")
             if file_path:
-                selected_item.setText(0, f'{selected_item.text(0).split(" - ")[0]} - {file_path}')
+                selected_item.setText(0, f'{selected_item.text(0).split(" || ")[0]} || {file_path}')
                 selected_item.setIcon(0, self.icon_existe)
                 self.save_file_paths()
             else:
@@ -240,20 +394,22 @@ class PDFAddDialog(QDialog):
         if file_path.exists():
             with open(file_path, 'r') as file:
                 items = json.load(file)
-                self.data_view.clear()  # Limpa itens existentes antes de carregar
+                self.data_view.clear()
                 for item in items:
                     parent_item = QTreeWidgetItem(self.data_view, [item['text']])
                     parent_item.setFont(0, QFont('SansSerif', 14))
                     for child in item['children']:
                         child_item = QTreeWidgetItem(parent_item, [child['text']])
                         child_item.setFont(0, QFont('SansSerif', 14))
-                        # Definir ícones se necessário baseado em mais lógica
-                        child_item.setIcon(0, self.icon_existe if ' - ' in child['text'] else self.icon_nao_existe)
+                        file_path = child_item.text(0).split(" || ")[-1]
+                        if Path(file_path).exists():
+                            child_item.setIcon(0, self.icon_existe)
+                        else:
+                            child_item.setIcon(0, self.icon_nao_existe)
                     parent_item.setExpanded(True)
 
-
     def create_header(self):
-        html_text = f"{self.tipo} nº {self.numero}/{self.ano}<br>"
+        html_text = f"Anexos da {self.tipo} nº {self.numero}/{self.ano}<br>"
         
         self.titleLabel = QLabel()
         self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
@@ -303,7 +459,7 @@ class PDFAddDialog(QDialog):
         text, ok = QInputDialog.getText(self, 'Adicionar Anexo', 'Digite o nome do anexo:')
         if ok and text:
             current_count = self.data_view.topLevelItemCount()
-            new_anexo = f"Anexo {chr(65 + current_count)} - {text}"
+            new_anexo = f"Anexo {chr(65 + current_count)} || {text}"
             new_anexo_item = QTreeWidgetItem(self.data_view, [new_anexo])
             new_anexo_item.setFont(0, QFont('SansSerif', 14))
             new_anexo_item.setIcon(0, self.icon_nao_existe)
@@ -350,273 +506,87 @@ class PDFAddDialog(QDialog):
         else:
             super().keyPressEvent(event)
 
+class DraggableGraphicsView(QGraphicsView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self._panning = False
+        self._last_mouse_position = QPoint()
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)  # Zoom focalizado no cursor do mouse
 
-# class TreeItem:
-#     def __init__(self, data, parent=None):
-#         self.parentItem = parent
-#         self.itemData = data
-#         self.childItems = []
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._panning = True
+            self._last_mouse_position = event.pos()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        super().mousePressEvent(event)
 
-#     def appendChild(self, item):
-#         self.childItems.append(item)
+    def mouseMoveEvent(self, event):
+        if self._panning:
+            delta = event.pos() - self._last_mouse_position
+            self._last_mouse_position = event.pos()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+        super().mouseMoveEvent(event)
 
-#     def child(self, row):
-#         return self.childItems[row]
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._panning = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().mouseReleaseEvent(event)
 
-#     def childCount(self):
-#         return len(self.childItems)
+    def wheelEvent(self, event):
+        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:  # Verifica se o Ctrl está pressionado
+            factor = 1.15 if event.angleDelta().y() > 0 else 0.85  # Ajusta o fator de zoom baseado na direção do scroll
+            self.scale(factor, factor)
+        else:
+            super().wheelEvent(event)  # Processa o evento normalmente se o Ctrl não estiver pressionado
 
-#     def columnCount(self):
-#         return len(self.itemData)
+class ConsolidarDocumentos:
+    def __init__(self, df_registro_selecionado):
+        self.df_registro_selecionado = df_registro_selecionado
 
-#     def data(self, column):
-#         try:
-#             return self.itemData[column]
-#         except IndexError:
-#             return None
+    def gerar_comunicacao_padronizada(self, ordenador_de_despesas, responsavel_pela_demanda, document_details):
+        if self.df_registro_selecionado.empty:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+            print("Nenhum registro selecionado.")
+            return
 
-#     def parent(self):
-#         return self.parentItem
+        try:
+            # Assume a existência de uma variável 'TEMPLATE_DISPENSA_DIR' e 'tipo'
+            template_filename = f"template_cp.docx"  # Assumindo um tipo padrão
+            template_path = TEMPLATE_DISPENSA_DIR / template_filename
+            if not template_path.exists():
+                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
+                print(f"O arquivo de template não foi encontrado: {template_path}")
+                return
 
-#     def row(self):
-#         if self.parentItem:
-#             return self.parentItem.childItems.index(self)
-#         return 0
+            nome_pasta = f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - {self.df_registro_selecionado['objeto'].iloc[0]}"
+            pasta_base = Path.home() / 'Desktop' / nome_pasta / "2. Comunicacao Padronizada"
+            pasta_base.mkdir(parents=True, exist_ok=True)  # Garante a criação da pasta
 
-# class TreeModel(QAbstractItemModel):
-#     def __init__(self, title, data, parent=None):
-#         super(TreeModel, self).__init__(parent)
-#         self.rootItem = TreeItem((title,))
-#         self.setupModelData(data, self.rootItem)
+            save_path = pasta_base / f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - Cp.docx"
+            print(f"Caminho completo para salvar o documento: {save_path}")
 
-#     def getItemLevel(self, index):
-#         level = 0
-#         while index.parent().isValid():
-#             index = index.parent()
-#             level += 1
-#         return level
+            doc = DocxTemplate(str(template_path))
+            context = self.df_registro_selecionado.to_dict('records')[0]
+            descricao_servico = "aquisição de" if self.df_registro_selecionado['material_servico'].iloc[0] == "Material" else "contratação de empresa especializada em"
 
-#     def columnCount(self, parent):
-#         if parent.isValid():
-#             return parent.internalPointer().columnCount()
-#         return self.rootItem.columnCount()
+            context.update({
+                'descricao_servico': descricao_servico,
+                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
+                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}",
+                'cp_number': document_details['cp_number'],
+                'encarregado_obtencao': document_details['encarregado_obtencao'],
+                'responsavel': document_details['responsavel']
+            })
 
-#     def data(self, index, role):
-#         if not index.isValid():
-#             return None
-#         item = index.internalPointer()
-#         text = item.data(index.column())
-#         level = self.getItemLevel(index)
-#         if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
-#             if level == 1:
-#                 parts = text.split(' - ')
-#                 if len(parts) == 2:
-#                     if parts[1] == "Arquivo não definido":
-#                         formatted_text = f"{parts[0]} - <span style='color:red;'>{parts[1]}</span>"
-#                         print(f"Formatted text for 'Arquivo não definido': {formatted_text}")
-#                         return formatted_text
-#                     else:
-#                         formatted_text = f"{parts[0]} - <span style='color:green;'>{parts[1]}</span>"
-#                         print(f"Formatted text for file path: {formatted_text}")
-#                         return formatted_text
-#             return text
-#         return None
+            print("Contexto para renderização:", context)
+            doc.render(context)
+            doc.save(str(save_path))
+            print("Documento gerado com sucesso:", save_path)
+            return str(save_path)
 
-#     def setData(self, index, value, role):
-#         if index.isValid() and role == Qt.ItemDataRole.EditRole:
-#             item = index.internalPointer()
-#             item.itemData[0] = value
-#             self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole])
-#             return True
-#         return False
-
-#     def flags(self, index):
-#         if not index.isValid():
-#             return Qt.ItemFlag.ItemIsEnabled
-#         return QAbstractItemModel.flags(self, index) | Qt.ItemFlag.ItemIsEditable
-
-#     def headerData(self, section, orientation, role):
-#         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
-#             return self.rootItem.data(section)
-#         return None
-
-#     def index(self, row, column, parent):
-#         if not self.hasIndex(row, column, parent):
-#             return QModelIndex()
-
-#         if not parent.isValid():
-#             parentItem = self.rootItem
-#         else:
-#             parentItem = parent.internalPointer()
-
-#         childItem = parentItem.child(row)
-#         if childItem:
-#             return self.createIndex(row, column, childItem)
-#         return QModelIndex()
-
-#     def parent(self, index):
-#         if not index.isValid():
-#             return QModelIndex()
-
-#         childItem = index.internalPointer()
-#         parentItem = childItem.parent()
-
-#         if parentItem == self.rootItem:
-#             return QModelIndex()
-
-#         return self.createIndex(parentItem.row(), 0, parentItem)
-
-#     def rowCount(self, parent):
-#         if parent.column() > 0:
-#             return 0
-
-#         if not parent.isValid():
-#             parentItem = self.rootItem
-#         else:
-#             parentItem = parent.internalPointer()
-
-#         return parentItem.childCount()
-
-#     def setupModelData(self, data, parent):
-#         for section, items in data.items():
-#             sectionItem = TreeItem([section], parent)
-#             parent.appendChild(sectionItem)
-#             for item, path in items:
-#                 itemItem = TreeItem([f"{item} - {path}"], sectionItem)
-#                 sectionItem.appendChild(itemItem)
-
-# class ButtonDelegate(QStyledItemDelegate):
-#     def __init__(self, parent=None):
-#         super(ButtonDelegate, self).__init__(parent)
-#         self.parent = parent
-#         self.icon_cancel = QIcon(str(parent.ICONS_DIR / "cancel.png"))
-#         self.icon_search = QIcon(str(parent.ICONS_DIR / "localizar_pdf.png"))
-
-#     def paint(self, painter, option, index):
-#         if not index.isValid():
-#             return
-
-#         item = index.internalPointer()
-#         level = self.parent.treeModel.getItemLevel(index)
-#         text = item.data(index.column())
-#         if level == 1:  # Apply formatting only to level 2 items
-#             parts = text.split(' - ')
-#             if len(parts) == 2:
-#                 if parts[1] == "Arquivo não definido":
-#                     formatted_text = f"{parts[0]} - <span style='color:red;'>{parts[1]}</span>"
-#                 else:
-#                     formatted_text = f"{parts[0]} - <span style='color:green;'>{parts[1]}</span>"
-#                 option.widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter)
-#                 text_option = QTextOption()
-#                 text_option.setWrapMode(QTextOption.WrapMode.WordWrap)
-#                 painter.save()
-#                 painter.setFont(option.font)
-#                 painter.setPen(QColor(option.palette.color(QPalette.ColorRole.Text)))
-#                 painter.translate(option.rect.left(), option.rect.top())
-#                 text_document = QTextDocument()
-#                 text_document.setHtml(formatted_text)
-#                 text_document.drawContents(painter)
-#                 painter.restore()
-
-#                 # Draw buttons
-#                 button_width = 25
-#                 button_height = 25
-#                 spacing = 5
-#                 remove_button_rect = QRect(int(option.rect.right() - button_width * 2 - spacing),
-#                                            int(option.rect.top() + (option.rect.height() - button_height) / 2),
-#                                            button_width,
-#                                            button_height)
-#                 select_button_rect = QRect(int(option.rect.right() - button_width - spacing),
-#                                            int(option.rect.top() + (option.rect.height() - button_height) / 2),
-#                                            button_width,
-#                                            button_height)
-#                 self.icon_cancel.paint(painter, remove_button_rect, Qt.AlignmentFlag.AlignCenter)
-#                 self.icon_search.paint(painter, select_button_rect, Qt.AlignmentFlag.AlignCenter)
-
-#             else:
-#                 super().paint(painter, option, index)
-#         else:
-#             # Paint without HTML formatting for level 1 items
-#             option.widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter)
-#             painter.save()
-#             painter.setFont(option.font)
-#             painter.setPen(QColor(option.palette.color(QPalette.ColorRole.Text)))
-#             painter.drawText(option.rect, Qt.AlignmentFlag.AlignLeft, text)
-#             painter.restore()
-
-#     def createEditor(self, parent, option, index):
-#         if self.parent.treeModel.getItemLevel(index) == 1:
-#             item = index.internalPointer()
-#             editor = TreeWidgetItem(item.data(0), self.icon_cancel, self.icon_search, parent)
-#             editor.removeButton.clicked.connect(lambda: self.removeItem(index))
-#             editor.selectButton.clicked.connect(lambda: self.selectFile(editor, index))
-#             return editor
-#         return super().createEditor(parent, option, index)
-
-#     def setEditorData(self, editor, index):
-#         if self.parent.treeModel.getItemLevel(index) == 1:
-#             item = index.internalPointer()
-#             editor.setText(item.data(0))
-#         else:
-#             super().setEditorData(editor, index)
-
-#     def setModelData(self, editor, model, index):
-#         if self.parent.treeModel.getItemLevel(index) == 1:
-#             model.setData(index, editor.textLabel.text(), Qt.ItemDataRole.EditRole)
-#         else:
-#             super().setModelData(editor, model, index)
-
-#     def updateEditorGeometry(self, editor, option, index):
-#         editor.setGeometry(option.rect)
-
-#     def removeItem(self, index):
-#         self.parent.treeModel.removeRow(index.row(), index.parent())
-
-#     def selectFile(self, editor, index):
-#         file_dialog = QFileDialog(self.parent)
-#         file_path, _ = file_dialog.getOpenFileName(filter="PDF files (*.pdf)")
-#         if file_path:
-#             # Update the text in the editor
-#             current_text = editor.textLabel.text()
-#             parts = current_text.split(' - ')
-#             if len(parts) == 2:
-#                 new_text = f"{parts[0]} - <span style='color:green;'>{file_path}</span>"
-#                 editor.setText(new_text)
-#                 # Update the model data
-#                 self.parent.treeModel.setData(index, new_text, Qt.ItemDataRole.EditRole)
-                
-# class TreeWidgetItem(QWidget):
-#     def __init__(self, text, icon_cancel, icon_search, parent=None):
-#         super(TreeWidgetItem, self).__init__(parent)
-#         layout = QHBoxLayout(self)
-#         self.textLabel = QLabel(self)
-#         self.textLabel.setTextFormat(Qt.TextFormat.RichText)  # Enable RichText
-#         self.setText(text)
-        
-#         self.removeButton = QPushButton()
-#         self.removeButton.setIcon(icon_cancel)
-#         self.removeButton.setFixedSize(25, 25)
-        
-#         self.selectButton = QPushButton()
-#         self.selectButton.setIcon(icon_search)
-#         self.selectButton.setFixedSize(25, 25)
-        
-#         layout.addWidget(self.textLabel)
-#         layout.addWidget(self.removeButton)
-#         layout.addWidget(self.selectButton)
-#         layout.setContentsMargins(0, 0, 0, 0)
-#         self.setLayout(layout)
-
-#     def setText(self, text):
-#         parts = text.split(' - ')
-#         if len(parts) == 2:
-#             if parts[1] == "Arquivo não definido":
-#                 formatted_text = f"{parts[0]} - <span style='color:red;'>{parts[1]}</span>"
-#                 print(f"Setting text for 'Arquivo não definido': {formatted_text}")
-#                 self.textLabel.setText(formatted_text)
-#             else:
-#                 formatted_text = f"{parts[0]} - <span style='color:green;'>{parts[1]}</span>"
-#                 print(f"Setting text for file path: {formatted_text}")
-#                 self.textLabel.setText(formatted_text)
-#         else:
-#             self.textLabel.setText(text)
+        except Exception as e:
+            QMessageBox.warning(None, "Erro", f"Erro ao gerar ou salvar o documento: {e}")
+            print(f"Erro ao gerar ou salvar o documento: {e}")

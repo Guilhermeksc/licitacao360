@@ -3,7 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 from modules.dispensa_eletronica.configuracao_dispensa_eletronica import ConfiguracoesDispensaDialog
-from modules.dispensa_eletronica.documentos_cp_dfd_tr import DocumentDetailsWidget, PDFAddDialog
+from modules.dispensa_eletronica.documentos_cp_dfd_tr import DocumentDetailsWidget, PDFAddDialog, ConsolidarDocumentos
 from diretorios import *
 import pandas as pd
 import sqlite3
@@ -21,6 +21,8 @@ class EditDataDialog(QDialog):
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
+        self.document_details_widget = None 
+        self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
         self.ICONS_DIR = Path(icons_dir)
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
@@ -160,7 +162,7 @@ class EditDataDialog(QDialog):
         
         button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(130, 50), QSize(40, 40))
         button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
-        button_config = self.create_button(" Importar", icon_config, self.open_config_dialog, "Alterar local de salvamento, entre outras configurações", QSize(130, 50), QSize(30, 30))
+        button_config = self.create_button(" Importar", icon_config, self.importar_tabela, "Alterar local de salvamento, entre outras configurações", QSize(130, 50), QSize(30, 30))
         
         layout.addWidget(button_confirm)
         layout.addWidget(button_x)
@@ -168,6 +170,76 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(button_confirm)
         self.apply_widget_style(button_x)
         self.apply_widget_style(button_config)
+
+    def importar_tabela(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Opções de Tabela")
+        layout = QVBoxLayout(dialog)
+
+        # Botões para as opções
+        btn_generate = QPushButton("Gerar Tabela")
+        btn_import = QPushButton("Importar Tabela")
+
+        btn_generate.clicked.connect(self.gerar_tabela)  # Supondo que essa função exista
+        btn_import.clicked.connect(self.carregar_tabela)  # Supondo que essa função exista
+
+        layout.addWidget(btn_generate)
+        layout.addWidget(btn_import)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
+    def gerar_tabela(self):
+        try:
+            data = self.extract_registro_data()  # Extrai os dados
+            df = pd.DataFrame(list(data.items()), columns=['Campo', 'Valor'])
+
+            # Define o caminho do arquivo XLSX
+            xlsx_path = os.path.join(os.path.expanduser("~"), "Desktop", f"Dados_Registro_{self.df_registro_selecionado['numero'].iloc[0]}_{self.df_registro_selecionado['ano'].iloc[0]}.xlsx")
+
+            # Cria o arquivo XLSX
+            with pd.ExcelWriter(xlsx_path, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False)
+
+                # Ajuste do tamanho das colunas no workbook
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
+                worksheet.column_dimensions['A'].width = 40  # Largura da coluna A ajustada para 200 pixels / aproximadamente 20 caracteres
+                worksheet.column_dimensions['B'].width = 60  # Largura da coluna B ajustada para 300 pixels / aproximadamente 30 caracteres
+
+            # Abre o arquivo XLSX criado
+            os.startfile(xlsx_path)
+        except Exception as e:
+            QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao gerar ou abrir o arquivo XLSX: {str(e)}")
+
+    def carregar_tabela(self):
+        # Abre um QFileDialog para selecionar o arquivo Excel
+        file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo Excel", os.path.expanduser("~"), "Excel Files (*.xlsx)")
+
+        if not file_path:
+            return  # O usuário cancelou a seleção do arquivo
+
+        try:
+            # Lê o arquivo Excel para um DataFrame
+            df = pd.read_excel(file_path)
+
+            # Converte DataFrame para dicionário onde as chaves são os campos e os valores são os dados correspondentes
+            data = dict(zip(df['Campo'], df['Valor']))
+
+            # Abre a conexão com o banco de dados e atualiza os registros
+            with self.database_manager as connection:
+                cursor = connection.cursor()
+                set_part = ', '.join([f"{key} = ?" for key in data.keys()])
+                valores = list(data.values())
+                valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
+
+                query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
+                cursor.execute(query, valores)
+                connection.commit()
+
+            QMessageBox.information(self, "Sucesso", "Dados importados e atualizados com sucesso no banco de dados.")
+        except Exception as e:
+            QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao carregar ou atualizar dados: {str(e)}")
 
     def create_button(self, text, icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):
         btn = QPushButton(text)
@@ -510,7 +582,8 @@ class EditDataDialog(QDialog):
         # Ação Interna
         valor_estimado_layout = QHBoxLayout()
         valor_estimado_label = QLabel("Valor Estimado:")
-        self.valor_edit = QLineEdit(data['valor_total'])
+        valor_total = data['valor_total'] if pd.notna(data['valor_total']) else ""
+        self.valor_edit = QLineEdit(str(valor_total))
         self.apply_widget_style(valor_estimado_label)
         self.apply_widget_style(self.valor_edit)
         valor_estimado_layout.addWidget(valor_estimado_label)
@@ -720,8 +793,57 @@ class EditDataDialog(QDialog):
         layout.addWidget(text_edit)
 
     def add_document_details(self, layout):
-        document_details_widget = DocumentDetailsWidget(self.df_registro_selecionado, self)
-        layout.addWidget(document_details_widget)
+        self.document_details_widget = DocumentDetailsWidget(self.df_registro_selecionado, self)
+        layout.addWidget(self.document_details_widget)
+
+    def get_document_details(self):
+        if self.document_details_widget:
+            details = {
+                'cp_number': self.document_details_widget.cp_edit.text(),
+                'encarregado_obtencao': self.document_details_widget.encarregado_obtencao_edit.text(),
+                'responsavel': self.document_details_widget.responsavel_edit.text()
+            }
+            return details
+        return {"cp_number": "", "encarregado_obtencao": "", "responsavel": ""}
+
+    def gerar_documentos(self):
+        numero = self.df_registro_selecionado['numero'].iloc[0]
+        ano = self.df_registro_selecionado['ano'].iloc[0]
+        json_file_name = f"DE_{numero}-{ano}_file_paths.json"
+        json_file_path = JSON_DISPENSA_DIR / json_file_name
+
+        # Verifica se o arquivo JSON existe
+        if not json_file_path.exists():
+            QMessageBox.warning(self, "Arquivo não encontrado", f"O arquivo {json_file_name} não foi encontrado.")
+            return
+
+        # Carrega o arquivo JSON
+        with open(json_file_path, 'r', encoding='utf-8') as file:
+            contents = json.load(file)
+
+        error_messages = []
+        
+        # Verifica os arquivos PDF listados
+        for item in contents:
+            if 'children' in item:
+                for child in item['children']:
+                    pdf_path = child['text'].split(' || ')[-1]
+                    if pdf_path.endswith('.pdf'):
+                        if not Path(pdf_path).exists():
+                            error_messages.append(f"O arquivo PDF não existe: {pdf_path}")
+                    else:
+                        error_messages.append(f"Não há PDF vinculado ao anexo '{child['text'].split(' - ')[0]}'")
+
+        if error_messages:
+            error_report = '\n'.join(error_messages)
+            QMessageBox.warning(self, "Erro ao verificar PDFs", error_report)
+
+        document_details = self.get_document_details()
+        ordenador_de_despesas = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
+        responsavel_pela_demanda = self.responsavel_demanda_combo.currentData(Qt.ItemDataRole.UserRole)
+        
+        # Continuação do processo...
+        self.consolidador.gerar_comunicacao_padronizada(ordenador_de_despesas, responsavel_pela_demanda, document_details)
 
     def add_aviso_dispensation(self, layout):
         aviso_text = """
@@ -976,12 +1098,6 @@ class EditDataDialog(QDialog):
             }
         """)
         button.update()  # Força a atualização do widget
-
-    def gerarDocumento(self):
-        print("Gerando autorização...")
-
-    def gerar_documentos(self):
-        print("Gerando documentos...")
 
     def gerar_aviso(self):
         print("Gerando aviso...")
