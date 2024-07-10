@@ -261,9 +261,9 @@ class UIManager:
         if self.table_view.selectionModel():
             self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
             self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-            # self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
 
         self.update_column_headers()
+        self.reorder_columns()
         self.hide_unwanted_columns()
             
     def adjust_columns(self):
@@ -272,24 +272,20 @@ class UIManager:
         QTimer.singleShot(1, self.apply_custom_column_sizes) 
 
     def apply_custom_column_sizes(self):
-        print("Aplicando configurações de tamanho de coluna...")
         header = self.table_view.horizontalHeader()
-        
-        # Configurações específicas de redimensionamento para colunas selecionadas
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(12, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(17, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(12, QHeaderView.ResizeMode.Fixed) 
-        # Definir tamanhos específicos onde necessário
         header.resizeSection(0, 140)
-        header.resizeSection(4, 175)
-        header.resizeSection(8, 100)
-        header.resizeSection(10, 100)
-        header.resizeSection(17, 200)
-        header.resizeSection(12, 170)
+        header.resizeSection(5, 175)
+        header.resizeSection(12, 100)
+        header.resizeSection(14, 100)
+        header.resizeSection(4, 200)
+        header.resizeSection(10, 170)
 
     def apply_custom_style(self):
         # Aplica um estilo CSS personalizado ao tableView
@@ -350,18 +346,23 @@ class UIManager:
     def update_column_headers(self):
         titles = {
             0: "ID Processo",
-            4: "NUP",
-            5: "Objeto",
-            8: "UASG",
-            10: "OM",
-            13: "Status",
-            14: "Operador"
+            5: "NUP",
+            7: "Objeto",
+            12: "UASG",
+            14: "OM",
+            4: "Status",
+            10: "Operador"
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
+    def reorder_columns(self):
+        new_order = [4, 0, 5, 7, 12, 14, 10]
+        for i, col in enumerate(new_order):
+            self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
+
     def hide_unwanted_columns(self):
-        visible_columns = {0, 4, 5, 8, 10, 17, 12}
+        visible_columns = {0, 5, 7, 12, 14, 4, 10}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)

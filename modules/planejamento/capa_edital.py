@@ -13,6 +13,7 @@ import time
 import sqlite3
 import locale
 from num2words import num2words
+
 import re
 from modules.planejamento.utilidades_planejamento import remover_caracteres_especiais
 
@@ -27,9 +28,8 @@ def formatar_valor_monetario(valor):
     # Formata para a moeda local sem usar locale
     valor_monetario = f"R$ {valor_float:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     # Converte para extenso
-    valor_extenso = num2words.num2words(valor_float, lang='pt_BR', to='currency')
+    valor_extenso = num2words(valor_float, lang='pt_BR', to='currency')
     return valor_monetario, valor_extenso
-
 class CapaEdital(QDialog):
     def __init__(self, main_app, config_manager, df_registro, parent=None):
         super().__init__(parent)

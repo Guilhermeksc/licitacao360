@@ -855,7 +855,7 @@ class AtasDialog(QDialog):
         layout.addWidget(cidades_label)
 
         self.cidades_combobox = QComboBox()
-        cidades = ["Brasília-DF", "Rio Grande-RS", "São Pedro da Aldeia-RJ", "Rio de Janeiro-RJ", "Natal-RN", "Manaus-MA"]
+        cidades = ["Brasília-DF", "Rio Grande-RS", "Salvador-BA", "São Pedro da Aldeia-RJ", "Rio de Janeiro-RJ", "Natal-RN", "Manaus-MA"]
         self.cidades_combobox.addItems(cidades)
         self.cidades_combobox.setFont(QFont('Arial', 14))
         self.cidades_combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -881,8 +881,10 @@ class AtasDialog(QDialog):
             "Centro de Intendência da Marinha em Brasília (CeIMBra)",
             "Centro de Intendência da Marinha em Natal (CeIMNa)",
             "Centro de Intendência da Marinha em Manaus (CeIMMa)",
+            "Centro de Intendência da Marinha em Salvador (CeIMSa)",
             "Centro de Intendência da Marinha em Rio Grande (CeIMRG)",
-            "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)"
+            "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)",
+            "Hospital Naval de Brasília (HNBra)"
         ]
         self.org_combobox.addItems(organizations)
         self.org_combobox.setFont(QFont('Arial', 14))
@@ -952,9 +954,14 @@ class AtasDialog(QDialog):
 
     @staticmethod
     def convert_pe_format(pe_string):
+        if pe_string is None:
+            print("Erro: pe_string é None")
+            return None
+
         pe_formatted = pe_string.replace('PE-', 'PE ').replace('-', '/')
         print(f"Converted PE format: {pe_formatted}")  # Depuração
         return pe_formatted
+
 
     def obter_nup(self, pe_formatted):
         try:
@@ -992,12 +999,27 @@ class AtasDialog(QDialog):
 
         if numero_ata.isdigit() and len(numero_ata) <= 4:
             AtasDialog.NUMERO_ATA_GLOBAL = int(numero_ata)
-            self.nup_data = self.obter_nup(self.convert_pe_format(self.pe_pattern))
-            QMessageBox.information(self, "Número Confirmado", f"Número da ata definido para: {numero_ata}")
-            print(f"Número da ATA confirmado e definido como {numero_ata}.")
+            
+            # Verificação para self.pe_pattern
+            if self.pe_pattern is None:
+                QMessageBox.warning(self, "Erro", "Padrão de pregão não encontrado. Por favor, carregue um database antes de continuar.")
+                print("Padrão de pregão não encontrado. Necessário carregar um database.")
+                return
+            
+            pe_formatted = self.convert_pe_format(self.pe_pattern)
+            nup = self.obter_nup(pe_formatted)
+
+            if nup:
+                self.nup_data = nup
+                QMessageBox.information(self, "Número Confirmado", f"Número da ata definido para: {numero_ata}")
+                print(f"Número da ATA confirmado e definido como {numero_ata}.")
+            else:
+                QMessageBox.warning(self, "Erro ao Obter NUP", "Não foi encontrado um padrão de pregão para prosseguir. Por favor, carregue um database antes de continuar.")
+                print("Não foi encontrado um padrão de pregão para prosseguir. Necessário carregar um database.")
         else:
             QMessageBox.warning(self, "Número Inválido", "Por favor, digite um número válido de até 4 dígitos.")
             print("Tentativa de inserção de um número inválido.")
+
 
     def gerar_ata_de_registro_de_precos(self):
         if not self.nup_data:  # Verifica se nup_data está vazia ou é None

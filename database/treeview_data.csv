@@ -1,14 +1,20 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
-01,Capa de Abertura de Chamada Pública e Termo de Autuacao,termo_autuacao,1,4,4
+01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
 02,Autorização para Abertura de Processo,termo_abertura,5,6,2
-03,Documento de Formalização da Demanda (DFD),dfd,7,21,15
-04,Estudo Técnico Preliminar (ETP),etp,22,146,125
-05,Pesquisa de Preços,pesquisa_precos,147,297,151
-06,Minuta do Edital,minuta_edital,298,310,13
-07,Minuta do Contrato,minuta_contrato,311,316,6
-08,Demais Anexos,anexos,317,326,10
-09,Portaria 4-2024 de Designacao de Militares para Agente de Contratação e Pregoeiro,portaria_comissao,327,331,5
-10,Portaria 84-2024 de Designacao de Ordenador de Despesa,portaria_od,332,335,4
-11,Nota Técnica,nota_tecnica,336,344,9
-12,Lista de Verificação,checklist,345,354,10
-13,CP 01.2-25 Envio CJACM e Despacho de ENC,cp,355,358,4
+03,Documento de Formalização da Demanda (DFD),dfd,7,16,10
+04,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,17,18,2
+05,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,19,21,3
+06,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,22,25,4
+07,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,26,29,4
+08,Estudo Técnico Preliminar (ETP),etp,30,46,17
+09,Matriz de Gerenciamento de Riscos,mr,47,57,11
+10,Termo de Referência,tr,58,77,20
+11,Pesquisa de Preços,pesquisa_precos,78,80,3
+12,Minuta do Edital,minuta_edital,81,107,27
+13,Minuta do Contrato,minuta_contrato,108,116,9
+14,Minuta da Ata de Registro de Preços,minuta_arp,117,119,3
+15,Lista de Verificação,checklist,120,126,7
+16,Despacho,despacho,127,128,2
+17,Nota Técnica,nota_tecnica,129,136,8
+18,Comunicação Padronizada,termo,137,138,2
+19,Despacho de Encaminhamento para AGU,termo,139,140,2

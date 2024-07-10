@@ -57,6 +57,12 @@ def iniciar_processo():
     processar_ata(NUMERO_ATA_GLOBAL)
 
 def criar_pastas_com_subpastas(dataframe) -> None:
+
+    if dataframe is None:
+        QMessageBox.warning(None, "Erro", "Padrão de pregão não encontrado. Por favor, carregue um database antes de continuar.")
+        print("Padrão de pregão não encontrado. Necessário carregar um database.")
+        return
+    
     relatorio_path = get_relatorio_path()
     combinacoes = dataframe[['num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
     

@@ -22,7 +22,7 @@ class DocumentDetailsWidget(QWidget):
         cp_layout = QHBoxLayout()
         cp_label = QLabel("Comunicação Padronizada nº")
         cp_label.setStyleSheet("color: white; font-size: 12pt;")
-        self.cp_edit = QLineEdit()
+        self.cp_edit = QLineEdit(self.get_value('comunicacao_padronizada', ''))
         self.cp_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 12pt;
@@ -41,7 +41,7 @@ class DocumentDetailsWidget(QWidget):
         responsavel_layout = QHBoxLayout()
         responsavel_label = QLabel("Do:")
         responsavel_label.setStyleSheet("color: white; font-size: 12pt;")
-        self.responsavel_edit = QLineEdit("Responsável pela Demanda")
+        self.responsavel_edit = QLineEdit(self.get_value('do_resposavel', 'Responsável pela Demanda'))
         self.responsavel_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 12pt;
@@ -58,7 +58,7 @@ class DocumentDetailsWidget(QWidget):
         encarregado_obtencao_layout = QHBoxLayout()
         encarregado_obtencao_label = QLabel("Ao:")
         encarregado_obtencao_label.setStyleSheet("color: white; font-size: 12pt;")
-        self.encarregado_obtencao_edit = QLineEdit("Encarregado da Divisão de Obtenção")
+        self.encarregado_obtencao_edit = QLineEdit(self.get_value('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
         self.encarregado_obtencao_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 12pt;
@@ -75,13 +75,13 @@ class DocumentDetailsWidget(QWidget):
         anexos_layout = QHBoxLayout()
         anexos_label = QLabel("Anexos:")
         anexos_label.setStyleSheet("color: white; font-size: 12pt;")
-        add_pdf_button = QPushButton("Editar Anexos")
+        add_pdf_button = QPushButton("Selecionar o Anexos")
         add_pdf_button.setStyleSheet("font-size: 12pt; padding: 5px;")
         add_pdf_button.clicked.connect(self.add_pdf_to_merger)
         anexos_layout.addWidget(anexos_label)
         anexos_layout.addWidget(add_pdf_button)
             
-        main_layout.addLayout(anexos_layout)   
+        main_layout.addLayout(anexos_layout)  
 
         # Adicionando campo "Justificativa" como QTextEdit
         self.add_label_textedit_pair(main_layout, "Justificativa:", self.get_value('justificativa'))
@@ -116,22 +116,10 @@ class DocumentDetailsWidget(QWidget):
         layout_pair.addWidget(text_edit)
         layout.addLayout(layout_pair)
     
-    def get_value(self, column_name):
+    def get_value(self, column_name, default_value=''):
         value = self.df_registro_selecionado[column_name].iloc[0]
-        return str(value) if value is not None else ""
+        return str(value) if value else default_value
     
-    def get_value(self, column_name):
-        value = self.df_registro_selecionado[column_name].iloc[0]
-        return str(value) if value is not None else ""
-    
-    def add_pdf_to_merger(self):
-        cp_number = self.cp_edit.text()
-        if cp_number:
-            print(f"Adicionar PDF para CP nº {cp_number}")
-            # Implementação do método de adicionar PDF
-        else:
-            QMessageBox.warning(self, "Erro", "Por favor, insira um número de CP válido.")
-
     def add_pdf_to_merger(self):
         cp_number = self.cp_edit.text()
         if cp_number:

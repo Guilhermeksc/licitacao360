@@ -348,7 +348,7 @@ class ChecklistWidget(QWidget):
         # Definição da subpasta "Checklist"
         subpasta_checklist = f"{id_processo_novo} - Checklist"
         subpasta_destino = pasta_destino / subpasta_checklist
-        
+
         # Verifica se a subpasta existe e cria se necessário
         subpasta_destino.mkdir(parents=True, exist_ok=True)
 
@@ -359,7 +359,7 @@ class ChecklistWidget(QWidget):
         df_treeview = self.load_treeview_data()
         self.substituir_variaveis_docx(df_treeview)
         self.substituir_variaveis_nota_tecnica()  # Corrigido para refletir a nova assinatura do método
-        
+        substituir_marcadores_com_relacao(TEMPLATE_AUTUACAO, subpasta_destino, self.df_registro)
         # Abre a pasta no gerenciador de arquivos
         open_folder(subpasta_destino)
 

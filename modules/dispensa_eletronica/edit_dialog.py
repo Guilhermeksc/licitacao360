@@ -57,71 +57,146 @@ class EditDataDialog(QDialog):
         self.tipo = self.df_registro_selecionado['tipo'].iloc[0]
         self.numero = self.df_registro_selecionado['numero'].iloc[0]
         self.ano = self.df_registro_selecionado['ano'].iloc[0]
+        self.situacao = self.df_registro_selecionado['situacao'].iloc[0]
         self.nup = self.df_registro_selecionado['nup'].iloc[0]
+        self.material_servico = self.df_registro_selecionado['material_servico'].iloc[0]
         self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        self.objeto_completo = self.df_registro_selecionado['objeto_completo'].iloc[0]
-        self.valor_total = self.df_registro_selecionado['valor_total'].iloc[0]
+        self.vigencia = self.df_registro_selecionado['vigencia'].iloc[0]
+        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0] 
+        self.operador = self.df_registro_selecionado['operador'].iloc[0]
+        self.com_disputa = self.df_registro_selecionado['com_disputa'].iloc[0]
         self.uasg = self.df_registro_selecionado['uasg'].iloc[0]
         self.orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
         self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
         self.setor_responsavel = self.df_registro_selecionado['setor_responsavel'].iloc[0]
-        self.operador = self.df_registro_selecionado['operador'].iloc[0]
-        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0]
-        self.material_servico = self.df_registro_selecionado['material_servico'].iloc[0]
-        self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
-        self.link_portal_marinha = self.df_registro_selecionado['link_portal_marinha'].iloc[0]
-        self.situacao = self.df_registro_selecionado['situacao'].iloc[0]
+        self.responsavel_pela_demanda = self.df_registro_selecionado['responsavel_pela_demanda'].iloc[0]
+        self.ordenador_despesas = self.df_registro_selecionado['ordenador_despesas'].iloc[0]
+        self.agente_fiscal = self.df_registro_selecionado['agente_fiscal'].iloc[0]
+        self.gerente_de_credito = self.df_registro_selecionado['gerente_de_credito'].iloc[0]
         self.cod_par = self.df_registro_selecionado['cod_par'].iloc[0]
-        self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
+        self.prioridade_par = self.df_registro_selecionado['prioridade_par'].iloc[0]
+        self.cep = self.df_registro_selecionado['cep'].iloc[0]
+        self.endereco = self.df_registro_selecionado['endereco'].iloc[0]
         self.email = self.df_registro_selecionado['email'].iloc[0]
         self.telefone = self.df_registro_selecionado['telefone'].iloc[0]
-        self.endereco = self.df_registro_selecionado['endereco'].iloc[0]
-        self.cep = self.df_registro_selecionado['cep'].iloc[0]
-        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
-        self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
+        self.dias_para_recebimento = self.df_registro_selecionado['dias_para_recebimento'].iloc[0]
+        self.horario_para_recebimento = self.df_registro_selecionado['horario_para_recebimento'].iloc[0]
+        self.valor_total = self.df_registro_selecionado['valor_total'].iloc[0]
         self.acao_interna = self.df_registro_selecionado['acao_interna'].iloc[0]
         self.fonte_recursos = self.df_registro_selecionado['fonte_recursos'].iloc[0]
         self.natureza_despesa = self.df_registro_selecionado['natureza_despesa'].iloc[0]
         self.unidade_orcamentaria = self.df_registro_selecionado['unidade_orcamentaria'].iloc[0]
         self.programa_trabalho_resuminho = self.df_registro_selecionado['programa_trabalho_resuminho'].iloc[0]
+        self.atividade_custeio = self.df_registro_selecionado['atividade_custeio'].iloc[0]
         self.comentarios = self.df_registro_selecionado['comentarios'].iloc[0]
+        self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
+        self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
+        self.link_portal_marinha = self.df_registro_selecionado['link_portal_marinha'].iloc[0]
+        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
+        self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
+        self.do_resposavel = self.df_registro_selecionado['do_resposavel'].iloc[0]
+        self.ao_responsavel = self.df_registro_selecionado['ao_responsavel'].iloc[0]
 
         data = {
             'id_processo': self.id_processo,
             'tipo': self.tipo,
             'numero': self.numero,
             'ano': self.ano,
+            'situacao': self.situacao,
             'nup': self.nup,
+            'material_servico': self.material_servico,
             'objeto': self.objeto,
-            'objeto_completo': self.objeto_completo,
-            'valor_total': self.valor_total,
+            'vigencia': self.vigencia,
+            'data_sessao': self.data_sessao,
+            'operador': self.operador,
+            'com_disputa': self.com_disputa,
             'uasg': self.uasg,
             'orgao_responsavel': self.orgao_responsavel,
             'sigla_om': self.sigla_om,
             'setor_responsavel': self.setor_responsavel,
-            'operador': self.operador,
-            'data_sessao': self.data_sessao,
-            'material_servico': self.material_servico,
-            'link_pncp': self.link_pncp,
-            'link_portal_marinha': self.link_portal_marinha,
-            'situacao': self.situacao,
+            'responsavel_pela_demanda': self.responsavel_pela_demanda,
+            'ordenador_despesas': self.ordenador_despesas,
+            'agente_fiscal': self.agente_fiscal,
+            'gerente_de_credito': self.gerente_de_credito,
             'cod_par': self.cod_par,
-            'justificativa': self.justificativa,
+            'prioridade_par': self.prioridade_par,
+            'cep': self.cep,
+            'endereco': self.endereco,
             'email': self.email,
             'telefone': self.telefone,
-            'endereco': self.endereco,
-            'cep': self.cep,
-            'previsao_contratacao': self.previsao_contratacao,
-            'comunicacao_padronizada': self.comunicacao_padronizada,
+            'dias_para_recebimento': self.dias_para_recebimento,
+            'horario_para_recebimento': self.horario_para_recebimento,
+            'valor_total': self.valor_total,
             'acao_interna': self.acao_interna,
             'fonte_recursos': self.fonte_recursos,
             'natureza_despesa': self.natureza_despesa,
             'unidade_orcamentaria': self.unidade_orcamentaria,
             'programa_trabalho_resuminho': self.programa_trabalho_resuminho,
-            'comentarios': self.comentarios
+            'atividade_custeio': self.atividade_custeio,
+            'comentarios': self.comentarios,
+            'justificativa': self.justificativa,
+            'link_pncp': self.link_pncp,
+            'link_portal_marinha': self.link_portal_marinha,
+            'previsao_contratacao': self.previsao_contratacao,
+            'comunicacao_padronizada': self.comunicacao_padronizada,
+            'do_resposavel': self.do_resposavel,
+            'ao_responsavel': self.ao_responsavel
         }
 
         return data
+
+    def save_changes(self):
+        data = {
+            'situacao': self.situacao_edit.currentText(),
+            'ordenador_despesas': self.ordenador_combo.currentText(),
+            'agente_fiscal': self.agente_fiscal_combo.currentText(),
+            'gerente_de_credito': self.gerente_credito_combo.currentText(),
+            'responsavel_pela_demanda': self.responsavel_demanda_combo.currentText(),           
+            'nup': self.nup_edit.text().strip(),
+            'material_servico': self.material_edit.currentText(),
+            'objeto': self.objeto_edit.text().strip(),
+            'vigencia': self.vigencia_edit.text().strip() if isinstance(self.vigencia_edit, QLineEdit) else '12 (doze) meses',
+            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd") if isinstance(self.data_edit, QDateEdit) else '',
+            'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
+            'setor_responsavel': self.setor_responsavel_edit.text().strip(),
+            'operador': self.operador_edit.text().strip(),
+            'sigla_om': self.om_combo.currentText(),
+            'uasg': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'uasg'],  # Inclui uasg
+            'orgao_responsavel': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
+            'cod_par': self.par_edit.text().strip(),  
+            'prioridade_par': self.prioridade_combo.currentText(),
+            'cep': self.cep_edit.text().strip(),
+            'endereco': self.endereco_edit.text().strip(),
+            'email': self.email_edit.text().strip(),
+            'telefone': self.telefone_edit.text().strip(),
+            'dias_para_recebimento': self.dias_edit.text().strip(),
+            'horario_para_recebimento': self.horario_edit.text().strip(),            
+            'valor_total': self.valor_edit.text().strip(),
+            'acao_interna': self.acao_interna_edit.text().strip(),
+            'fonte_recursos': self.fonte_recurso_edit.text().strip(),
+            'natureza_despesa': self.natureza_despesa_edit.text().strip(),
+            'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
+            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),           
+            'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
+            'comunicacao_padronizada': self.document_details_widget.cp_edit.text().strip(),
+            'do_resposavel': self.document_details_widget.responsavel_edit.text().strip(),
+            'ao_responsavel': self.document_details_widget.encarregado_obtencao_edit.text().strip()
+        }
+
+        with self.database_manager as connection:
+            cursor = connection.cursor()
+            set_part = ', '.join([f"{key} = ?" for key in data.keys()])
+            valores = list(data.values())
+            valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
+
+            query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
+            cursor.execute(query, valores)
+            connection.commit()
+
+        self.dados_atualizados.emit()
+        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+        # Remover o fechamento do diálogo para mantê-lo aberto
+        # self.accept()
 
     def update_title_label(self):
         data = self.extract_registro_data()
@@ -315,8 +390,25 @@ class EditDataDialog(QDialog):
         widget.setStyleSheet("font-size: 12pt;") 
 
     def fill_frame_agentes_responsaveis(self):
+        data = self.extract_registro_data()
         # Define o layout e o grupo para os agentes responsáveis
-        agente_responsavel = QHBoxLayout()
+        agente_responsavel = QVBoxLayout()
+
+        situacao_layout = QHBoxLayout()
+        situacao_label = QLabel("Situação:")
+        self.situacao_edit = QComboBox()
+        self.situacao_edit.setFixedWidth(210)
+        self.situacao_edit.addItems(["Planejamento", "Aprovado", "Sessão Publica", "Concluído"])
+        self.situacao_edit.setCurrentText(data.get('situacao', 'Planejamento'))
+        self.apply_widget_style(situacao_label)
+        self.apply_widget_style(self.situacao_edit)
+        situacao_layout.addWidget(situacao_label)
+        situacao_layout.addWidget(self.situacao_edit)
+
+        # Adicionar o layout de situação ao grupo de contratação
+        agente_responsavel.addLayout(situacao_layout)
+
+        
         agente_responsavel_group_box = QGroupBox("Agentes Responsáveis")
         self.apply_widget_style(agente_responsavel_group_box)
         agente_responsavel_layout = QVBoxLayout()
@@ -365,21 +457,6 @@ class EditDataDialog(QDialog):
         contratacao_layout = QVBoxLayout()
         contratacao_group_box.setLayout(contratacao_layout)
 
-        # Situação
-        situacao_layout = QHBoxLayout()
-        situacao_label = QLabel("Situação:")
-        self.situacao_edit = QComboBox()
-        self.situacao_edit.setFixedWidth(210)
-        self.situacao_edit.addItems(["Planejamento", "Aprovado", "Sessão Publica", "Concluído"])
-        self.situacao_edit.setCurrentText(data.get('situacao', 'Planejamento'))
-        self.apply_widget_style(situacao_label)
-        self.apply_widget_style(self.situacao_edit)
-        situacao_layout.addWidget(situacao_label)
-        situacao_layout.addWidget(self.situacao_edit)
-
-        # Adicionar o layout de situação ao grupo de contratação
-        contratacao_layout.addLayout(situacao_layout)
-
         # NUP
         nup_layout = QHBoxLayout()
         nup_label = QLabel("NUP:")
@@ -407,6 +484,7 @@ class EditDataDialog(QDialog):
         objeto_layout = QHBoxLayout()
         objeto_label = QLabel("Objeto:")
         self.objeto_edit = QLineEdit(data['objeto'])
+        self.objeto_edit.setFixedWidth(250)
         self.apply_widget_style(self.objeto_edit)
         self.objeto_edit.setReadOnly(False)
         objeto_layout.addWidget(objeto_label)
@@ -416,7 +494,12 @@ class EditDataDialog(QDialog):
         # Vigência da Contratação
         vigencia_layout = QHBoxLayout()
         vigencia_label = QLabel("Vigência:")
-        self.vigencia_edit = QLineEdit("12 (doze) meses")
+        self.vigencia_edit = QLineEdit()
+        vigencia_value = data.get('vigencia', '12 (doze) meses')
+        if vigencia_value is None:
+            vigencia_value = '12 (doze) meses'
+        print(f"Vigência value: {vigencia_value}") 
+        self.vigencia_edit.setText(vigencia_value)
         self.apply_widget_style(self.vigencia_edit)
         self.vigencia_edit.setReadOnly(False)
         vigencia_layout.addWidget(vigencia_label)
@@ -427,7 +510,6 @@ class EditDataDialog(QDialog):
         data_sessao_layout = QHBoxLayout()
         data_sessao_label = QLabel("Data da Sessão:")
         self.data_edit = QDateEdit()
-        self.data_edit.setFixedWidth(120)
         self.data_edit.setCalendarPopup(True)
         data_sessao_str = data.get('data_sessao', '')
         if data_sessao_str:
@@ -440,6 +522,8 @@ class EditDataDialog(QDialog):
         data_sessao_layout.addWidget(self.data_edit)
         contratacao_layout.addLayout(data_sessao_layout)
 
+
+
         # Operador
         operador_layout = QHBoxLayout()
         operador_label = QLabel("Operador:")
@@ -448,8 +532,20 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(self.operador_edit)
         operador_layout.addWidget(operador_label)
         operador_layout.addWidget(self.operador_edit)
-
         contratacao_layout.addLayout(operador_layout)
+
+        # Com Disputa
+        disputa_layout = QHBoxLayout()
+        disputa_label = QLabel("Com disputa?")
+        self.radio_disputa_sim = QRadioButton("Sim")
+        self.radio_disputa_nao = QRadioButton("Não")
+        com_disputa_value = data.get('com_disputa', 'Não')  # Define 'Não' como padrão
+        self.radio_disputa_sim.setChecked(com_disputa_value == 'Sim')
+        self.radio_disputa_nao.setChecked(com_disputa_value != 'Sim')  # Marca 'Não' se não for 'Sim'
+        disputa_layout.addWidget(disputa_label)
+        disputa_layout.addWidget(self.radio_disputa_sim)
+        disputa_layout.addWidget(self.radio_disputa_nao)
+        contratacao_layout.addLayout(disputa_layout)
 
         # Adicionar o grupo de contratação ao layout de detalhes
         detalhes_layout.addWidget(contratacao_group_box)
@@ -538,7 +634,7 @@ class EditDataDialog(QDialog):
         email_telefone_layout.addWidget(self.email_edit)
 
         # Telefone
-        telefone_label = QLabel("Telefone:")
+        telefone_label = QLabel("Tel:")
         self.telefone_edit = QLineEdit(data['telefone'])
         self.telefone_edit.setFixedWidth(120)
         self.apply_widget_style(telefone_label)
@@ -552,11 +648,11 @@ class EditDataDialog(QDialog):
         # Dias e horário para Recebimento
         dias_layout = QHBoxLayout()
         dias_label = QLabel("Dias para Recebimento:")
-        self.horario_edit = QLineEdit("Segunda à Sexta")
+        self.dias_edit = QLineEdit("Segunda à Sexta")
         self.apply_widget_style(dias_label)
-        self.apply_widget_style(self.horario_edit)
+        self.apply_widget_style(self.dias_edit)
         dias_layout.addWidget(dias_label)
-        dias_layout.addWidget(self.horario_edit)
+        dias_layout.addWidget(self.dias_edit)
         setor_responsavel_layout.addLayout(dias_layout)
 
         horario_layout = QHBoxLayout()
@@ -639,6 +735,18 @@ class EditDataDialog(QDialog):
         ptres_layout.addWidget(ptres_label)
         ptres_layout.addWidget(self.ptres_edit)
         classificacao_orcamentaria_layout.addLayout(ptres_layout)
+
+        custeio_layout = QHBoxLayout()
+        custeio_label = QLabel("Atividade de Custeio?")
+        self.radio_custeio_sim = QRadioButton("Sim")
+        self.radio_custeio_nao = QRadioButton("Não")
+        atividade_custeio_value = data.get('atividade_custeio', 'Não')  # Define 'Não' como padrão
+        self.radio_custeio_sim.setChecked(atividade_custeio_value == 'Sim')
+        self.radio_custeio_nao.setChecked(atividade_custeio_value != 'Sim')  # Marca 'Não' se não for 'Sim'
+        custeio_layout.addWidget(custeio_label)
+        custeio_layout.addWidget(self.radio_custeio_sim)
+        custeio_layout.addWidget(self.radio_custeio_nao)
+        classificacao_orcamentaria_layout.addLayout(custeio_layout)
 
         classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
 
@@ -814,7 +922,7 @@ class EditDataDialog(QDialog):
 
         # Verifica se o arquivo JSON existe
         if not json_file_path.exists():
-            QMessageBox.warning(self, "Arquivo não encontrado", f"O arquivo {json_file_name} não foi encontrado.")
+            QMessageBox.warning(self, "Arquivo não encontrado", f"O arquivo de controle dos anexos não foi encontrado, por favor selecione os anexos.")
             return
 
         # Carrega o arquivo JSON
@@ -1154,48 +1262,6 @@ class EditDataDialog(QDialog):
                 print(f"Updated DataFrame: uasg={uasg}, orgao_responsavel={orgao_responsavel}")
                 self.title_updated.emit(f"{orgao_responsavel} (UASG: {uasg})")  # Emite o sinal com o novo título
                             
-    def save_changes(self):
-        data = {
-            'nup': self.nup_edit.text().strip(),
-            'objeto': self.objeto_edit.text().strip(),
-            # 'objeto_completo': self.objeto_det_edit.text().strip(),
-            'valor_total': self.valor_edit.text().strip(),
-            'setor_responsavel': self.setor_responsavel_edit.text().strip(),
-            'operador': self.operador_edit.text().strip(),
-            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),
-            # 'link_pncp': self.link_pncp_edit.text().strip(),
-            # 'link_portal_marinha': self.link_portal_edit.text().strip(),
-            'material_servico': self.material_edit.currentText(),
-            'situacao': self.situacao_edit.currentText(),
-            'sigla_om': self.om_combo.currentText(),
-            'uasg': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'uasg'],  # Inclui uasg
-            'orgao_responsavel': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
-            'acao_interna': self.acao_interna_edit.text().strip(),
-            'fonte_recursos': self.fonte_recurso_edit.text().strip(),
-            'natureza_despesa': self.natureza_despesa_edit.text().strip(),
-            'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
-            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
-            'telefone': self.telefone_edit.text().strip(),
-            'email': self.email_edit.text().strip(),
-            'endereco': self.endereco_edit.text().strip(),
-            'CEP': self.cep_edit.text().strip(),
-        }
-
-        with self.database_manager as connection:
-            cursor = connection.cursor()
-            set_part = ', '.join([f"{key} = ?" for key in data.keys()])
-            valores = list(data.values())
-            valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
-
-            query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
-            cursor.execute(query, valores)
-            connection.commit()
-
-        self.dados_atualizados.emit()
-        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
-        # Remover o fechamento do diálogo para mantê-lo aberto
-        # self.accept()
-
     def formatar_brl(self, valor):
         try:
             if valor is None or pd.isna(valor) or valor == '':
