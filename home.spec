@@ -6,6 +6,9 @@ from pathlib import Path
 
 # Defina o caminho do diretório base diretamente
 BASE_DIR = Path("C:/Users/Guilherme/Documents/Nova pasta/projeto_licitacao360/licitacao360")
+MODULES_DIR = BASE_DIR / "modules"
+DISPENSA_DIR = MODULES_DIR / "dispensa_eletronica"
+TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
 
 # Adicione o caminho do diretório base ao sys.path
 sys.path.insert(0, str(BASE_DIR))
@@ -20,14 +23,15 @@ from diretorios import (
     PASTA_TEMPLATE,
     RELATORIO_PATH,
     WEBDRIVER_DIR,
-    TEMPLATE_DIR
+    TEMPLATE_DIR,
+    TEMPLATE_DISPENSA_DIR
 )
 
 block_cipher = None
 
 a = Analysis(
     ['home.py'],
-    pathex=[],
+    pathex=[str(BASE_DIR), str(MODULES_DIR)],
     binaries=[],
     datas=[
         (str(DATABASE_DIR), 'database'),
@@ -39,15 +43,17 @@ a = Analysis(
         (str(RELATORIO_PATH), 'relatorio'),
         (str(WEBDRIVER_DIR), 'selenium'),
         (str(TEMPLATE_DIR), 'template'),
+        (str(TEMPLATE_DISPENSA_DIR), 'template/dispensa')
     ],
-    hiddenimports=['psutil'],
-    hookspath=[],
+    hiddenimports=['psutil', 'fitz'],
+    hookspath=['.'],  # Adicione o caminho atual para procurar hooks personalizados
     runtime_hooks=[],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
 )
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(

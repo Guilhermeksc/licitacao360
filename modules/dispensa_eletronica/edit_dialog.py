@@ -178,10 +178,18 @@ class EditDataDialog(QDialog):
             'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
             'programa_trabalho_resuminho': self.ptres_edit.text().strip(),           
             'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
-            'comunicacao_padronizada': self.document_details_widget.cp_edit.text().strip(),
-            'do_resposavel': self.document_details_widget.responsavel_edit.text().strip(),
-            'ao_responsavel': self.document_details_widget.encarregado_obtencao_edit.text().strip()
         }
+
+        # Adiciona valores de self.document_details_widget apenas se estiverem presentes
+        if hasattr(self, 'document_details_widget') and self.document_details_widget:
+            data['comunicacao_padronizada'] = self.document_details_widget.cp_edit.text().strip()
+            data['do_resposavel'] = self.document_details_widget.responsavel_edit.text().strip()
+            data['ao_responsavel'] = self.document_details_widget.encarregado_obtencao_edit.text().strip()
+        else:
+            # Define valores padrão ou os valores já presentes no registro selecionado
+            data['comunicacao_padronizada'] = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
+            data['do_resposavel'] = self.df_registro_selecionado['do_resposavel'].iloc[0]
+            data['ao_responsavel'] = self.df_registro_selecionado['ao_responsavel'].iloc[0]
 
         with self.database_manager as connection:
             cursor = connection.cursor()
@@ -195,8 +203,6 @@ class EditDataDialog(QDialog):
 
         self.dados_atualizados.emit()
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
-        # Remover o fechamento do diálogo para mantê-lo aberto
-        # self.accept()
 
     def update_title_label(self):
         data = self.extract_registro_data()
