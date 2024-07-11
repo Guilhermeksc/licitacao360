@@ -9,12 +9,21 @@ from diretorios import *
 import fitz
 from docxtpl import DocxTemplate
 import pandas as pd
-
+import win32com.client
+import os
 class DocumentDetailsWidget(QWidget):
-    def __init__(self, df_registro_selecionado, parent=None):
+    def __init__(self, df_registro_selecionado, ordenador_de_despesas, responsavel_pela_demanda, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
-        
+        self.consolidador = ConsolidarDocumentos(df_registro_selecionado) 
+        self.material_servico = df_registro_selecionado['material_servico'].iloc[0]
+        self.objeto = df_registro_selecionado['objeto'].iloc[0]
+        self.setor_responsavel = df_registro_selecionado['setor_responsavel'].iloc[0]
+        self.orgao_responsavel = df_registro_selecionado['orgao_responsavel'].iloc[0]
+        self.ordenador_de_despesas = ordenador_de_despesas
+        self.responsavel_pela_demanda = responsavel_pela_demanda
+        self.sigla_om = df_registro_selecionado['sigla_om'].iloc[0]
+        self.ICONS_DIR = Path(ICONS_DIR)
         # Configurando layout principal
         main_layout = QVBoxLayout(self)
         
@@ -32,10 +41,24 @@ class DocumentDetailsWidget(QWidget):
                 background-color: #f0f0f0;
             }
         """)
-        
+        self.cp_edit.setFixedWidth(80)
         cp_layout.addWidget(cp_label)
         cp_layout.addWidget(self.cp_edit)
-            
+        cp_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))      
+        
+        icon_anexo = QIcon(str(self.ICONS_DIR / "anexar.png"))
+        add_pdf_button = self.create_button(
+            "  Selecionar os Anexos", 
+            icon_anexo, 
+            self.add_pdf_to_merger, 
+            "Selecionar arquivos PDFs para aplicar o Merge", 
+            QSize(300, 50), 
+            QSize(40, 40)
+        )
+
+        add_pdf_button.setStyleSheet("font-size: 14pt; font-weight: bold")
+        cp_layout.addWidget(add_pdf_button)
+        cp_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))  
         main_layout.addLayout(cp_layout)
         
         responsavel_layout = QHBoxLayout()
@@ -53,9 +76,7 @@ class DocumentDetailsWidget(QWidget):
         """)
         responsavel_layout.addWidget(responsavel_label)
         responsavel_layout.addWidget(self.responsavel_edit)
-        main_layout.addLayout(responsavel_layout)
 
-        encarregado_obtencao_layout = QHBoxLayout()
         encarregado_obtencao_label = QLabel("Ao:")
         encarregado_obtencao_label.setStyleSheet("color: white; font-size: 12pt;")
         self.encarregado_obtencao_edit = QLineEdit(self.get_value('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
@@ -68,24 +89,95 @@ class DocumentDetailsWidget(QWidget):
                 background-color: #f0f0f0;
             }
         """)
-        encarregado_obtencao_layout.addWidget(encarregado_obtencao_label)
-        encarregado_obtencao_layout.addWidget(self.encarregado_obtencao_edit)
-        main_layout.addLayout(encarregado_obtencao_layout)
+        responsavel_layout.addWidget(encarregado_obtencao_label)
+        responsavel_layout.addWidget(self.encarregado_obtencao_edit)
+        main_layout.addLayout(responsavel_layout)
         
-        anexos_layout = QHBoxLayout()
-        anexos_label = QLabel("Anexos:")
-        anexos_label.setStyleSheet("color: white; font-size: 12pt;")
-        add_pdf_button = QPushButton("Selecionar o Anexos")
-        add_pdf_button.setStyleSheet("font-size: 12pt; padding: 5px;")
-        add_pdf_button.clicked.connect(self.add_pdf_to_merger)
-        anexos_layout.addWidget(anexos_label)
-        anexos_layout.addWidget(add_pdf_button)
-            
-        main_layout.addLayout(anexos_layout)  
+        justificativa_layout = QVBoxLayout()
+        justificativa_label = QLabel("Justificativa:")
+        justificativa_label.setStyleSheet("color: white; font-size: 12pt;")
+        self.justificativa_edit = QTextEdit(self.get_justification_text())
+        self.justificativa_edit.setStyleSheet("""
+            QTextEdit {
+                font-size: 12pt;
+                background-color: white;
+            }
+            QTextEdit:hover {
+                background-color: #f0f0f0;
+            }
+        """)
+        justificativa_layout.addWidget(justificativa_label)
+        justificativa_layout.addWidget(self.justificativa_edit)
 
-        # Adicionando campo "Justificativa" como QTextEdit
-        self.add_label_textedit_pair(main_layout, "Justificativa:", self.get_value('justificativa'))
+        main_layout.addLayout(justificativa_layout)
 
+        # Adicionando os botões "CP", "DFD", "TR" e "Adequação Orçamentária" em um QHBoxLayout
+        buttons_layout = QHBoxLayout()
+
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        
+        button_cp = self.create_button("  CP", icon_pdf, self.on_cp_clicked, "Gerar Comunicação Padronizada", QSize(150, 50))
+        button_dfd = self.create_button("  DFD", icon_pdf, self.on_dfd_clicked, "Gerar Documento de Formalização de Demanda", QSize(150, 50))
+        button_tr = self.create_button("  TR", icon_pdf, self.on_tr_clicked, "Gerar Termo de Referência", QSize(150, 50))
+        button_adeq_orc = self.create_button("Adequação Orçamentária", icon_pdf, self.on_adeq_orc_clicked, "Gerar Adequação Orçamentária", QSize(250, 50))
+        button_cp.setStyleSheet("font-size: 12pt;")
+        button_dfd.setStyleSheet("font-size: 12pt;")
+        button_tr.setStyleSheet("font-size: 12pt;")
+        button_adeq_orc.setStyleSheet("font-size: 12pt;")
+
+        buttons_layout.addWidget(button_cp)
+        buttons_layout.addWidget(button_dfd)
+        buttons_layout.addWidget(button_tr)
+        buttons_layout.addWidget(button_adeq_orc)
+
+        main_layout.addLayout(buttons_layout)
+
+    def add_label_textedit_pair(self, layout, label_text, text):
+        layout_pair = QVBoxLayout()
+        label = QLabel(label_text)
+        label.setStyleSheet("color: white; font-size: 12pt;")
+        text_edit = QTextEdit()
+        text_edit.setText(text)
+        text_edit.setStyleSheet("font-size: 12pt;")
+        layout_pair.addWidget(label)
+        layout_pair.addWidget(text_edit)
+        layout.addLayout(layout_pair)
+
+    def on_cp_clicked(self):
+        # Implementação do callback para o botão CP
+        pass
+
+    def on_dfd_clicked(self):
+        justificativa_text = self.justificativa_edit.toPlainText()
+        ordenador_de_despesas = self.ordenador_de_despesas
+        responsavel_pela_demanda = self.responsavel_pela_demanda
+
+        result = self.consolidador.gerar_documento_de_formalizacao_de_demanda(ordenador_de_despesas, responsavel_pela_demanda, justificativa_text)
+        if result:
+            QMessageBox.information(self, "Sucesso", f"Documento gerado com sucesso em: {result}")
+        else:
+            QMessageBox.warning(self, "Erro ao Gerar", "Falha ao gerar o documento. Verifique os logs para mais detalhes.")
+
+    def on_tr_clicked(self):
+        # Implementação do callback para o botão TR
+        pass
+
+    def on_adeq_orc_clicked(self):
+        # Implementação do callback para o botão Adequação Orçamentária
+        pass
+    
+    def create_button(self, text, icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):
+        btn = QPushButton(text)
+        if icon:
+            btn.setIcon(icon)
+            btn.setIconSize(icon_size if icon_size else QSize(40, 40))
+        if button_size:
+            btn.setFixedSize(button_size)
+        btn.setToolTip(tooltip_text)
+        if callback:
+            btn.clicked.connect(callback)  # Conecta o callback ao evento de clique
+        return btn
+    
     def add_label_edit_pair(self, layout, label_text, placeholder_text):
         layout_pair = QHBoxLayout()
         label = QLabel(label_text)
@@ -105,16 +197,21 @@ class DocumentDetailsWidget(QWidget):
         layout_pair.addWidget(line_edit)
         layout.addLayout(layout_pair)
     
-    def add_label_textedit_pair(self, layout, label_text, text):
-        layout_pair = QVBoxLayout()
-        label = QLabel(label_text)
-        label.setStyleSheet("color: white; font-size: 12pt;")
-        text_edit = QTextEdit()
-        text_edit.setText(text)
-        text_edit.setStyleSheet("font-size: 12pt;")
-        layout_pair.addWidget(label)
-        layout_pair.addWidget(text_edit)
-        layout.addLayout(layout_pair)
+    def get_justification_text(self):
+        # Recupera o valor atual da justificativa no DataFrame
+        current_justification = self.df_registro_selecionado['justificativa'].iloc[0]
+
+        # Retorna o valor atual se ele existir, senão, constrói uma justificativa baseada no tipo de material/serviço
+        if current_justification:  # Checa se existe uma justificativa
+            return current_justification
+        else:
+            # Gera justificativa padrão com base no tipo de material ou serviço
+            if self.material_servico == 'Material':
+                return (f"A aquisição de {self.objeto} se faz necessária para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}). A disponibilidade e a qualidade dos materiais são essenciais para garantir a continuidade das operações e a eficiência das atividades desempenhadas pelo(a) {self.setor_responsavel}.")
+            elif self.material_servico == 'Serviço':
+                return (f"A contratação de empresa especializada na prestação de serviços de {self.objeto} é imprescindível para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}).")
+            return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
+
     
     def get_value(self, column_name, default_value=''):
         value = self.df_registro_selecionado[column_name].iloc[0]
@@ -534,6 +631,81 @@ class ConsolidarDocumentos:
     def __init__(self, df_registro_selecionado):
         self.df_registro_selecionado = df_registro_selecionado
 
+    def abrirDocumento(self, docx_path):
+        try:
+            docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
+            pdf_path = docx_path.with_suffix('.pdf')
+
+            word = win32com.client.Dispatch("Word.Application")
+            doc = word.Documents.Open(str(docx_path))
+            doc.SaveAs(str(pdf_path), FileFormat=17)
+            doc.Close()
+            word.Quit()
+
+            if pdf_path.exists():
+                os.startfile(pdf_path)
+                print(f"Documento PDF aberto: {pdf_path}")
+            else:
+                raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
+
+        except Exception as e:
+            print(f"Erro ao abrir ou converter o documento: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao abrir ou converter o documento: {e}")
+
+    def prepare_context(self, data):
+        """
+        Prepare the rendering context for the document, replacing None values with 'Não especificado'.
+        """
+        return {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
+
+    def gerar_documento_de_formalizacao_de_demanda(self, ordenador_de_despesas, responsavel_pela_demanda, justificativa_atual):
+        if self.df_registro_selecionado.empty:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+            print("Seleção necessária - nenhum registro selecionado.")
+            return None
+
+        try:
+            template_filename = "template_dfd.docx"
+            template_path = TEMPLATE_DISPENSA_DIR / template_filename
+            if not template_path.exists():
+                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
+                print(f"Erro de Template - arquivo não encontrado: {template_path}")
+                return None
+
+            # Preparando o contexto inicial a partir dos registros do DataFrame
+            context = self.df_registro_selecionado.to_dict('records')[0]
+            context = self.prepare_context(context)  # Aplicando a preparação para segurança
+
+            nome_pasta = f"{context['id_processo'].replace('/', '-')} - {context['objeto']}"
+            pasta_base = Path.home() / 'Desktop' / nome_pasta / "1. Documento de Formalizacao de Demanda"
+            pasta_base.mkdir(parents=True, exist_ok=True)
+
+            save_path = pasta_base / f"{context['id_processo'].replace('/', '-')} - DFD.docx"
+            print(f"Caminho completo para salvar o documento: {save_path}")
+
+            doc = DocxTemplate(str(template_path))
+            descricao_servico = "Aquisição de" if context['material_servico'] == "Material" else "Contratação de serviços de"
+            context.update({
+                'descricao_servico': descricao_servico,
+                'justificativa': justificativa_atual,
+                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
+                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}",
+                'nome_responsavel_pela_demanda': responsavel_pela_demanda['nome']  # Adicionando apenas o nome
+            })
+
+            doc = DocxTemplate(str(template_path))
+            doc.render(context)
+            doc.save(str(save_path))
+            print("Documento gerado com sucesso:", save_path)
+            self.abrirDocumento(save_path)
+            return save_path            
+
+        except Exception as e:
+            print(f"Erro ao gerar ou salvar o documento: {e}")
+            import traceback
+            traceback.print_exc()
+
+    
     def gerar_comunicacao_padronizada(self, ordenador_de_despesas, responsavel_pela_demanda, document_details):
         if self.df_registro_selecionado.empty:
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")

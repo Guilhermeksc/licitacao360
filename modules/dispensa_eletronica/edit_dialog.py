@@ -201,6 +201,10 @@ class EditDataDialog(QDialog):
             cursor.execute(query, valores)
             connection.commit()
 
+        # Atualiza o DataFrame em memória
+        for key, value in data.items():
+            self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
+
         self.dados_atualizados.emit()
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
 
@@ -907,7 +911,12 @@ class EditDataDialog(QDialog):
         layout.addWidget(text_edit)
 
     def add_document_details(self, layout):
-        self.document_details_widget = DocumentDetailsWidget(self.df_registro_selecionado, self)
+        self.document_details_widget = DocumentDetailsWidget(
+            self.df_registro_selecionado, 
+            ordenador_de_despesas=self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole), 
+            responsavel_pela_demanda=self.responsavel_demanda_combo.currentData(Qt.ItemDataRole.UserRole),
+            parent=self
+        )
         layout.addWidget(self.document_details_widget)
 
     def get_document_details(self):

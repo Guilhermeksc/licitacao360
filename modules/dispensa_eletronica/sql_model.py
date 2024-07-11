@@ -98,7 +98,6 @@ class TableMenu(QMenu):
         dialog.dados_atualizados.connect(self.atualizar_interface)  # Conectar o sinal ao método de atualização
         dialog.exec()
 
-
     def AutorizacaoDispensa(self, df_registro_selecionado):
         pass
 
