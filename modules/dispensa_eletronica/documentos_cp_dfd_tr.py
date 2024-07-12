@@ -149,18 +149,28 @@ class DocumentDetailsWidget(QWidget):
 
     def on_dfd_clicked(self):
         justificativa_text = self.justificativa_edit.toPlainText()
+
+        # Acessando os atributos diretamente de self
         ordenador_de_despesas = self.ordenador_de_despesas
         responsavel_pela_demanda = self.responsavel_pela_demanda
 
-        result = self.consolidador.gerar_documento_de_formalizacao_de_demanda(ordenador_de_despesas, responsavel_pela_demanda, justificativa_text)
+        result = self.consolidador.gerar_documento_de_formalizacao_de_demanda(
+            ordenador_de_despesas, responsavel_pela_demanda, justificativa_text
+        )
+        if result:
+            QMessageBox.information(self, "Sucesso", f"Documento gerado com sucesso em: {result}")
+        else:
+            QMessageBox.warning(
+                self, "Erro ao Gerar", "Falha ao gerar o documento. Verifique os logs para mais detalhes."
+            )
+
+
+    def on_tr_clicked(self):
+        result = self.consolidador.gerar_termo_de_referencia(self.ordenador_de_despesas, self.responsavel_pela_demanda)
         if result:
             QMessageBox.information(self, "Sucesso", f"Documento gerado com sucesso em: {result}")
         else:
             QMessageBox.warning(self, "Erro ao Gerar", "Falha ao gerar o documento. Verifique os logs para mais detalhes.")
-
-    def on_tr_clicked(self):
-        # Implementação do callback para o botão TR
-        pass
 
     def on_adeq_orc_clicked(self):
         # Implementação do callback para o botão Adequação Orçamentária
@@ -705,7 +715,52 @@ class ConsolidarDocumentos:
             import traceback
             traceback.print_exc()
 
-    
+    def gerar_termo_de_referencia(self, ordenador_de_despesas, responsavel_pela_demanda):
+        if self.df_registro_selecionado.empty:
+            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
+            print("Seleção necessária - nenhum registro selecionado.")
+            return None
+
+        try:
+            template_filename = "template_termo_de_referencia.docx"
+            template_path = TEMPLATE_DISPENSA_DIR / template_filename
+            if not template_path.exists():
+                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
+                print(f"Erro de Template - arquivo não encontrado: {template_path}")
+                return None
+
+            # Preparando o contexto inicial a partir dos registros do DataFrame
+            context = self.df_registro_selecionado.to_dict('records')[0]
+            context = self.prepare_context(context)  # Aplicando a preparação para segurança
+
+            nome_pasta = f"{context['id_processo'].replace('/', '-')} - {context['objeto']}"
+            pasta_base = Path.home() / 'Desktop' / nome_pasta / "2. Termo de Referencia"
+            pasta_base.mkdir(parents=True, exist_ok=True)
+
+            save_path = pasta_base / f"{context['id_processo'].replace('/', '-')}-Termo-de-Referencia.docx"
+            print(f"Caminho completo para salvar o documento: {save_path}")
+
+            doc = DocxTemplate(str(template_path))
+            descricao_servico = "Aquisição de" if context['material_servico'] == "Material" else "Contratação de serviços de"
+            context.update({
+                'descricao_servico': descricao_servico,
+                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
+                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}"
+            })
+
+            doc = DocxTemplate(str(template_path))
+            doc.render(context)
+            doc.save(str(save_path))
+            print("Documento gerado com sucesso:", save_path)
+            self.abrirDocumento(save_path)
+            return save_path            
+
+        except Exception as e:
+            print(f"Erro ao gerar ou salvar o documento: {e}")
+            import traceback
+            traceback.print_exc()
+
+
     def gerar_comunicacao_padronizada(self, ordenador_de_despesas, responsavel_pela_demanda, document_details):
         if self.df_registro_selecionado.empty:
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")

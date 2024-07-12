@@ -244,17 +244,21 @@ class EditDataDialog(QDialog):
         icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
         icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
         icon_config = QIcon(str(self.ICONS_DIR / "excel.png"))
+        icon_responsaveis = QIcon(str(self.ICONS_DIR / "responsaveis.png"))
         
-        button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(130, 50), QSize(40, 40))
-        button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
-        button_config = self.create_button(" Importar", icon_config, self.importar_tabela, "Alterar local de salvamento, entre outras configurações", QSize(130, 50), QSize(30, 30))
-        
+        button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(115, 50), QSize(40, 40))
+        button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(115, 50), QSize(30, 30))
+        button_config = self.create_button(" Importar", icon_config, self.importar_tabela, "Alterar local de salvamento, entre outras configurações", QSize(115, 50), QSize(30, 30))
+        button_responsaveis = self.create_button("Responsáveis", icon_responsaveis, self.open_editar_responsaveis_dialog, "Alterar local de salvamento, entre outras configurações", QSize(135, 50), QSize(30, 30))
+                
         layout.addWidget(button_confirm)
         layout.addWidget(button_x)
         layout.addWidget(button_config)
+        layout.addWidget(button_responsaveis)
         self.apply_widget_style(button_confirm)
         self.apply_widget_style(button_x)
         self.apply_widget_style(button_config)
+        self.apply_widget_style(button_responsaveis)
 
     def importar_tabela(self):
         dialog = QDialog(self)
@@ -346,7 +350,6 @@ class EditDataDialog(QDialog):
         else:
             print("Configurações canceladas")
 
-
     def open_config_dialog(self):
         config_dialog = ConfiguracoesDispensaDialog(self)
         config_dialog.config_updated.connect(self.update_frame4_content)
@@ -433,7 +436,9 @@ class EditDataDialog(QDialog):
         gerente_de_credito_label = QLabel("Gerente de Crédito:")
         self.gerente_credito_combo = QComboBox()
         self.gerente_credito_combo.setFixedWidth(260)
-
+        responsavel_pela_demanda_label = QLabel("Responsável pela Demanda:")
+        self.responsavel_demanda_combo = QComboBox()
+        self.responsavel_demanda_combo.setFixedWidth(260)
         # Adiciona as labels e ComboBoxes ao layout
         agente_responsavel_layout.addWidget(ordenador_despesa_label)
         agente_responsavel_layout.addWidget(self.ordenador_combo)
@@ -441,18 +446,14 @@ class EditDataDialog(QDialog):
         agente_responsavel_layout.addWidget(self.agente_fiscal_combo)
         agente_responsavel_layout.addWidget(gerente_de_credito_label)
         agente_responsavel_layout.addWidget(self.gerente_credito_combo)
+        agente_responsavel_layout.addWidget(responsavel_pela_demanda_label)
+        agente_responsavel_layout.addWidget(self.responsavel_demanda_combo)
+        
         agente_responsavel_group_box.setLayout(agente_responsavel_layout)
 
         # Adiciona o grupo ao layout principal do frame
         agente_responsavel.addWidget(agente_responsavel_group_box)
         self.frame_agentes_responsaveis_layout.addLayout(agente_responsavel)
-
-        # Botão para editar responsáveis
-        editar_responsaveis_button = QPushButton("Editar Responsáveis")
-        self.apply_widget_style(editar_responsaveis_button)  # Estilize conforme necessário
-        editar_responsaveis_button.clicked.connect(self.open_editar_responsaveis_dialog)  # Conecta o botão ao método
-        self.frame_agentes_responsaveis_layout.addWidget(editar_responsaveis_button)  # Adiciona o botão ao layout
-
         # Carrega os dados nos ComboBoxes
         self.carregarAgentesResponsaveis()
 
@@ -532,8 +533,6 @@ class EditDataDialog(QDialog):
         data_sessao_layout.addWidget(self.data_edit)
         contratacao_layout.addLayout(data_sessao_layout)
 
-
-
         # Operador
         operador_layout = QHBoxLayout()
         operador_label = QLabel("Operador:")
@@ -557,9 +556,19 @@ class EditDataDialog(QDialog):
         disputa_layout.addWidget(self.radio_disputa_nao)
         contratacao_layout.addLayout(disputa_layout)
 
+        criterio_layout = QHBoxLayout()
+        criterio_label = QLabel("Critédio de Julgamento:")
+        self.criterio_edit = QComboBox()
+        self.criterio_edit.addItems(["Menor Preço", "Maior Desconto"])
+        # self.criterio_edit.setCurrentText(data.get('material_servico', 'Menor Preço'))
+        self.apply_widget_style(criterio_label)
+        self.apply_widget_style(self.criterio_edit)
+        criterio_layout.addWidget(criterio_label)
+        criterio_layout.addWidget(self.criterio_edit)
+        contratacao_layout.addLayout(criterio_layout)
+
         # Adicionar o grupo de contratação ao layout de detalhes
         detalhes_layout.addWidget(contratacao_group_box)
-
         # Adicionar o layout de detalhes ao layout principal do frame
         self.frame1_layout.addLayout(detalhes_layout)
         
@@ -580,22 +589,13 @@ class EditDataDialog(QDialog):
         self.om_combo.setFixedWidth(120)
         sigla_layout.addWidget(self.om_combo)
 
-
-        responsavel_pela_demanda_label = QLabel("Responsável:")
-        self.responsavel_demanda_combo = QComboBox()
-        sigla_layout.addWidget(responsavel_pela_demanda_label)
-        sigla_layout.addWidget(self.responsavel_demanda_combo)
-        self.responsavel_demanda_combo.setFixedWidth(260)
-        setor_responsavel_layout.addLayout(sigla_layout)       
-
-        divisao_secao_layout = QHBoxLayout()
         divisao_secao_label = QLabel("Divisão:")
         self.setor_responsavel_edit = QLineEdit(data['setor_responsavel'])
         self.apply_widget_style(divisao_secao_label)
         self.apply_widget_style(self.setor_responsavel_edit)
-        divisao_secao_layout.addWidget(divisao_secao_label)
-        divisao_secao_layout.addWidget(self.setor_responsavel_edit)
-        setor_responsavel_layout.addLayout(divisao_secao_layout)
+        sigla_layout.addWidget(divisao_secao_label)
+        sigla_layout.addWidget(self.setor_responsavel_edit)
+        setor_responsavel_layout.addLayout(sigla_layout)
 
         par_layout = QHBoxLayout()
         par_label = QLabel("PAR/Prioridade:")
@@ -673,6 +673,19 @@ class EditDataDialog(QDialog):
         horario_layout.addWidget(horario_label)
         horario_layout.addWidget(self.horario_edit)
         setor_responsavel_layout.addLayout(horario_layout)
+
+        pesquisa_preco_layout = QHBoxLayout()
+        pesquisa_preco_label = QLabel("Pesquisa de Preço Concomitante?")
+        self.radio_pesquisa_sim = QRadioButton("Sim")
+        self.radio_pesquisa_nao = QRadioButton("Não")
+        pesquisa_preco_value = data.get('pesquisa_preco', 'Não')  # Define 'Não' como padrão
+        self.radio_pesquisa_sim.setChecked(pesquisa_preco_value == 'Sim')
+        self.radio_pesquisa_nao.setChecked(pesquisa_preco_value != 'Sim')  # Marca 'Não' se não for 'Sim'
+        pesquisa_preco_layout.addWidget(pesquisa_preco_label)
+        pesquisa_preco_layout.addWidget(self.radio_pesquisa_sim)
+        pesquisa_preco_layout.addWidget(self.radio_pesquisa_nao)
+        setor_responsavel_layout.addLayout(pesquisa_preco_layout)
+        
         setor_responsavel_group_box.setLayout(setor_responsavel_layout)
 
         self.frame2_layout.addWidget(setor_responsavel_group_box)
@@ -801,7 +814,7 @@ class EditDataDialog(QDialog):
             button = self.create_button(
                 text,
                 callback=lambda checked, text=text: self.button_clicked(text) if not checked else None,  # Corrigido para garantir que o sinal seja capturado corretamente
-                button_size=QSize(270, 40)
+                button_size=QSize(270, 35)
             )
             self.apply_button_style(button, selected=(text == self.selected_button))
             self.menu_layout.addWidget(button)
@@ -913,8 +926,8 @@ class EditDataDialog(QDialog):
     def add_document_details(self, layout):
         self.document_details_widget = DocumentDetailsWidget(
             self.df_registro_selecionado, 
-            ordenador_de_despesas=self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole), 
-            responsavel_pela_demanda=self.responsavel_demanda_combo.currentData(Qt.ItemDataRole.UserRole),
+            self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole), 
+            self.responsavel_demanda_combo.currentData(Qt.ItemDataRole.UserRole),
             parent=self
         )
         layout.addWidget(self.document_details_widget)

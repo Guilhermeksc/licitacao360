@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         menu_layout.addStretch(1) 
 
         # Load da Imagem
-        caminho_imagem = IMAGE_PATH / "ceimbra.png" 
+        caminho_imagem = IMAGE_PATH / "licitacao360_brasil.png" 
         licitacao_360_pixmap = QPixmap(str(caminho_imagem))  
         licitacao_360_pixmap = licitacao_360_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
