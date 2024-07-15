@@ -77,7 +77,10 @@ class EditDataDialog(QDialog):
         widget.setStyleSheet("font-size: 10pt;") 
 
     def setup_frames(self):
-        layout_principal = QHBoxLayout()
+        layout_principal = QVBoxLayout()
+        header_widget = self.update_title_label()
+        layout_principal.addWidget(header_widget)
+        
         self.frame_secundario, self.frame_secundario_layout = self.create_frame()
         layout_principal.addWidget(self.frame_secundario)
         self.layout.addLayout(layout_principal)
@@ -181,10 +184,6 @@ class EditDataDialog(QDialog):
         data = self.extract_registro_data()
         detalhes_layout = QVBoxLayout()
 
-        # Adicionar o header_widget ao detalhes_layout
-        header_widget = self.update_title_label()
-        detalhes_layout.addWidget(header_widget)
-
         hbox_top_layout = QHBoxLayout()  # Layout horizontal para os três QGroupBox
         # Preenche os QGroupBox e os adiciona ao layout horizontal
         contratacao_group_box = self.create_contratacao_group(data)        
@@ -271,7 +270,7 @@ class EditDataDialog(QDialog):
         link_pncp_layout.addLayout(self.create_layout("Link PNCP:", self.link_pncp_edit))
         
         icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
-        link_pncp_button = self.create_button("", icon=icon_link, callback=self.on_autorizacao_clicked, tooltip_text="Clique para autorização", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        link_pncp_button = self.create_button("", icon=icon_link, callback=self.on_autorizacao_clicked, tooltip_text="Clique para autorização", button_size=QSize(40, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(link_pncp_button)
         link_pncp_layout.addWidget(link_pncp_button)
         
@@ -313,6 +312,7 @@ class EditDataDialog(QDialog):
     def fill_frame_criar_documentos(self):
         gerar_documentos_group_box = QGroupBox("Criar Documentos")
         self.apply_widget_style(gerar_documentos_group_box)
+        gerar_documentos_group_box.setFixedWidth(270)  
         gerar_documentos_layout = QVBoxLayout()
         gerar_documentos_layout.setSpacing(1)
 
@@ -322,23 +322,23 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(autorizacao_button)
         gerar_documentos_layout.addWidget(autorizacao_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        dec_button = self.create_button("Declaração Orçamentária", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(dec_button)
-        gerar_documentos_layout.addWidget(dec_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        
+        cp_button = self.create_button("                 CP                  ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(cp_button)
+        gerar_documentos_layout.addWidget(cp_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
         dfd_button = self.create_button("               DFD                 ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(dfd_button)
         gerar_documentos_layout.addWidget(dfd_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        declaracao_orcamentaria_button = self.create_button("   Termo de Referência  ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        dec_button = self.create_button("Declaração Orçamentária", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(dec_button)
+        gerar_documentos_layout.addWidget(dec_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        declaracao_orcamentaria_button = self.create_button("   Termo de Referência   ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(declaracao_orcamentaria_button)
         gerar_documentos_layout.addWidget(declaracao_orcamentaria_button, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        aviso_dispensa_button = self.create_button("    Aviso de Dispensa    ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(aviso_dispensa_button)
-        gerar_documentos_layout.addWidget(aviso_dispensa_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        aviso_dispensa_button = self.create_button("   Lista de Verificação   ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        aviso_dispensa_button = self.create_button("    Aviso de Dispensa     ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(aviso_dispensa_button)
         gerar_documentos_layout.addWidget(aviso_dispensa_button, alignment=Qt.AlignmentFlag.AlignCenter)
         
@@ -406,6 +406,7 @@ class EditDataDialog(QDialog):
     def setupGrupoSIGDEM(self):       
         grupoSIGDEM = QGroupBox("SIGDEM")
         self.apply_widget_style(grupoSIGDEM)
+        grupoSIGDEM.setFixedWidth(270)  
         layout = QVBoxLayout(grupoSIGDEM)
 
         # Campo "Assunto"
@@ -813,7 +814,7 @@ class EditDataDialog(QDialog):
     def update_title_label_text(self, new_title):
         data = self.extract_registro_data()
         html_text = (
-            f"{data['tipo']} nº {data['numero']}/{data['ano']} - {data['objeto']}<br>"
+            f"{data['tipo']} {data['numero']}/{data['ano']} - {data['objeto']}<br>"
             f"<span style='font-size: 18px; color: #333333;'>OM: {new_title}</span>"
         )
         self.titleLabel.setText(html_text)
