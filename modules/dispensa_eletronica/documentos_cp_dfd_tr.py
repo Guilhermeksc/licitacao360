@@ -222,7 +222,6 @@ class DocumentDetailsWidget(QWidget):
                 return (f"A contratação de empresa especializada na prestação de serviços de {self.objeto} é imprescindível para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}).")
             return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
 
-    
     def get_value(self, column_name, default_value=''):
         value = self.df_registro_selecionado[column_name].iloc[0]
         return str(value) if value else default_value
