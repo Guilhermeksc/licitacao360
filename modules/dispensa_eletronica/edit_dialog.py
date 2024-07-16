@@ -51,9 +51,9 @@ class EditDataDialog(QDialog):
     def create_combo_box(self, current_text, items, fixed_width):
         combo_box = QComboBox()
         combo_box.addItems(items)
-        combo_box.setCurrentText(current_text)
         combo_box.setFixedWidth(fixed_width)
         self.apply_widget_style(combo_box)
+        combo_box.setCurrentText(current_text)  # Define o texto atual após adicionar os itens
         return combo_box
 
     def create_layout(self, label_text, widget, fixed_width=None):
@@ -155,13 +155,20 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(disputa_label)
         self.radio_disputa_sim = QRadioButton("Sim")
         self.radio_disputa_nao = QRadioButton("Não")
-        com_disputa_value = data.get('com_disputa', 'Não')
-        self.radio_disputa_sim.setChecked(com_disputa_value == 'Sim')
-        self.radio_disputa_nao.setChecked(com_disputa_value != 'Sim')
+        self.disputa_group = QButtonGroup(self)
+        self.disputa_group.addButton(self.radio_disputa_sim)
+        self.disputa_group.addButton(self.radio_disputa_nao)
         disputa_layout.addWidget(disputa_label)
         disputa_layout.addWidget(self.radio_disputa_sim)
         disputa_layout.addWidget(self.radio_disputa_nao)
         contratacao_layout.addLayout(disputa_layout)
+
+        com_disputa_value = data.get('com_disputa', 'Sim')
+        if com_disputa_value is None or pd.isna(com_disputa_value):
+            com_disputa_value = 'Sim'
+        print(f"Valor de com_disputa: {com_disputa_value}")
+        self.radio_disputa_sim.setChecked(com_disputa_value == 'Sim')
+        self.radio_disputa_nao.setChecked(com_disputa_value != 'Sim')
 
         # Pesquisa de Preço Concomitante
         pesquisa_concomitante_layout = QHBoxLayout()
@@ -169,6 +176,9 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(pesquisa_concomitante_label)
         self.radio_pesquisa_sim = QRadioButton("Sim")
         self.radio_pesquisa_nao = QRadioButton("Não")
+        self.pesquisa_group = QButtonGroup(self)
+        self.pesquisa_group.addButton(self.radio_pesquisa_sim)
+        self.pesquisa_group.addButton(self.radio_pesquisa_nao)
         pesquisa_preco_value = data.get('pesquisa_preco', 'Não')
         self.radio_pesquisa_sim.setChecked(pesquisa_preco_value == 'Sim')
         self.radio_pesquisa_nao.setChecked(pesquisa_preco_value != 'Sim')
@@ -179,6 +189,7 @@ class EditDataDialog(QDialog):
 
         contratacao_group_box.setLayout(contratacao_layout)
         return contratacao_group_box
+
 
     def fill_frame_dados_secundarios(self):
         data = self.extract_registro_data()
@@ -244,12 +255,12 @@ class EditDataDialog(QDialog):
         cp_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))  
         
         # Campo Do: Responsável
-        self.responsavel_edit = QLineEdit(data.get('do_resposavel', 'Responsável pela Demanda'))
-        responsavel_layout = self.create_layout("Do:", self.responsavel_edit)
+        self.do_responsavel_edit = QLineEdit(data.get('do_resposavel', 'Responsável pela Demanda'))
+        responsavel_layout = self.create_layout("Do:", self.do_responsavel_edit)
         
         # Campo Ao: Encarregado de Obtenção
-        self.encarregado_obtencao_edit = QLineEdit(data.get('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
-        encarregado_obtencao_layout = self.create_layout("Ao:", self.encarregado_obtencao_edit)
+        self.ao_responsavel_edit = QLineEdit(data.get('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
+        encarregado_obtencao_layout = self.create_layout("Ao:", self.ao_responsavel_edit)
 
         self.anexos_edit = QTextEdit("A) DFD\nB) TR\nC) Adequação Orçamentária")
         anexos_edit_layout = self.create_layout("Anexos:", self.anexos_edit)
@@ -270,7 +281,7 @@ class EditDataDialog(QDialog):
         link_pncp_layout.addLayout(self.create_layout("Link PNCP:", self.link_pncp_edit))
         
         icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
-        link_pncp_button = self.create_button("", icon=icon_link, callback=self.on_autorizacao_clicked, tooltip_text="Clique para autorização", button_size=QSize(40, 40), icon_size=QSize(30, 30))
+        link_pncp_button = self.create_button("", icon=icon_link, callback=self.on_autorizacao_clicked, tooltip_text="Clique para acessar o Link dispensa no Portal Nacional de Contratações Públicas (PNCP)", button_size=QSize(40, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(link_pncp_button)
         link_pncp_layout.addWidget(link_pncp_button)
         
@@ -312,36 +323,26 @@ class EditDataDialog(QDialog):
     def fill_frame_criar_documentos(self):
         gerar_documentos_group_box = QGroupBox("Criar Documentos")
         self.apply_widget_style(gerar_documentos_group_box)
-        gerar_documentos_group_box.setFixedWidth(270)  
+        gerar_documentos_group_box.setFixedWidth(270)
         gerar_documentos_layout = QVBoxLayout()
         gerar_documentos_layout.setSpacing(1)
 
-        # Botão Autorização
+        # Definir os botões com as ações redirecionadas para a instância de ConsolidarDocumentos
+        actions = [
+            ("          Autorização            ", self.consolidador.gerar_autorizacao),
+            ("                  CP                  ", self.consolidador.gerar_comunicacao_padronizada),
+            ("                 DFD                 ", self.consolidador.gerar_documento_de_formalizacao_de_demanda),
+            ("Declaração Orçamentária", self.consolidador.gerar_declaracao_orcamentaria),
+            ("     Termo de Referência   ", self.consolidador.gerar_termo_de_referencia),
+            ("      Aviso de Dispensa      ", self.consolidador.gerar_aviso_dispensa)
+        ]
+
         icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        autorizacao_button = self.create_button("          Autorização            ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para autorização", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(autorizacao_button)
-        gerar_documentos_layout.addWidget(autorizacao_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        for text, action in actions:
+            button = self.create_button(f"{text}", icon_pdf, action, f"Clique para gerar {text}", QSize(220, 40), QSize(30, 30))
+            self.apply_widget_style(button)
+            gerar_documentos_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        cp_button = self.create_button("                 CP                  ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(cp_button)
-        gerar_documentos_layout.addWidget(cp_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        dfd_button = self.create_button("               DFD                 ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(dfd_button)
-        gerar_documentos_layout.addWidget(dfd_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        dec_button = self.create_button("Declaração Orçamentária", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(dec_button)
-        gerar_documentos_layout.addWidget(dec_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        declaracao_orcamentaria_button = self.create_button("   Termo de Referência   ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(declaracao_orcamentaria_button)
-        gerar_documentos_layout.addWidget(declaracao_orcamentaria_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        
-        aviso_dispensa_button = self.create_button("    Aviso de Dispensa     ", icon=icon_pdf, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar o Aviso de Dispensa", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(aviso_dispensa_button)
-        gerar_documentos_layout.addWidget(aviso_dispensa_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        
         gerar_documentos_group_box.setLayout(gerar_documentos_layout)
         return gerar_documentos_group_box
 
@@ -478,16 +479,16 @@ class EditDataDialog(QDialog):
         self.agente_fiscal_combo = self.create_combo_box('', [], 260)
         self.gerente_credito_combo = self.create_combo_box('', [], 260)
         self.responsavel_demanda_combo = self.create_combo_box('', [], 260)
-        self.responsavel_demanda_combo2 = self.create_combo_box('', [], 260)
+        self.operador_dispensa_combo = self.create_combo_box('', [], 260)
 
         agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Ordenador de Despesa:", self.ordenador_combo))
         agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Agente Fiscal:", self.agente_fiscal_combo))
         agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Gerente de Crédito:", self.gerente_credito_combo))
         agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Responsável pela Demanda:", self.responsavel_demanda_combo))
-        agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Operador da Contratação:", self.responsavel_demanda_combo2))
+        agente_responsavel_layout.addLayout(self.create_layout_combobox_label("Operador da Contratação:", self.operador_dispensa_combo))
 
         icon_editar = QIcon(str(self.ICONS_DIR / "editar_responsaveis.png"))
-        editar_responsaveis_button = self.create_button("Editar Responsáveis", icon=icon_editar, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        editar_responsaveis_button = self.create_button("Editar Responsáveis", icon=icon_editar, callback=self.open_editar_responsaveis_dialog, tooltip_text="Clique para editar os responsáveis pela contratação", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(editar_responsaveis_button)
         agente_responsavel_layout.addWidget(editar_responsaveis_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -495,6 +496,14 @@ class EditDataDialog(QDialog):
         self.carregarAgentesResponsaveis()
         
         return agente_responsavel_group_box
+
+    def open_editar_responsaveis_dialog(self):
+        config_dialog = ConfiguracoesDispensaDialog(self)
+        # config_dialog.config_updated.connect(self.update_frame4_content)
+        if config_dialog.exec():
+            print("Configurações salvas")
+        else:
+            print("Configurações canceladas")
 
     def create_layout_combobox_label(self, label_text, combobox, fixed_width=None):
         layout = QVBoxLayout()
@@ -562,8 +571,12 @@ class EditDataDialog(QDialog):
         om_layout = QHBoxLayout()
         om_label = QLabel("OM:")
         self.apply_widget_style(om_label)
-        self.om_combo = self.create_combo_box(data.get('sigla_om', ''), [], 105)
-        self.load_sigla_om()
+
+        sigla_om = data.get('sigla_om', 'CeIMBra')
+        if self.df_registro_selecionado is not None and 'sigla_om' in self.df_registro_selecionado.columns:
+            sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0] if not self.df_registro_selecionado['sigla_om'].empty else 'CeIMBra'
+
+        self.om_combo = self.create_combo_box(sigla_om, [], 105)
         om_layout.addWidget(om_label)
         om_layout.addWidget(self.om_combo)
 
@@ -574,6 +587,8 @@ class EditDataDialog(QDialog):
         om_divisao_layout.addWidget(divisao_label)
         om_divisao_layout.addWidget(self.setor_responsavel_edit)
         setor_responsavel_layout.addLayout(om_divisao_layout)
+        
+        self.load_sigla_om(sigla_om)  # Carregar os itens do combobox e definir o texto
 
         self.par_edit = QLineEdit(str(data.get('cod_par', '')))
         self.par_edit.setFixedWidth(120)
@@ -687,7 +702,7 @@ class EditDataDialog(QDialog):
         self.link_portal_marinha = self.df_registro_selecionado['link_portal_marinha'].iloc[0]
         self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
         self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
-        self.do_resposavel = self.df_registro_selecionado['do_resposavel'].iloc[0]
+        self.do_responsavel = self.df_registro_selecionado['do_responsavel'].iloc[0]
         self.ao_responsavel = self.df_registro_selecionado['ao_responsavel'].iloc[0]
 
         data = {
@@ -732,7 +747,7 @@ class EditDataDialog(QDialog):
             'link_portal_marinha': self.link_portal_marinha,
             'previsao_contratacao': self.previsao_contratacao,
             'comunicacao_padronizada': self.comunicacao_padronizada,
-            'do_resposavel': self.do_resposavel,
+            'do_responsavel': self.do_responsavel,
             'ao_responsavel': self.ao_responsavel
         }
 
@@ -748,31 +763,42 @@ class EditDataDialog(QDialog):
             'nup': self.nup_edit.text().strip(),
             'material_servico': self.material_edit.currentText(),
             'objeto': self.objeto_edit.text().strip(),
-            'vigencia': self.vigencia_edit.text().strip() if isinstance(self.vigencia_edit, QLineEdit) else '12 (doze) meses',
-            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd") if isinstance(self.data_edit, QDateEdit) else '',
+            'vigencia': self.vigencia_edit.text().strip(),
+            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),
             'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
             'setor_responsavel': self.setor_responsavel_edit.text().strip(),
-            'operador': self.operador_edit.text().strip(),
+            'operador': self.operador_dispensa_combo.currentText(),   
             'sigla_om': self.om_combo.currentText(),
-            'uasg': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'uasg'],  # Inclui uasg
-            'orgao_responsavel': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
-            'cod_par': self.par_edit.text().strip(),  
+            'uasg': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'uasg'],
+            'orgao_responsavel': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
+            'cod_par': self.par_edit.text().strip(),
             'prioridade_par': self.prioridade_combo.currentText(),
             'cep': self.cep_edit.text().strip(),
             'endereco': self.endereco_edit.text().strip(),
             'email': self.email_edit.text().strip(),
             'telefone': self.telefone_edit.text().strip(),
             'dias_para_recebimento': self.dias_edit.text().strip(),
-            'horario_para_recebimento': self.horario_edit.text().strip(),            
+            'horario_para_recebimento': self.horario_edit.text().strip(),
             'valor_total': self.valor_edit.text().strip(),
             'acao_interna': self.acao_interna_edit.text().strip(),
             'fonte_recursos': self.fonte_recurso_edit.text().strip(),
             'natureza_despesa': self.natureza_despesa_edit.text().strip(),
             'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
-            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),           
+            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
             'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
+            'comunicacao_padronizada': self.cp_edit.text().strip(),
+            'do_responsavel': self.do_responsavel_edit.text().strip(),
+            'ao_responsavel': self.ao_responsavel_edit.text().strip(),
         }
+
+        # Atualizar o DataFrame com os novos valores
+        for key, value in data.items():
+            self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
+        # Atualizar banco de dados
         self.update_database(data)
+        self.dados_atualizados.emit()
+        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+
 
     def update_database(self, data):
         with self.database_manager as connection:
@@ -789,12 +815,12 @@ class EditDataDialog(QDialog):
         data = self.extract_registro_data()
         html_text = (
             f"{data['tipo']} {data['numero']}/{data['ano']} - {data['objeto']}<br>"
-            f"<span style='font-size: 18px; color: #333333;'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
+            f"<span style='font-size: 20px; color: #ADD8E6;'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
         )
         if not hasattr(self, 'titleLabel'):
             self.titleLabel = QLabel()
             self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-            self.titleLabel.setStyleSheet("font-size: 26px; font-weight: bold;")
+            self.titleLabel.setStyleSheet("color: white; font-size: 30px; font-weight: bold;")
 
         self.titleLabel.setText(html_text)
 
@@ -803,6 +829,10 @@ class EditDataDialog(QDialog):
             self.header_layout.addWidget(self.titleLabel)
             self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
             self.add_action_buttons(self.header_layout)
+            pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.image_label = QLabel()
+            self.image_label.setPixmap(pixmap)
+            self.header_layout.addWidget(self.image_label)
 
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)
@@ -815,7 +845,7 @@ class EditDataDialog(QDialog):
         data = self.extract_registro_data()
         html_text = (
             f"{data['tipo']} {data['numero']}/{data['ano']} - {data['objeto']}<br>"
-            f"<span style='font-size: 18px; color: #333333;'>OM: {new_title}</span>"
+            f"<span style='font-size: 20px; color: #ADD8E6;'>OM: {new_title}</span>"
         )
         self.titleLabel.setText(html_text)
         print(f"Title updated: {html_text}")
@@ -832,7 +862,6 @@ class EditDataDialog(QDialog):
 
         self.apply_widget_style(button_confirm)
         self.apply_widget_style(button_x)
-
 
     def create_button(self, text="", icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):
         btn = QPushButton(text)
@@ -874,7 +903,7 @@ class EditDataDialog(QDialog):
                 self.carregarDadosCombo(conn, cursor, "Ordenador de Despesa%", self.ordenador_combo)
                 self.carregarDadosCombo(conn, cursor, "Agente Fiscal%", self.agente_fiscal_combo)
                 self.carregarDadosCombo(conn, cursor, "Gerente de Crédito%", self.gerente_credito_combo)
-                # Carregar dados para o combobox de responsável pela demanda, excluindo os outros cargos
+                self.carregarDadosCombo(conn, cursor, "Operador da Contratação%", self.operador_dispensa_combo)
                 self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
 
                 # Print para verificar o valor corrente e dados associados ao item selecionado
@@ -892,7 +921,8 @@ class EditDataDialog(QDialog):
                 SELECT nome, posto, funcao FROM controle_agentes_responsaveis
                 WHERE funcao NOT LIKE 'Ordenador de Despesa%' AND
                     funcao NOT LIKE 'Agente Fiscal%' AND
-                    funcao NOT LIKE 'Gerente de Crédito%'
+                    funcao NOT LIKE 'Gerente de Crédito%' AND
+                    funcao NOT LIKE 'Operador da Contratação%'
             """
         else:
             sql_query = f"SELECT nome, posto, funcao FROM controle_agentes_responsaveis WHERE funcao LIKE '{funcao_like}'"
@@ -904,13 +934,14 @@ class EditDataDialog(QDialog):
             # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
             combo_widget.addItem(texto_display, userData=row.to_dict())    
 
-    def load_sigla_om(self):
+    def load_sigla_om(self, sigla_om):
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT DISTINCT sigla_om FROM controle_om ORDER BY sigla_om")
                 items = [row[0] for row in cursor.fetchall()]
                 self.om_combo.addItems(items)
+                self.om_combo.setCurrentText(sigla_om)  # Define o texto atual do combobox
                 self.om_combo.currentTextChanged.connect(self.on_om_changed)
                 print(f"Loaded sigla_om items: {items}")
         except Exception as e:
@@ -1486,7 +1517,7 @@ class EditDataDialog2(QDialog):
         disputa_label = QLabel("Com disputa?")
         self.radio_disputa_sim = QRadioButton("Sim")
         self.radio_disputa_nao = QRadioButton("Não")
-        com_disputa_value = data.get('com_disputa', 'Não')  # Define 'Não' como padrão
+        com_disputa_value = data.get('com_disputa', 'Sim')  # Define 'Sim' como padrão
         self.radio_disputa_sim.setChecked(com_disputa_value == 'Sim')
         self.radio_disputa_nao.setChecked(com_disputa_value != 'Sim')  # Marca 'Não' se não for 'Sim'
         disputa_layout.addWidget(disputa_label)
@@ -1985,140 +2016,6 @@ class EditDataDialog2(QDialog):
                 }
             """)
 
-    def setupGrupoSIGDEM(self, layout_direita, selected_button):
-        self.clear_layout(layout_direita)  # Adicione esta linha para limpar o layout antes de adicionar novos widgets
-        
-        grupoSIGDEM = QGroupBox("SIGDEM")
-        grupoSIGDEM.setStyleSheet("""
-                QGroupBox {
-                    border: 1px solid white;
-                    border-radius: 5px;
-                    margin-top: 5px;
-                    font: 12pt 'Arial';
-                    color: white;
-                }
-                QGroupBox::title {
-                    subcontrol-origin: margin;
-                    subcontrol-position: top center;
-                    padding: 0 3px;
-                }
-            """)
-        layout = QVBoxLayout(grupoSIGDEM)
-
-        # Campo "Assunto"
-        labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
-        labelAssunto.setStyleSheet("color: white; font-size: 12pt;")
-        layout.addWidget(labelAssunto)
-        self.textEditAssunto = QTextEdit()
-        self.textEditAssunto.setStyleSheet("font-size: 12pt;")
-        assunto_text = self.get_assunto_text(selected_button)
-        self.textEditAssunto.setPlainText(assunto_text)
-        self.textEditAssunto.setMaximumHeight(60)
-
-        icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))  # Caminho para o ícone de Word
-        btnCopyAssunto = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditAssunto.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
-
-        layoutHAssunto = QHBoxLayout()
-        layoutHAssunto.addWidget(self.textEditAssunto)
-        layoutHAssunto.addWidget(btnCopyAssunto)
-        layout.addLayout(layoutHAssunto)
-
-        # Campo "Sinopse"
-        labelSinopse = QLabel("No campo “Sinopse”, deverá constar:")
-        labelSinopse.setStyleSheet("color: white; font-size: 12pt;")
-        layout.addWidget(labelSinopse)
-        self.textEditSinopse = QTextEdit()
-        self.textEditSinopse.setStyleSheet("font-size: 12pt;")
-        sinopse_text = self.get_sinopse_text(selected_button)
-        self.textEditSinopse.setPlainText(sinopse_text)
-        self.textEditSinopse.setMaximumHeight(140)
-        btnCopySinopse = self.create_button("Copiar", icon_copy, lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), "Copiar texto para a área de transferência", QSize(80, 40), QSize(25, 25))
-        layoutHSinopse = QHBoxLayout()
-        layoutHSinopse.addWidget(self.textEditSinopse)
-        layoutHSinopse.addWidget(btnCopySinopse)
-        layout.addLayout(layoutHSinopse)
-
-        # Campo "Temporalidade"
-        labelTemporalidade = QLabel("Temporalidade: 004")
-        labelTemporalidade.setStyleSheet("color: white; font-size: 12pt;")
-        layout.addWidget(labelTemporalidade)  
-
-        labelTramitacao = QLabel("Tramitação: 33>30>02>SEC01>01>30>Setor Demandante")
-        labelTramitacao.setStyleSheet("color: white; font-size: 12pt;")
-        layout.addWidget(labelTramitacao)
-
-        layout_direita.addWidget(grupoSIGDEM)
-
-    def get_assunto_text(self, selected_button):
-        if selected_button == "Abertura de Processo":
-            return f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica"
-        elif selected_button == "Documentos":
-            return f"{self.id_processo} – Documentos de Planejamento"
-        elif selected_button == "Aviso de Dispensa":
-            return f"{self.id_processo} – Aviso de Dispensa Eletrônica"
-        elif selected_button == "Lista de Verificação":
-            return f"{self.id_processo} – Lista de Verificação"
-        else:
-            return ""
-
-    def get_sinopse_text(self, selected_button):
-        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
-        base_text = (
-            f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-            f"Processo Administrativo NUP: {self.nup}\n"
-            f"Setor Demandante: {self.setor_responsavel}"
-        )
-        return base_text
-
-    def copyToClipboard(self, text):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(text)
-        QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
-
-    def carregarAgentesResponsaveis(self):
-        try:
-            print("Tentando conectar ao banco de dados...")
-            with sqlite3.connect(self.database_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_agentes_responsaveis'")
-                if cursor.fetchone() is None:
-                    raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesa no Módulo 'Configurações'.")
-
-                print("Tabela 'controle_agentes_responsaveis' encontrada. Carregando dados...")
-                # Carregar dados para comboboxes específicos
-                self.carregarDadosCombo(conn, cursor, "Ordenador de Despesa%", self.ordenador_combo)
-                self.carregarDadosCombo(conn, cursor, "Agente Fiscal%", self.agente_fiscal_combo)
-                self.carregarDadosCombo(conn, cursor, "Gerente de Crédito%", self.gerente_credito_combo)
-                # Carregar dados para o combobox de responsável pela demanda, excluindo os outros cargos
-                self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
-
-                # Print para verificar o valor corrente e dados associados ao item selecionado
-                current_text = self.ordenador_combo.currentText()
-                current_data = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
-                print(f"Current ordenador_combo Text: {current_text}")
-                print(f"Current ordenador_combo Data: {current_data}")
-
-        except Exception as e:
-            print(f"Erro ao carregar Ordenadores de Despesas: {e}")
-
-    def carregarDadosCombo(self, conn, cursor, funcao_like, combo_widget):
-        if "NOT LIKE" in funcao_like:
-            sql_query = """
-                SELECT nome, posto, funcao FROM controle_agentes_responsaveis
-                WHERE funcao NOT LIKE 'Ordenador de Despesa%' AND
-                    funcao NOT LIKE 'Agente Fiscal%' AND
-                    funcao NOT LIKE 'Gerente de Crédito%'
-            """
-        else:
-            sql_query = f"SELECT nome, posto, funcao FROM controle_agentes_responsaveis WHERE funcao LIKE '{funcao_like}'"
-        
-        agentes_df = pd.read_sql_query(sql_query, conn)
-        combo_widget.clear()
-        for index, row in agentes_df.iterrows():
-            texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
-            # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
-            combo_widget.addItem(texto_display, userData=row.to_dict())    
-
     def update_text_edit_fields(self, tooltip):
         descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
         sinopse_text_map = {
@@ -2153,38 +2050,6 @@ class EditDataDialog2(QDialog):
         self.textEditAssunto.setPlainText(assunto_text_map.get(tooltip, ""))
         self.textEditSinopse.setPlainText(sinopse_text_map.get(tooltip, ""))
 
-    def apply_dark_red_style(self, button):
-        button.setStyleSheet("""
-            QPushButton, QPushButton::tooltip {
-                font-size: 16pt;
-                font-weight: bold;
-            }
-            QPushButton {
-                background-color: #8B0000;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 5px;
-            }
-            QPushButton:hover {
-                background-color: #A52A2A;
-                border: 1px solid #FF6347;
-            }
-        """)
-        button.update()  # Força a atualização do widget
-
-    def gerar_aviso(self):
-        print("Gerando aviso...")
-
-    def gerar_lista(self):
-        print("Gerando lista de verificação...")
-
-    def gerar_configuracoes(self):
-        print("Gerando configurações...")
-        
-    def teste(self):
-        print("Teste")
-
     def add_date_edit(self, layout, label_text, data_key):
         label = QLabel(label_text)
         date_edit = QDateEdit()
@@ -2199,34 +2064,6 @@ class EditDataDialog2(QDialog):
         buttons_layout.addWidget(self.save_button)
         buttons_layout.addWidget(self.cancel_button)
         self.layout.addLayout(buttons_layout)  # Consistentemente adiciona os botões usando um layout
-
-    def load_sigla_om(self):
-        try:
-            with sqlite3.connect(self.database_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT DISTINCT sigla_om FROM controle_om ORDER BY sigla_om")
-                items = [row[0] for row in cursor.fetchall()]
-                self.om_combo.addItems(items)
-                self.om_combo.currentTextChanged.connect(self.on_om_changed)
-                print(f"Loaded sigla_om items: {items}")  # Print para verificar os itens carregados
-        except Exception as e:
-            QMessageBox.warning(self, "Erro", f"Erro ao carregar OM: {e}")
-            print(f"Error loading sigla_om: {e}")  # Print para verificar erros
-
-    def on_om_changed(self):
-        selected_om = self.om_combo.currentText()
-        print(f"OM changed to: {selected_om}")
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT uasg, orgao_responsavel FROM controle_om WHERE sigla_om = ?", (selected_om,))
-            result = cursor.fetchone()
-            if result:
-                uasg, orgao_responsavel = result
-                index = self.df_registro_selecionado.index[0]
-                self.df_registro_selecionado.loc[index, 'uasg'] = uasg
-                self.df_registro_selecionado.loc[index, 'orgao_responsavel'] = orgao_responsavel
-                print(f"Updated DataFrame: uasg={uasg}, orgao_responsavel={orgao_responsavel}")
-                self.title_updated.emit(f"{orgao_responsavel} (UASG: {uasg})")  # Emite o sinal com o novo título
                             
     def formatar_brl(self, valor):
         try:

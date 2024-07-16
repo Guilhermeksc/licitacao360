@@ -193,8 +193,8 @@ class ConfiguracoesDispensaDialog(QDialog):
                     ], self.table_view))
                     self.table_view.setItemDelegateForColumn(2, ComboBoxDelegate([
                         "Ordenador de Despesa", "Ordenador de Despesa Substituto", "Agente Fiscal", 
-                        "Agente Fiscal Substituto", "Gerente de Crédito", "Responsável pela Demanda", 
-                        "Encarregado da Divisão de x"
+                        "Agente Fiscal Substituto", "Gerente de Crédito", "Operador da Contratação", 
+                        "Responsável pela Demanda", "Encarregado da Divisão de x"
                     ], self.table_view))
                     self.table_view.setColumnWidth(0, 400)  # Define o tamanho da coluna do índice 0
                     self.table_view.setColumnWidth(1, 300)  # Define o tamanho da coluna do índice 1

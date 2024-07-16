@@ -642,165 +642,79 @@ class ConsolidarDocumentos:
 
     def abrirDocumento(self, docx_path):
         try:
-            docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
-            pdf_path = docx_path.with_suffix('.pdf')
-
-            word = win32com.client.Dispatch("Word.Application")
-            doc = word.Documents.Open(str(docx_path))
-            doc.SaveAs(str(pdf_path), FileFormat=17)
-            doc.Close()
-            word.Quit()
-
-            if pdf_path.exists():
-                os.startfile(pdf_path)
-                print(f"Documento PDF aberto: {pdf_path}")
-            else:
-                raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
-
+            pdf_path = self.convert_to_pdf(docx_path)
+            os.startfile(pdf_path)
+            print(f"Documento PDF aberto: {pdf_path}")
         except Exception as e:
             print(f"Erro ao abrir ou converter o documento: {e}")
             QMessageBox.warning(None, "Erro", f"Erro ao abrir ou converter o documento: {e}")
 
+    def convert_to_pdf(self, docx_path):
+        docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
+        pdf_path = docx_path.with_suffix('.pdf')
+        word = win32com.client.Dispatch("Word.Application")
+        doc = word.Documents.Open(str(docx_path))
+        doc.SaveAs(str(pdf_path), FileFormat=17)
+        doc.Close()
+        word.Quit()
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
+        return pdf_path
+
     def prepare_context(self, data):
-        """
-        Prepare the rendering context for the document, replacing None values with 'Não especificado'.
-        """
-        return {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
+        context = {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
+        descricao_servico = "aquisição de" if data['material_servico'] == "Material" else "contratação de empresa especializada em"
+        context.update({'descricao_servico': descricao_servico})
+        return context
 
-    def gerar_documento_de_formalizacao_de_demanda(self, ordenador_de_despesas, responsavel_pela_demanda, justificativa_atual):
+    def gerarDocumento(self, template_type, subfolder_name, file_description):
         if self.df_registro_selecionado.empty:
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-            print("Seleção necessária - nenhum registro selecionado.")
-            return None
-
-        try:
-            template_filename = "template_dfd.docx"
-            template_path = TEMPLATE_DISPENSA_DIR / template_filename
-            if not template_path.exists():
-                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
-                print(f"Erro de Template - arquivo não encontrado: {template_path}")
-                return None
-
-            # Preparando o contexto inicial a partir dos registros do DataFrame
-            context = self.df_registro_selecionado.to_dict('records')[0]
-            context = self.prepare_context(context)  # Aplicando a preparação para segurança
-
-            nome_pasta = f"{context['id_processo'].replace('/', '-')} - {context['objeto']}"
-            pasta_base = Path.home() / 'Desktop' / nome_pasta / "1. Documento de Formalizacao de Demanda"
-            pasta_base.mkdir(parents=True, exist_ok=True)
-
-            save_path = pasta_base / f"{context['id_processo'].replace('/', '-')} - DFD.docx"
-            print(f"Caminho completo para salvar o documento: {save_path}")
-
-            doc = DocxTemplate(str(template_path))
-            descricao_servico = "Aquisição de" if context['material_servico'] == "Material" else "Contratação de serviços de"
-            context.update({
-                'descricao_servico': descricao_servico,
-                'justificativa': justificativa_atual,
-                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
-                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}",
-                'nome_responsavel_pela_demanda': responsavel_pela_demanda['nome']  # Adicionando apenas o nome
-            })
-
-            doc = DocxTemplate(str(template_path))
-            doc.render(context)
-            doc.save(str(save_path))
-            print("Documento gerado com sucesso:", save_path)
-            self.abrirDocumento(save_path)
-            return save_path            
-
-        except Exception as e:
-            print(f"Erro ao gerar ou salvar o documento: {e}")
-            import traceback
-            traceback.print_exc()
-
-    def gerar_termo_de_referencia(self, ordenador_de_despesas, responsavel_pela_demanda):
-        if self.df_registro_selecionado.empty:
-            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-            print("Seleção necessária - nenhum registro selecionado.")
-            return None
-
-        try:
-            template_filename = "template_termo_de_referencia.docx"
-            template_path = TEMPLATE_DISPENSA_DIR / template_filename
-            if not template_path.exists():
-                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
-                print(f"Erro de Template - arquivo não encontrado: {template_path}")
-                return None
-
-            # Preparando o contexto inicial a partir dos registros do DataFrame
-            context = self.df_registro_selecionado.to_dict('records')[0]
-            context = self.prepare_context(context)  # Aplicando a preparação para segurança
-
-            nome_pasta = f"{context['id_processo'].replace('/', '-')} - {context['objeto']}"
-            pasta_base = Path.home() / 'Desktop' / nome_pasta / "2. Termo de Referencia"
-            pasta_base.mkdir(parents=True, exist_ok=True)
-
-            save_path = pasta_base / f"{context['id_processo'].replace('/', '-')}-Termo-de-Referencia.docx"
-            print(f"Caminho completo para salvar o documento: {save_path}")
-
-            doc = DocxTemplate(str(template_path))
-            descricao_servico = "Aquisição de" if context['material_servico'] == "Material" else "Contratação de serviços de"
-            context.update({
-                'descricao_servico': descricao_servico,
-                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
-                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}"
-            })
-
-            doc = DocxTemplate(str(template_path))
-            doc.render(context)
-            doc.save(str(save_path))
-            print("Documento gerado com sucesso:", save_path)
-            self.abrirDocumento(save_path)
-            return save_path            
-
-        except Exception as e:
-            print(f"Erro ao gerar ou salvar o documento: {e}")
-            import traceback
-            traceback.print_exc()
-
-
-    def gerar_comunicacao_padronizada(self, ordenador_de_despesas, responsavel_pela_demanda, document_details):
-        if self.df_registro_selecionado.empty:
-            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-            print("Nenhum registro selecionado.")
             return
 
-        try:
-            # Assume a existência de uma variável 'TEMPLATE_DISPENSA_DIR' e 'tipo'
-            template_filename = f"template_cp.docx"  # Assumindo um tipo padrão
-            template_path = TEMPLATE_DISPENSA_DIR / template_filename
-            if not template_path.exists():
-                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
-                print(f"O arquivo de template não foi encontrado: {template_path}")
-                return
+        template_filename = f"template_{template_type}.docx"
+        template_path, save_path = self.setup_document_paths(template_filename, subfolder_name, file_description)
 
-            nome_pasta = f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - {self.df_registro_selecionado['objeto'].iloc[0]}"
-            pasta_base = Path.home() / 'Desktop' / nome_pasta / "2. Comunicacao Padronizada"
-            pasta_base.mkdir(parents=True, exist_ok=True)  # Garante a criação da pasta
+        if not template_path.exists():
+            QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
+            return
 
-            save_path = pasta_base / f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - Cp.docx"
-            print(f"Caminho completo para salvar o documento: {save_path}")
+        doc = DocxTemplate(str(template_path))
+        context = self.df_registro_selecionado.to_dict('records')[0]
+        context = self.prepare_context(context)
+        doc.render(context)
+        doc.save(str(save_path))
+        return save_path
 
-            doc = DocxTemplate(str(template_path))
-            context = self.df_registro_selecionado.to_dict('records')[0]
-            descricao_servico = "aquisição de" if self.df_registro_selecionado['material_servico'].iloc[0] == "Material" else "contratação de empresa especializada em"
+    def setup_document_paths(self, template_filename, subfolder_name, file_description):
+        template_path = TEMPLATE_DISPENSA_DIR / template_filename
+        id_processo = self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')
+        objeto = self.df_registro_selecionado['objeto'].iloc[0]
+        nome_pasta = f"{id_processo} - {objeto}"
+        pasta_base = Path.home() / 'Desktop' / nome_pasta / subfolder_name
+        pasta_base.mkdir(parents=True, exist_ok=True)
+        save_path = pasta_base / f"{id_processo} - {file_description}.docx"
+        return template_path, save_path
 
-            context.update({
-                'descricao_servico': descricao_servico,
-                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}",
-                'responsavel_pela_demanda': f"{responsavel_pela_demanda['nome']}\n{responsavel_pela_demanda['posto']}\n{responsavel_pela_demanda['funcao']}",
-                'cp_number': document_details['cp_number'],
-                'encarregado_obtencao': document_details['encarregado_obtencao'],
-                'responsavel': document_details['responsavel']
-            })
+    def gerar_e_abrir_documento(self, template_type, subfolder_name, file_description):
+        docx_path = self.gerarDocumento(template_type, subfolder_name, file_description)
+        if docx_path:
+            self.abrirDocumento(docx_path)
 
-            print("Contexto para renderização:", context)
-            doc.render(context)
-            doc.save(str(save_path))
-            print("Documento gerado com sucesso:", save_path)
-            return str(save_path)
+    def gerar_autorizacao(self):
+        self.gerar_e_abrir_documento("autorizacao_dispensa", "1. Autorizacao para abertura de Processo Administrativo", "Autorizacao para abertura de Processo Administrativo")
 
-        except Exception as e:
-            QMessageBox.warning(None, "Erro", f"Erro ao gerar ou salvar o documento: {e}")
-            print(f"Erro ao gerar ou salvar o documento: {e}")
+    def gerar_comunicacao_padronizada(self):
+        self.gerar_e_abrir_documento("cp", "2. Comunicacao Padronizada", "Comunicacao Padronizada")
+
+    def gerar_documento_de_formalizacao_de_demanda(self):
+        self.gerar_e_abrir_documento("dfd", "3. Documento de Formalizacao de Demanda", "Documento de Formalizacao de Demanda")
+
+    def gerar_declaracao_orcamentaria(self):
+        self.gerar_e_abrir_documento("declaracao_orcamentaria", "4. Declaracao Orcamentaria", "Declaracao Orcamentaria")
+
+    def gerar_termo_de_referencia(self):
+        self.gerar_e_abrir_documento("tr", "5. Termo de Referencia", "Termo de Referencia")
+
+    def gerar_aviso_dispensa(self):
+        self.gerar_e_abrir_documento("aviso_dispensa", "6. Aviso de Dispensa", "Aviso de Dispensa")

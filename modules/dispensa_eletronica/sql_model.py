@@ -185,7 +185,8 @@ class SqlModel:
                 vigencia TEXT,
                 data_sessao DATE,
                 operador VARCHAR(100),
-                com_disputa TEXT,                           
+                com_disputa TEXT,
+                pesquisa_preco TEXT,
                 uasg VARCHAR(10),
                 orgao_responsavel VARCHAR(250),
                 sigla_om VARCHAR(100),
@@ -215,7 +216,7 @@ class SqlModel:
                 link_portal_marinha TEXT,     
                 previsao_contratacao TEXT,
                 comunicacao_padronizada TEXT,
-                do_resposavel TEXT,
+                do_responsavel TEXT,
                 ao_responsavel TEXT
             )
         """):
