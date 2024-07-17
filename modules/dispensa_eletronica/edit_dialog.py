@@ -62,7 +62,7 @@ class EditDataDialog(QDialog):
         self.setWindowTitle("Editar Dados do Processo")
         self.setObjectName("EditarDadosDialog")
         self.setStyleSheet("#EditarDadosDialog { background-color: #050f41; }")
-        self.setFixedSize(1530, 780)  # Define o tamanho fixo da janela
+        self.setFixedSize(1530, 790)  # Define o tamanho fixo da janela
         self.layout = QVBoxLayout(self)
 
         self.painel_layout = QVBoxLayout()  # Inicializa painel_layout antes de setup_frames
@@ -246,7 +246,7 @@ class EditDataDialog(QDialog):
     def number_to_text(self, number):
         numbers_in_words = ["um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze"]
         return numbers_in_words[number - 1]
-    
+
     def fill_frame_dados_secundarios(self):
         data = self.extract_registro_data()
         detalhes_layout = QVBoxLayout()
@@ -266,24 +266,117 @@ class EditDataDialog(QDialog):
         # Adiciona o layout horizontal ao layout principal
         detalhes_layout.addLayout(hbox_top_layout)
 
-        hbox_down_layout = QHBoxLayout()  # Layout horizontal para os três QGroupBox
+        hbox_down_layout = QHBoxLayout()  # Layout horizontal para os QGroupBox
         # Preenche os QGroupBox e os adiciona ao layout horizontal
         classificacao_orcamentaria_group_box = self.fill_frame_classificacao_orcamentaria()
         comunicacao_padronizada_group = self.fill_frame_comunicacao_padronizada()
-        lista_verificacao_group = self.fill_frame_criar_documentos()
-        utilidades_group = self.fill_frame_utilidades()
+        # lista_verificacao_group = self.fill_frame_criar_documentos()
         formulario_group = self.fill_frame_formulario()
+        
+        # Adiciona o gerar_documentos_group_box e utilidades_group em um layout vertical
+        vertical_widget = QWidget()
+        vertical_layout = QVBoxLayout()
+        vertical_layout.setContentsMargins(0, 0, 0, 0) 
+        vertical_layout.setSpacing(1)
+        vertical_widget.setLayout(vertical_layout)
+        
+        gerar_documentos_group_box = self.create_gerar_documentos_group()
+        utilidades_group = self.fill_frame_utilidades()
+
+        vertical_layout.addWidget(gerar_documentos_group_box)
+        vertical_layout.addWidget(utilidades_group)
+
+        # Criação e configuração da label de imagem fora do grupo de formulário
+        caminho_imagem = IMAGE_PATH / "licitacao_360.png" 
+        licitacao_360_pixmap = QPixmap(str(caminho_imagem))
+        licitacao_360_pixmap = licitacao_360_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
+        image_label = QLabel()
+        image_label.setPixmap(licitacao_360_pixmap)
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Criação de um widget vertical para agrupar elementos
+        vertical_widget_formulario_image = QWidget()
+        vertical_layout_formulario_image = QVBoxLayout()
+        vertical_layout_formulario_image.setContentsMargins(0, 0, 0, 0) 
+        vertical_widget_formulario_image.setLayout(vertical_layout_formulario_image)
+
+        vertical_layout_formulario_image.addWidget(self.fill_frame_formulario())
+        vertical_layout_formulario_image.addWidget(image_label)
 
         hbox_down_layout.addWidget(classificacao_orcamentaria_group_box)
         hbox_down_layout.addWidget(comunicacao_padronizada_group)
-        hbox_down_layout.addWidget(lista_verificacao_group)
-        hbox_down_layout.addWidget(utilidades_group)
-        hbox_down_layout.addWidget(formulario_group)
+        
+        # hbox_down_layout.addWidget(lista_verificacao_group)
+        hbox_down_layout.addWidget(vertical_widget)  # Adiciona o QWidget ao layout horizontal
+        hbox_down_layout.addWidget(vertical_widget_formulario_image)
 
         # Adiciona o layout horizontal ao layout principal
         detalhes_layout.addLayout(hbox_down_layout)
 
         self.frame_secundario_layout.addLayout(detalhes_layout)
+        
+    def create_gerar_documentos_group(self):
+        gerar_documentos_group_box = QGroupBox("Criar Documentos")
+        self.apply_widget_style(gerar_documentos_group_box)
+        gerar_documentos_group_box.setFixedWidth(270)
+        gerar_documentos_group_box.setFixedHeight(150)
+        gerar_documentos_layout = QVBoxLayout()
+        gerar_documentos_layout.setSpacing(0)
+        gerar_documentos_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("          Autorização           ", icon=icon_pdf, callback=self.consolidador.gerar_autorizacao, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("           CP e anexos          ", icon=icon_pdf, callback=self.consolidador.gerar_comunicacao_padronizada, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("     Aviso de Dispensa      ", icon=icon_pdf, callback=self.consolidador.gerar_aviso_dispensa, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        gerar_documentos_group_box.setLayout(gerar_documentos_layout)
+
+        return gerar_documentos_group_box
+
+    def fill_frame_utilidades(self):
+        utilidades_group_box = QGroupBox("Utilidades")
+        self.apply_widget_style(utilidades_group_box)
+        utilidades_group_box.setFixedWidth(270)
+        utilidades_group_box.setFixedHeight(150)  
+        utilidades_layout = QVBoxLayout()
+        utilidades_layout.setSpacing(0)
+        utilidades_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Botão para abrir o arquivo de registro
+        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "salvar_pasta.png"))
+        editar_registro_button = self.create_button("  Local de Salvamento  ", icon=icon_salvar_pasta, callback=self.consolidador.alterar_diretorio_base, tooltip_text="Clique para alterar o local de salvamento dos arquivos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(editar_registro_button)
+        utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
+        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
+        visualizar_pdf_button = self.create_button("         Pré-Definições        ", icon=icon_standard, callback=self.criar_formulario, tooltip_text="Clique para alterar ou escolher os dados predefinidos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        utilidades_group_box.setLayout(utilidades_layout)
+
+        return utilidades_group_box
 
     def fill_frame_comunicacao_padronizada(self):
         data = self.extract_registro_data()
@@ -291,7 +384,6 @@ class EditDataDialog(QDialog):
         # GroupBox Comunicação Padronizada (CP)
         comunicacao_padronizada_group_box = QGroupBox("Comunicação Padronizada (CP)")
         self.apply_widget_style(comunicacao_padronizada_group_box)
-        
         comunicacao_padronizada_layout = QVBoxLayout()
         comunicacao_padronizada_layout.setSpacing(1)
         
@@ -312,12 +404,14 @@ class EditDataDialog(QDialog):
         cp_layout.addWidget(add_pdf_button)
         cp_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))  
         
-        # Campo Do: Responsável
+
+        self.ao_responsavel_edit = QLineEdit(data.get('ao_resposavel', 'Encarregado da Divisão de Obtenção'))
+        encarregado_obtencao_layout = self.create_layout("Ao:", self.ao_responsavel_edit)
         self.do_responsavel_edit = QLineEdit(data.get('do_resposavel', 'Responsável pela Demanda'))
         responsavel_layout = self.create_layout("Do:", self.do_responsavel_edit)
 
-        self.ao_responsavel_edit = QLineEdit(data.get('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
-        encarregado_obtencao_layout = self.create_layout("Ao:", self.ao_responsavel_edit)
+        # self.ao_responsavel_edit = QLineEdit(data.get('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
+        # encarregado_obtencao_layout = self.create_layout("Ao:", self.ao_responsavel_edit)
 
         self.anexos_edit = QTextEdit()
         self.anexos_edit.setPlainText("A) DFD\nB) TR\nC) Adequação Orçamentária")
@@ -325,6 +419,7 @@ class EditDataDialog(QDialog):
 
         # Adiciona os layouts dos campos ao layout principal
         comunicacao_padronizada_layout.addLayout(cp_layout)
+
         comunicacao_padronizada_layout.addLayout(responsavel_layout)
         comunicacao_padronizada_layout.addLayout(encarregado_obtencao_layout)
         comunicacao_padronizada_layout.addLayout(anexos_edit_layout)
@@ -379,82 +474,10 @@ class EditDataDialog(QDialog):
         layout.addWidget(widget)
         return layout
 
-    def fill_frame_utilidades(self):
-        utilidades_group_box = QGroupBox("Utilidades")
-        self.apply_widget_style(utilidades_group_box)
-        utilidades_group_box.setFixedWidth(240)  
-        utilidades_layout = QVBoxLayout()
-        utilidades_layout.setSpacing(1)
-
-        # Botão para abrir o arquivo de registro
-        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "salvar_pasta.png"))
-        editar_registro_button = self.create_button("  Local de Salvamento  ", icon=icon_salvar_pasta, callback=self.criar_formulario, tooltip_text="Clique para editar o registro", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(editar_registro_button)
-        utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
-        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
-        visualizar_pdf_button = self.create_button("         Pré-Definições        ", icon=icon_standard, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        utilidades_group_box.setLayout(utilidades_layout)
-        return utilidades_group_box
-    
-    def fill_frame_criar_documentos(self):
-        gerar_documentos_group_box = QGroupBox("Criar Documentos")
-        self.apply_widget_style(gerar_documentos_group_box)
-        gerar_documentos_group_box.setFixedWidth(240)
-        gerar_documentos_layout = QVBoxLayout()
-        gerar_documentos_layout.setSpacing(1)
-
-        # Definir os botões com as ações redirecionadas para a instância de ConsolidarDocumentos
-        actions = [
-            ("          Autorização            ", self.consolidador.gerar_autorizacao),
-            ("                  CP                  ", self.consolidador.gerar_comunicacao_padronizada),
-            ("                 DFD                 ", self.consolidador.gerar_documento_de_formalizacao_de_demanda),
-            ("Declaração Orçamentária", self.consolidador.gerar_declaracao_orcamentaria),
-            ("     Termo de Referência   ", self.consolidador.gerar_termo_de_referencia),
-            ("      Aviso de Dispensa      ", self.consolidador.gerar_aviso_dispensa)
-        ]
-
-        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
-        for text, action in actions:
-            button = self.create_button(f"{text}", icon_pdf, action, f"Clique para gerar {text}", QSize(220, 40), QSize(30, 30))
-            self.apply_widget_style(button)
-            gerar_documentos_layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        gerar_documentos_group_box.setLayout(gerar_documentos_layout)
-        return gerar_documentos_group_box
-
     def fill_frame_formulario(self):
         formulario_group_box = QGroupBox("Formulário de Dados")
         self.apply_widget_style(formulario_group_box)   
-        formulario_group_box.setFixedWidth(240)     
+        formulario_group_box.setFixedWidth(270)     
         formulario_layout = QVBoxLayout()
         formulario_layout.setSpacing(1)
 
@@ -480,25 +503,10 @@ class EditDataDialog(QDialog):
             icon_size=QSize(35, 35)
         )
 
-        # Load da Imagem
-        caminho_imagem = IMAGE_PATH / "licitacao_360.png" 
-        licitacao_360_pixmap = QPixmap(str(caminho_imagem))  
-        licitacao_360_pixmap = licitacao_360_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-
-        image_label = QLabel()
-        image_label.setPixmap(licitacao_360_pixmap)
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         # Adiciona os botões ao layout
         formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Adiciona o espaçador vertical
-        formulario_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-        # Adiciona a imagem ao layout
-        formulario_layout.addWidget(image_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box
@@ -513,6 +521,7 @@ class EditDataDialog(QDialog):
         grupoSIGDEM = QGroupBox("SIGDEM")
         self.apply_widget_style(grupoSIGDEM)
         grupoSIGDEM.setFixedWidth(270)  
+
         layout = QVBoxLayout(grupoSIGDEM)
 
         # Campo "Assunto"
@@ -983,10 +992,10 @@ class EditDataDialog(QDialog):
             )
             self.header_layout.addWidget(btn_proximo)
 
-            pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            self.image_label = QLabel()
-            self.image_label.setPixmap(pixmap)
-            self.header_layout.addWidget(self.image_label)
+            # pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            # self.image_label = QLabel()
+            # self.image_label.setPixmap(pixmap)
+            # self.header_layout.addWidget(self.image_label)
 
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)

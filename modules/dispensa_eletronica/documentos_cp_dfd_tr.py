@@ -11,6 +11,8 @@ from docxtpl import DocxTemplate
 import pandas as pd
 import win32com.client
 import os
+from PyPDF2 import PdfMerger
+
 class DocumentDetailsWidget(QWidget):
     def __init__(self, df_registro_selecionado, ordenador_de_despesas, responsavel_pela_demanda, parent=None):
         super().__init__(parent)
@@ -636,9 +638,31 @@ class DraggableGraphicsView(QGraphicsView):
         else:
             super().wheelEvent(event)  # Processa o evento normalmente se o Ctrl não estiver pressionado
 
+CONFIG_FILE = 'config.json'
+
+def load_config():
+    if not Path(CONFIG_FILE).exists():
+        return {}
+    with open(CONFIG_FILE, 'r') as file:
+        return json.load(file)
+
+def save_config(config):
+    with open(CONFIG_FILE, 'w') as file:
+        json.dump(config, file)
+
 class ConsolidarDocumentos:
     def __init__(self, df_registro_selecionado):
         self.df_registro_selecionado = df_registro_selecionado
+        self.config = load_config()
+        self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
+    
+    def alterar_diretorio_base(self):
+        new_dir = QFileDialog.getExistingDirectory(None, "Selecione o Novo Diretório Base", str(Path.home()))
+        if new_dir:
+            self.pasta_base = Path(new_dir)
+            self.config['pasta_base'] = str(self.pasta_base)
+            save_config(self.config)
+            QMessageBox.information(None, "Diretório Base Alterado", f"O novo diretório base foi alterado para: {self.pasta_base}")
 
     def abrirDocumento(self, docx_path):
         try:
@@ -648,6 +672,16 @@ class ConsolidarDocumentos:
         except Exception as e:
             print(f"Erro ao abrir ou converter o documento: {e}")
             QMessageBox.warning(None, "Erro", f"Erro ao abrir ou converter o documento: {e}")
+
+    def salvarPDF(self, docx_path):
+        try:
+            pdf_path = self.convert_to_pdf(docx_path)
+            print(f"Documento PDF salvo: {pdf_path}")
+            return pdf_path
+        except Exception as e:
+            print(f"Erro ao converter o documento: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao converter o documento: {e}")
+            return None
 
     def convert_to_pdf(self, docx_path):
         docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
@@ -681,6 +715,8 @@ class ConsolidarDocumentos:
         template_filename = f"template_{template_type}.docx"
         template_path, save_path = self.setup_document_paths(template_filename, subfolder_name, file_description)
 
+        self.verificar_e_criar_pastas(self.pasta_base / self.nome_pasta)
+
         if not template_path.exists():
             QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
             return
@@ -697,12 +733,29 @@ class ConsolidarDocumentos:
         template_path = TEMPLATE_DISPENSA_DIR / template_filename
         id_processo = self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')
         objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        nome_pasta = f"{id_processo} - {objeto}"
-        pasta_base = Path.home() / 'Desktop' / nome_pasta / subfolder_name
+        self.nome_pasta = f"{id_processo} - {objeto}"
+        if 'pasta_base' not in self.config:
+            self.alterar_diretorio_base()
+        pasta_base = Path(self.config['pasta_base']) / self.nome_pasta / subfolder_name
         pasta_base.mkdir(parents=True, exist_ok=True)
         save_path = pasta_base / f"{id_processo} - {file_description}.docx"
         return template_path, save_path
 
+    def verificar_e_criar_pastas(self, pasta_base):
+        pastas_necessarias = [
+            pasta_base / '1. Autorizacao',
+            pasta_base / '2. CP e anexos',
+            pasta_base / '3. Aviso',
+            pasta_base / '2. CP e anexos' / 'DFD',
+            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin',
+            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
+            pasta_base / '2. CP e anexos' / 'TR',
+            pasta_base / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
+            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária'
+        ]
+        for pasta in pastas_necessarias:
+            if not pasta.exists():
+                pasta.mkdir(parents=True)
 
     def gerar_e_abrir_documento(self, template_type, subfolder_name, file_description):
         docx_path = self.gerarDocumento(template_type, subfolder_name, file_description)
@@ -710,19 +763,96 @@ class ConsolidarDocumentos:
             self.abrirDocumento(docx_path)
 
     def gerar_autorizacao(self):
-        self.gerar_e_abrir_documento("autorizacao_dispensa", "1. Autorizacao para abertura de Processo Administrativo", "Autorizacao para abertura de Processo Administrativo")
+        self.gerar_e_abrir_documento("autorizacao_dispensa", "1. Autorizacao", "Autorizacao para abertura de Processo Administrativo")
 
     def gerar_comunicacao_padronizada(self):
-        self.gerar_e_abrir_documento("cp", "2. Comunicacao Padronizada", "Comunicacao Padronizada")
+        pdf_paths = []
+        docx_cp_path = self.gerarDocumento("cp", "2. CP e anexos", "Comunicacao Padronizada")
+        if docx_cp_path:
+            pdf_path = self.salvarPDF(docx_cp_path)
+            if pdf_path:
+                pdf_paths.append(pdf_path)
+        
+        docx_dfd_path = self.gerarDocumento("dfd", "2. CP e anexos/DFD", "Documento de Formalizacao de Demanda")
+        if docx_dfd_path:
+            pdf_path = self.salvarPDF(docx_dfd_path)
+            if pdf_path:
+                pdf_paths.append(pdf_path)
+
+        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin')
+        if pdf_path:
+            pdf_paths.append(pdf_path)
+        else:
+            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo A - Relatorio Safin")
+
+        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade')
+        if pdf_path:
+            pdf_paths.append(pdf_path)
+        else:
+            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo B - Especificações e Quantidade")
+        
+        docx_tr_path = self.gerarDocumento("tr", "2. CP e anexos/TR", "Termo de Referencia")
+        if docx_tr_path:
+            pdf_path = self.salvarPDF(docx_tr_path)
+            if pdf_path:
+                pdf_paths.append(pdf_path)
+
+        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços')
+        if pdf_path:
+            pdf_paths.append(pdf_path)
+        else:
+            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Pesquisa de Preços")
+
+        docx_dec_adeq_path = self.gerarDocumento("dec_adeq", "2. CP e anexos/Declaracao de Adequação Orçamentária", "Declaracao de Adequação Orçamentária")
+        if docx_dec_adeq_path:
+            pdf_path = self.salvarPDF(docx_dec_adeq_path)
+            if pdf_path:
+                pdf_paths.append(pdf_path)
+
+        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária')
+        if pdf_path:
+            pdf_paths.append(pdf_path)
+        else:
+            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Declaracao de Adequação Orçamentária")
+
+        self.concatenar_e_abrir_pdfs(pdf_paths)
+
+    def concatenar_e_abrir_pdfs(self, pdf_paths):
+        if not pdf_paths:
+            QMessageBox.warning(None, "Erro", "Nenhum PDF foi gerado para concatenar.")
+            return
+
+        output_pdf_path = self.pasta_base / self.nome_pasta / "2. CP e anexos" / "Documentos_Concatenados.pdf"
+        merger = PdfMerger()
+
+        try:
+            for pdf_path in pdf_paths:
+                merger.append(str(pdf_path))
+
+            merger.write(str(output_pdf_path))
+            merger.close()
+
+            os.startfile(output_pdf_path)
+            print(f"PDF concatenado salvo e aberto: {output_pdf_path}")
+        except Exception as e:
+            print(f"Erro ao concatenar os PDFs: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao concatenar os PDFs: {e}")
+
+    def get_latest_pdf(self, directory):
+        pdf_files = list(directory.glob("*.pdf"))
+        if not pdf_files:
+            return None
+        latest_pdf = max(pdf_files, key=os.path.getmtime)
+        return latest_pdf
 
     def gerar_documento_de_formalizacao_de_demanda(self):
-        self.gerar_e_abrir_documento("dfd", "3. Documento de Formalizacao de Demanda", "Documento de Formalizacao de Demanda")
+        self.gerarDocumento("dfd", "2. CP e anexos/DFD", "Documento de Formalizacao de Demanda")
 
     def gerar_declaracao_orcamentaria(self):
-        self.gerar_e_abrir_documento("declaracao_orcamentaria", "4. Declaracao Orcamentaria", "Declaracao Orcamentaria")
+        self.gerarDocumento("declaracao_orcamentaria", "2. CP e anexos/Declaracao de Adequação Orçamentária", "Declaracao Orcamentaria")
 
     def gerar_termo_de_referencia(self):
-        self.gerar_e_abrir_documento("tr", "5. Termo de Referencia", "Termo de Referencia")
+        self.gerarDocumento("tr", "2. CP e anexos/TR", "Termo de Referencia")
 
     def gerar_aviso_dispensa(self):
-        self.gerar_e_abrir_documento("aviso_dispensa", "6. Aviso de Dispensa", "Aviso de Dispensa")
+        self.gerar_e_abrir_documento("aviso_dispensa", "3. Aviso", "Aviso de Dispensa")
