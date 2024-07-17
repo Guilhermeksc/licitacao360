@@ -276,14 +276,14 @@ class UIManager:
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(12, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(15, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(17, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
         header.resizeSection(0, 140)
         header.resizeSection(5, 175)
-        header.resizeSection(12, 100)
-        header.resizeSection(14, 100)
+        header.resizeSection(15, 100)
+        header.resizeSection(17, 100)
         header.resizeSection(4, 200)
         header.resizeSection(10, 170)
 
@@ -348,8 +348,8 @@ class UIManager:
             0: "ID Processo",
             5: "NUP",
             7: "Objeto",
-            12: "UASG",
-            14: "OM",
+            15: "UASG",
+            17: "OM",
             4: "Status",
             10: "Operador"
         }
@@ -357,12 +357,12 @@ class UIManager:
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [4, 0, 5, 7, 12, 14, 10]
+        new_order = [4, 0, 5, 7, 15, 17, 10]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 5, 7, 12, 14, 4, 10}
+        visible_columns = {0, 5, 7, 15, 17, 4, 10}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)

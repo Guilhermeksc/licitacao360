@@ -166,8 +166,9 @@ class ConfiguracoesDispensaDialog(QDialog):
             QMessageBox.critical(self, "Erro", f"Erro ao importar a tabela: {e}")
 
     def save_and_emit(self):
-        self.accept()
+        print("Salvando configurações e emitindo sinal...")
         self.config_updated.emit()
+        self.accept()
 
     def carregarAgentesResponsaveis(self):
         try:

@@ -13,9 +13,42 @@ import subprocess
 from pathlib import Path
 import win32com.client
 
+
+class RealLineEdit(QLineEdit):
+    def __init__(self, text='', parent=None):
+        super().__init__(text, parent)
+        self.setText(self.format_to_real(self.text()))
+
+    def focusInEvent(self, event):
+        # Remove the currency formatting when the user focuses on the widget
+        self.setText(self.format_to_plain_number(self.text()))
+        super().focusInEvent(event)
+    
+    def focusOutEvent(self, event):
+        # Add the currency formatting when the user leaves the widget
+        self.setText(self.format_to_real(self.text()))
+        super().focusOutEvent(event)
+    
+    def format_to_real(self, value):
+        try:
+            # Convert the plain number to real currency format
+            value = float(value.replace('.', '').replace(',', '.').strip())
+            return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except ValueError:
+            return value
+    
+    def format_to_plain_number(self, value):
+        try:
+            # Convert the real currency format to plain number
+            value = float(value.replace('R$', '').replace('.', '').replace(',', '.').strip())
+            return f"{value:.2f}".replace('.', ',')
+        except ValueError:
+            return value
+        
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
-    title_updated = pyqtSignal(str) 
+    title_updated = pyqtSignal(str)
+    config_updated = pyqtSignal()
 
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
@@ -122,10 +155,10 @@ class EditDataDialog(QDialog):
 
         # Configuração da Data da Sessão na mesma linha
         data_layout = QHBoxLayout()
-        data_label = QLabel("Data da Sessão:")
+        data_label = QLabel("Data da Sessão Pública:")
         self.apply_widget_style(data_label)
         self.data_edit = QDateEdit()
-        self.data_edit.setFixedWidth(150)
+        self.data_edit.setFixedWidth(140)
         self.data_edit.setCalendarPopup(True)
         data_sessao_str = data.get('data_sessao', '')
         if data_sessao_str:
@@ -136,8 +169,28 @@ class EditDataDialog(QDialog):
         data_layout.addWidget(self.data_edit)
         contratacao_layout.addLayout(data_layout)
 
+        previsao_contratacao_layout = QHBoxLayout()
+        previsao_contratacao_label = QLabel("Previsão da Contratação:")
+        self.apply_widget_style(previsao_contratacao_label)
+        self.previsao_contratacao_edit = QDateEdit()
+        self.previsao_contratacao_edit.setFixedWidth(140)
+        self.previsao_contratacao_edit.setCalendarPopup(True)
+        previsao_contratacao_str = data.get('previsao_contratacao', '')
+        if previsao_contratacao_str:
+            self.previsao_contratacao_edit.setDate(QDate.fromString(previsao_contratacao_str, "yyyy-MM-dd"))
+        else:
+            self.previsao_contratacao_edit.setDate(QDate.currentDate())
+        previsao_contratacao_layout.addWidget(previsao_contratacao_label)
+        previsao_contratacao_layout.addWidget(self.previsao_contratacao_edit)
+        contratacao_layout.addLayout(previsao_contratacao_layout)
+
         # Vigência
-        self.vigencia_edit = QLineEdit(data.get('vigencia', '12 (doze) meses'))
+        self.vigencia_edit = QComboBox()
+        self.vigencia_edit.setEditable(True)
+        for i in range(1, 13):
+            self.vigencia_edit.addItem(f"{i} ({self.number_to_text(i)}) meses")
+        vigencia = data.get('vigencia', '2 (dois) meses')
+        self.vigencia_edit.setCurrentText(vigencia)
         contratacao_layout.addLayout(self.create_layout("Vigência:", self.vigencia_edit))
 
         # Configuração de Critério de Julgamento na mesma linha
@@ -190,7 +243,10 @@ class EditDataDialog(QDialog):
         contratacao_group_box.setLayout(contratacao_layout)
         return contratacao_group_box
 
-
+    def number_to_text(self, number):
+        numbers_in_words = ["um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze"]
+        return numbers_in_words[number - 1]
+    
     def fill_frame_dados_secundarios(self):
         data = self.extract_registro_data()
         detalhes_layout = QVBoxLayout()
@@ -215,11 +271,13 @@ class EditDataDialog(QDialog):
         classificacao_orcamentaria_group_box = self.fill_frame_classificacao_orcamentaria()
         comunicacao_padronizada_group = self.fill_frame_comunicacao_padronizada()
         lista_verificacao_group = self.fill_frame_criar_documentos()
+        utilidades_group = self.fill_frame_utilidades()
         formulario_group = self.fill_frame_formulario()
 
         hbox_down_layout.addWidget(classificacao_orcamentaria_group_box)
         hbox_down_layout.addWidget(comunicacao_padronizada_group)
         hbox_down_layout.addWidget(lista_verificacao_group)
+        hbox_down_layout.addWidget(utilidades_group)
         hbox_down_layout.addWidget(formulario_group)
 
         # Adiciona o layout horizontal ao layout principal
@@ -257,12 +315,12 @@ class EditDataDialog(QDialog):
         # Campo Do: Responsável
         self.do_responsavel_edit = QLineEdit(data.get('do_resposavel', 'Responsável pela Demanda'))
         responsavel_layout = self.create_layout("Do:", self.do_responsavel_edit)
-        
-        # Campo Ao: Encarregado de Obtenção
+
         self.ao_responsavel_edit = QLineEdit(data.get('ao_responsavel', 'Encarregado da Divisão de Obtenção'))
         encarregado_obtencao_layout = self.create_layout("Ao:", self.ao_responsavel_edit)
 
-        self.anexos_edit = QTextEdit("A) DFD\nB) TR\nC) Adequação Orçamentária")
+        self.anexos_edit = QTextEdit()
+        self.anexos_edit.setPlainText("A) DFD\nB) TR\nC) Adequação Orçamentária")
         anexos_edit_layout = self.create_layout("Anexos:", self.anexos_edit)
 
         # Adiciona os layouts dos campos ao layout principal
@@ -291,8 +349,9 @@ class EditDataDialog(QDialog):
         main_layout.addWidget(comunicacao_padronizada_group_box)
         main_layout.addLayout(link_pncp_layout)
 
-        return main_widget
 
+        return main_widget
+    
     def add_pdf_to_merger(self):
         cp_number = self.cp_edit.text()
         if cp_number:
@@ -320,10 +379,56 @@ class EditDataDialog(QDialog):
         layout.addWidget(widget)
         return layout
 
+    def fill_frame_utilidades(self):
+        utilidades_group_box = QGroupBox("Utilidades")
+        self.apply_widget_style(utilidades_group_box)
+        utilidades_group_box.setFixedWidth(240)  
+        utilidades_layout = QVBoxLayout()
+        utilidades_layout.setSpacing(1)
+
+        # Botão para abrir o arquivo de registro
+        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "salvar_pasta.png"))
+        editar_registro_button = self.create_button("  Local de Salvamento  ", icon=icon_salvar_pasta, callback=self.criar_formulario, tooltip_text="Clique para editar o registro", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(editar_registro_button)
+        utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
+        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
+        visualizar_pdf_button = self.create_button("         Pré-Definições        ", icon=icon_standard, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        visualizar_pdf_button = self.create_button("                Teste                ", icon=icon_pdf, callback=self.criar_formulario, tooltip_text="Clique para visualizar o PDF", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        utilidades_group_box.setLayout(utilidades_layout)
+        return utilidades_group_box
+    
     def fill_frame_criar_documentos(self):
         gerar_documentos_group_box = QGroupBox("Criar Documentos")
         self.apply_widget_style(gerar_documentos_group_box)
-        gerar_documentos_group_box.setFixedWidth(270)
+        gerar_documentos_group_box.setFixedWidth(240)
         gerar_documentos_layout = QVBoxLayout()
         gerar_documentos_layout.setSpacing(1)
 
@@ -349,7 +454,7 @@ class EditDataDialog(QDialog):
     def fill_frame_formulario(self):
         formulario_group_box = QGroupBox("Formulário de Dados")
         self.apply_widget_style(formulario_group_box)   
-        formulario_group_box.setFixedWidth(270)     
+        formulario_group_box.setFixedWidth(240)     
         formulario_layout = QVBoxLayout()
         formulario_layout.setSpacing(1)
 
@@ -411,7 +516,7 @@ class EditDataDialog(QDialog):
         layout = QVBoxLayout(grupoSIGDEM)
 
         # Campo "Assunto"
-        labelAssunto = QLabel("No campo “Assunto”, deverá constar:")
+        labelAssunto = QLabel("No campo “Assunto”:")
         labelAssunto.setStyleSheet("font-size: 12pt;")
         layout.addWidget(labelAssunto)
         self.textEditAssunto = QTextEdit()
@@ -429,7 +534,7 @@ class EditDataDialog(QDialog):
         layout.addLayout(layoutHAssunto)
 
         # Campo "Sinopse"
-        labelSinopse = QLabel("No campo “Sinopse”, deverá constar:")
+        labelSinopse = QLabel("No campo “Sinopse”:")
         labelSinopse.setStyleSheet("font-size: 12pt;")
         layout.addWidget(labelSinopse)
         self.textEditSinopse = QTextEdit()
@@ -499,12 +604,16 @@ class EditDataDialog(QDialog):
 
     def open_editar_responsaveis_dialog(self):
         config_dialog = ConfiguracoesDispensaDialog(self)
-        # config_dialog.config_updated.connect(self.update_frame4_content)
+        config_dialog.config_updated.connect(self.carregarAgentesResponsaveis)  # Conectando o sinal ao método de atualização
         if config_dialog.exec():
             print("Configurações salvas")
         else:
             print("Configurações canceladas")
 
+    def on_config_updated(self):
+        print("Sinal config_updated recebido")
+        self.carregarAgentesResponsaveis()
+        
     def create_layout_combobox_label(self, label_text, combobox, fixed_width=None):
         layout = QVBoxLayout()
         label = QLabel(label_text)
@@ -527,7 +636,7 @@ class EditDataDialog(QDialog):
         classificacao_orcamentaria_layout.setSpacing(1)  # Define o espaçamento entre os widgets
 
         # Valor Estimado
-        self.valor_edit = QLineEdit(str(data['valor_total']) if pd.notna(data['valor_total']) else "")
+        self.valor_edit = RealLineEdit(str(data['valor_total']) if pd.notna(data['valor_total']) else "")
         classificacao_orcamentaria_layout.addLayout(self.create_layout("Valor Estimado:", self.valor_edit))
 
         self.acao_interna_edit = QLineEdit(data['acao_interna'])
@@ -660,6 +769,11 @@ class EditDataDialog(QDialog):
             return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
 
     def extract_registro_data(self):
+        # Verifica se o DataFrame não está vazio
+        if self.df_registro_selecionado.empty:
+            print("DataFrame está vazio")
+            return {}
+
         # Extrai dados do registro selecionado e armazena como atributos de instância
         self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
         self.tipo = self.df_registro_selecionado['tipo'].iloc[0]
@@ -670,9 +784,12 @@ class EditDataDialog(QDialog):
         self.material_servico = self.df_registro_selecionado['material_servico'].iloc[0]
         self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
         self.vigencia = self.df_registro_selecionado['vigencia'].iloc[0]
-        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0] 
+        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0]
         self.operador = self.df_registro_selecionado['operador'].iloc[0]
+        self.criterio_julgamento = self.df_registro_selecionado['criterio_julgamento'].iloc[0]
         self.com_disputa = self.df_registro_selecionado['com_disputa'].iloc[0]
+        self.pesquisa_preco = self.df_registro_selecionado['pesquisa_preco'].iloc[0]
+        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
         self.uasg = self.df_registro_selecionado['uasg'].iloc[0]
         self.orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
         self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
@@ -699,11 +816,11 @@ class EditDataDialog(QDialog):
         self.comentarios = self.df_registro_selecionado['comentarios'].iloc[0]
         self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
         self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
-        self.link_portal_marinha = self.df_registro_selecionado['link_portal_marinha'].iloc[0]
-        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
         self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
         self.do_responsavel = self.df_registro_selecionado['do_responsavel'].iloc[0]
         self.ao_responsavel = self.df_registro_selecionado['ao_responsavel'].iloc[0]
+
+        print("ao_responsavel:", self.ao_responsavel)  # Adiciona um print para verificar o valor de ao_responsavel
 
         data = {
             'id_processo': self.id_processo,
@@ -717,7 +834,10 @@ class EditDataDialog(QDialog):
             'vigencia': self.vigencia,
             'data_sessao': self.data_sessao,
             'operador': self.operador,
+            'criterio_julgamento': self.criterio_julgamento,
             'com_disputa': self.com_disputa,
+            'pesquisa_preco': self.pesquisa_preco,
+            'previsao_contratacao': self.previsao_contratacao,
             'uasg': self.uasg,
             'orgao_responsavel': self.orgao_responsavel,
             'sigla_om': self.sigla_om,
@@ -744,8 +864,6 @@ class EditDataDialog(QDialog):
             'comentarios': self.comentarios,
             'justificativa': self.justificativa,
             'link_pncp': self.link_pncp,
-            'link_portal_marinha': self.link_portal_marinha,
-            'previsao_contratacao': self.previsao_contratacao,
             'comunicacao_padronizada': self.comunicacao_padronizada,
             'do_responsavel': self.do_responsavel,
             'ao_responsavel': self.ao_responsavel
@@ -753,52 +871,64 @@ class EditDataDialog(QDialog):
 
         return data
 
+
     def save_changes(self):
-        data = {
-            'situacao': self.situacao_edit.currentText(),
-            'ordenador_despesas': self.ordenador_combo.currentText(),
-            'agente_fiscal': self.agente_fiscal_combo.currentText(),
-            'gerente_de_credito': self.gerente_credito_combo.currentText(),
-            'responsavel_pela_demanda': self.responsavel_demanda_combo.currentText(),           
-            'nup': self.nup_edit.text().strip(),
-            'material_servico': self.material_edit.currentText(),
-            'objeto': self.objeto_edit.text().strip(),
-            'vigencia': self.vigencia_edit.text().strip(),
-            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),
-            'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
-            'setor_responsavel': self.setor_responsavel_edit.text().strip(),
-            'operador': self.operador_dispensa_combo.currentText(),   
-            'sigla_om': self.om_combo.currentText(),
-            'uasg': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'uasg'],
-            'orgao_responsavel': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
-            'cod_par': self.par_edit.text().strip(),
-            'prioridade_par': self.prioridade_combo.currentText(),
-            'cep': self.cep_edit.text().strip(),
-            'endereco': self.endereco_edit.text().strip(),
-            'email': self.email_edit.text().strip(),
-            'telefone': self.telefone_edit.text().strip(),
-            'dias_para_recebimento': self.dias_edit.text().strip(),
-            'horario_para_recebimento': self.horario_edit.text().strip(),
-            'valor_total': self.valor_edit.text().strip(),
-            'acao_interna': self.acao_interna_edit.text().strip(),
-            'fonte_recursos': self.fonte_recurso_edit.text().strip(),
-            'natureza_despesa': self.natureza_despesa_edit.text().strip(),
-            'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
-            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
-            'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
-            'comunicacao_padronizada': self.cp_edit.text().strip(),
-            'do_responsavel': self.do_responsavel_edit.text().strip(),
-            'ao_responsavel': self.ao_responsavel_edit.text().strip(),
-        }
+        """
+        Save changes made in the dialog to the DataFrame and update the database.
+        """
+        try:
+            data = {
+                'situacao': self.situacao_edit.currentText(),
+                'ordenador_despesas': self.ordenador_combo.currentText(),
+                'agente_fiscal': self.agente_fiscal_combo.currentText(),
+                'gerente_de_credito': self.gerente_credito_combo.currentText(),
+                'responsavel_pela_demanda': self.responsavel_demanda_combo.currentText(),
+                'nup': self.nup_edit.text().strip(),
+                'material_servico': self.material_edit.currentText(),
+                'objeto': self.objeto_edit.text().strip(),
+                'vigencia': self.vigencia_edit.currentText(),
+                'data_sessao': self.data_edit.date().toString("yyyy-MM-dd"),
+                'previsao_contratacao': self.previsao_contratacao_edit.date().toString("yyyy-MM-dd"),
+                'criterio_julgamento': self.criterio_edit.currentText(),
+                'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
+                'pesquisa_preco': 'Sim' if self.radio_pesquisa_sim.isChecked() else 'Não',
+                'setor_responsavel': self.setor_responsavel_edit.text().strip(),
+                'operador': self.operador_dispensa_combo.currentText(),
+                'sigla_om': self.om_combo.currentText(),
+                'uasg': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'uasg'],
+                'orgao_responsavel': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
+                'cod_par': self.par_edit.text().strip(),
+                'prioridade_par': self.prioridade_combo.currentText(),
+                'cep': self.cep_edit.text().strip(),
+                'endereco': self.endereco_edit.text().strip(),
+                'email': self.email_edit.text().strip(),
+                'telefone': self.telefone_edit.text().strip(),
+                'dias_para_recebimento': self.dias_edit.text().strip(),
+                'horario_para_recebimento': self.horario_edit.text().strip(),
+                # 'comentarios': self.comentarios_edit.toPlainText().strip(),
+                'justificativa': self.justificativa_edit.toPlainText().strip(),
+                'valor_total': self.valor_edit.text().strip(),
+                'acao_interna': self.acao_interna_edit.text().strip(),
+                'fonte_recursos': self.fonte_recurso_edit.text().strip(),
+                'natureza_despesa': self.natureza_despesa_edit.text().strip(),
+                'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
+                'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
+                'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
+                'comunicacao_padronizada': self.cp_edit.text().strip(),
+                'do_responsavel': self.do_responsavel_edit.text().strip(),
+                'ao_responsavel': self.ao_responsavel_edit.text().strip()
+            }
 
-        # Atualizar o DataFrame com os novos valores
-        for key, value in data.items():
-            self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
-        # Atualizar banco de dados
-        self.update_database(data)
-        self.dados_atualizados.emit()
-        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+            # Atualizar o DataFrame com os novos valores
+            for key, value in data.items():
+                self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
 
+            # Atualizar banco de dados
+            self.update_database(data)
+            self.dados_atualizados.emit()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
 
     def update_database(self, data):
         with self.database_manager as connection:
@@ -826,9 +956,33 @@ class EditDataDialog(QDialog):
 
         if not hasattr(self, 'header_layout'):
             self.header_layout = QHBoxLayout()
+
+            # Botão Anterior
+            icon_anterior = QIcon(str(self.ICONS_DIR / "anterior.png"))
+            btn_anterior = self.create_button(
+                "Anterior", 
+                icon_anterior, 
+                self.pagina_anterior, 
+                "Clique para navegar para a página anterior",
+                QSize(100, 40), QSize(30, 30)
+            )
+            self.header_layout.addWidget(btn_anterior)
+
             self.header_layout.addWidget(self.titleLabel)
             self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
             self.add_action_buttons(self.header_layout)
+
+            # Botão Próximo
+            icon_proximo = QIcon(str(self.ICONS_DIR / "proximo.png"))
+            btn_proximo = self.create_button(
+                "Próximo", 
+                icon_proximo, 
+                self.pagina_proxima, 
+                "Clique para navegar para a página próxima",
+                QSize(100, 40), QSize(30, 30)
+            )
+            self.header_layout.addWidget(btn_proximo)
+
             pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.image_label = QLabel()
             self.image_label.setPixmap(pixmap)
@@ -840,6 +994,14 @@ class EditDataDialog(QDialog):
             self.header_widget = header_widget
 
         return self.header_widget
+
+    def pagina_anterior(self):
+        # Lógica para ir para a página anterior
+        pass
+
+    def pagina_proxima(self):
+        # Lógica para ir para a próxima página
+        pass
 
     def update_title_label_text(self, new_title):
         data = self.extract_registro_data()
@@ -878,14 +1040,6 @@ class EditDataDialog(QDialog):
     def on_autorizacao_clicked(self):
         print("Botão Autorização clicado")  # Substitua esta função pela funcionalidade desejada
 
-    def open_editar_responsaveis_dialog(self):
-        config_dialog = ConfiguracoesDispensaDialog(self)
-        # config_dialog.config_updated.connect(self.update_frame4_content)
-        if config_dialog.exec():
-            print("Configurações salvas")
-        else:
-            print("Configurações canceladas")
-
     def importar_tabela(self):
         pass
 
@@ -899,12 +1053,17 @@ class EditDataDialog(QDialog):
                     raise Exception("A tabela 'controle_agentes_responsaveis' não existe no banco de dados. Configure os Ordenadores de Despesa no Módulo 'Configurações'.")
 
                 print("Tabela 'controle_agentes_responsaveis' encontrada. Carregando dados...")
-                # Carregar dados para comboboxes específicos
                 self.carregarDadosCombo(conn, cursor, "Ordenador de Despesa%", self.ordenador_combo)
                 self.carregarDadosCombo(conn, cursor, "Agente Fiscal%", self.agente_fiscal_combo)
                 self.carregarDadosCombo(conn, cursor, "Gerente de Crédito%", self.gerente_credito_combo)
                 self.carregarDadosCombo(conn, cursor, "Operador da Contratação%", self.operador_dispensa_combo)
                 self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
+
+                print("Valores carregados no ComboBox:", self.ordenador_combo.count(), "itens")
+                print("Valores carregados no ComboBox:", self.agente_fiscal_combo.count(), "itens")
+                print("Valores carregados no ComboBox:", self.gerente_credito_combo.count(), "itens")
+                print("Valores carregados no ComboBox:", self.operador_dispensa_combo.count(), "itens")
+                print("Valores carregados no ComboBox:", self.responsavel_demanda_combo.count(), "itens")
 
                 # Print para verificar o valor corrente e dados associados ao item selecionado
                 current_text = self.ordenador_combo.currentText()
@@ -933,6 +1092,7 @@ class EditDataDialog(QDialog):
             texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
             # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
             combo_widget.addItem(texto_display, userData=row.to_dict())    
+            print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
 
     def load_sigla_om(self, sigla_om):
         try:
@@ -1019,215 +1179,6 @@ class EditDataDialog2(QDialog):
         self.move(QPoint(0, 0))
         
         self.update_painel_layout(self.selected_button)  # Atualização inicial
-
-    def extract_registro_data(self):
-        # Extrai dados do registro selecionado e armazena como atributos de instância
-        self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
-        self.tipo = self.df_registro_selecionado['tipo'].iloc[0]
-        self.numero = self.df_registro_selecionado['numero'].iloc[0]
-        self.ano = self.df_registro_selecionado['ano'].iloc[0]
-        self.situacao = self.df_registro_selecionado['situacao'].iloc[0]
-        self.nup = self.df_registro_selecionado['nup'].iloc[0]
-        self.material_servico = self.df_registro_selecionado['material_servico'].iloc[0]
-        self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        self.vigencia = self.df_registro_selecionado['vigencia'].iloc[0]
-        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0] 
-        self.operador = self.df_registro_selecionado['operador'].iloc[0]
-        self.com_disputa = self.df_registro_selecionado['com_disputa'].iloc[0]
-        self.uasg = self.df_registro_selecionado['uasg'].iloc[0]
-        self.orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
-        self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
-        self.setor_responsavel = self.df_registro_selecionado['setor_responsavel'].iloc[0]
-        self.responsavel_pela_demanda = self.df_registro_selecionado['responsavel_pela_demanda'].iloc[0]
-        self.ordenador_despesas = self.df_registro_selecionado['ordenador_despesas'].iloc[0]
-        self.agente_fiscal = self.df_registro_selecionado['agente_fiscal'].iloc[0]
-        self.gerente_de_credito = self.df_registro_selecionado['gerente_de_credito'].iloc[0]
-        self.cod_par = self.df_registro_selecionado['cod_par'].iloc[0]
-        self.prioridade_par = self.df_registro_selecionado['prioridade_par'].iloc[0]
-        self.cep = self.df_registro_selecionado['cep'].iloc[0]
-        self.endereco = self.df_registro_selecionado['endereco'].iloc[0]
-        self.email = self.df_registro_selecionado['email'].iloc[0]
-        self.telefone = self.df_registro_selecionado['telefone'].iloc[0]
-        self.dias_para_recebimento = self.df_registro_selecionado['dias_para_recebimento'].iloc[0]
-        self.horario_para_recebimento = self.df_registro_selecionado['horario_para_recebimento'].iloc[0]
-        self.valor_total = self.df_registro_selecionado['valor_total'].iloc[0]
-        self.acao_interna = self.df_registro_selecionado['acao_interna'].iloc[0]
-        self.fonte_recursos = self.df_registro_selecionado['fonte_recursos'].iloc[0]
-        self.natureza_despesa = self.df_registro_selecionado['natureza_despesa'].iloc[0]
-        self.unidade_orcamentaria = self.df_registro_selecionado['unidade_orcamentaria'].iloc[0]
-        self.programa_trabalho_resuminho = self.df_registro_selecionado['programa_trabalho_resuminho'].iloc[0]
-        self.atividade_custeio = self.df_registro_selecionado['atividade_custeio'].iloc[0]
-        self.comentarios = self.df_registro_selecionado['comentarios'].iloc[0]
-        self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
-        self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
-        self.link_portal_marinha = self.df_registro_selecionado['link_portal_marinha'].iloc[0]
-        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
-        self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
-        self.do_resposavel = self.df_registro_selecionado['do_resposavel'].iloc[0]
-        self.ao_responsavel = self.df_registro_selecionado['ao_responsavel'].iloc[0]
-
-        data = {
-            'id_processo': self.id_processo,
-            'tipo': self.tipo,
-            'numero': self.numero,
-            'ano': self.ano,
-            'situacao': self.situacao,
-            'nup': self.nup,
-            'material_servico': self.material_servico,
-            'objeto': self.objeto,
-            'vigencia': self.vigencia,
-            'data_sessao': self.data_sessao,
-            'operador': self.operador,
-            'com_disputa': self.com_disputa,
-            'uasg': self.uasg,
-            'orgao_responsavel': self.orgao_responsavel,
-            'sigla_om': self.sigla_om,
-            'setor_responsavel': self.setor_responsavel,
-            'responsavel_pela_demanda': self.responsavel_pela_demanda,
-            'ordenador_despesas': self.ordenador_despesas,
-            'agente_fiscal': self.agente_fiscal,
-            'gerente_de_credito': self.gerente_de_credito,
-            'cod_par': self.cod_par,
-            'prioridade_par': self.prioridade_par,
-            'cep': self.cep,
-            'endereco': self.endereco,
-            'email': self.email,
-            'telefone': self.telefone,
-            'dias_para_recebimento': self.dias_para_recebimento,
-            'horario_para_recebimento': self.horario_para_recebimento,
-            'valor_total': self.valor_total,
-            'acao_interna': self.acao_interna,
-            'fonte_recursos': self.fonte_recursos,
-            'natureza_despesa': self.natureza_despesa,
-            'unidade_orcamentaria': self.unidade_orcamentaria,
-            'programa_trabalho_resuminho': self.programa_trabalho_resuminho,
-            'atividade_custeio': self.atividade_custeio,
-            'comentarios': self.comentarios,
-            'justificativa': self.justificativa,
-            'link_pncp': self.link_pncp,
-            'link_portal_marinha': self.link_portal_marinha,
-            'previsao_contratacao': self.previsao_contratacao,
-            'comunicacao_padronizada': self.comunicacao_padronizada,
-            'do_resposavel': self.do_resposavel,
-            'ao_responsavel': self.ao_responsavel
-        }
-
-        return data
-
-    def save_changes(self):
-        data = {
-            'situacao': self.situacao_edit.currentText(),
-            'ordenador_despesas': self.ordenador_combo.currentText(),
-            'agente_fiscal': self.agente_fiscal_combo.currentText(),
-            'gerente_de_credito': self.gerente_credito_combo.currentText(),
-            'responsavel_pela_demanda': self.responsavel_demanda_combo.currentText(),           
-            'nup': self.nup_edit.text().strip(),
-            'material_servico': self.material_edit.currentText(),
-            'objeto': self.objeto_edit.text().strip(),
-            'vigencia': self.vigencia_edit.text().strip() if isinstance(self.vigencia_edit, QLineEdit) else '12 (doze) meses',
-            'data_sessao': self.data_edit.date().toString("yyyy-MM-dd") if isinstance(self.data_edit, QDateEdit) else '',
-            'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
-            'setor_responsavel': self.setor_responsavel_edit.text().strip(),
-            'operador': self.operador_edit.text().strip(),
-            'sigla_om': self.om_combo.currentText(),
-            'uasg': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'uasg'],  # Inclui uasg
-            'orgao_responsavel': self.df_registro_selecionado.loc[self.df_registro_selecionado.index[0], 'orgao_responsavel'],
-            'cod_par': self.par_edit.text().strip(),  
-            'prioridade_par': self.prioridade_combo.currentText(),
-            'cep': self.cep_edit.text().strip(),
-            'endereco': self.endereco_edit.text().strip(),
-            'email': self.email_edit.text().strip(),
-            'telefone': self.telefone_edit.text().strip(),
-            'dias_para_recebimento': self.dias_edit.text().strip(),
-            'horario_para_recebimento': self.horario_edit.text().strip(),            
-            'valor_total': self.valor_edit.text().strip(),
-            'acao_interna': self.acao_interna_edit.text().strip(),
-            'fonte_recursos': self.fonte_recurso_edit.text().strip(),
-            'natureza_despesa': self.natureza_despesa_edit.text().strip(),
-            'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
-            'programa_trabalho_resuminho': self.ptres_edit.text().strip(),           
-            'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
-        }
-
-        # Adiciona valores de self.document_details_widget apenas se estiverem presentes
-        if hasattr(self, 'document_details_widget') and self.document_details_widget:
-            data['comunicacao_padronizada'] = self.document_details_widget.cp_edit.text().strip()
-            data['do_resposavel'] = self.document_details_widget.responsavel_edit.text().strip()
-            data['ao_responsavel'] = self.document_details_widget.encarregado_obtencao_edit.text().strip()
-        else:
-            # Define valores padrão ou os valores já presentes no registro selecionado
-            data['comunicacao_padronizada'] = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
-            data['do_resposavel'] = self.df_registro_selecionado['do_resposavel'].iloc[0]
-            data['ao_responsavel'] = self.df_registro_selecionado['ao_responsavel'].iloc[0]
-
-        with self.database_manager as connection:
-            cursor = connection.cursor()
-            set_part = ', '.join([f"{key} = ?" for key in data.keys()])
-            valores = list(data.values())
-            valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
-
-            query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
-            cursor.execute(query, valores)
-            connection.commit()
-
-        # Atualiza o DataFrame em memória
-        for key, value in data.items():
-            self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
-
-        self.dados_atualizados.emit()
-        QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
-
-    def update_title_label(self):
-        data = self.extract_registro_data()
-        html_text = (
-            f"{data['tipo']} nº {data['numero']}/{data['ano']} - {data['objeto']}<br>"
-            f"<span style='font-size: 20px; color: #ADD8E6;'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
-        )
-        if not hasattr(self, 'titleLabel'):
-            self.titleLabel = QLabel()
-            self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-            self.titleLabel.setStyleSheet("color: white; font-size: 30px; font-weight: bold;")
-
-        self.titleLabel.setText(html_text)
-        # print(f"Title updated: {html_text}")
-
-        if not hasattr(self, 'header_layout'):
-            self.header_layout = QHBoxLayout()
-            self.header_layout.addWidget(self.titleLabel)
-            self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-            self.add_action_buttons(self.header_layout)
-            pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            self.image_label = QLabel()
-            self.image_label.setPixmap(pixmap)
-            self.header_layout.addWidget(self.image_label)
-
-            # Define uma altura fixa para o layout do cabeçalho
-            header_widget = QWidget()
-            header_widget.setLayout(self.header_layout)
-            header_widget.setFixedHeight(80)  # Ajuste essa altura conforme necessário
-            self.header_widget = header_widget
-
-        return self.header_widget
-
-    def add_action_buttons(self, layout):
-        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
-        icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
-        icon_config = QIcon(str(self.ICONS_DIR / "excel.png"))
-        icon_responsaveis = QIcon(str(self.ICONS_DIR / "responsaveis.png"))
-        
-        button_confirm = self.create_button("  Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(115, 50), QSize(40, 40))
-        button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(115, 50), QSize(30, 30))
-        button_config = self.create_button(" Importar", icon_config, self.importar_tabela, "Alterar local de salvamento, entre outras configurações", QSize(115, 50), QSize(30, 30))
-        button_responsaveis = self.create_button("Responsáveis", icon_responsaveis, self.open_editar_responsaveis_dialog, "Alterar local de salvamento, entre outras configurações", QSize(135, 50), QSize(30, 30))
-                
-        layout.addWidget(button_confirm)
-        layout.addWidget(button_x)
-        layout.addWidget(button_config)
-        layout.addWidget(button_responsaveis)
-        self.apply_widget_style(button_confirm)
-        self.apply_widget_style(button_x)
-        self.apply_widget_style(button_config)
-        self.apply_widget_style(button_responsaveis)
 
     def importar_tabela(self):
         dialog = QDialog(self)

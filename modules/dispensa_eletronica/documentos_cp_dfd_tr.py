@@ -653,10 +653,16 @@ class ConsolidarDocumentos:
         docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
         pdf_path = docx_path.with_suffix('.pdf')
         word = win32com.client.Dispatch("Word.Application")
-        doc = word.Documents.Open(str(docx_path))
-        doc.SaveAs(str(pdf_path), FileFormat=17)
-        doc.Close()
-        word.Quit()
+        doc = None
+        try:
+            doc = word.Documents.Open(str(docx_path))
+            doc.SaveAs(str(pdf_path), FileFormat=17)
+        except Exception as e:
+            raise e
+        finally:
+            if doc is not None:
+                doc.Close()
+            word.Quit()
         if not pdf_path.exists():
             raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
         return pdf_path
@@ -679,11 +685,12 @@ class ConsolidarDocumentos:
             QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
             return
 
-        doc = DocxTemplate(str(template_path))
-        context = self.df_registro_selecionado.to_dict('records')[0]
-        context = self.prepare_context(context)
-        doc.render(context)
-        doc.save(str(save_path))
+        with open(str(template_path), 'rb') as template_file:
+            doc = DocxTemplate(template_file)
+            context = self.df_registro_selecionado.to_dict('records')[0]
+            context = self.prepare_context(context)
+            doc.render(context)
+            doc.save(str(save_path))
         return save_path
 
     def setup_document_paths(self, template_filename, subfolder_name, file_description):
@@ -695,6 +702,7 @@ class ConsolidarDocumentos:
         pasta_base.mkdir(parents=True, exist_ok=True)
         save_path = pasta_base / f"{id_processo} - {file_description}.docx"
         return template_path, save_path
+
 
     def gerar_e_abrir_documento(self, template_type, subfolder_name, file_description):
         docx_path = self.gerarDocumento(template_type, subfolder_name, file_description)

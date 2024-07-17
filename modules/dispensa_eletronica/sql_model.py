@@ -185,8 +185,10 @@ class SqlModel:
                 vigencia TEXT,
                 data_sessao DATE,
                 operador VARCHAR(100),
+                criterio_julgamento TEXT,
                 com_disputa TEXT,
                 pesquisa_preco TEXT,
+                previsao_contratacao TEXT,          
                 uasg VARCHAR(10),
                 orgao_responsavel VARCHAR(250),
                 sigla_om VARCHAR(100),
@@ -213,8 +215,6 @@ class SqlModel:
                 comentarios TEXT,                          
                 justificativa TEXT,
                 link_pncp TEXT,
-                link_portal_marinha TEXT,     
-                previsao_contratacao TEXT,
                 comunicacao_padronizada TEXT,
                 do_responsavel TEXT,
                 ao_responsavel TEXT
@@ -223,6 +223,9 @@ class SqlModel:
             print("Falha ao criar a tabela 'controle_dispensas':", query.lastError().text())
         else:
             print("Tabela 'controle_dispensas' criada com sucesso.")
+
+
+
 
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13])
