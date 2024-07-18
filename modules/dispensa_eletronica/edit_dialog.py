@@ -363,14 +363,14 @@ class EditDataDialog(QDialog):
         utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Botão para abrir o arquivo de registro
-        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
-        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        icon_open_folder = QIcon(str(self.ICONS_DIR / "open-folder.png"))
+        visualizar_pdf_button = self.create_button("       Abrir Pasta Base      ", icon=icon_open_folder, callback=self.consolidador.abrir_pasta_base, tooltip_text="Clique para alterar ou escolher os dados predefinidos", button_size=QSize(220, 40), icon_size=QSize(25, 25))
         self.apply_widget_style(visualizar_pdf_button)
         utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Botão para abrir o arquivo de registro
-        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
-        visualizar_pdf_button = self.create_button("         Pré-Definições        ", icon=icon_standard, callback=self.criar_formulario, tooltip_text="Clique para alterar ou escolher os dados predefinidos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
+        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(visualizar_pdf_button)
         utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -484,6 +484,7 @@ class EditDataDialog(QDialog):
         # Adicionando os botões ao layout
         icon_excel_up = QIcon(str(self.ICONS_DIR / "excel_up.png"))
         icon_excel_down = QIcon(str(self.ICONS_DIR / "excel_down.png"))
+        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
 
         criar_formulario_button = self.create_button(
             "   Criar Formulário   ", 
@@ -503,10 +504,20 @@ class EditDataDialog(QDialog):
             icon_size=QSize(35, 35)
         )
 
+        # Botão para abrir o arquivo de registro
+        
+        visualizar_pdf_button = self.create_button(
+            "      Pré-Definições     ",
+            icon=icon_standard,
+            callback=self.criar_formulario, 
+            tooltip_text="Clique para alterar ou escolher os dados predefinidos", 
+            button_size=QSize(220, 40), icon_size=QSize(30, 30)
+        )       
+
         # Adiciona os botões ao layout
         formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
+        formulario_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box

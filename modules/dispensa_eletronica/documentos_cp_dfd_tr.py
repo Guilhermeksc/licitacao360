@@ -664,6 +664,13 @@ class ConsolidarDocumentos:
             save_config(self.config)
             QMessageBox.information(None, "Diretório Base Alterado", f"O novo diretório base foi alterado para: {self.pasta_base}")
 
+    def abrir_pasta_base(self):
+        try:
+            os.startfile(self.pasta_base)
+        except Exception as e:
+            print(f"Erro ao abrir a pasta base: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao abrir a pasta base: {e}")
+
     def abrirDocumento(self, docx_path):
         try:
             pdf_path = self.convert_to_pdf(docx_path)
@@ -777,16 +784,19 @@ class ConsolidarDocumentos:
         if docx_dfd_path:
             pdf_path = self.salvarPDF(docx_dfd_path)
             if pdf_path:
+                self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "dfd.pdf")
                 pdf_paths.append(pdf_path)
 
         pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin')
         if pdf_path:
+            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-a-dfd.pdf")
             pdf_paths.append(pdf_path)
         else:
             QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo A - Relatorio Safin")
 
         pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade')
         if pdf_path:
+            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-b-dfd.pdf")
             pdf_paths.append(pdf_path)
         else:
             QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo B - Especificações e Quantidade")
@@ -795,10 +805,12 @@ class ConsolidarDocumentos:
         if docx_tr_path:
             pdf_path = self.salvarPDF(docx_tr_path)
             if pdf_path:
+                self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "tr.pdf")
                 pdf_paths.append(pdf_path)
 
         pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços')
         if pdf_path:
+            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-tr.pdf")
             pdf_paths.append(pdf_path)
         else:
             QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Pesquisa de Preços")
@@ -811,11 +823,27 @@ class ConsolidarDocumentos:
 
         pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária')
         if pdf_path:
+            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-dec-adeq.pdf")
             pdf_paths.append(pdf_path)
         else:
             QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Declaracao de Adequação Orçamentária")
 
         self.concatenar_e_abrir_pdfs(pdf_paths)
+
+    def add_cover_to_pdf(self, pdf_path, cover_path):
+        try:
+            merger = PdfMerger()
+            merger.append(str(cover_path))
+            merger.append(str(pdf_path))
+            merged_pdf_path = pdf_path.parent / (pdf_path.stem + "_with_cover.pdf")
+            merger.write(str(merged_pdf_path))
+            merger.close()
+            os.remove(pdf_path)  # Remove the old PDF without cover
+            merged_pdf_path.rename(pdf_path)  # Rename the new PDF with cover to the original name
+            print(f"Capa adicionada ao PDF: {pdf_path}")
+        except Exception as e:
+            print(f"Erro ao adicionar capa ao PDF: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao adicionar capa ao PDF: {e}")
 
     def concatenar_e_abrir_pdfs(self, pdf_paths):
         if not pdf_paths:
