@@ -821,7 +821,7 @@ class ConsolidarDocumentos:
             if pdf_path:
                 pdf_paths.append(pdf_path)
 
-        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária')
+        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser')
         if pdf_path:
             self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-dec-adeq.pdf")
             pdf_paths.append(pdf_path)

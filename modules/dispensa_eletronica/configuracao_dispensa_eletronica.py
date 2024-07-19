@@ -167,8 +167,8 @@ class ConfiguracoesDispensaDialog(QDialog):
 
     def save_and_emit(self):
         print("Salvando configurações e emitindo sinal...")
-        self.config_updated.emit()
         self.accept()
+        self.config_updated.emit()
 
     def carregarAgentesResponsaveis(self):
         try:
@@ -194,7 +194,7 @@ class ConfiguracoesDispensaDialog(QDialog):
                     ], self.table_view))
                     self.table_view.setItemDelegateForColumn(2, ComboBoxDelegate([
                         "Ordenador de Despesa", "Ordenador de Despesa Substituto", "Agente Fiscal", 
-                        "Agente Fiscal Substituto", "Gerente de Crédito", "Operador da Contratação", 
+                        "Agente Fiscal Substituto", "Gerente de Crédito", "Operador de Dispensa Eletrônica",
                         "Responsável pela Demanda", "Encarregado da Divisão de x"
                     ], self.table_view))
                     self.table_view.setColumnWidth(0, 400)  # Define o tamanho da coluna do índice 0
