@@ -15,6 +15,7 @@ import stat
 from PyPDF2 import PdfMerger
 import re
 from num2words import num2words
+
 class DocumentDetailsWidget(QWidget):
     def __init__(self, df_registro_selecionado, ordenador_de_despesas, responsavel_pela_demanda, parent=None):
         super().__init__(parent)
@@ -244,22 +245,24 @@ class DocumentDetailsWidget(QWidget):
 
 class PDFAddDialog(QDialog):
 
-    def __init__(self, df_registro_selecionado, icons_dir, parent=None):
+    def __init__(self, df_registro_selecionado, icons_dir, pastas_necessarias, pasta_base, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
         self.ICONS_DIR = Path(icons_dir)
+        self.pastas_necessarias = pastas_necessarias
+        self.pasta_base = pasta_base
         self.icon_existe = QIcon(str(self.ICONS_DIR / "checked.png"))
         self.icon_nao_existe = QIcon(str(self.ICONS_DIR / "cancel.png"))
         self.id_processo = df_registro_selecionado['id_processo'].iloc[0]
         self.tipo = df_registro_selecionado['tipo'].iloc[0]
         self.ano = df_registro_selecionado['ano'].iloc[0]
         self.numero = df_registro_selecionado['numero'].iloc[0]
+        self.objeto = df_registro_selecionado['objeto'].iloc[0]  # Supondo que 'objeto' é uma coluna no DataFrame
         self.setWindowTitle('Adicionar PDF')
         self.setup_ui()
-        self.load_file_paths()
 
     def setup_ui(self):
-        self.setFixedSize(1500, 780)  # Tamanho ajustado para acomodar todos os componentes
+        self.setFixedSize(1520, 780)  # Tamanho ajustado para acomodar todos os componentes
 
         # Layout principal vertical
         main_layout = QVBoxLayout(self)
@@ -273,7 +276,7 @@ class PDFAddDialog(QDialog):
         self.pdf_view = DraggableGraphicsView()
         self.scene = QGraphicsScene()
         self.pdf_view.setScene(self.scene)
-        self.pdf_view.setFixedSize(550, 730)  # Tamanho da visualização do PDF
+        self.pdf_view.setFixedSize(1000, 730)  # Tamanho da visualização do PDF
         pdf_view_layout.addWidget(self.pdf_view)
 
         # Botões de navegação de páginas abaixo da visualização do PDF
@@ -297,7 +300,7 @@ class PDFAddDialog(QDialog):
         nav_buttons_layout.addWidget(self.next_page_button)
 
         # Define o tamanho máximo para o widget de navegação
-        navigation_widget.setMaximumWidth(540)
+        navigation_widget.setMaximumWidth(980)
 
         # Adiciona o widget de navegação ao layout principal
         pdf_view_layout.addWidget(navigation_widget)
@@ -307,9 +310,9 @@ class PDFAddDialog(QDialog):
         
         # Slider de Zoom ao lado da visualização
         self.zoom_slider = QSlider(Qt.Orientation.Vertical)
-        self.zoom_slider.setMinimum(10)  # 10% do zoom original
+        self.zoom_slider.setMinimum(50)  # 50% do zoom original
         self.zoom_slider.setMaximum(200)  # 200% do zoom original
-        self.zoom_slider.setValue(100)  # Valor inicial do zoom (100%)
+        self.zoom_slider.setValue(50)  # Valor inicial do zoom (50%)
         self.zoom_slider.setTickPosition(QSlider.TickPosition.TicksRight)
         self.zoom_slider.setTickInterval(10)
         self.zoom_slider.valueChanged.connect(self.adjust_zoom)
@@ -334,95 +337,62 @@ class PDFAddDialog(QDialog):
         self.data_view.itemClicked.connect(self.display_pdf)
         tree_layout.addWidget(self.data_view)
 
-        # Botões relacionados ao QTreeWidget abaixo dele
-        tree_buttons_layout = QHBoxLayout()
-        add_button = QPushButton("Adicionar Anexo")
-        add_button.setStyleSheet("font-size: 14px;")
-        add_button.clicked.connect(self.add_anexo)
-        tree_buttons_layout.addWidget(add_button)
-
-        add_sublevel_button = QPushButton("Adicionar Subnível")
-        add_sublevel_button.setStyleSheet("font-size: 14px;")
-        add_sublevel_button.clicked.connect(self.add_sublevel)
-        tree_buttons_layout.addWidget(add_sublevel_button)
-
-        delete_button = QPushButton("Deletar")
-        delete_button.setStyleSheet("font-size: 14px;")
-        delete_button.clicked.connect(self.delete_item)
-        tree_buttons_layout.addWidget(delete_button)
-
-        file_button = QPushButton("Selecionar Arquivo")
-        file_button.setStyleSheet("font-size: 14px;")
-        file_button.clicked.connect(self.select_pdf_file)
-        tree_buttons_layout.addWidget(file_button)
-
-        reset_button = QPushButton("Resetar")
-        reset_button.setStyleSheet("font-size: 14px;")
-        reset_button.clicked.connect(self.reset_data)
-        tree_buttons_layout.addWidget(reset_button)
-
-        # Adiciona o layout dos botões ao layout do QTreeWidget
-        tree_layout.addLayout(tree_buttons_layout)
-
         # Adiciona o layout do QTreeWidget ao layout horizontal principal
         view_and_slider_and_tree_layout.addLayout(tree_layout)
 
         # Adiciona o layout combinado ao layout principal
         main_layout.addLayout(view_and_slider_and_tree_layout)
 
-        # Configura o layout geral da janela
-        self.setLayout(main_layout)
+        self.add_initial_items()
 
-    def create_header(self):
-        html_text = f"Anexos da {self.tipo} nº {self.numero}/{self.ano}<br>"
-        
-        self.titleLabel = QLabel()
-        self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-        self.titleLabel.setStyleSheet("color: black; font-size: 30px; font-weight: bold;")
-        self.titleLabel.setText(html_text)
-
-        self.header_layout = QHBoxLayout()
-        self.header_layout.addWidget(self.titleLabel)
-
-        header_widget = QWidget()
-        header_widget.setLayout(self.header_layout)
-
-        return header_widget
-    
     def adjust_zoom(self, value):
         # Calcula o fator de escala baseado no valor do slider
-        scale_factor = value / 100.0
+        scale_factor = max(value / 100.0, 0.2)  # Garante que o fator de escala não seja menor que 0.5
         # Reseta a transformação atual e aplica o novo zoom
         self.pdf_view.resetTransform()
         self.pdf_view.scale(scale_factor, scale_factor)
 
+    def verificar_arquivo_pdf(self, pasta):
+        arquivos_pdf = []
+        if not pasta.exists():
+            print(f"Pasta não encontrada: {pasta}")
+            return None
+        for arquivo in pasta.iterdir():
+            if arquivo.suffix.lower() == ".pdf":
+                arquivos_pdf.append(arquivo)
+                print(f"Arquivo PDF encontrado: {arquivo.name}")
+        if arquivos_pdf:
+            pdf_mais_recente = max(arquivos_pdf, key=lambda p: p.stat().st_mtime)
+            print(f"PDF mais recente: {pdf_mais_recente}")
+            return pdf_mais_recente
+        return None
+   
     def display_pdf(self, item, column):
-        full_text = item.text(column)
-        if " || " in full_text:
-            file_path = full_text.split(" || ", 1)[1]
-        else:
-            file_path = full_text
-        if file_path.endswith('.pdf'):
+        file_path = item.data(0, Qt.ItemDataRole.UserRole)
+        if file_path:
+            print(f"Tentando abrir o arquivo PDF: {file_path}")
             self.load_pdf(file_path)
 
     def load_pdf(self, file_path):
-        print("Tentando abrir o arquivo PDF:", file_path)  # Confirma o caminho do arquivo antes de tentar abrir
         try:
             self.document = fitz.open(file_path)  # Abre o documento e guarda em self.document
             self.current_page = 0  # Define a primeira página como a atual
             self.show_page(self.current_page)  # Mostra a primeira página
         except Exception as e:
-            print("Erro ao abrir o arquivo PDF:", e)  # Printa o erro caso não consiga abrir o arquivo
+            print(f"Erro ao abrir o arquivo PDF: {e}")
 
     def show_page(self, page_number):
         if self.document:
             page = self.document.load_page(page_number)
-            mat = fitz.Matrix(5.0, 5.0)  # Ajuste para a escala desejada
+            mat = fitz.Matrix(5, 5)  # Ajuste para a escala desejada, mantém alta qualidade
             pix = page.get_pixmap(matrix=mat)
             img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
             pixmap = QPixmap.fromImage(img)
             self.scene.clear()
             self.scene.addPixmap(pixmap)
+            # Aplica o fator de escala inicial de 50%
+            self.pdf_view.resetTransform()
+            self.pdf_view.scale(0.5, 0.5)
             # Atualiza o contador de páginas
             self.page_label.setText(f"{page_number + 1} de {self.document.page_count}")
 
@@ -436,82 +406,24 @@ class PDFAddDialog(QDialog):
             self.current_page -= 1
             self.show_page(self.current_page)
 
-    def reset_data(self):
-        # Cria uma caixa de mensagem de confirmação
-        reply = QMessageBox.question(self, 'Confirmar Reset',
-                                    "Tem certeza de que deseja resetar todos os dados e restaurar os valores padrão? Essa decisão é irreversível.",
-                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                    QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
-            file_dir = DISPENSA_DIR / "json"
-            file_path = file_dir / f'DE_{self.numero}-{self.ano}_file_paths.json'
-            if file_path.exists():
-                file_path.unlink()
-            self.data_view.clear()
-            self.add_initial_items()
-            print("Dados resetados para padrão inicial e arquivo JSON deletado.")
-        else:
-            print("Ação de resetar cancelada.")
-
     def select_pdf_file(self):
         selected_item = self.data_view.currentItem()
         if selected_item:
             file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar PDF", "", "PDF Files (*.pdf)")
             if file_path:
-                selected_item.setText(0, f'{selected_item.text(0).split(" || ")[0]} || {file_path}')
+                selected_item.setText(0, selected_item.text(0))  # Atualiza o texto sem o caminho
                 selected_item.setIcon(0, self.icon_existe)
+                selected_item.setData(0, Qt.ItemDataRole.UserRole, file_path)  # Armazena o caminho do PDF
                 self.save_file_paths()
             else:
                 selected_item.setIcon(0, self.icon_nao_existe)
-
-    def save_file_paths(self):
-        items = []
-        for i in range(self.data_view.topLevelItemCount()):
-            parent_item = self.data_view.topLevelItem(i)
-            item_data = {
-                'text': parent_item.text(0),
-                'children': []
-            }
-            for j in range(parent_item.childCount()):
-                child_item = parent_item.child(j)
-                child_data = {
-                    'text': child_item.text(0)
-                }
-                item_data['children'].append(child_data)
-            items.append(item_data)
-
-        file_dir = DISPENSA_DIR / "json"
-        file_dir.mkdir(parents=True, exist_ok=True)
-        file_path = file_dir / f'DE_{self.numero}-{self.ano}_file_paths.json'
-        with open(file_path, 'w') as file:
-            json.dump(items, file)
-
-    def load_file_paths(self):
-        file_dir = DISPENSA_DIR / "json"
-        file_path = file_dir / f'DE_{self.numero}-{self.ano}_file_paths.json'
-        if file_path.exists():
-            with open(file_path, 'r') as file:
-                items = json.load(file)
-                self.data_view.clear()
-                for item in items:
-                    parent_item = QTreeWidgetItem(self.data_view, [item['text']])
-                    parent_item.setFont(0, QFont('SansSerif', 14))
-                    for child in item['children']:
-                        child_item = QTreeWidgetItem(parent_item, [child['text']])
-                        child_item.setFont(0, QFont('SansSerif', 14))
-                        file_path = child_item.text(0).split(" || ")[-1]
-                        if Path(file_path).exists():
-                            child_item.setIcon(0, self.icon_existe)
-                        else:
-                            child_item.setIcon(0, self.icon_nao_existe)
-                    parent_item.setExpanded(True)
 
     def create_header(self):
         html_text = f"Anexos da {self.tipo} nº {self.numero}/{self.ano}<br>"
         
         self.titleLabel = QLabel()
         self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-        self.titleLabel.setStyleSheet("color: black; font-size: 30px; font-weight: bold;")
+        self.titleLabel.setStyleSheet("color: black; font-size: 20px; font-weight: bold;")
         self.titleLabel.setText(html_text)
 
         self.header_layout = QHBoxLayout()
@@ -523,86 +435,42 @@ class PDFAddDialog(QDialog):
         return header_widget
 
     def add_initial_items(self):
-        # Verifica se o arquivo JSON já existe e carrega os itens a partir dele
-        file_dir = DISPENSA_DIR / "json"
-        file_path = file_dir / f'DE_{self.numero}-{self.ano}_file_paths.json'
-        if file_path.exists():
-            return  # Se existe, não adiciona os itens iniciais; load_file_paths cuidará de carregar os dados
+        id_processo_modificado = self.id_processo.replace("/", "-")
+        objeto_modificado = self.objeto.replace("/", "-")
+        base_path = self.pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
 
-        # Caso contrário, adiciona os itens iniciais como fallback
         initial_items = {
-            "Anexo A - Documento de Formalização de Demanda": [
-                "Relatório do SAFIN",
-                "Especificação e Quantidade do Material"
+            "DFD": [
+                ("Anexo A - Relatório Safin", base_path / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin'),
+                ("Anexo B - Especificações e Quantidade", base_path / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade')
             ],
-            "Anexo B - Termo de Referência": [
-                "Pesquisa de Preços"
+            "TR": [
+                ("Pesquisa de Preços", base_path / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços')
             ],
-            "Anexo C - Declaração de Adequação Orçamentária": [
-                "Relatório do PDM/Catser"
+            "Declaração de Adequação Orçamentária": [
+                ("Relatório do PDM-Catser", base_path / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser')
             ]
         }
+
         for parent_text, children in initial_items.items():
             parent_item = QTreeWidgetItem(self.data_view, [parent_text])
             parent_item.setFont(0, QFont('SansSerif', 14))
-            for child_text in children:
+            for child_text, pasta in children:
                 child_item = QTreeWidgetItem(parent_item, [child_text])
-                child_item.setIcon(0, self.icon_nao_existe)
                 child_item.setForeground(0, QBrush(QColor(0, 0, 0)))
                 child_item.setFont(0, QFont('SansSerif', 14))
+
+                print(f"Verificando pasta: {pasta}")
+                pdf_file = self.verificar_arquivo_pdf(pasta)
+                if pdf_file:
+                    print(f"PDF encontrado: {pdf_file}")
+                    child_item.setIcon(0, self.icon_existe)
+                    child_item.setData(0, Qt.ItemDataRole.UserRole, str(pdf_file))  # Armazena o caminho do PDF
+                else:
+                    print("Nenhum PDF encontrado")
+                    child_item.setIcon(0, self.icon_nao_existe)
+
             parent_item.setExpanded(True)
-
-
-    def add_anexo(self):
-        text, ok = QInputDialog.getText(self, 'Adicionar Anexo', 'Digite o nome do anexo:')
-        if ok and text:
-            current_count = self.data_view.topLevelItemCount()
-            new_anexo = f"Anexo {chr(65 + current_count)} || {text}"
-            new_anexo_item = QTreeWidgetItem(self.data_view, [new_anexo])
-            new_anexo_item.setFont(0, QFont('SansSerif', 14))
-            new_anexo_item.setIcon(0, self.icon_nao_existe)
-            self.save_file_paths()  # Salva as mudanças após adicionar um novo anexo
-
-    def add_sublevel(self):
-        selected_item = self.data_view.currentItem()
-        if selected_item is None:
-            QMessageBox.warning(self, "Aviso", "Por favor, selecione um anexo para adicionar um subnível.")
-            return
-
-        text, ok = QInputDialog.getText(self, 'Adicionar Subnível', 'Digite o nome do subnível:')
-        if ok and text:
-            sublevel_item = QTreeWidgetItem(selected_item, [text])
-            sublevel_item.setFont(0, QFont('SansSerif', 14))
-            sublevel_item.setIcon(0, self.icon_nao_existe)
-            selected_item.setExpanded(True)
-            self.save_file_paths() 
-
-    def delete_item(self):
-        selected_item = self.data_view.currentItem()
-        if selected_item is None:
-            QMessageBox.warning(self, "Aviso", "Por favor, selecione um item para deletar.")
-            return
-
-        item_text = selected_item.text(0)
-        reply = QMessageBox.question(self, 'Confirmação de Deleção',
-                                    f'Tem certeza que deseja deletar "{item_text}"?',
-                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                    QMessageBox.StandardButton.No)
-
-        if reply == QMessageBox.StandardButton.Yes:
-            parent_item = selected_item.parent()
-            if parent_item is None:
-                index = self.data_view.indexOfTopLevelItem(selected_item)
-                self.data_view.takeTopLevelItem(index)
-            else:
-                parent_item.removeChild(selected_item)
-            self.save_file_paths() 
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Delete:
-            self.delete_item()
-        else:
-            super().keyPressEvent(event)
 
 class DraggableGraphicsView(QGraphicsView):
     def __init__(self, parent=None):
@@ -636,9 +504,11 @@ class DraggableGraphicsView(QGraphicsView):
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:  # Verifica se o Ctrl está pressionado
             factor = 1.15 if event.angleDelta().y() > 0 else 0.85  # Ajusta o fator de zoom baseado na direção do scroll
-            self.scale(factor, factor)
+            scale = self.transform().m11() * factor
+            if scale >= 0.1:  # Garante que o fator de escala não seja menor que 0.5
+                self.scale(factor, factor)
         else:
-            super().wheelEvent(event)  # Processa o evento normalmente se o Ctrl não estiver pressionado
+            super().wheelEvent(event) 
 
 CONFIG_FILE = 'config.json'
 
@@ -833,8 +703,12 @@ class ConsolidarDocumentos:
         pasta_base.mkdir(parents=True, exist_ok=True)
         save_path = pasta_base / f"{id_processo} - {file_description}.docx"
         return template_path, save_path
-
+    
     def verificar_e_criar_pastas(self, pasta_base):
+        id_processo_modificado = self.id_processo.replace("/", "-")
+        objeto_modificado = self.objeto.replace("/", "-")
+        base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
+
         pastas_necessarias = [
             pasta_base / '1. Autorizacao',
             pasta_base / '2. CP e anexos',
@@ -851,6 +725,7 @@ class ConsolidarDocumentos:
         for pasta in pastas_necessarias:
             if not pasta.exists():
                 pasta.mkdir(parents=True)
+        return pastas_necessarias
 
     def gerar_e_abrir_documento(self, template_type, subfolder_name, file_description):
         docx_path = self.gerarDocumento(template_type, subfolder_name, file_description)

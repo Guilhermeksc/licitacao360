@@ -489,12 +489,12 @@ class EditDataDialog(QDialog):
         info_cp_layout.addLayout(self.create_layout("Ao:", self.ao_responsavel_edit))
         info_cp_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         # Adicionando o botão Selecionar Anexos
-        icon_anexo = QIcon(str(self.ICONS_DIR / "anexar.png"))
+        icon_browser = QIcon(str(self.ICONS_DIR / "browser.png"))
         add_pdf_button = self.create_button(
-            " Selecionar Anexos",
-            icon_anexo,
+            " Visualizar Anexos",
+            icon_browser,
             self.add_pdf_to_merger,
-            "Selecionar arquivos PDFs para aplicar o Merge",
+            "Visualizar anexos PDFs",
             QSize(220, 40), QSize(30, 30)
         )
 
@@ -572,11 +572,11 @@ class EditDataDialog(QDialog):
                 # Verificação de existência de arquivo PDF
                 icon_label = QLabel()
                 if pasta_anexo:
-                    print(f"Verificando pasta: {pasta_anexo}")
+                    # print(f"Verificando pasta: {pasta_anexo}")
                     arquivos_pdf = self.verificar_arquivo_pdf(pasta_anexo)
                     icon = icon_confirm if arquivos_pdf else icon_x
                 else:
-                    print(f"Anexo não identificado: {anexo}")
+                    # print(f"Anexo não identificado: {anexo}")
                     icon = icon_x
 
                 icon_label.setPixmap(icon.pixmap(QSize(20, 20)))
@@ -668,13 +668,20 @@ class EditDataDialog(QDialog):
         arquivos_pdf = []
         if not pasta.exists():
             print(f"Pasta não encontrada: {pasta}")
-            return arquivos_pdf
+            return None
         for arquivo in pasta.iterdir():
             if arquivo.suffix.lower() == ".pdf":
-                arquivos_pdf.append(arquivo.name)
-                print(f"Arquivo PDF encontrado: {arquivo.name}")
-        return arquivos_pdf
+                arquivos_pdf.append(arquivo)
+                # print(f"Arquivo PDF encontrado: {arquivo.name}")
+        if arquivos_pdf:
+            return max(arquivos_pdf, key=lambda p: p.stat().st_mtime)  # Retorna o PDF mais recente
+        return None
+    
     def verificar_e_criar_pastas(self, pasta_base):
+        id_processo_modificado = self.id_processo.replace("/", "-")
+        objeto_modificado = self.objeto.replace("/", "-")
+        base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
+
         pastas_necessarias = [
             pasta_base / '1. Autorizacao',
             pasta_base / '2. CP e anexos',
@@ -691,6 +698,7 @@ class EditDataDialog(QDialog):
         for pasta in pastas_necessarias:
             if not pasta.exists():
                 pasta.mkdir(parents=True)
+        return pastas_necessarias
 
     def abrirPasta(self):
         print("Abrir pasta")
@@ -699,10 +707,10 @@ class EditDataDialog(QDialog):
     def add_pdf_to_merger(self):
         cp_number = self.cp_edit.text()
         if cp_number:
-            pdf_add_dialog = PDFAddDialog(self.df_registro_selecionado, ICONS_DIR, self)
+            pastas_necessarias = self.verificar_e_criar_pastas(self.pasta_base)
+            pdf_add_dialog = PDFAddDialog(self.df_registro_selecionado, self.ICONS_DIR, pastas_necessarias, self.pasta_base, self)
             if pdf_add_dialog.exec():
                 print(f"Adicionar PDF para CP nº {cp_number}")
-                # Aqui você pode adicionar a lógica para manipular o PDF com os dados do diálogo
             else:
                 print("Ação de adicionar PDF cancelada.")
         else:
