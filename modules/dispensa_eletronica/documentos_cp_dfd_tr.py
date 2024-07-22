@@ -11,8 +11,10 @@ from docxtpl import DocxTemplate
 import pandas as pd
 import win32com.client
 import os
+import stat
 from PyPDF2 import PdfMerger
-
+import re
+from num2words import num2words
 class DocumentDetailsWidget(QWidget):
     def __init__(self, df_registro_selecionado, ordenador_de_despesas, responsavel_pela_demanda, parent=None):
         super().__init__(parent)
@@ -640,7 +642,7 @@ class DraggableGraphicsView(QGraphicsView):
 
 CONFIG_FILE = 'config.json'
 
-def load_config():
+def load_config_path_id():
     if not Path(CONFIG_FILE).exists():
         return {}
     with open(CONFIG_FILE, 'r') as file:
@@ -653,7 +655,7 @@ def save_config(config):
 class ConsolidarDocumentos:
     def __init__(self, df_registro_selecionado):
         self.df_registro_selecionado = df_registro_selecionado
-        self.config = load_config()
+        self.config = load_config_path_id()
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
     
     def alterar_diretorio_base(self):
@@ -708,10 +710,94 @@ class ConsolidarDocumentos:
             raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
         return pdf_path
 
+    def valor_por_extenso(self, valor):
+        valor = valor.replace('R$', '').replace('.', '').replace(',', '.').strip()
+        valor_float = float(valor)
+        parte_inteira = int(valor_float)
+        parte_decimal = int(round((valor_float - parte_inteira) * 100))
+
+        if parte_decimal > 0:
+            valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais e {num2words(parte_decimal, lang='pt_BR')} centavos"
+        else:
+            valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais"
+
+        # Corrige "um reais" para "um real"
+        valor_extenso = valor_extenso.replace("um reais", "um real")
+
+        return valor_extenso
+
+    def alterar_posto(self, posto):
+        # Define um dicionário de mapeamento de postos e suas respectivas abreviações
+        mapeamento_postos = {
+            r'Capitão[\s\-]de[\s\-]Corveta': 'CC',
+            r'Capitão[\s\-]de[\s\-]Fragata': 'CF',
+            r'Capitão[\s\-]de[\s\-]Mar[\s\-]e[\s\-]Guerra': 'CMG',
+            r'Capitão[\s\-]Tenente': 'CT',
+            r'Primeiro[\s\-]Tenente': '1ºTen',
+            r'Segundo[\s\-]Tenente': '2ºTen',
+            r'Primeiro[\s\-]Sargento': '1ºSG',
+            r'Segundo[\s\-]Sargento': '2ºSG',
+            r'Terceiro[\s\-]Sargento': '3ºSG',
+            r'Sub[\s\-]oficial': 'SO',
+        }
+
+        # Itera sobre o dicionário de mapeamento e aplica a substituição
+        for padrao, substituicao in mapeamento_postos.items():
+            if re.search(padrao, posto, re.IGNORECASE):
+                return re.sub(padrao, substituicao, posto, flags=re.IGNORECASE)
+
+        # Retorna o posto original se nenhuma substituição for aplicada
+        return posto
+
     def prepare_context(self, data):
         context = {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
         descricao_servico = "aquisição de" if data['material_servico'] == "Material" else "contratação de empresa especializada em"
         context.update({'descricao_servico': descricao_servico})
+
+        responsavel = data.get('responsavel_pela_demanda')
+        if responsavel and isinstance(responsavel, str):
+            try:
+                nome, posto, funcao = responsavel.split('\n')
+                posto_alterado = self.alterar_posto(posto)
+                responsavel_dict = {
+                    'nome': nome,
+                    'posto': posto_alterado,
+                    'funcao': funcao
+                }
+                responsavel_pela_demanda_extenso = f"{responsavel_dict.get('posto', '')} {responsavel_dict.get('nome', '')}\n{responsavel_dict.get('funcao', '')}"
+                context.update({'responsavel_pela_demanda_extenso': responsavel_pela_demanda_extenso})
+            except ValueError:
+                context.update({'responsavel_pela_demanda_extenso': 'Não especificado\nNão especificado'})
+        else:
+            context.update({'responsavel_pela_demanda_extenso': 'Não especificado\nNão especificado'})
+
+        valor_total = data.get('valor_total')
+        if valor_total and isinstance(valor_total, str):
+            valor_extenso = self.valor_por_extenso(valor_total)
+            valor_total_e_extenso = f"{valor_total} ({valor_extenso})"
+            context.update({'valor_total_e_extenso': valor_total_e_extenso})
+        else:
+            context.update({'valor_total_e_extenso': 'Não especificado'})
+
+        # Lógica para atividade_custeio
+        if data.get('atividade_custeio') == 'Sim':
+            texto_custeio = (
+                "A presente contratação por dispensa de licitação está enquadrada como atividade de custeio, "
+                "conforme mencionado no artigo 2º da Portaria ME nº 7.828, de 30 de agosto de 2022. "
+                "Conforme previsão do art. 3º do Decreto nº 10.193, de 27 de dezembro de 2019, e as normas "
+                "infralegais de delegação de competência no âmbito da Marinha, que estabelecem limites e instâncias "
+                "de governança, essa responsabilidade é delegada ao ordenador de despesas, respeitando os valores "
+                "estipulados no decreto."
+            )
+        else:
+            texto_custeio = (
+                "A presente contratação por dispensa de licitação não se enquadra nas hipóteses de atividades de "
+                "custeio previstas no Decreto nº 10.193, de 27 de dezembro de 2019, pois o objeto contratado não se "
+                "relaciona diretamente às atividades comuns de suporte administrativo mencionadas no artigo 2º da "
+                "Portaria ME nº 7.828, de 30 de agosto de 2022."
+            )
+        context.update({'texto_custeio': texto_custeio})
+
         return context
 
     def gerarDocumento(self, template_type, subfolder_name, file_description):
@@ -758,7 +844,9 @@ class ConsolidarDocumentos:
             pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
             pasta_base / '2. CP e anexos' / 'TR',
             pasta_base / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
-            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária'
+            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária',
+            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser',
+            pasta_base / '2. CP e anexos' / 'Justificativas Relevantes',
         ]
         for pasta in pastas_necessarias:
             if not pasta.exists():
@@ -773,89 +861,52 @@ class ConsolidarDocumentos:
         self.gerar_e_abrir_documento("autorizacao_dispensa", "1. Autorizacao", "Autorizacao para abertura de Processo Administrativo")
 
     def gerar_comunicacao_padronizada(self):
+        documentos = [
+            {"template": "cp", "subfolder": "2. CP e anexos", "desc": "Comunicacao Padronizada"},
+            {"template": "dfd", "subfolder": "2. CP e anexos/DFD", "desc": "Documento de Formalizacao de Demanda", "cover": "dfd.pdf"},
+            {"subfolder": "2. CP e anexos/DFD/Anexo A - Relatorio Safin", "cover": "anexo-a-dfd.pdf"},
+            {"subfolder": "2. CP e anexos/DFD/Anexo B - Especificações e Quantidade", "cover": "anexo-b-dfd.pdf"},
+            {"template": "tr", "subfolder": "2. CP e anexos/TR", "desc": "Termo de Referencia", "cover": "tr.pdf"},
+            {"subfolder": "2. CP e anexos/TR/Pesquisa de Preços", "cover": "anexo-tr.pdf"},
+            {"template": "dec_adeq", "subfolder": "2. CP e anexos/Declaracao de Adequação Orçamentária", "desc": "Declaracao de Adequação Orçamentária", "cover": "dec_adeq.pdf"},
+            {"subfolder": "2. CP e anexos/Declaracao de Adequação Orçamentária/Relatório do PDM-Catser", "cover": "anexo-dec-adeq.pdf"},
+            {"template": "justificativas", "subfolder": "2. CP e anexos/Justificativas Relevantes", "desc": "Justificativas Relevantes", "cover": "justificativas.pdf"},
+        ]
+
         pdf_paths = []
-        docx_cp_path = self.gerarDocumento("cp", "2. CP e anexos", "Comunicacao Padronizada")
-        if docx_cp_path:
-            pdf_path = self.salvarPDF(docx_cp_path)
-            if pdf_path:
-                pdf_paths.append(pdf_path)
-        
-        docx_dfd_path = self.gerarDocumento("dfd", "2. CP e anexos/DFD", "Documento de Formalizacao de Demanda")
-        if docx_dfd_path:
-            pdf_path = self.salvarPDF(docx_dfd_path)
-            if pdf_path:
-                self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "dfd.pdf")
-                pdf_paths.append(pdf_path)
 
-        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin')
-        if pdf_path:
-            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-a-dfd.pdf")
-            pdf_paths.append(pdf_path)
-        else:
-            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo A - Relatorio Safin")
-
-        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade')
-        if pdf_path:
-            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-b-dfd.pdf")
-            pdf_paths.append(pdf_path)
-        else:
-            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Anexo B - Especificações e Quantidade")
-        
-        docx_tr_path = self.gerarDocumento("tr", "2. CP e anexos/TR", "Termo de Referencia")
-        if docx_tr_path:
-            pdf_path = self.salvarPDF(docx_tr_path)
-            if pdf_path:
-                self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "tr.pdf")
-                pdf_paths.append(pdf_path)
-
-        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços')
-        if pdf_path:
-            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-tr.pdf")
-            pdf_paths.append(pdf_path)
-        else:
-            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Pesquisa de Preços")
-
-        docx_dec_adeq_path = self.gerarDocumento("dec_adeq", "2. CP e anexos/Declaracao de Adequação Orçamentária", "Declaracao de Adequação Orçamentária")
-        if docx_dec_adeq_path:
-            pdf_path = self.salvarPDF(docx_dec_adeq_path)
-            if pdf_path:
-                pdf_paths.append(pdf_path)
-
-        pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser')
-        if pdf_path:
-            self.add_cover_to_pdf(pdf_path, TEMPLATE_DISPENSA_DIR / "anexo-dec-adeq.pdf")
-            pdf_paths.append(pdf_path)
-        else:
-            QMessageBox.warning(None, "Erro", "Arquivo PDF não encontrado: Declaracao de Adequação Orçamentária")
+        for doc in documentos:
+            if "template" in doc:
+                docx_path = self.gerarDocumento(doc["template"], doc["subfolder"], doc["desc"])
+                if docx_path:
+                    pdf_path = self.salvarPDF(docx_path)
+                    if pdf_path:
+                        pdf_info = {"pdf_path": pdf_path}
+                        if "cover" in doc:
+                            pdf_info["cover_path"] = TEMPLATE_DISPENSA_DIR / doc["cover"]
+                        pdf_paths.append(pdf_info)
+            else:
+                pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / doc["subfolder"])
+                if pdf_path:
+                    pdf_paths.append({"pdf_path": pdf_path, "cover_path": TEMPLATE_DISPENSA_DIR / doc["cover"]})
+                else:
+                    QMessageBox.warning(None, "Erro", f"Arquivo PDF não encontrado: {doc['subfolder']}")
 
         self.concatenar_e_abrir_pdfs(pdf_paths)
-
-    def add_cover_to_pdf(self, pdf_path, cover_path):
-        try:
-            merger = PdfMerger()
-            merger.append(str(cover_path))
-            merger.append(str(pdf_path))
-            merged_pdf_path = pdf_path.parent / (pdf_path.stem + "_with_cover.pdf")
-            merger.write(str(merged_pdf_path))
-            merger.close()
-            os.remove(pdf_path)  # Remove the old PDF without cover
-            merged_pdf_path.rename(pdf_path)  # Rename the new PDF with cover to the original name
-            print(f"Capa adicionada ao PDF: {pdf_path}")
-        except Exception as e:
-            print(f"Erro ao adicionar capa ao PDF: {e}")
-            QMessageBox.warning(None, "Erro", f"Erro ao adicionar capa ao PDF: {e}")
-
+           
     def concatenar_e_abrir_pdfs(self, pdf_paths):
         if not pdf_paths:
             QMessageBox.warning(None, "Erro", "Nenhum PDF foi gerado para concatenar.")
             return
 
-        output_pdf_path = self.pasta_base / self.nome_pasta / "2. CP e anexos" / "Documentos_Concatenados.pdf"
+        output_pdf_path = self.pasta_base / self.nome_pasta / "2. CP e anexos" / "CP_e_anexos.pdf"
         merger = PdfMerger()
 
         try:
-            for pdf_path in pdf_paths:
-                merger.append(str(pdf_path))
+            for pdf in pdf_paths:
+                if "cover_path" in pdf:
+                    merger.append(str(pdf["cover_path"]))
+                merger.append(str(pdf["pdf_path"]))
 
             merger.write(str(output_pdf_path))
             merger.close()
@@ -872,6 +923,7 @@ class ConsolidarDocumentos:
             return None
         latest_pdf = max(pdf_files, key=os.path.getmtime)
         return latest_pdf
+
 
     def gerar_documento_de_formalizacao_de_demanda(self):
         self.gerarDocumento("dfd", "2. CP e anexos/DFD", "Documento de Formalizacao de Demanda")
