@@ -56,10 +56,7 @@ class TableMenu(QMenu):
 
     def add_menu_actions(self):
         actions = [
-            "Editar Dados do Processo",
-            "1. Autorização para Abertura de Processo",
-            "2. Documentos de Planejamento",
-            "3. Aviso de Dispensa Eletrônica",
+            "Editar Dados do Processo"
         ]
         for actionText in actions:
             action = QAction(actionText, self)
@@ -80,10 +77,7 @@ class TableMenu(QMenu):
 
     def perform_action(self, actionText, df_registro_selecionado):
         actions = {
-            "Editar Dados do Processo": self.editar_dados,
-            "1. Autorização para Abertura de Processo": self.AutorizacaoDispensa,
-            "2. Documentos de Planejamento": self.DocumentosPlanejamento,
-            "3. Aviso de Dispensa Eletrônica": self.AvisoDispensaEletronica
+            "Editar Dados do Processo": self.editar_dados
         }
         action = actions.get(actionText)
         if action:
@@ -97,15 +91,6 @@ class TableMenu(QMenu):
         dialog = EditDataDialog(df_registro_selecionado, self.main_app.icons_dir)
         dialog.dados_atualizados.connect(self.atualizar_interface)  # Conectar o sinal ao método de atualização
         dialog.exec()
-
-    def AutorizacaoDispensa(self, df_registro_selecionado):
-        pass
-
-    def DocumentosPlanejamento(self, df_registro_selecionado):
-        pass
-
-    def AvisoDispensaEletronica(self, df_registro_selecionado):
-        pass
 
 class CustomSqlTableModel(QSqlTableModel):
     def __init__(self, parent=None, db=None, non_editable_columns=None):

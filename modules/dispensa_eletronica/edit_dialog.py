@@ -3,7 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao
 from modules.dispensa_eletronica.configuracao_dispensa_eletronica import ConfiguracoesDispensaDialog
-from modules.dispensa_eletronica.documentos_cp_dfd_tr import DocumentDetailsWidget, PDFAddDialog, ConsolidarDocumentos, load_config_path_id
+from modules.dispensa_eletronica.documentos_cp_dfd_tr import PDFAddDialog, ConsolidarDocumentos, load_config_path_id
 from diretorios import *
 import pandas as pd
 import sqlite3
@@ -12,7 +12,9 @@ import os
 import subprocess
 from pathlib import Path
 import win32com.client
-
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, Border, Side, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 class RealLineEdit(QLineEdit):
     def __init__(self, text='', parent=None):
         super().__init__(text, parent)
@@ -782,10 +784,183 @@ class EditDataDialog(QDialog):
         return formulario_group_box
 
     def criar_formulario(self):
-        pass
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Formulário"
+
+            # Remover a coluna 'id_processo' do DataFrame e as colunas especificadas
+            colunas_excluir = ['tipo', 'numero', 'ano', 'id_processo', 'situacao', 'data_sessao', 'orgao_responsavel', 
+                            'sigla_om', 'ordenador_despesas', 'agente_fiscal', 'comentarios', 'link_pncp']
+            df_filtrado = self.df_registro_selecionado.drop(columns=colunas_excluir)
+
+            # Adicionar o título na linha 1
+            tipo = self.df_registro_selecionado['tipo'].iloc[0]
+            numero = self.df_registro_selecionado['numero'].iloc[0]
+            ano = self.df_registro_selecionado['ano'].iloc[0]
+            titulo = f"{tipo} nº {numero}/{ano}"
+            ws.merge_cells('A1:B1')
+            ws['A1'] = titulo
+
+            # Definir a fonte da linha 1 e centralizar o texto
+            ws['A1'].font = Font(size=20, bold=True)
+            ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+            # Adicionar os índices para as colunas A e B
+            ws['A2'] = "Índice"
+            ws['B2'] = "Valor"
+
+            # Definir a fonte e alinhamento para "Índice" e "Valor"
+            ws['A2'].font = Font(size=14, bold=True)
+            ws['B2'].font = Font(size=14, bold=True)
+            ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
+            ws['B2'].alignment = Alignment(horizontal='center', vertical='center')
+
+            # Definir a borda grossa para a linha 2
+            thick_border = Border(left=Side(style='thick'), 
+                                right=Side(style='thick'), 
+                                top=Side(style='thick'), 
+                                bottom=Side(style='thick'))
+            ws['A2'].border = thick_border
+            ws['B2'].border = thick_border
+
+            # Definir a largura das colunas
+            ws.column_dimensions[get_column_letter(1)].width = 28
+            ws.column_dimensions[get_column_letter(2)].width = 80
+
+            # Preencher as colunas A e B com os nomes das variáveis e seus respectivos valores
+            for i, (col_name, value) in enumerate(df_filtrado.iloc[0].items(), start=3):
+                ws[f'A{i}'] = col_name
+                ws[f'B{i}'] = str(value)
+                ws[f'B{i}'].alignment = Alignment(wrap_text=True)  # Quebra automática de linha
+
+                # Aplicar cores intercaladas
+                fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+                if i % 2 == 0:
+                    fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
+                ws[f'A{i}'].fill = fill
+                ws[f'B{i}'].fill = fill
+                ws[f'A{i}'].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)  # Quebra automática de linha e centralização
+
+                # Definir a altura das linhas conforme solicitado
+                if i == 7 or i == 14 or i == 15:
+                    ws.row_dimensions[i].height = 45
+                elif i == 31:
+                    ws.row_dimensions[i].height = 60
+                else:
+                    ws.row_dimensions[i].height = 15
+
+            # Salvar o arquivo
+            file_path = self.pasta_base / "formulario.xlsx"
+            wb.save(file_path)
+
+            # Abrir o arquivo criado
+            if os.name == 'nt':  # Windows
+                os.startfile(file_path)
+            elif os.name == 'posix':  # macOS
+                subprocess.call(['open', file_path])
+            else:  # Linux
+                subprocess.call(['xdg-open', file_path])
+
+            QMessageBox.information(self, "Sucesso", "Formulário criado e aberto com sucesso.")
+        except Exception as e:
+            print(f"Erro ao criar formulário: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Falha ao criar formulário: {str(e)}")
 
     def carregar_formulario(self):
-        pass
+        try:
+            # Exibir o DataFrame antes de carregar o formulário
+            print("DataFrame antes de carregar o formulário:")
+            print(self.df_registro_selecionado)
+
+            # Abrir uma janela para o usuário selecionar o arquivo
+            file_path, _ = QFileDialog.getOpenFileName(self, "Selecione o formulário", "", "Excel Files (*.xlsx);;All Files (*)")
+            if not file_path:
+                return
+
+            # Carregar o arquivo Excel
+            wb = load_workbook(file_path)
+            ws = wb.active
+
+            # Verificar se o formulário possui a linha 2 com "Índice" e "Valor"
+            if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
+                QMessageBox.critical(self, "Erro", "O formulário selecionado está incorreto.")
+                return
+
+            # Atualizar os dados do DataFrame
+            variaveis = [
+                'nup', 'material_servico', 'objeto', 'vigencia', 'operador', 'criterio_julgamento', 'com_disputa', 
+                'pesquisa_preco', 'previsao_contratacao', 'uasg', 'setor_responsavel', 'responsavel_pela_demanda', 
+                'gerente_de_credito', 'cod_par', 'prioridade_par', 'cep', 'endereco', 'email', 'telefone', 
+                'dias_para_recebimento', 'horario_para_recebimento', 'valor_total', 'acao_interna', 'fonte_recursos', 
+                'natureza_despesa', 'unidade_orcamentaria', 'programa_trabalho_resuminho', 'atividade_custeio', 
+                'justificativa', 'comunicacao_padronizada', 'do_responsavel', 'ao_responsavel'
+            ]
+            for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
+                if row[0] in variaveis:
+                    self.df_registro_selecionado.at[0, row[0]] = row[1]
+
+            # Exibir o DataFrame após carregar o formulário
+            print("DataFrame após carregar o formulário:")
+            print(self.df_registro_selecionado)
+
+            # Atualizar os campos da interface gráfica
+            self.preencher_campos()
+
+            # Emitir o sinal para atualizar a interface
+            self.dados_atualizados.emit()
+
+            QMessageBox.information(self, "Sucesso", "Formulário carregado com sucesso.")
+        except Exception as e:
+            print(f"Erro ao carregar formulário: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Falha ao carregar formulário: {str(e)}")
+
+
+    def preencher_campos(self):
+        try:
+            self.situacao_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'situacao']))
+            self.ordenador_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'ordenador_despesas']))
+            self.agente_fiscal_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'agente_fiscal']))
+            self.gerente_credito_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'gerente_de_credito']))
+            self.responsavel_demanda_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'responsavel_pela_demanda']))
+            self.nup_edit.setText(str(self.df_registro_selecionado.at[0, 'nup']))
+            self.material_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'material_servico']))
+            self.objeto_edit.setText(str(self.df_registro_selecionado.at[0, 'objeto']))
+            self.vigencia_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'vigencia']))
+            self.data_edit.setDate(QDate.fromString(str(self.df_registro_selecionado.at[0, 'data_sessao']), "yyyy-MM-dd"))
+            self.previsao_contratacao_edit.setDate(QDate.fromString(str(self.df_registro_selecionado.at[0, 'previsao_contratacao']), "yyyy-MM-dd"))
+            self.criterio_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'criterio_julgamento']))
+            self.radio_disputa_sim.setChecked(str(self.df_registro_selecionado.at[0, 'com_disputa']) == 'Sim')
+            self.radio_disputa_nao.setChecked(str(self.df_registro_selecionado.at[0, 'com_disputa']) == 'Não')
+            self.radio_pesquisa_sim.setChecked(str(self.df_registro_selecionado.at[0, 'pesquisa_preco']) == 'Sim')
+            self.radio_pesquisa_nao.setChecked(str(self.df_registro_selecionado.at[0, 'pesquisa_preco']) == 'Não')
+            self.setor_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'setor_responsavel']))
+            self.operador_dispensa_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'operador']))
+            self.om_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'sigla_om']))
+            self.par_edit.setText(str(self.df_registro_selecionado.at[0, 'cod_par']))
+            self.prioridade_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'prioridade_par']))
+            self.cep_edit.setText(str(self.df_registro_selecionado.at[0, 'cep']))
+            self.endereco_edit.setText(str(self.df_registro_selecionado.at[0, 'endereco']))
+            self.email_edit.setText(str(self.df_registro_selecionado.at[0, 'email']))
+            self.telefone_edit.setText(str(self.df_registro_selecionado.at[0, 'telefone']))
+            self.dias_edit.setText(str(self.df_registro_selecionado.at[0, 'dias_para_recebimento']))
+            self.horario_edit.setText(str(self.df_registro_selecionado.at[0, 'horario_para_recebimento']))
+            self.justificativa_edit.setPlainText(str(self.df_registro_selecionado.at[0, 'justificativa']))
+            self.valor_edit.setText(str(self.df_registro_selecionado.at[0, 'valor_total']))
+            self.acao_interna_edit.setText(str(self.df_registro_selecionado.at[0, 'acao_interna']))
+            self.fonte_recurso_edit.setText(str(self.df_registro_selecionado.at[0, 'fonte_recursos']))
+            self.natureza_despesa_edit.setText(str(self.df_registro_selecionado.at[0, 'natureza_despesa']))
+            self.unidade_orcamentaria_edit.setText(str(self.df_registro_selecionado.at[0, 'unidade_orcamentaria']))
+            self.ptres_edit.setText(str(self.df_registro_selecionado.at[0, 'programa_trabalho_resuminho']))
+            self.radio_custeio_sim.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Sim')
+            self.radio_custeio_nao.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Não')
+            self.cp_edit.setText(str(self.df_registro_selecionado.at[0, 'comunicacao_padronizada']))
+            self.do_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'do_responsavel']))
+            self.ao_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'ao_responsavel']))
+        except KeyError as e:
+            print(f"Erro ao preencher campos: {str(e)}")
+
 
     def get_descricao_servico(self):
         return "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
@@ -1413,163 +1588,6 @@ class EditDataDialog(QDialog):
             }
         """)
         button.update()  # Força a atualização do widget
-
-class EditDataDialog2(QDialog):
-    def __init__(self, df_registro_selecionado, icons_dir, parent=None):
-        super().__init__(parent)
-        self.df_registro_selecionado = df_registro_selecionado
-        self.document_details_widget = None 
-        self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
-        self.ICONS_DIR = Path(icons_dir)
-        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
-        self.database_manager = DatabaseManager(self.database_path)
-
-
-    def update_text_edit_fields(self, tooltip):
-        descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
-        sinopse_text_map = {
-            "Autorização para abertura do processo de Dispensa Eletrônica": (
-                f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}\n"
-                f"Setor Demandante: {self.setor_responsavel}"
-            ),
-            "CP e Anexos": (
-                f"Documentos de Planejamento (DFD, TR e Declaração de Adequação Orçamentária) referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}\n"
-                f"Setor Demandante: {self.setor_responsavel}"
-            ),
-            "Aviso de dispensa eletrônica": (
-                f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {descricao_servico} {self.objeto}\n"
-                f"Processo Administrativo NUP: {self.nup}\n"
-                f"Setor Demandante: {self.setor_responsavel}"
-            ),
-        }
-        assunto_text_map = {
-            "Autorização para abertura do processo de Dispensa Eletrônica": f"{self.id_processo} – Autorização para Abertura de Processo de Dispensa Eletrônica",
-            "CP e Anexos": f"{self.id_processo} – CP e Anexos",
-            "Aviso de dispensa eletrônica": f"{self.id_processo} – Aviso de Dispensa Eletrônica",
-        }
-
-        self.textEditAssunto.setPlainText(assunto_text_map.get(tooltip, ""))
-        self.textEditSinopse.setPlainText(sinopse_text_map.get(tooltip, ""))
-
-    def add_date_edit(self, layout, label_text, data_key):
-        label = QLabel(label_text)
-        date_edit = QDateEdit()
-        date_edit.setCalendarPopup(True)
-        date_str = self.df_registro_selecionado.get(data_key, "")
-        date = QDate.fromString(date_str, "yyyy-MM-dd") if date_str else QDate.currentDate()
-        date_edit.setDate(date)
-        layout.addWidget(label)
-        layout.addWidget(date_edit)
-        
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.save_button)
-        buttons_layout.addWidget(self.cancel_button)
-        self.layout.addLayout(buttons_layout)  # Consistentemente adiciona os botões usando um layout
-                            
-    def formatar_brl(self, valor):
-        try:
-            if valor is None or pd.isna(valor) or valor == '':
-                return "R$ 0,00"  # Retorna string formatada se não for um valor válido
-            valor_formatado = f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            return valor_formatado
-        except Exception as e:
-            print(f"Erro ao formatar valor: {valor} - Erro: {str(e)}")
-            return "R$ 0,00"
-
-    def ajustar_valor_monetario(self):
-        valor_texto = self.valor_edit.text().replace('R$', '').strip()
-        try:
-            valor_float = float(valor_texto.replace('.', '').replace(',', '.'))
-            valor_formatado = self.formatar_brl(valor_float)
-            self.valor_edit.setText(valor_formatado)
-        except ValueError as e:
-            print(f"Erro ao converter valor: {valor_texto} - Erro: {str(e)}")
-            QMessageBox.warning(self, "Valor Inválido", "Por favor, informe um valor numérico válido.")
-            self.valor_edit.setText("R$ 0,00")  # Define um valor padrão
-
-    def gerarAutorizacao(self):
-        # Gera o documento no formato DOCX e obtém o caminho do arquivo gerado
-        docx_path = self.gerarDocumento("docx")
-        
-        # Verifica se um caminho foi retornado e, em caso afirmativo, abre o documento
-        if docx_path:
-            self.abrirDocumento(docx_path)
-        
-        return docx_path
-    
-    def abrirDocumento(self, docx_path):
-        try:
-            # Convertendo o caminho para um objeto Path se ainda não for
-            docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
-            
-            # Definindo o caminho do arquivo PDF usando with_suffix
-            pdf_path = docx_path.with_suffix('.pdf')
-
-            # Convertendo DOCX para PDF usando o Microsoft Word
-            word = win32com.client.Dispatch("Word.Application")
-            doc = word.Documents.Open(str(docx_path))
-            doc.SaveAs(str(pdf_path), FileFormat=17)  # 17 é o valor do formato PDF
-            doc.Close()
-            word.Quit()
-
-            # Verificando se o arquivo PDF foi criado com sucesso
-            if pdf_path.exists():
-                # Abrindo o PDF gerado
-                os.startfile(pdf_path)  # 'startfile' abre o arquivo com o aplicativo padrão no Windows
-                print(f"Documento PDF aberto: {pdf_path}")
-            else:
-                raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
-
-        except Exception as e:
-            print(f"Erro ao abrir ou converter o documento: {e}")
-            QMessageBox.warning(None, "Erro", f"Erro ao abrir ou converter o documento: {e}")
-
-    def gerarDocumento(self, tipo="docx"):
-        if self.df_registro_selecionado is None:
-            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-            print("Nenhum registro selecionado.")
-            return
-
-        try:
-            # Define os caminhos para salvar o documento
-            template_filename = f"template_autorizacao_dispensa.{tipo}"
-            template_path = TEMPLATE_DISPENSA_DIR / template_filename
-            if not template_path.exists():
-                QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")                
-                print(f"O arquivo de template não foi encontrado: {template_path}")
-                return
-            nome_pasta = f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - {self.df_registro_selecionado['objeto'].iloc[0]}"
-            pasta_base = Path.home() / 'Desktop' / nome_pasta / "1. Autorizacao para abertura de Processo Administrativo"
-            
-            print(f"Caminho do template: {template_path}")
-            print(f"Pasta base para salvar documentos: {pasta_base}")
-
-            # Cria as pastas se não existirem
-            pasta_base.mkdir(parents=True, exist_ok=True)  # Cria a pasta se não existir
-            save_path = pasta_base / f"{self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')} - Autorizacao para abertura de Processo Administrativo.{tipo}"
-            print(f"Caminho completo para salvar o documento: {save_path}")
-            doc = DocxTemplate(str(template_path))
-            context = self.df_registro_selecionado.to_dict('records')[0]
-            descricao_servico = "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
-            ordenador_de_despesas = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
-
-            context.update({
-                'descricao_servico': descricao_servico,
-                'ordenador_de_despesas': f"{ordenador_de_despesas['nome']}\n{ordenador_de_despesas['posto']}\n{ordenador_de_despesas['funcao']}"
-
-            })
-
-            print("Contexto para renderização:", context)
-            doc.render(context)
-            doc.save(str(save_path))
-            return str(save_path)
-
-        except Exception as e:
-            QMessageBox.warning(None, "Erro", f"Erro ao gerar ou salvar o documento: {e}")
-            print(f"Erro ao gerar ou salvar o documento: {e}")
-
 class ItemDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         painter.save()
