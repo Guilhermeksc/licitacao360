@@ -300,7 +300,9 @@ class ConsolidarDocumentos:
         self.df_registro_selecionado = df_registro_selecionado
         self.config = load_config_path_id()
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
-    
+        self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
+        self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
+
     def alterar_diretorio_base(self):
         new_dir = QFileDialog.getExistingDirectory(None, "Selecione o Novo Diretório Base", str(Path.home()))
         if new_dir:
