@@ -6,15 +6,15 @@ Nº,Identificação,Marcador,Início,Fim,Págs
 05,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,19,21,3
 06,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,22,25,4
 07,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,26,29,4
-08,Estudo Técnico Preliminar (ETP),etp,30,46,17
-09,Matriz de Gerenciamento de Riscos,mr,47,57,11
-10,Termo de Referência,tr,58,77,20
-11,Pesquisa de Preços,pesquisa_precos,78,80,3
-12,Minuta do Edital,minuta_edital,81,107,27
-13,Minuta do Contrato,minuta_contrato,108,116,9
-14,Minuta da Ata de Registro de Preços,minuta_arp,117,119,3
-15,Lista de Verificação,checklist,120,126,7
-16,Despacho,despacho,127,128,2
-17,Nota Técnica,nota_tecnica,129,136,8
-18,Comunicação Padronizada,termo,137,138,2
-19,Despacho de Encaminhamento para AGU,termo,139,140,2
+08,Estudo Técnico Preliminar (ETP),etp,30,57,28
+09,Matriz de Gerenciamento de Riscos,mr,58,68,11
+10,Termo de Referência,tr,69,88,20
+11,Pesquisa de Preços,pesquisa_precos,89,91,3
+12,Minuta do Edital,minuta_edital,92,118,27
+13,Minuta do Contrato,minuta_contrato,119,127,9
+14,Minuta da Ata de Registro de Preços,minuta_arp,128,130,3
+15,Lista de Verificação,checklist,131,137,7
+16,Despacho,despacho,138,139,2
+17,Nota Técnica,nota_tecnica,140,147,8
+18,Comunicação Padronizada,termo,148,149,2
+19,Despacho de Encaminhamento para AGU,termo,150,151,2

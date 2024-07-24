@@ -125,10 +125,12 @@ CP_CONTRATOS_DIR = CONTROLE_CONTRATOS_DIR / "comunicacao_padronizada"
 
 
 #MATRIZ DE RISCOS
-
 MATRIZ_RISCOS = MODULES_DIR / "matriz_de_riscos"
-TEMPLATE_MATRIZ_RISCOS = MATRIZ_RISCOS / "template_matriz_riscos.docx"
+DADOS_MATRIZ_RISCOS = MATRIZ_RISCOS / "dados"
+TABELA_BASE_MATRIZ = DADOS_MATRIZ_RISCOS / "tabela_de_riscos.xlsx"
 
+TEMPLATE_MATRIZ_RISCOS = MATRIZ_RISCOS / "template_matriz_riscos.docx"
+TEMPLATE_MATRIZ_PARTE2 = MATRIZ_RISCOS / "template_matriz_parte2.docx"
 def get_relatorio_path():
     global RELATORIO_PATH
     # Atualize RELATORIO_PATH conforme necessário

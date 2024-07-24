@@ -9,6 +9,7 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from pathlib import Path
 import pandas as pd
 import os
+from modules.matriz_de_riscos.mapa_calor import HeatmapGenerator
 
 class TabelaDeRiscos:
     def __init__(self, template_matriz_riscos, template_matriz_parte2, dados):
@@ -154,8 +155,14 @@ class TabelaDeRiscos:
                 self.inserir_titulo(titulo)
                 df_etapa = pd.DataFrame(dados_etapa).drop(columns=["Fase"])
                 df_etapa['P*I'] = df_etapa['P'] * df_etapa['I']
-            self.inserir_tabela(df_etapa)
-            self.doc.add_paragraph()  # Adiciona um parágrafo vazio para espaçamento
+                self.inserir_tabela(df_etapa)
+                self.doc.add_paragraph()  # Adiciona um parágrafo vazio para espaçamento
+
+        # Gera o heatmap com todos os dados e insere a imagem
+        heatmap_generator = HeatmapGenerator(pd.DataFrame(self.dados))
+        image_path = heatmap_generator.generate_heatmap()
+        self.doc.add_picture(image_path, width=Inches(11))
+        print(f"Imagem de heatmap {image_path} inserida no documento")
 
         self.inserir_quebra_pagina()  # Adiciona uma quebra de página após cada tabela
 
