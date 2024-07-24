@@ -123,6 +123,12 @@ DATABASE_CONTRATOS = CONTROLE_CONTRATOS_DIR / "data_contratos"
 SETORES_OM = DATABASE_CONTRATOS / "setores_om.xlsx"
 CP_CONTRATOS_DIR = CONTROLE_CONTRATOS_DIR / "comunicacao_padronizada"
 
+
+#MATRIZ DE RISCOS
+
+MATRIZ_RISCOS = MODULES_DIR / "matriz_de_riscos"
+TEMPLATE_MATRIZ_RISCOS = MATRIZ_RISCOS / "template_matriz_riscos.docx"
+
 def get_relatorio_path():
     global RELATORIO_PATH
     # Atualize RELATORIO_PATH conforme necessário

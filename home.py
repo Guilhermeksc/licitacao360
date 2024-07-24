@@ -124,7 +124,8 @@ class MainWindow(QMainWindow):
             (" Dispensa Eletrônica", ICONS_DIR / "x.png"),
             # (" Limite de Dispensa", ICONS_DIR / "x.png"), 
             # (" Consulta CATMAT/CATSER", ICONS_DIR / "x.png"),
-            # (" Cantinho do Pregoeiro", ICONS_DIR / "x.png"),              
+            # (" Cantinho do Pregoeiro", ICONS_DIR / "x.png"),
+            (" Matriz de Riscos", ICONS_DIR / "x.png"),              
             (" Selenium", ICONS_DIR / "x.png"),  
         ]
 
@@ -198,7 +199,8 @@ class MainWindow(QMainWindow):
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             # "Limite de Dispensa": self.setup_limite_dispensa,
             # "Consulta CATMAT/CATSER": self.setup_controle_pdm,
-            # "Cantinho do Pregoeiro": self.setup_pregoeiro,                
+            # "Cantinho do Pregoeiro": self.setup_pregoeiro,
+            "Matriz de Riscos": self.setup_matriz_riscos,                
             "Selenium": self.setup_selenium_automacao,
         }
         action = content_actions.get(content_name)
@@ -223,13 +225,17 @@ class MainWindow(QMainWindow):
                 "Dispensa Eletrônica": self.setup_dispensa_eletronica,
                 # "Limite de Dispensa": self.setup_limite_dispensa,
                 # "Consulta CATMAT/CATSER": self.setup_controle_pdm,
-                # "Cantinho do Pregoeiro": self.setup_pregoeiro,                
+                # "Cantinho do Pregoeiro": self.setup_pregoeiro,
+                "Matriz de Riscos": self.setup_matriz_riscos,                
                 "Selenium": self.setup_selenium_automacao,
             }
         
             action = button_actions.get(button.text().strip())
             if action:
                 action()
+                
+    def setup_matriz_riscos(self):
+        pass
 
     def setup_planejamento(self):
         print("Configurando Planejamento...")
