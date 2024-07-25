@@ -43,65 +43,26 @@ class HeatmapGenerator:
     @staticmethod
     def create_custom_cmap():
         colors = [
-            (0, "green"),       # Verde para valores 1
-            (0.10, "greenyellow"),  # Verde amarelado para valores 2
+            (0, "#9FEB2B"),       # Verde para valores 1
+            (0.04, "greenyellow"),  # Verde amarelado para valores 2
             (0.25, "yellow"),    # Amarelo para valores 3
-            (0.50, "orange"),   # Laranja para valores 5
-            (0.75, "orangered"),  # Laranja avermelhado para valores 7
-            (0.90, "red"),          # Vermelho para valores 9 e acima
-            (1, "darkred")          # Vermelho para valores 10
+            (0.50, "yellow"),    # Amarelo para valores 3
+            (0.60, "orange"),   # Laranja para valores 5
+            (0.85, "orangered"),  # Laranja avermelhado para valores 7
+            (1, "red")          # Vermelho para valores 10
         ]
         return LinearSegmentedColormap.from_list('custom_cmap', colors)
-
-    # def generate_heatmap(self):
-    #     merged_df = self.adjust_risk_matrix(self.data)
-    #     pivot_table = self.create_pivot_table(merged_df)
-    #     custom_cmap = self.create_custom_cmap()
-    #     heat_map_data = np.array([
-    #         [1, 2, 3, 5, 8],
-    #         [2, 3, 6, 12, 12],
-    #         [3, 6, 10, 13, 15],
-    #         [5, 12, 13, 15, 20],
-    #         [8, 12, 15, 20, 25]
-    #     ])
-        
-    #     # Plotar o heatmap e salvar a imagem
-    #     fig, ax = plt.subplots(figsize=(16, 4))
-    #     sns.heatmap(heat_map_data[::-1], cmap=custom_cmap, cbar=True, linewidths=.5, ax=ax, annot=pivot_table[::-1], fmt="", annot_kws={"size": 14}, square=False)
-        
-    #     yticklabels = ['1             \n      Raro          ', 
-    #                    '2             \n    Pouco provável  ',
-    #                    '3             \n      Provável        ',
-    #                    '4             \n   Muito provável   ',
-    #                    '5             \nPraticamente certo']
-    #     xticklabels = ['1\nMuito baixo', '2\nBaixo', '3\nMédio', '4\nAlto', '5\nMuito alto']
-
-    #     ax.set_yticklabels(yticklabels[::-1], rotation=0)
-    #     ax.set_xticklabels(xticklabels, rotation=0)
-
-    #     ax.set_title('Mapa de Calor dos Riscos Identificados', fontsize=14, weight='bold')
-    #     ax.set_xlabel('Impacto', fontsize=12, weight='bold')
-    #     ax.set_ylabel('Probabilidade', fontsize=12, weight='bold')
-
-    #     plt.tight_layout()
-        
-    #     # Salvar a imagem
-    #     image_path = "heatmap.png"
-    #     plt.savefig(image_path)
-    #     plt.close(fig)
-        
-    #     return image_path
 
     def generate_heatmap(self):
         merged_df = self.adjust_risk_matrix(self.data)
         pivot_table = self.create_pivot_table(merged_df)
         custom_cmap = self.create_custom_cmap()
         heat_map_data = np.array([
-            [1, 2, 3, 5, 8],
-            [2, 3, 6, 12, 12],
-            [3, 6, 10, 13, 15],
-            [5, 12, 13, 15, 20],
-            [8, 12, 15, 20, 25]
+            [1, 2, 3, 5, 13],
+            [2, 3, 5, 13, 15],
+            [3, 5, 13, 15, 18],
+            [5, 13, 15, 18, 20],
+            [13, 15, 18, 20, 25]
         ])
         
         # Plotar o heatmap e salvar a imagem
