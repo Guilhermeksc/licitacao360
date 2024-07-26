@@ -133,7 +133,7 @@ class EditDataDialog(QDialog):
         situacao_layout = QHBoxLayout()     
         situacao_label = QLabel("Situação:")
         self.apply_widget_style(situacao_label)
-        self.situacao_edit = self.create_combo_box(data.get('situacao', 'Planejamento'), ["Planejamento", "Aprovado", "Sessão Publica", "Concluído"], 150)
+        self.situacao_edit = self.create_combo_box(data.get('situacao', 'Planejamento'), ["Planejamento", "Aprovado", "Sessão Publica", "Homologado", "Empenhado", "Concluído"], 150)
         situacao_layout.addWidget(situacao_label)
         situacao_layout.addWidget(self.situacao_edit)        
         contratacao_layout.addLayout(situacao_layout)
@@ -1675,7 +1675,7 @@ class FormularioExcel:
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         ws['A2'].border = thin_border
         ws['B2'].border = thin_border
-        ws.column_dimensions[get_column_letter(1)].width = 28
+        ws.column_dimensions[get_column_letter(1)].width = 50
         ws.column_dimensions[get_column_letter(2)].width = 80
 
     def _preencher_dados(self, ws, df_filtrado):
