@@ -49,7 +49,6 @@ class RealLineEdit(QLineEdit):
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
     title_updated = pyqtSignal(str)
-    # config_updated = pyqtSignal()
 
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
@@ -67,6 +66,7 @@ class EditDataDialog(QDialog):
         self.setStyleSheet("#EditarDadosDialog { background-color: #050f41; }")
         self.setFixedSize(1530, 790)
         self.layout = QVBoxLayout(self)
+        self.formulario_excel = FormularioExcel(self.df_registro_selecionado, self.pasta_base, self)
 
         self.painel_layout = QVBoxLayout()
 
@@ -145,9 +145,8 @@ class EditDataDialog(QDialog):
         # Configuração de Material/Serviço na mesma linha
         material_layout = QHBoxLayout()
         material_label = QLabel("Material/Serviço:")
-        material_label = QLabel("Enquadramento Legal:")
         self.apply_widget_style(material_label)
-        self.material_edit = self.create_combo_box(data.get('material_servico', 'Material'), ["Material", "Serviço"], 140)
+        self.material_edit = self.create_combo_box((data.get('material_servico', 'Material')), ["Material", "Serviço"], 140)
         material_layout.addWidget(material_label)
         material_layout.addWidget(self.material_edit)
         contratacao_layout.addLayout(material_layout)
@@ -424,7 +423,7 @@ class EditDataDialog(QDialog):
 
         # Botão para abrir o arquivo de registro
         icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
-        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.criar_formulario, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
+        visualizar_pdf_button = self.create_button("       Editar Modelos       ", icon=icon_template, callback=self.consolidador.abrir_pasta_base, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(220, 40), icon_size=QSize(30, 30))
         self.apply_widget_style(visualizar_pdf_button)
         utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -469,6 +468,19 @@ class EditDataDialog(QDialog):
     def legenda_action(self):
         pass
 
+    def format_cp_edit(self):
+        text = self.cp_edit.text().strip()
+        if '-' not in text:
+            if text.isdigit():
+                text = f"30-{int(text):02d}"
+        else:
+            parts = text.split('-')
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                self.cp_edit.setText(f"{int(parts[0]):02d}-{int(parts[1]):02d}")
+                return
+        
+        self.cp_edit.setText(text)
+
     def fill_frame_comunicacao_padronizada(self):
         data = self.extract_registro_data()
 
@@ -481,7 +493,10 @@ class EditDataDialog(QDialog):
         # Layout para informações de CP e Responsáveis
         info_cp_layout = QVBoxLayout()
         info_cp_layout.setSpacing(2)
+        
         self.cp_edit = QLineEdit(data.get('comunicacao_padronizada', ''))
+        self.cp_edit.editingFinished.connect(self.format_cp_edit)
+
         self.do_responsavel_edit = QLineEdit(data.get('do_resposavel', 'Responsável pela Demanda'))
         self.ao_responsavel_edit = QLineEdit(data.get('ao_resposavel', 'Encarregado da Divisão de Obtenção'))
         # self.ao_responsavel_edit.setFixedWidth(220)
@@ -750,7 +765,7 @@ class EditDataDialog(QDialog):
         criar_formulario_button = self.create_button(
             "   Criar Formulário   ", 
             icon=icon_excel_up, 
-            callback=self.criar_formulario, 
+            callback=self.formulario_excel.criar_formulario, 
             tooltip_text="Clique para criar o formulário", 
             button_size=QSize(220, 40), 
             icon_size=QSize(35, 35)
@@ -759,163 +774,30 @@ class EditDataDialog(QDialog):
         carregar_formulario_button = self.create_button(
             "Carregar Formulário", 
             icon=icon_excel_down, 
-            callback=self.carregar_formulario, 
+            callback=self.formulario_excel.carregar_formulario, 
             tooltip_text="Clique para carregar o formulário", 
             button_size=QSize(220, 40), 
             icon_size=QSize(35, 35)
         )
 
-        # Botão para abrir o arquivo de registro
-        
         visualizar_pdf_button = self.create_button(
             "      Pré-Definições     ",
             icon=icon_standard,
-            callback=self.criar_formulario, 
+            callback=self.selecionar_predefinicoes, 
             tooltip_text="Clique para alterar ou escolher os dados predefinidos", 
-            button_size=QSize(220, 40), icon_size=QSize(30, 30)
+            button_size=QSize(220, 40), 
+            icon_size=QSize(30, 30)
         )       
 
-        # Adiciona os botões ao layout
         formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box
-
-    def criar_formulario(self):
-        try:
-            wb = Workbook()
-            ws = wb.active
-            ws.title = "Formulário"
-
-            # Remover a coluna 'id_processo' do DataFrame e as colunas especificadas
-            colunas_excluir = ['tipo', 'numero', 'ano', 'id_processo', 'situacao', 'data_sessao', 'orgao_responsavel', 
-                            'sigla_om', 'ordenador_despesas', 'agente_fiscal', 'comentarios', 'link_pncp']
-            df_filtrado = self.df_registro_selecionado.drop(columns=colunas_excluir)
-
-            # Adicionar o título na linha 1
-            tipo = self.df_registro_selecionado['tipo'].iloc[0]
-            numero = self.df_registro_selecionado['numero'].iloc[0]
-            ano = self.df_registro_selecionado['ano'].iloc[0]
-            titulo = f"{tipo} nº {numero}/{ano}"
-            ws.merge_cells('A1:B1')
-            ws['A1'] = titulo
-
-            # Definir a fonte da linha 1 e centralizar o texto
-            ws['A1'].font = Font(size=20, bold=True)
-            ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
-
-            # Adicionar os índices para as colunas A e B
-            ws['A2'] = "Índice"
-            ws['B2'] = "Valor"
-
-            # Definir a fonte e alinhamento para "Índice" e "Valor"
-            ws['A2'].font = Font(size=14, bold=True)
-            ws['B2'].font = Font(size=14, bold=True)
-            ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
-            ws['B2'].alignment = Alignment(horizontal='center', vertical='center')
-
-            # Definir a borda grossa para a linha 2
-            thick_border = Border(left=Side(style='thick'), 
-                                right=Side(style='thick'), 
-                                top=Side(style='thick'), 
-                                bottom=Side(style='thick'))
-            ws['A2'].border = thick_border
-            ws['B2'].border = thick_border
-
-            # Definir a largura das colunas
-            ws.column_dimensions[get_column_letter(1)].width = 28
-            ws.column_dimensions[get_column_letter(2)].width = 80
-
-            # Preencher as colunas A e B com os nomes das variáveis e seus respectivos valores
-            for i, (col_name, value) in enumerate(df_filtrado.iloc[0].items(), start=3):
-                ws[f'A{i}'] = col_name
-                ws[f'B{i}'] = str(value)
-                ws[f'B{i}'].alignment = Alignment(wrap_text=True)  # Quebra automática de linha
-
-                # Aplicar cores intercaladas
-                fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-                if i % 2 == 0:
-                    fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-
-                ws[f'A{i}'].fill = fill
-                ws[f'B{i}'].fill = fill
-                ws[f'A{i}'].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)  # Quebra automática de linha e centralização
-
-                # Definir a altura das linhas conforme solicitado
-                if i == 7 or i == 14 or i == 15:
-                    ws.row_dimensions[i].height = 45
-                elif i == 31:
-                    ws.row_dimensions[i].height = 60
-                else:
-                    ws.row_dimensions[i].height = 15
-
-            # Salvar o arquivo
-            file_path = self.pasta_base / "formulario.xlsx"
-            wb.save(file_path)
-
-            # Abrir o arquivo criado
-            if os.name == 'nt':  # Windows
-                os.startfile(file_path)
-            elif os.name == 'posix':  # macOS
-                subprocess.call(['open', file_path])
-            else:  # Linux
-                subprocess.call(['xdg-open', file_path])
-
-            QMessageBox.information(self, "Sucesso", "Formulário criado e aberto com sucesso.")
-        except Exception as e:
-            print(f"Erro ao criar formulário: {str(e)}")
-            QMessageBox.critical(self, "Erro", f"Falha ao criar formulário: {str(e)}")
-
-    def carregar_formulario(self):
-        try:
-            # Exibir o DataFrame antes de carregar o formulário
-            print("DataFrame antes de carregar o formulário:")
-            print(self.df_registro_selecionado)
-
-            # Abrir uma janela para o usuário selecionar o arquivo
-            file_path, _ = QFileDialog.getOpenFileName(self, "Selecione o formulário", "", "Excel Files (*.xlsx);;All Files (*)")
-            if not file_path:
-                return
-
-            # Carregar o arquivo Excel
-            wb = load_workbook(file_path)
-            ws = wb.active
-
-            # Verificar se o formulário possui a linha 2 com "Índice" e "Valor"
-            if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
-                QMessageBox.critical(self, "Erro", "O formulário selecionado está incorreto.")
-                return
-
-            # Atualizar os dados do DataFrame
-            variaveis = [
-                'nup', 'material_servico', 'objeto', 'vigencia', 'operador', 'criterio_julgamento', 'com_disputa', 
-                'pesquisa_preco', 'previsao_contratacao', 'uasg', 'setor_responsavel', 'responsavel_pela_demanda', 
-                'gerente_de_credito', 'cod_par', 'prioridade_par', 'cep', 'endereco', 'email', 'telefone', 
-                'dias_para_recebimento', 'horario_para_recebimento', 'valor_total', 'acao_interna', 'fonte_recursos', 
-                'natureza_despesa', 'unidade_orcamentaria', 'programa_trabalho_resuminho', 'atividade_custeio', 
-                'justificativa', 'comunicacao_padronizada', 'do_responsavel', 'ao_responsavel'
-            ]
-            for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
-                if row[0] in variaveis:
-                    self.df_registro_selecionado.at[0, row[0]] = row[1]
-
-            # Exibir o DataFrame após carregar o formulário
-            print("DataFrame após carregar o formulário:")
-            print(self.df_registro_selecionado)
-
-            # Atualizar os campos da interface gráfica
-            self.preencher_campos()
-
-            # Emitir o sinal para atualizar a interface
-            self.dados_atualizados.emit()
-
-            QMessageBox.information(self, "Sucesso", "Formulário carregado com sucesso.")
-        except Exception as e:
-            print(f"Erro ao carregar formulário: {str(e)}")
-            QMessageBox.critical(self, "Erro", f"Falha ao carregar formulário: {str(e)}")
-
+    
+    def selecionar_predefinicoes(self):
+        pass
 
     def preencher_campos(self):
         try:
@@ -960,7 +842,6 @@ class EditDataDialog(QDialog):
             self.ao_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'ao_responsavel']))
         except KeyError as e:
             print(f"Erro ao preencher campos: {str(e)}")
-
 
     def get_descricao_servico(self):
         return "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
@@ -1022,10 +903,10 @@ class EditDataDialog(QDialog):
     def fill_frame_agentes_responsaveis(self):
         agente_responsavel_group_box = QGroupBox("Agentes Responsáveis")
         self.apply_widget_style(agente_responsavel_group_box)
-        agente_responsavel_group_box.setFixedWidth(270)    
+        agente_responsavel_group_box.setFixedWidth(270)
         agente_responsavel_layout = QVBoxLayout()
-        agente_responsavel_layout.setSpacing(1) 
-        agente_responsavel_layout.setContentsMargins(5, 1, 5, 1)  # Ajusta as margens internas
+        agente_responsavel_layout.setSpacing(1)
+        agente_responsavel_layout.setContentsMargins(5, 1, 5, 1)
 
         self.ordenador_combo = self.create_combo_box('', [], 260)
         self.agente_fiscal_combo = self.create_combo_box('', [], 260)
@@ -1318,11 +1199,7 @@ class EditDataDialog(QDialog):
 
         return data
 
-
     def save_changes(self):
-        """
-        Save changes made in the dialog to the DataFrame and update the database.
-        """
         try:
             data = {
                 'situacao': self.situacao_edit.currentText(),
@@ -1352,7 +1229,6 @@ class EditDataDialog(QDialog):
                 'telefone': self.telefone_edit.text().strip(),
                 'dias_para_recebimento': self.dias_edit.text().strip(),
                 'horario_para_recebimento': self.horario_edit.text().strip(),
-                # 'comentarios': self.comentarios_edit.toPlainText().strip(),
                 'justificativa': self.justificativa_edit.toPlainText().strip(),
                 'valor_total': self.valor_edit.text().strip(),
                 'acao_interna': self.acao_interna_edit.text().strip(),
@@ -1376,6 +1252,7 @@ class EditDataDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
+
 
     def update_database(self, data):
         with self.database_manager as connection:
@@ -1512,15 +1389,19 @@ class EditDataDialog(QDialog):
                 print("Valores carregados no ComboBox:", self.operador_dispensa_combo.count(), "itens")
                 print("Valores carregados no ComboBox:", self.responsavel_demanda_combo.count(), "itens")
 
-                # Print para verificar o valor corrente e dados associados ao item selecionado
-                current_text = self.ordenador_combo.currentText()
-                current_data = self.ordenador_combo.currentData(Qt.ItemDataRole.UserRole)
-                print(f"Current ordenador_combo Text: {current_text}")
-                print(f"Current ordenador_combo Data: {current_data}")
+                # Preencher comboboxes com os valores de df_registro_selecionado se disponíveis
+                self.preencher_campos()
 
         except Exception as e:
             print(f"Erro ao carregar Ordenadores de Despesas: {e}")
 
+    def preencher_combobox_selecionado(self, combo_widget, coluna):
+        valor = self.df_registro_selecionado.get(coluna)
+        if valor:
+            index = combo_widget.findText(valor)
+            if index != -1:
+                combo_widget.setCurrentIndex(index)
+                
     def carregarDadosCombo(self, conn, cursor, funcao_like, combo_widget):
         if "NOT LIKE" in funcao_like:
             sql_query = """
@@ -1537,8 +1418,7 @@ class EditDataDialog(QDialog):
         combo_widget.clear()
         for index, row in agentes_df.iterrows():
             texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
-            # Armazena um dicionário no UserRole para cada item adicionado ao ComboBox  
-            combo_widget.addItem(texto_display, userData=row.to_dict())    
+            combo_widget.addItem(texto_display, userData=row.to_dict())
             print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
 
     def load_sigla_om(self, sigla_om):
@@ -1618,3 +1498,213 @@ class ItemDelegate(QStyledItemDelegate):
         size = super().sizeHint(option, index)
         size.setHeight(60)  # Ajusta a altura para acomodar o texto multi-linha
         return size
+
+class FormularioExcel:
+    def __init__(self, df_registro_selecionado, pasta_base, parent_dialog):
+        self.df_registro_selecionado = df_registro_selecionado
+        self.pasta_base = Path(pasta_base)
+        self.parent_dialog = parent_dialog
+
+        self.colunas_legiveis = {
+            'nup': 'NUP',
+            'material_servico': 'Material (M) ou Serviço (S)',
+            'objeto': 'Objeto Resumido',
+            'vigencia': 'Vigência',
+            'criterio_julgamento': 'Critério de Julgamento (Menor Preço ou Maior Desconto)',
+            'com_disputa': 'Com disputa? Sim (S) ou Não (N)',
+            'pesquisa_preco': 'Pesquisa Concomitante? Sim (S) ou Não (N)',
+            'previsao_contratacao': 'Previsão de Contratação',
+            'uasg': 'UASG',
+            'setor_responsavel': 'Setor Responsável',
+            'cod_par': 'Código PAR',
+            'prioridade_par': 'Prioridade PAR (Necessário, Urgente ou Desejável)',
+            'cep': 'CEP',
+            'endereco': 'Endereço',
+            'email': 'Email',
+            'telefone': 'Telefone',
+            'dias_para_recebimento': 'Dias para Recebimento',
+            'horario_para_recebimento': 'Horário para Recebimento',
+            'valor_total': 'Valor Total',
+            'acao_interna': 'Ação Interna',
+            'fonte_recursos': 'Fonte de Recursos',
+            'natureza_despesa': 'Natureza da Despesa',
+            'unidade_orcamentaria': 'Unidade Orçamentária',
+            'programa_trabalho_resuminho': 'PTRES',
+            'atividade_custeio': 'Atividade de Custeio',
+            'justificativa': 'Justificativa',
+            'comunicacao_padronizada': 'Comunicação Padronizada (CP), Ex: 60-25',
+            'do_responsavel': 'Campo Do(a) da CP',
+            'ao_responsavel': 'Campo Ao da CP'
+        }
+
+        self.normalizacao_valores = {
+            'material_servico': {
+                'M': 'Material',
+                'm': 'Material',
+                'Material': 'Material',
+                'material': 'Material',
+                'S': 'Serviço',
+                's': 'Serviço',
+                'Serviço': 'Serviço',
+                'serviço': 'Serviço',
+                'Servico': 'Serviço',
+                'servico': 'Serviço'
+            },
+            'com_disputa': {
+                'S': 'Sim',
+                's': 'Sim',
+                'Sim': 'Sim',
+                'sim': 'Sim',
+                'N': 'Não',
+                'n': 'Não',
+                'Não': 'Não',
+                'não': 'Não',
+                'Nao': 'Não',
+                'nao': 'Não'
+            },
+            'pesquisa_preco': {
+                'S': 'Sim',
+                's': 'Sim',
+                'Sim': 'Sim',
+                'sim': 'Sim',
+                'N': 'Não',
+                'n': 'Não',
+                'Não': 'Não',
+                'não': 'Não',
+                'Nao': 'Não',
+                'nao': 'Não'
+            },
+            'atividade_custeio': {
+                'S': 'Sim',
+                's': 'Sim',
+                'Sim': 'Sim',
+                'sim': 'Sim',
+                'N': 'Não',
+                'n': 'Não',
+                'Não': 'Não',
+                'não': 'Não',
+                'Nao': 'Não',
+                'nao': 'Não'
+            }
+        }
+
+
+        self.colunas_legiveis_inverso = {v: k for k, v in self.colunas_legiveis.items()}
+
+
+    def criar_formulario(self):
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Formulário"
+
+            df_filtrado = self._filtrar_dataframe()
+            self._adicionar_titulo(ws)
+            self._definir_cabecalhos(ws)
+            self._preencher_dados(ws, df_filtrado)
+            self._aplicar_bordas(ws)
+            
+            file_path = self._salvar_arquivo(wb)
+            self._abrir_arquivo(file_path)
+
+            QMessageBox.information(None, "Sucesso", "Formulário criado e aberto com sucesso.")
+        except Exception as e:
+            print(f"Erro ao criar formulário: {str(e)}")
+            QMessageBox.critical(None, "Erro", f"Falha ao criar formulário: {str(e)}")
+
+    def carregar_formulario(self):
+        try:
+            print("DataFrame antes de carregar o formulário:")
+            print(self.df_registro_selecionado)
+
+            file_path, _ = QFileDialog.getOpenFileName(None, "Selecione o formulário", "", "Excel Files (*.xlsx);;All Files (*)")
+            if not file_path:
+                return
+
+            wb = load_workbook(file_path)
+            ws = wb.active
+
+            if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
+                QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
+                return
+
+            for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
+                coluna_legivel = row[0]
+                valor = row[1]
+                coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
+                if coluna in self.normalizacao_valores:
+                    valor = self.normalizacao_valores[coluna].get(valor, valor)
+                if coluna in self.df_registro_selecionado.columns:
+                    self.df_registro_selecionado.at[0, coluna] = valor
+
+            print("DataFrame após carregar o formulário:")
+            print(self.df_registro_selecionado)
+
+            self.parent_dialog.preencher_campos()
+            self.parent_dialog.dados_atualizados.emit()
+
+            QMessageBox.information(None, "Sucesso", "Formulário carregado com sucesso.")
+        except Exception as e:
+            print(f"Erro ao carregar formulário: {str(e)}")
+            QMessageBox.critical(None, "Erro", f"Falha ao carregar formulário: {str(e)}")
+
+
+    def _filtrar_dataframe(self):
+        colunas_incluir = list(self.colunas_legiveis.keys())
+        df_filtrado = self.df_registro_selecionado[colunas_incluir].rename(columns=self.colunas_legiveis)
+        return df_filtrado
+
+    def _adicionar_titulo(self, ws):
+        tipo = self.df_registro_selecionado['tipo'].iloc[0]
+        numero = self.df_registro_selecionado['numero'].iloc[0]
+        ano = self.df_registro_selecionado['ano'].iloc[0]
+        titulo = f"{tipo} nº {numero}/{ano}"
+        ws.merge_cells('A1:B1')
+        ws['A1'] = titulo
+        ws['A1'].font = Font(size=20, bold=True)
+        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 40
+
+    def _definir_cabecalhos(self, ws):
+        ws['A2'] = "Índice"
+        ws['B2'] = "Valor"
+        ws['A2'].font = Font(size=14, bold=True)
+        ws['B2'].font = Font(size=14, bold=True)
+        ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
+        ws['B2'].alignment = Alignment(horizontal='center', vertical='center')
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        ws['A2'].border = thin_border
+        ws['B2'].border = thin_border
+        ws.column_dimensions[get_column_letter(1)].width = 28
+        ws.column_dimensions[get_column_letter(2)].width = 80
+
+    def _preencher_dados(self, ws, df_filtrado):
+        for i, (col_name, value) in enumerate(df_filtrado.iloc[0].items(), start=3):
+            ws[f'A{i}'] = col_name
+            ws[f'B{i}'] = str(value)
+            ws[f'B{i}'].alignment = Alignment(wrap_text=True)
+            fill_color = "F2F2F2" if i % 2 == 0 else "FFFFFF"
+            fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+            ws[f'A{i}'].fill = fill
+            ws[f'B{i}'].fill = fill
+            ws[f'A{i}'].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            ws.row_dimensions[i].height = 60 if i == 28 else 15
+
+    def _aplicar_bordas(self, ws):
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=2):
+            for cell in row:
+                cell.border = thin_border
+
+    def _salvar_arquivo(self, wb):
+        file_path = self.pasta_base / "formulario.xlsx"
+        wb.save(file_path)
+        return file_path
+
+    def _abrir_arquivo(self, file_path):
+        if os.name == 'nt':
+            os.startfile(file_path)
+        elif os.name == 'posix':
+            subprocess.call(['open', file_path])
+        else:
+            subprocess.call(['xdg-open', file_path])

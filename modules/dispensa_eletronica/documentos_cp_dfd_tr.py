@@ -15,6 +15,7 @@ import stat
 from PyPDF2 import PdfMerger
 import re
 from num2words import num2words
+from datetime import datetime
 
 class PDFAddDialog(QDialog):
 
@@ -383,6 +384,7 @@ class ConsolidarDocumentos:
             r'Primeiro[\s\-]Sargento': '1ºSG',
             r'Segundo[\s\-]Sargento': '2ºSG',
             r'Terceiro[\s\-]Sargento': '3ºSG',
+            r'Cabo': 'CB',
             r'Sub[\s\-]oficial': 'SO',
         }
 
@@ -394,12 +396,8 @@ class ConsolidarDocumentos:
         # Retorna o posto original se nenhuma substituição for aplicada
         return posto
 
-    def prepare_context(self, data):
-        context = {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
-        descricao_servico = "aquisição de" if data['material_servico'] == "Material" else "contratação de empresa especializada em"
-        context.update({'descricao_servico': descricao_servico})
-
-        responsavel = data.get('responsavel_pela_demanda')
+    def formatar_responsavel(self, chave, data, context):
+        responsavel = data.get(chave)
         if responsavel and isinstance(responsavel, str):
             try:
                 nome, posto, funcao = responsavel.split('\n')
@@ -407,14 +405,24 @@ class ConsolidarDocumentos:
                 responsavel_dict = {
                     'nome': nome,
                     'posto': posto_alterado,
-                    'funcao': funcao
                 }
-                responsavel_pela_demanda_extenso = f"{responsavel_dict.get('posto', '')} {responsavel_dict.get('nome', '')}\n{responsavel_dict.get('funcao', '')}"
-                context.update({'responsavel_pela_demanda_extenso': responsavel_pela_demanda_extenso})
+                responsavel_extenso = f"{responsavel_dict.get('posto', '')} {responsavel_dict.get('nome', '')}"
+                context.update({f'{chave}_formatado': responsavel_extenso})
             except ValueError:
-                context.update({'responsavel_pela_demanda_extenso': 'Não especificado\nNão especificado'})
+                context.update({f'{chave}_formatado': 'Não especificado\nNão especificado'})
         else:
-            context.update({'responsavel_pela_demanda_extenso': 'Não especificado\nNão especificado'})
+            context.update({f'{chave}_formatado': 'Não especificado\nNão especificado'})
+
+    def prepare_context(self, data):
+        context = {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
+        descricao_servico = "aquisição de" if data['material_servico'] == "Material" else "contratação de empresa especializada em"
+        descricao_servico_primeira_letra_maiuscula = descricao_servico[0].upper() + descricao_servico[1:]
+        context.update({'descricao_servico': descricao_servico})
+        context.update({'descricao_servico_primeira_letra_maiuscula': descricao_servico_primeira_letra_maiuscula})
+
+        # Processar responsável pela demanda e operador
+        self.formatar_responsavel('responsavel_pela_demanda', data, context)
+        self.formatar_responsavel('operador', data, context)
 
         valor_total = data.get('valor_total')
         if valor_total and isinstance(valor_total, str):
@@ -442,6 +450,21 @@ class ConsolidarDocumentos:
                 "Portaria ME nº 7.828, de 30 de agosto de 2022."
             )
         context.update({'texto_custeio': texto_custeio})
+
+        # Alterar formato de data_sessao
+        data_sessao = data.get('data_sessao')
+        if data_sessao:
+            try:
+                data_obj = datetime.strptime(data_sessao, '%Y-%m-%d')
+                dia_semana = data_obj.strftime('%A')
+                data_formatada = data_obj.strftime('%d/%m/%Y') + f" ({dia_semana})"
+                context.update({'data_sessao_formatada': data_formatada})
+            except ValueError as e:
+                context.update({'data_sessao_formatada': 'Data inválida'})
+                print("Erro ao processar data da sessão:", e)
+        else:
+            context.update({'data_sessao_formatada': 'Não especificado'})
+            print("Data da sessão não especificada")
 
         return context
 
