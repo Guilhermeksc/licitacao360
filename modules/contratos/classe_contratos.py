@@ -4,9 +4,9 @@ from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button
-from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao, carregar_dados_dispensa
-from modules.dispensa_eletronica.utilidades_dispensa_eletronica import ExportThread
-from modules.dispensa_eletronica.sql_model import SqlModel, CustomTableView
+from modules.planejamento.utilidades_planejamento import DatabaseManager
+from modules.contratos.utilidades import ExportThread
+from modules.contratos.sql_model import SqlModel, CustomTableView
 from modules.dispensa_eletronica.add_item import AddItemDialog
 import pandas as pd
 import os
@@ -14,7 +14,31 @@ import subprocess
 import logging
 import sqlite3
 
-class DispensaEletronicaWidget(QMainWindow):
+def carregar_dados_contratos(index, caminho_banco_dados):
+    """
+    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
+
+    Parâmetros:
+    - index: O índice da linha selecionada na QTableView.
+    - caminho_banco_dados: O caminho para o arquivo do banco de dados SQLite.
+    
+    Retorna:
+    - Um DataFrame do Pandas contendo os dados do registro selecionado.
+    """
+    try:
+        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
+        connection = sqlite3.connect(caminho_banco_dados)
+        query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+        logging.debug(f"Executando consulta SQL: {query}")
+        df_registro_selecionado = pd.read_sql_query(query, connection)
+        connection.close()
+        logging.debug(f"Dados carregados com sucesso para o índice {index}: {df_registro_selecionado}")
+        return df_registro_selecionado
+    except Exception as e:
+        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
+        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+    
+class ContratosWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
     def __init__(self, icons_dir, parent=None):
@@ -52,10 +76,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def init_model(self):
         # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
         sql_model = SqlModel(self.database_manager, self)
-        return sql_model.setup_model("controle_dispensas", editable=True)
-    
-    def teste(self):
-        print("Teste de botão")
+        return sql_model.setup_model("controle_contratos", editable=True)
 
     def on_add_item(self):
         dialog = AddItemDialog(self)
@@ -140,11 +161,11 @@ class DispensaEletronicaWidget(QMainWindow):
         with self.database_manager as conn:
             cursor = conn.cursor()
             if delete:
-                cursor.execute("DELETE FROM controle_dispensas WHERE id_processo = ?", (data['id_processo'],))
+                cursor.execute("DELETE FROM controle_contraros WHERE id_processo = ?", (data['id_processo'],))
             else:
-                situacao = 'Planejamento'
+                situacao = 'Minuta'
                 upsert_sql = '''
-                INSERT INTO controle_dispensas (
+                INSERT INTO controle_contratos (
                     id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, setor_responsavel, 
                     material_servico, orgao_responsavel, situacao
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -294,7 +315,7 @@ class UIManager:
             source_index = self.parent.proxy_model.mapToSource(proxy_index)
             print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
 
-            df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.parent.database_path)
+            df_registro_selecionado = carregar_dados_contratos(source_index.row(), self.parent.database_path)
             if not df_registro_selecionado.empty:
                 logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
             else:

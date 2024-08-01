@@ -2,15 +2,15 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from modules.modulo_ata_contratos.regex_termo_homolog import *
-from modules.modulo_ata_contratos.regex_sicaf import *
-from modules.modulo_ata_contratos.canvas_gerar_atas import *
+from modules.atas.regex_termo_homolog import *
+from modules.atas.regex_sicaf import *
+from modules.atas.canvas_gerar_atas import *
 from database.utils.treeview_utils import open_folder, load_images, create_button
 from diretorios import *
 import pdfplumber
-from modules.modulo_ata_contratos.data_utils import PDFProcessingThread
+from modules.atas.data_utils import PDFProcessingThread
 import traceback
-from modules.modulo_ata_contratos.data_utils import DatabaseDialog
+from modules.atas.data_utils import DatabaseDialog
 import webbrowser
 
 TXT_OUTPUT_PATH = DATABASE_DIR / "relacao_cnpj.txt"

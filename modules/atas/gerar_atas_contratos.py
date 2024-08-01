@@ -2,14 +2,14 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from modules.modulo_ata_contratos.regex_termo_homolog import *
-from modules.modulo_ata_contratos.regex_sicaf import *
-from modules.modulo_ata_contratos.processar_homologacao import ProgressDialog
-from modules.modulo_ata_contratos.processar_sicaf import SICAFDialog
-from modules.modulo_ata_contratos.relatorio_indicadores import RelatorioIndicadores
-from modules.modulo_ata_contratos.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
-from modules.modulo_ata_contratos.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
-from modules.modulo_ata_contratos.canvas_gerar_atas import *
+from modules.atas.regex_termo_homolog import *
+from modules.atas.regex_sicaf import *
+from modules.atas.processar_homologacao import ProgressDialog
+from modules.atas.processar_sicaf import SICAFDialog
+from modules.atas.relatorio_indicadores import RelatorioIndicadores
+from modules.atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
+from modules.atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
+from modules.atas.canvas_gerar_atas import *
 from diretorios import *
 import pandas as pd
 import numpy as np

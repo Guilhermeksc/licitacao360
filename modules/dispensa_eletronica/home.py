@@ -67,11 +67,9 @@ class MainWindow(QMainWindow):
         menu_buttons = [
             "Início",
             "Planejamento",
-            "Atas",
-            "Contratos",
-            "ETP",
-            "Matriz de Riscos",
+            "Atas e Contratos",
             "Dispensa Eletrônica",
+            "Matriz de Riscos",
             "Selenium",
         ]
 
@@ -145,8 +143,7 @@ class MainWindow(QMainWindow):
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
-            "Atas": self.setup_atas,
-            "Contratos": self.setup_contratos,
+            "Atas e Contratos": self.setup_atas_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             "Matriz de Riscos": self.setup_matriz_riscos,
             "Selenium": self.setup_selenium_automacao,
@@ -160,12 +157,7 @@ class MainWindow(QMainWindow):
         self.application_ui = ApplicationUI(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
-    def setup_atas(self):
-        self.clear_content_area()
-        self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)
-        self.content_layout.addWidget(self.atas_contratos_widget)
-
-    def setup_contratos(self):
+    def setup_atas_contratos(self):
         self.clear_content_area()
         self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_widget)

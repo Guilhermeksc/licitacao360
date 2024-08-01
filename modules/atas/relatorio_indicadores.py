@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from modules.modulo_ata_contratos.regex_termo_homolog import *
-from modules.modulo_ata_contratos.regex_sicaf import *
-from modules.modulo_ata_contratos.canvas_gerar_atas import *
+from modules.atas.regex_termo_homolog import *
+from modules.atas.regex_sicaf import *
+from modules.atas.canvas_gerar_atas import *
 from diretorios import *
 # import geopandas as gpd
 import pandas as pd

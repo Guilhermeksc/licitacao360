@@ -4,9 +4,9 @@ from PyQt6.QtGui import *
 import pandas as pd
 import sqlite3
 from diretorios import *
-from modules.modulo_ata_contratos.regex_termo_homolog import *
-from modules.modulo_ata_contratos.regex_sicaf import *
-from modules.modulo_ata_contratos.canvas_gerar_atas import *
+from modules.atas.regex_termo_homolog import *
+from modules.atas.regex_sicaf import *
+from modules.atas.canvas_gerar_atas import *
 import os
 import pdfplumber
 import locale
