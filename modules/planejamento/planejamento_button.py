@@ -459,28 +459,20 @@ class ApplicationUI(QMainWindow):
         self.init_model()
 
     def salvar_tabela(self):
-        # Define as colunas desejadas
-        colunas_desejadas = [
-            "Status", "ID Processo", "NUP", "Objeto", "UASG", "OM", "setor_responsavel", 
-            "coordenador_planejamento", "Pregoeiro", "Item PCA"
-        ]
-        
         # Cria um DataFrame vazio
         column_count = self.model.columnCount()
         headers = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(column_count)]
-        filtered_headers = [header for header in headers if header in colunas_desejadas]
         data = []
 
-        # Preenche o DataFrame com os dados do modelo filtrando as colunas
+        # Preenche o DataFrame com os dados do modelo
         for row in range(self.model.rowCount()):
             row_data = []
             for column in range(column_count):
-                if headers[column] in colunas_desejadas:
-                    index = self.model.index(row, column)
-                    row_data.append(self.model.data(index))
+                index = self.model.index(row, column)
+                row_data.append(self.model.data(index))
             data.append(row_data)
 
-        df = pd.DataFrame(data, columns=filtered_headers)
+        df = pd.DataFrame(data, columns=headers)
 
         # Define o caminho inicial com o nome do arquivo pré-definido
         initial_path = os.path.join(os.path.expanduser("~"), "controle_processos.xlsx")
@@ -501,6 +493,7 @@ class ApplicationUI(QMainWindow):
 
         # Abre o arquivo Excel
         os.startfile(excel_path)
+
 
     def carregar_tabela(self):
         dialog = QDialog(self)
@@ -636,22 +629,6 @@ class UIManager:
     def setup_search_bar(self):
         self.search_bar = QLineEdit(self.parent)
         self.search_bar.setPlaceholderText("Digite para buscar...")
-        self.search_bar.setStyleSheet("""
-            QLineEdit {
-                background-color: #f9f9f9;
-                color: #333;
-                font-size: 16px;
-                border: 1px solid #ccc;
-                padding: 5px;
-                border-radius: 5px;
-            }
-            QLineEdit:focus {
-                border: 2px solid #a9a9a9;
-            }
-            QLineEdit:hover {
-                background-color: #e0e0e0;
-            }
-        """)
         self.main_layout.addWidget(self.search_bar)
 
         def handle_text_change(text):
@@ -718,7 +695,7 @@ class UIManager:
         index_status = self.model.fieldIndex('etapa')
         if index_status != -1:
             self.parent.proxy_model.sort(index_status, Qt.SortOrder.AscendingOrder)
-            print("Ordenação inicial por 'Etapa' aplicada.")
+            # print("Ordenação inicial por 'Etapa' aplicada.")
         else:
             print("Erro: Coluna 'Etapa' não encontrada para ordenação inicial.")
             
@@ -728,7 +705,7 @@ class UIManager:
         QTimer.singleShot(1, self.apply_custom_column_sizes) 
 
     def apply_custom_column_sizes(self):
-        print("Aplicando configurações de tamanho de coluna...")
+        # print("Aplicando configurações de tamanho de coluna...")
         header = self.table_view.horizontalHeader()
         
         # Configurações específicas de redimensionamento para colunas selecionadas
@@ -751,41 +728,17 @@ class UIManager:
         # Aplica um estilo CSS personalizado ao tableView
         self.table_view.setStyleSheet("""
             QTableView {
-                background-color: #f9f9f9;
-                alternate-background-color: #e0e0e0;
-                color: #333;
                 font-size: 16px;
-                border: 1px solid #ccc;
-            }
-            QTableView::item:selected {
-                background-color: #b0c4de;
-                color: white;
-            }
-            QTableView::item:hover {
-                background-color: #d3d3d3;
-                color: black;
             }
             QTableView::section {
-                background-color: #d3d3d3;
-                color: #333;
-                padding: 5px;
-                border: 1px solid #ccc;
                 font-size: 16px;
                 font-weight: bold; 
             }
             QHeaderView::section:horizontal {
-                background-color: #a9a9a9;
-                color: white;
-                border: 1px solid #ccc;
-                padding: 5px;
                 font-size: 16px;
                 font-weight: bold;
             }
             QHeaderView::section:vertical {
-                background-color: #d3d3d3;
-                color: #333;
-                border: 1px solid #ccc;
-                padding: 5px;
                 font-size: 16px;
             }
         """)
@@ -906,7 +859,7 @@ class ButtonManager:
         for btn in self.buttons:
             layout.addWidget(btn)
 
-    def create_button(self, text, icon, callback, tooltip_text, parent, icon_size=QSize(40, 40)):
+    def create_button(self, text, icon, callback, tooltip_text, parent, icon_size=QSize(30, 30)):
         btn = QPushButton(text, parent)
         if icon:
             btn.setIcon(QIcon(icon))
@@ -918,11 +871,12 @@ class ButtonManager:
 
         btn.setStyleSheet("""
         QPushButton {
-            background-color: black;
+            background-color: #333;
             color: white;
-            font-size: 14pt;
+            font-size: 12pt;
             min-height: 35px;
-            padding: 5px;      
+            padding: 5px;
+            font-weight: bold;
         }
         QPushButton:hover {
             background-color: white;
@@ -951,12 +905,12 @@ def load_and_map_icons(icons_dir):
         'Montagem do Processo': 'arrows.png',
         'IRP': 'icon_warning.png'
     }
-    print(f"Verificando ícones no diretório: {icons_dir}")
+    # print(f"Verificando ícones no diretório: {icons_dir}")
     for status, filename in icon_mapping.items():
         icon_path = Path(icons_dir) / filename
-        print(f"Procurando ícone para status '{status}': {icon_path}")
+        # print(f"Procurando ícone para status '{status}': {icon_path}")
         if icon_path.exists():
-            print(f"Ícone encontrado: {filename}")
+            # print(f"Ícone encontrado: {filename}")
             pixmap = QPixmap(str(icon_path))
             pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             icons[status] = QIcon(pixmap)

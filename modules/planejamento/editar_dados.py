@@ -54,13 +54,10 @@ class EditarDadosDialog(QDialog):
 
     def setupUI(self):
         self.setWindowTitle("Editar Dados")
-        self.setObjectName("EditarDadosDialog")
-        self.setStyleSheet("#EditarDadosDialog { background-color: #050f41; }")
         self.setGeometry(300, 300, 900, 700)
         self.titleLabel = QLabel()
         self.update_title_label(self.dados.get('orgao_responsavel', ''), self.dados.get('uasg', ''))
         self.createFormLayout()
-        self.setupButtonsLayout()
         self.applyStyleSheet()
 
     def update_title_label(self, orgao_responsavel, uasg):
@@ -166,6 +163,12 @@ class EditarDadosDialog(QDialog):
         # Configuração e estilização do titleLabel já definida no construtor/init
         header_layout.addWidget(self.titleLabel)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        
+        # Criação do botão de confirmação
+        confirm_button = self.createConfirmButton()
+        header_layout.addWidget(confirm_button)
+
+        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))        
         
         # Configuração da imagem (se necessário)
         pixmap = QPixmap(str(MARINHA_PATH))
@@ -655,54 +658,22 @@ class EditarDadosDialog(QDialog):
             connection.commit()
             print("Comentários salvos com sucesso.")
 
-    def setupButtonsLayout(self):
-        self.buttons_layout = QHBoxLayout()
-        self.createButtons()
-        self.layout.addLayout(self.buttons_layout) 
-
-    def createButtons(self):
+    def createConfirmButton(self):
         icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
-        self.button_specs = [
-            ("Confirmar", self.image_cache['confirm'], self.confirmar_edicao, "Confirmar Edição", icon_size),
-            ("Relatório", self.image_cache['report'], self.gerar_relatorio, "Gerar Relatório", icon_size),
-        ]
-
-        for text, icon, callback, tooltip, icon_size in self.button_specs:
-            btn = create_button_2(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
-            self.buttons_layout.addWidget(btn)
+        button_spec = ("Confirmar", self.image_cache['confirm'], self.confirmar_edicao, "Confirmar Edição", icon_size)
+        
+        text, icon, callback, tooltip, icon_size = button_spec
+        btn = create_button_2(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)
+        
+        return btn
 
     def applyStyleSheet(self):
         style = """
-            #frame1, #frame2, #frame3, #frame4, #frame5, #frame6 {
-                border: 1px solid black;
-                border-radius: 10px;
-                background-color: white;
-                
-            }
-            #EditarDadosDialog { 
-                background-color: #050f41; 
-            }
             QGroupBox {
                 font-size: 16px;
-                font-weight: bold;
-                border: 1px solid gray;
-                border-radius: 10px;
-                margin-top: 20px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left; 
-                padding: 0 3px;
-                background-color: transparent;
             }
             QLabel, QLineEdit, QComboBox, QRadioButton, QDateEdit, QTextEdit{
                 font-size: 16px;
-            }
-            QLabel {
-                font-weight: bold;
-            }
-            QLineEdit[readOnly="true"] {
-                background-color: #cccccc;
             }
         """
         self.setStyleSheet(style)
@@ -796,48 +767,3 @@ class EditarDadosDialog(QDialog):
         self.dados_atualizados.emit()
         self.accept()
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
-
-    # def confirmar_edicao(self):
-    #     print(f"Confirmando edição usando banco de dados em: {self.database_path}")
-    #     with self.database_manager as connection:
-    #         cursor = connection.cursor()
-
-    #         # Diretamente coletar os valores dos QLineEdit
-    #         dados_atualizados = {
-    #             'nup': self.nup_edit.text().strip(),
-    #             'objeto': self.line_edit_objeto.text().strip(),
-    #             'objeto_completo': self.text_edit_objeto_completo.toPlainText().strip(),
-    #             'valor_total': self.line_edit_valor_total.text().strip(),
-    #             'uasg': self.line_edit_uasg.text().strip(),
-    #             'orgao_responsavel': self.line_edit_orgao.text().strip(),
-    #             'sigla_om': self.combo_sigla_om.currentText().strip(),
-    #             'msg_irp': self.line_edit_msg_irp.text().strip(),
-    #             'num_irp': self.line_edit_num_irp.text().strip(),
-    #             'item_pca': self.item_pca_edit.text().strip(),
-    #             'portaria_PCA': self.portaria_pca_edit.text().strip(),
-    #             'om_participantes': self.line_edit_om_participantes.text().strip(),
-    #             'link_pncp': self.line_edit_link_pncp.text().strip(),
-    #             'link_portal_marinha': self.line_edit_link_portal_marinha.text().strip(),
-    #             'parecer_agu': self.line_edit_parecer.text().strip(),
-    #             'pregoeiro': self.line_edit_pregoeiro.text().strip(),
-    #             'setor_responsavel': self.line_edit_setor_responsavel.text().strip(),
-    #             'coordenador_planejamento': self.line_edit_coordenador_planejamento.text().strip()
-    #         }
-
-    #         # Atualizações de data
-    #         dados_atualizados.update({date_field: self.date_edits[date_field].date().toString("yyyy-MM-dd") for date_field in self.date_edits})
-    #         dados_atualizados['material_servico'] = 'servico' if self.radio_servico.isChecked() else 'material'
-    #         dados_atualizados['srp'] = 'Sim' if self.radio_srp_sim.isChecked() else 'Não'
-            
-    #         # Preparação da consulta SQL
-    #         set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
-    #         valores = list(dados_atualizados.values())
-    #         valores.append(self.dados['id'])  # ID do registro a ser atualizado
-
-    #         query = f"UPDATE controle_processos SET {set_part} WHERE id = ?"
-    #         cursor.execute(query, valores)
-    #         connection.commit()
-
-    #     self.dados_atualizados.emit()
-    #     self.accept()
-    #     QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")

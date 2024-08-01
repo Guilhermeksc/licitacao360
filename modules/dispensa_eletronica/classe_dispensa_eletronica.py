@@ -291,42 +291,17 @@ class UIManager:
         # Aplica um estilo CSS personalizado ao tableView
         self.table_view.setStyleSheet("""
             QTableView {
-                background-color: #f9f9f9;
-                alternate-background-color: #e0e0e0;
-                color: #333;
-                font-size: 16px;
+                font-size: 14px;
                 border: 1px solid #ccc;
-            }
-            QTableView::item:selected {
-                background-color: #b0c4de;
-                color: white;
-            }
-            QTableView::item:hover {
-                background-color: #d3d3d3;
-                color: black;
             }
             QTableView::section {
-                background-color: #d3d3d3;
-                color: #333;
-                padding: 5px;
-                border: 1px solid #ccc;
-                font-size: 16px;
-                font-weight: bold; 
+                font-size: 14px;
             }
             QHeaderView::section:horizontal {
-                background-color: #a9a9a9;
-                color: white;
-                border: 1px solid #ccc;
-                padding: 5px;
-                font-size: 16px;
-                font-weight: bold;
+                font-size: 14px;
             }
             QHeaderView::section:vertical {
-                background-color: #d3d3d3;
-                color: #333;
-                border: 1px solid #ccc;
-                padding: 5px;
-                font-size: 16px;
+                font-size: 14px;
             }
         """)
 

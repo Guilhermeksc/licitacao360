@@ -144,7 +144,7 @@ class SqlModel:
         while query.next():
             if query.value(1) == 'id_processo' and query.value(5) == 1:
                 id_processo_is_primary = True
-                print("Coluna 'id_processo' já é PRIMARY KEY.")
+                # print("Coluna 'id_processo' já é PRIMARY KEY.")
                 break
         if not id_processo_is_primary:
             print("Atualizando 'id_processo' para ser PRIMARY KEY.")

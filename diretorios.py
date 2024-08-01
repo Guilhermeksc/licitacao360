@@ -93,6 +93,7 @@ TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
 TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
 IMAGE_PATH = DATABASE_DIR / "image"
+ACANTO_IMAGE_PATH = IMAGE_PATH / "acanto.png"
 
 TUCANO_PATH = DATABASE_DIR / "image" / "imagem_excel.png"
 MARINHA_PATH = DATABASE_DIR / "image" / "marinha.png"

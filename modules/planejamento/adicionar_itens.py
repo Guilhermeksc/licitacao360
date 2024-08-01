@@ -15,12 +15,12 @@ class AddItemDialog(QDialog):
         self.database_path = Path(CONTROLE_DADOS) 
         self.setWindowTitle("Adicionar Item")
         # Definindo o tamanho fixo do diálogo
-        self.setFixedSize(900, 250)
+        self.setFixedSize(650, 250)
         
         # Definindo o tamanho fixo do diálogo através de CSS
         self.setStyleSheet("""
             QDialog, QLabel, QComboBox, QLineEdit, QPushButton, QRadioButton {
-                font-size: 14pt;
+                font-size: 12pt;
             }
         """)
 
@@ -30,8 +30,8 @@ class AddItemDialog(QDialog):
             ("Pregão Eletrônico (PE)", "Pregão Eletrônico"),
             ("Concorrência (CC)", "Concorrência"),
             ("Dispensa Eletrônica (DE)", "Dispensa Eletrônica"),
-            ("Termo de Justificativa de Dispensa Eletrônica (TJDL)", "Termo de Justificativa de Dispensa Eletrônica"),
-            ("Termo de Justificativa de Inexigibilidade de Licitação (TJIL)", "Termo de Justificativa de Inexigibilidade de Licitação")
+            ("Dispensa de Licitação (TJDL)", "Termo de Justificativa de Dispensa de Licitação"),
+            ("Inexigibilidade de Licitação (TJIL)", "Termo de Justificativa de Inexigibilidade de Licitação")
         ]
 
         # Linha 1: Tipo, Número, Ano
@@ -136,8 +136,8 @@ class AddItemDialog(QDialog):
             "Pregão Eletrônico (PE)": "PE",
             "Concorrência (CC)": "CC",
             "Dispensa Eletrônica (DE)": "DE",
-            "Termo de Justificativa de Dispensa Eletrônica (TJDL)": "TJDL",
-            "Termo de Justificativa de Inexigibilidade de Licitação (TJIL)": "TJIL"
+            "Dispensa de Licitação (TJDL)": "TJDL",
+            "Inexigibilidade de Licitação (TJIL)": "TJIL"
         }
         tipo_abreviado = abrev_map[data['tipo']]
         data['tipo'] = type_map[data['tipo']]
