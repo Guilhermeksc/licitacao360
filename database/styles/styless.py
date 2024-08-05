@@ -8,9 +8,11 @@ def get_menu_button_style():
             text-align: left;
             border: 1px solid black; 
             border-radius: 0px;
+            border-left: 4px solid blacx;
+            padding: 10px;
         }
         QPushButton:hover {
-            background-color: white;
+            background-color: #d3d3d3;
             color: black;
         }
     """
@@ -25,6 +27,8 @@ def get_menu_button_activated_style():
             text-align: left;
             border: 1px solid black;
             border-radius: 0px;
+            border-left: 4px solid red;
+            padding: 10px;
         }
     """
 

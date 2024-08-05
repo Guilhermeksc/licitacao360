@@ -1327,11 +1327,6 @@ class EditDataDialog(QDialog):
             )
             self.header_layout.addWidget(btn_proximo)
 
-            # pixmap = QPixmap(str(MARINHA_PATH)).scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            # self.image_label = QLabel()
-            # self.image_label.setPixmap(pixmap)
-            # self.header_layout.addWidget(self.image_label)
-
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)
             header_widget.setFixedHeight(80)

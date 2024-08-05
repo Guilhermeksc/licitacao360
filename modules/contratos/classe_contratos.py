@@ -1,43 +1,19 @@
+## Módulo incluido em modules/contratos/classe_contratos.py ##
+
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button
-from modules.planejamento.utilidades_planejamento import DatabaseManager
-from modules.contratos.utilidades import ExportThread
-from modules.contratos.sql_model import SqlModel, CustomTableView
-from modules.dispensa_eletronica.add_item import AddItemDialog
+from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos
+from modules.contratos.database_manager import DatabaseManager, SqlModel, CustomTableView
+from modules.contratos.add_item import AddItemDialog
 import pandas as pd
 import os
 import subprocess
 import logging
 import sqlite3
-
-def carregar_dados_contratos(index, caminho_banco_dados):
-    """
-    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
-
-    Parâmetros:
-    - index: O índice da linha selecionada na QTableView.
-    - caminho_banco_dados: O caminho para o arquivo do banco de dados SQLite.
-    
-    Retorna:
-    - Um DataFrame do Pandas contendo os dados do registro selecionado.
-    """
-    try:
-        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
-        connection = sqlite3.connect(caminho_banco_dados)
-        query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
-        logging.debug(f"Executando consulta SQL: {query}")
-        df_registro_selecionado = pd.read_sql_query(query, connection)
-        connection.close()
-        logging.debug(f"Dados carregados com sucesso para o índice {index}: {df_registro_selecionado}")
-        return df_registro_selecionado
-    except Exception as e:
-        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
-        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
-    
 class ContratosWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
@@ -50,17 +26,32 @@ class ContratosWidget(QMainWindow):
         self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
         self.setup_ui()
         self.export_thread = None
-        self.output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica.xlsx")
+        self.output_path = os.path.join(os.getcwd(), "controle_contratos.xlsx")
         self.dataUpdated.connect(self.refresh_model)
+        self.refresh_model()
+
+    def init_model(self):
+        sql_model = SqlModel(self.database_manager, self)
+        model = sql_model.setup_model("controle_contratos", editable=True)
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(model)
+        self.proxy_model.setSortRole(Qt.ItemDataRole.DisplayRole)
+        self.proxy_model.sort(model.fieldIndex("dias"), Qt.SortOrder.AscendingOrder)
+        return self.proxy_model
+
+    def refresh_model(self):
+        source_model = self.model.sourceModel()
+        if source_model:
+            source_model.select()
+            self.model.sort(source_model.fieldIndex("dias"), Qt.SortOrder.AscendingOrder)
+        else:
+            print("Source model nãp encontrado")
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
         self.event_manager = EventManager()
-
-    def refresh_model(self):
-        self.model.select()
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)
@@ -73,42 +64,27 @@ class ContratosWidget(QMainWindow):
         ])
         self.selectedIndex = None
 
-    def init_model(self):
-        # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
-        sql_model = SqlModel(self.database_manager, self)
-        return sql_model.setup_model("controle_contratos", editable=True)
-
     def on_add_item(self):
         dialog = AddItemDialog(self)
         if dialog.exec():
             item_data = dialog.get_data()
-            # Add 'situacao' before saving
             item_data['situacao'] = 'Planejamento'
             self.save_to_database(item_data)
 
     def excluir_linha(self):
         selection_model = self.ui_manager.table_view.selectionModel()
-
         if selection_model.hasSelection():
-            # Supondo que a coluna 0 é 'id_processo'
             index_list = selection_model.selectedRows(0)
-
             if not index_list:
                 QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
                 return
-
-            selected_id_processo = index_list[0].data()  # Pega o 'id_processo' da primeira linha selecionada
-            print(f"Excluindo linha com id_processo: {selected_id_processo}")
-
-            # Confirmar a exclusão
-            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com ID Processo '{selected_id_processo}'?"):
-                data_to_delete = {'id_processo': selected_id_processo}
+            selected_numero_contrato = index_list[0].data()
+            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com numero_contrato '{selected_numero_contrato}'?"):
                 try:
-                    self.save_to_database(data_to_delete, delete=True)  # Passa o dado a ser deletado com uma flag de exclusão
+                    self.database_manager.execute_query("DELETE FROM controle_contratos WHERE numero_contrato = ?", (selected_numero_contrato,))
                     QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
                 except Exception as e:
                     QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
-                    print(f"Erro ao excluir o registro: {str(e)}")
         else:
             QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
 
@@ -125,88 +101,60 @@ class ContratosWidget(QMainWindow):
             Dialogs.warning(self, "Exportação de Dados", message)
 
     def carregar_tabela(self):
-        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods)")
+        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods *.csv)")
         if filepath:
             try:
-                df = pd.read_excel(filepath)
+                if filepath.endswith('.csv'):
+                    df = pd.read_csv(filepath)
+                else:
+                    df = pd.read_excel(filepath)
                 self.validate_and_process_data(df)
-                df['situacao'] = 'Planejamento'
-                self.save_to_database(df)
+                df['situacao'] = 'Minuta'
+                self.database_manager.save_dataframe(df, 'controle_contratos')
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
             except Exception as e:
                 Dialogs.warning(self, "Erro ao carregar", str(e))
 
     def validate_and_process_data(self, df):
-        required_columns = ['ID Processo', 'NUP', 'Objeto', 'UASG']
-        if not all(col in df.columns for col in required_columns):
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            raise ValueError(f"Faltando: {', '.join(missing_columns)}")
-        df.rename(columns={'ID Processo': 'id_processo', 'NUP': 'nup', 'Objeto': 'objeto', 'UASG': 'uasg'}, inplace=True)
-        self.desmembramento_id_processo(df)
+        required_columns = [
+            'status', 'dias', 'pode_renovar', 'custeio', 'numero_contrato', 'tipo', 'id_processo',
+            'fornecedor', 'objeto', 'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 
+            'om', 'material_servico', 'link_pncp', 'portaria', 'posto_gestor', 'gestor', 
+            'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal', 'fiscal', 
+            'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 
+            'fiscal_administrativo', 'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 
+            'comentarios', 'termo_aditivo', 'atualizacao_comprasnet', 'instancia_governanca', 
+            'comprasnet_contratos', 'registro_status'
+        ]
+
+        if 'numero_contrato' not in df.columns:
+            raise ValueError("A coluna 'numero_contrato' é obrigatória e está faltando no DataFrame.")
+
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = ""
+
         self.salvar_detalhes_uasg_sigla_nome(df)
 
-    def desmembramento_id_processo(self, df):
-        df[['tipo', 'numero', 'ano']] = df['id_processo'].str.extract(r'(\D+)(\d+)/(\d+)')
-        df['tipo'] = df['tipo'].map({'DE ': 'Dispensa Eletrônica'}).fillna('Tipo Desconhecido')
-
     def salvar_detalhes_uasg_sigla_nome(self, df):
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
-            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
+        om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in self.database_manager.fetch_query("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")}
         df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
         df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
-                
+
     def save_to_database(self, data, delete=False):
-        with self.database_manager as conn:
-            cursor = conn.cursor()
-            if delete:
-                cursor.execute("DELETE FROM controle_contraros WHERE id_processo = ?", (data['id_processo'],))
-            else:
-                situacao = 'Minuta'
-                upsert_sql = '''
-                INSERT INTO controle_contratos (
-                    id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, setor_responsavel, 
-                    material_servico, orgao_responsavel, situacao
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id_processo) DO UPDATE SET
-                    nup=excluded.nup,
-                    objeto=excluded.objeto,
-                    uasg=excluded.uasg,
-                    tipo=excluded.tipo,
-                    numero=excluded.numero,
-                    ano=excluded.ano,
-                    sigla_om=excluded.sigla_om,
-                    setor_responsavel=excluded.setor_responsavel,
-                    material_servico=excluded.material_servico,
-                    orgao_responsavel=excluded.orgao_responsavel,
-                    situacao=excluded.situacao;
-                '''
-                if isinstance(data, pd.DataFrame):
-                    data['situacao'] = situacao
-                    for _, row in data.iterrows():
-                        cursor.execute(upsert_sql, (
-                            row['id_processo'], row['nup'], row['objeto'], row['uasg'],
-                            row.get('tipo', ''), row.get('numero', ''), row.get('ano', ''),
-                            row.get('sigla_om', ''), row.get('setor_responsavel', ''), 
-                            row.get('material_servico', ''), row.get('orgao_responsavel', ''),
-                            row['situacao']
-                        ))
-                else:
-                    data['situacao'] = situacao
-                    cursor.execute(upsert_sql, (
-                        data['id_processo'], data['nup'], data['objeto'], data['uasg'],
-                        data['tipo'], data['numero'], data['ano'],
-                        data['sigla_om'], data.get('setor_responsavel', ''), 
-                        data['material_servico'], data['orgao_responsavel'], data['situacao']
-                    ))
-            conn.commit()
+        if delete:
+            self.database_manager.execute_query("DELETE FROM controle_contratos WHERE numero_contrato = ?", (data['numero_contrato'],))
+        else:
+            data['status'] = 'Minuta'
+            self.database_manager.upsert_data("controle_contratos", data, "numero_contrato")
         self.dataUpdated.emit()
 
+    def teste(self):
+        print("Teste de controle de PDM")   
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
-        self.icons = icons
+        self.icons_dir = icons
         self.config_manager = config_manager
         self.model = model
         self.main_widget = QWidget(parent)
@@ -218,7 +166,7 @@ class UIManager:
         self.setup_search_bar()
         self.setup_table_view()
         self.setup_buttons_layout()
-        self.parent.setCentralWidget(self.main_widget) 
+        self.parent.setCentralWidget(self.main_widget)
 
     def setup_search_bar(self):
         self.search_bar = QLineEdit(self.parent)
@@ -245,13 +193,17 @@ class UIManager:
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
         self.apply_custom_style()
-        
+
         center_delegate = CenterAlignDelegate(self.table_view)
-        for column in range(self.model.columnCount()):
+        source_model = self.model.sourceModel()
+        for column in range(source_model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        status_index = self.model.fieldIndex("etapa")
-        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view))
+        dias_index = source_model.fieldIndex("dias")
+        status_index = source_model.fieldIndex("status")
+
+        self.table_view.setItemDelegateForColumn(dias_index, ColorDelegate(self.table_view))
+        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons_dir, self.table_view))
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -260,6 +212,7 @@ class UIManager:
         self.parent.proxy_model.setFilterKeyColumn(-1)
         self.parent.proxy_model.setSortRole(Qt.ItemDataRole.UserRole)
         self.table_view.setModel(self.parent.proxy_model)
+        print("Table view configured with proxy model")
 
         self.model.dataChanged.connect(self.table_view.update)
 
@@ -268,32 +221,36 @@ class UIManager:
             self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
 
         self.update_column_headers()
-        self.reorder_columns()
         self.hide_unwanted_columns()
-            
+
     def adjust_columns(self):
-        # Ajustar automaticamente as larguras das colunas ao conteúdo
         self.table_view.resizeColumnsToContents()
-        QTimer.singleShot(1, self.apply_custom_column_sizes) 
+        QTimer.singleShot(1, self.apply_custom_column_sizes)
 
     def apply_custom_column_sizes(self):
         header = self.table_view.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(15, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(17, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
-        header.resizeSection(0, 140)
-        header.resizeSection(5, 175)
-        header.resizeSection(15, 100)
-        header.resizeSection(17, 100)
-        header.resizeSection(4, 200)
-        header.resizeSection(10, 170)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
+        header.resizeSection(0, 70)
+        header.resizeSection(1, 40)
+        header.resizeSection(2, 65)
+        header.resizeSection(3, 65)
+        header.resizeSection(4, 130)
+        header.resizeSection(5, 75)
+        header.resizeSection(6, 90)
+        header.resizeSection(7, 150)
+        header.resizeSection(8, 80)
+        header.resizeSection(9, 155)
 
     def apply_custom_style(self):
-        # Aplica um estilo CSS personalizado ao tableView
         self.table_view.setStyleSheet("""
             QTableView {
                 font-size: 14px;
@@ -313,8 +270,6 @@ class UIManager:
         if selected.indexes():
             proxy_index = selected.indexes()[0]
             source_index = self.parent.proxy_model.mapToSource(proxy_index)
-            print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
-
             df_registro_selecionado = carregar_dados_contratos(source_index.row(), self.parent.database_path)
             if not df_registro_selecionado.empty:
                 logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
@@ -324,24 +279,27 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
-            0: "ID Processo",
-            5: "NUP",
-            7: "Objeto",
-            15: "UASG",
-            17: "OM",
-            4: "Status",
-            10: "Operador"
+            0: "Status",
+            1: "Dias",
+            2: "Renova?",
+            3: "Custeio?",
+            4: "Contrato/Ata",
+            5: "Tipo",
+            6: "Processo",
+            7: "Empresa",
+            8: "Objeto",
+            9: "Valor"
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [4, 0, 5, 7, 15, 17, 10]
+        new_order = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 5, 7, 15, 17, 4, 10}
+        visible_columns = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
@@ -403,20 +361,12 @@ class CustomItemDelegate(QStyledItemDelegate):
         self.icons = icons
 
     def paint(self, painter, option, index):
-        super().paint(painter, option, index)
-        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        icon = self.icons.get(status, None)
-        if icon:
-            icon_size = 24
-            icon_x = option.rect.left() + 5
-            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2
-            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
-            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
-
-    def sizeHint(self, option, index):
-        size = super().sizeHint(option, index)
-        size.setWidth(size.width() + 30)
-        return size
+        value = index.data(Qt.ItemDataRole.DecorationRole)
+        if value:
+            icon = value
+            icon.paint(painter, option.rect, Qt.AlignmentFlag.AlignCenter)
+        else:
+            super().paint(painter, option, index)
 
 class Dialogs:
     @staticmethod

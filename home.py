@@ -8,6 +8,7 @@ from database.styles.styless import get_menu_button_style, get_menu_button_activ
 from modules.atas.gerar_atas_contratos import GerarAtasWidget
 from modules.planejamento.planejamento_button import ApplicationUI
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
+from modules.contratos.classe_contratos import ContratosWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from menu_manager import MenuManager
@@ -25,10 +26,8 @@ class InicioWidget(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pixmap = QPixmap(str(IMAGE_PATH / "texto_inicio"))
-        self.image_label.setPixmap(pixmap.scaled(600, 450, Qt.AspectRatioMode.KeepAspectRatio))
+        self.image_label.setPixmap(pixmap.scaled(1000, 625, Qt.AspectRatioMode.KeepAspectRatio))
         self.layout.addWidget(self.image_label)
-
-        self.layout.addStretch(2)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -46,7 +45,7 @@ class MainWindow(QMainWindow):
 
     def configure_window(self):
         self.setWindowTitle("Licitação 360")  # Define o título da janela
-        self.resize(1400, 700)
+        self.resize(1050, 550)
 
     def setup_central_widget(self):
         self.central_widget = QWidget(self)
@@ -63,7 +62,6 @@ class MainWindow(QMainWindow):
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        menu_layout.addStretch(1)
         menu_buttons = [
             "Início",
             "Planejamento",
@@ -86,8 +84,6 @@ class MainWindow(QMainWindow):
             menu_layout.addWidget(button)
 
         menu_layout.addStretch(4)
-        self.add_menu_image(menu_layout)
-
         self.menu_widget = QWidget()
         self.menu_widget.setLayout(menu_layout)
         self.menu_widget.setFixedWidth(180)
@@ -118,7 +114,7 @@ class MainWindow(QMainWindow):
 
         self.content_widget = QWidget()
         self.content_widget.setLayout(self.content_layout)
-        self.content_widget.setMinimumSize(600, 600)
+        self.content_widget.setMinimumSize(1050, 550)
         self.content_widget.setObjectName("contentWidget")
         self.central_layout.addWidget(self.content_widget)
 
@@ -131,7 +127,6 @@ class MainWindow(QMainWindow):
         self.content_widget.setStyleSheet("""
             QWidget#contentWidget {
                 border: 1px solid #000000;
-                border-radius: 5px;
                 background-color: black;
             }
         """)
@@ -166,9 +161,11 @@ class MainWindow(QMainWindow):
         self.content_layout.addWidget(self.atas_contratos_widget)
 
     def setup_contratos(self):
+        print("Setting up contratos...")
         self.clear_content_area()
-        self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)
+        self.atas_contratos_widget = ContratosWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_widget)
+        print("Contratos widget added to layout")
 
     def setup_dispensa_eletronica(self):
         self.clear_content_area()

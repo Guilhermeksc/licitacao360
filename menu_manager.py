@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QMenuBar, QMenu, QLabel, QHBoxLayout, QWidget, QSpacerItem, QSizePolicy
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtCore import Qt
-from diretorios import ACANTO_IMAGE_PATH
+from diretorios import ACANTO_IMAGE_PATH, BRASIL_IMAGE_PATH
 
 class MenuManager:
     def __init__(self, parent):
@@ -19,13 +19,16 @@ class MenuManager:
 
         # Configuração da imagem
         pixmap = QPixmap(str(ACANTO_IMAGE_PATH))
+        brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
+
         if pixmap.isNull():
             print("Failed to load image!")  # Debug print
         else:
             print("Image loaded successfully")  # Debug print
         pixmap = pixmap.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label_equerda = QLabel()
-        image_label_equerda.setPixmap(pixmap)
+        image_label_equerda.setPixmap(brasil_pixmap)
         image_label_equerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(image_label_equerda)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))

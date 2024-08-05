@@ -94,7 +94,7 @@ TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
 IMAGE_PATH = DATABASE_DIR / "image"
 ACANTO_IMAGE_PATH = IMAGE_PATH / "acanto.png"
-
+BRASIL_IMAGE_PATH = IMAGE_PATH / "brasil.png"
 TUCANO_PATH = DATABASE_DIR / "image" / "imagem_excel.png"
 MARINHA_PATH = DATABASE_DIR / "image" / "marinha.png"
 CEIMBRA_BG = DATABASE_DIR / "image" / "ceimbra_bg.png"
