@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
 
     def configure_window(self):
         self.setWindowTitle("Licitação 360")  # Define o título da janela
-        self.resize(1050, 550)
+        self.resize(1050, 610)
 
     def setup_central_widget(self):
         self.central_widget = QWidget(self)
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
 
         self.content_widget = QWidget()
         self.content_widget.setLayout(self.content_layout)
-        self.content_widget.setMinimumSize(1050, 550)
+        self.content_widget.setMinimumSize(1050, 600)
         self.content_widget.setObjectName("contentWidget")
         self.central_layout.addWidget(self.content_widget)
 

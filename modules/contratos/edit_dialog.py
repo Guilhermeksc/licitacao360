@@ -59,12 +59,22 @@ class StackWidgetManager:
 
         # Layout esquerdo
         left_layout = QVBoxLayout(left_container)
-        numero_contrato_layout, self.line_edits['numero_contrato'] = WidgetHelper.create_line_edit("ID Comprasnet Contratos:", data.get('numero_contrato', ''))
+
+        # Criar combobox para contrato_ata
+        contrato_ata_options = [
+            "Contrato", "Ata"
+        ]
+        contrato_ata_options, self.contrato_ata_combo_box = WidgetHelper.create_combo_box("Contrato/Ata:", contrato_ata_options, data.get('tipo'))
+
+        numero_contrato_layout, self.line_edits['numero_contrato'] = WidgetHelper.create_line_edit("Número:", data.get('numero_contrato', ''))
+        nup_layout, self.line_edits['nup'] = WidgetHelper.create_line_edit("NUP:", data.get('nup', ''))
         valor_global_layout, self.line_edits['valor_global'] = WidgetHelper.create_line_edit("Valor Global:", data.get('valor_global', ''))
         cnpj_layout, self.line_edits['cnpj'] = WidgetHelper.create_line_edit("CNPJ:", data.get('cnpj', ''))
-        fornecedor_layout, self.line_edits['fornecedor'] = WidgetHelper.create_line_edit("Fornecedor:", data.get('fornecedor', ''))
-
+        fornecedor_layout, self.line_edits['empresa'] = WidgetHelper.create_line_edit("Empresa:", data.get('empresa', ''))
+        
+        left_layout.addLayout(contrato_ata_options)
         left_layout.addLayout(numero_contrato_layout)
+        left_layout.addLayout(nup_layout)
         left_layout.addLayout(valor_global_layout)
         left_layout.addLayout(cnpj_layout)
         left_layout.addLayout(fornecedor_layout)
@@ -139,7 +149,7 @@ class StackWidgetManager:
         ]
         status_layout, self.status_combo_box = WidgetHelper.create_combo_box("Status:", status_options, data.get('status'))
         
-        # Criar ícone para o botão
+        # Criar ícone para o botão de registro de status
         registrar_status_icon = QIcon(str(self.icons_dir / "registrar_status.png"))
         
         # Criar botão "Adicionar Registro"
@@ -152,20 +162,20 @@ class StackWidgetManager:
             icon_size=QSize(30, 30)
         )
 
-        # Criar ícone para o botão
+        # Criar ícone para o botão de comentários
         registrar_comentario_icon = QIcon(str(self.icons_dir / "registrar_comentario.png"))
         
-        # Criar botão "Adicionar Registro"
+        # Criar botão "Adicionar Comentário"
         add_button_registrar_comentario = WidgetHelper.create_button(
-            text="Adicionar Comantário",
+            text="Adicionar Comentário",
             icon=registrar_comentario_icon,
-            callback=self.on_add_record,  # Callback para o botão
-            tooltip_text="Adicionar novo registro",
+            callback=self.on_add_comment,  # Callback para o botão de comentários
+            tooltip_text="Adicionar novo comentário",
             button_size=QSize(200, 35),
             icon_size=QSize(30, 30)
         )
 
-        # Criar layout horizontal para combobox e botão
+        # Criar layout horizontal para combobox e botões
         h_layout = QHBoxLayout()
         h_layout.addStretch()  # Spacer no início
         h_layout.addLayout(status_layout)
@@ -182,12 +192,22 @@ class StackWidgetManager:
         layout.addWidget(QLabel("Registros:", widget))
         layout.addWidget(self.records_view)
 
+        # Adicionar visualizador de comentários
+        self.comments_view = QListWidget(widget)
+        self.comments_view.itemDoubleClicked.connect(self.edit_comment)
+        layout.addWidget(QLabel("Comentários:", widget))
+        layout.addWidget(self.comments_view)
+
         self.add_widget("Status", widget)
 
         # Carregar registros iniciais se houver
         if 'registro_status' in data:
-            comentarios = data['registro_status'].split("\n")
-            self.records_view.addItems(comentarios)
+            registros = data['registro_status'].split("\n")
+            self.records_view.addItems(registros)
+
+        if 'comentarios' in data:
+            comentarios = data['comentarios'].split("\n")
+            self.comments_view.addItems(comentarios)
 
     def on_add_record(self):
         dialog = AddCommentDialog(self)
@@ -200,6 +220,14 @@ class StackWidgetManager:
                 self.records_view.addItem(record)
                 self.save_records()
 
+    def on_add_comment(self):
+        dialog = AddCommentDialog(self)
+        if dialog.exec():
+            comment = dialog.get_comment()
+            if comment:
+                self.comments_view.addItem(comment)
+                self.save_comments()
+
     def edit_record(self, item):
         dialog = AddCommentDialog(self, initial_comment=item.text())
         if dialog.exec():
@@ -211,12 +239,25 @@ class StackWidgetManager:
                 item.setText(record)
                 self.save_records()
 
+    def edit_comment(self, item):
+        dialog = AddCommentDialog(self, initial_comment=item.text())
+        if dialog.exec():
+            comment = dialog.get_comment()
+            if comment:
+                item.setText(comment)
+                self.save_comments()
+
     def save_records(self):
         records = [self.records_view.item(i).text() for i in range(self.records_view.count())]
         records_text = "\n".join(records)
         # Implemente a lógica para salvar os registros (por exemplo, salvar no banco de dados ou em um arquivo)
         print("Registros salvos:", records_text)
 
+    def save_comments(self):
+        comments = [self.comments_view.item(i).text() for i in range(self.comments_view.count())]
+        comments_text = "\n".join(comments)
+        # Implemente a lógica para salvar os comentários (por exemplo, salvar no banco de dados ou em um arquivo)
+        print("Comentários salvos:", comments_text)
 
 class AddCommentDialog(QDialog):
     def __init__(self, parent=None, initial_comment=""):
@@ -460,7 +501,7 @@ class AtualizarDadosContratos(QDialog):
             'numero_contrato': data.get('Contrato/Ata', 'N/A'),
             'tipo': data.get('Tipo', 'N/A'),
             'id_processo': data.get('Processo', 'N/A'),
-            'fornecedor': data.get('Empresa', 'N/A'),            
+            'empresa': data.get('Empresa', 'N/A'),            
             'objeto': data.get('Objeto', 'N/A'),
             'valor_global': data.get('Valor', 'N/A'),
             'uasg': data.get('uasg', 'N/A'),
@@ -545,13 +586,13 @@ class AtualizarDadosContratos(QDialog):
                 'pode_renovar': 'Sim' if self.stack_manager.pode_renovar_buttons['Sim'].isChecked() else 'Não',
                 'custeio': 'Sim' if self.stack_manager.custeio_buttons['Sim'].isChecked() else 'Não',
                 'numero_contrato': self.stack_manager.line_edits['numero_contrato'].text(),
-                'tipo': 'Ata',  # Exemplo de valor fixo, ajuste conforme necessário
+                'tipo': self.stack_manager.contrato_ata_combo_box.currentText(), 
                 # 'id_processo': 'N/A',  # Exemplo de valor fixo, ajuste conforme necessário
-                'fornecedor': self.stack_manager.line_edits["fornecedor"].text().strip(),
+                'empresa': self.stack_manager.line_edits["empresa"].text().strip(),
                 'objeto': 'Material de Expediente',  # Exemplo de valor fixo, ajuste conforme necessário
                 'valor_global': self.stack_manager.line_edits["valor_global"].text().strip(),
                 'uasg': '787000',  # Exemplo de valor fixo, ajuste conforme necessário
-                'nup': '62055.003935/2022-83',  # Exemplo de valor fixo, ajuste conforme necessário
+                'nup': self.stack_manager.line_edits["nup"].text().strip(),
                 'cnpj': self.stack_manager.line_edits["cnpj"].text().strip(),
                 'natureza_continuada': 'Não',  # Exemplo de valor fixo, ajuste conforme necessário
                 'om': 'Com7ºDN',  # Exemplo de valor fixo, ajuste conforme necessário

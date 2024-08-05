@@ -14,6 +14,7 @@ import os
 import subprocess
 import logging
 import sqlite3
+
 class ContratosWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
@@ -21,7 +22,6 @@ class ContratosWidget(QMainWindow):
         super().__init__(parent)
         self.icons_dir = Path(icons_dir)
         self.setup_managers()
-        self.load_initial_data()
         self.model = self.init_model()
         self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
         self.setup_ui()
@@ -45,7 +45,7 @@ class ContratosWidget(QMainWindow):
             source_model.select()
             self.model.sort(source_model.fieldIndex("dias"), Qt.SortOrder.AscendingOrder)
         else:
-            print("Source model nãp encontrado")
+            print("Source model não encontrado")
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
@@ -68,8 +68,9 @@ class ContratosWidget(QMainWindow):
         dialog = AddItemDialog(self)
         if dialog.exec():
             item_data = dialog.get_data()
-            item_data['situacao'] = 'Planejamento'
+            item_data['status'] = 'Minuta'
             self.save_to_database(item_data)
+            self.refresh_model()  # Atualiza a interface após adicionar o item
 
     def excluir_linha(self):
         selection_model = self.ui_manager.table_view.selectionModel()
@@ -109,7 +110,7 @@ class ContratosWidget(QMainWindow):
                 else:
                     df = pd.read_excel(filepath)
                 self.validate_and_process_data(df)
-                df['situacao'] = 'Minuta'
+                df['status'] = 'Minuta'
                 self.database_manager.save_dataframe(df, 'controle_contratos')
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
             except Exception as e:
@@ -118,7 +119,7 @@ class ContratosWidget(QMainWindow):
     def validate_and_process_data(self, df):
         required_columns = [
             'status', 'dias', 'pode_renovar', 'custeio', 'numero_contrato', 'tipo', 'id_processo',
-            'fornecedor', 'objeto', 'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 
+            'empresa', 'objeto', 'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 
             'om', 'material_servico', 'link_pncp', 'portaria', 'posto_gestor', 'gestor', 
             'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal', 'fiscal', 
             'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 
@@ -142,15 +143,18 @@ class ContratosWidget(QMainWindow):
         df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
 
     def save_to_database(self, data, delete=False):
+        print(f"Dados a serem salvos no banco de dados: {data}")
         if delete:
+            print(f"Excluindo dado com numero_contrato: {data['numero_contrato']}")
             self.database_manager.execute_query("DELETE FROM controle_contratos WHERE numero_contrato = ?", (data['numero_contrato'],))
         else:
-            data['status'] = 'Minuta'
+            print("Inserindo ou atualizando dado:")
             self.database_manager.upsert_data("controle_contratos", data, "numero_contrato")
         self.dataUpdated.emit()
 
     def teste(self):
         print("Teste de controle de PDM")   
+
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
@@ -240,15 +244,15 @@ class UIManager:
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(0, 70)
-        header.resizeSection(1, 40)
+        header.resizeSection(1, 50)
         header.resizeSection(2, 65)
         header.resizeSection(3, 65)
         header.resizeSection(4, 130)
         header.resizeSection(5, 75)
         header.resizeSection(6, 90)
         header.resizeSection(7, 150)
-        header.resizeSection(8, 80)
-        header.resizeSection(9, 155)
+        header.resizeSection(8, 170)
+        header.resizeSection(9, 125)
 
     def apply_custom_style(self):
         self.table_view.setStyleSheet("""

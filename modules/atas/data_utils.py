@@ -67,8 +67,7 @@ class DatabaseDialog(QDialog):
         self.db_manager = DatabaseManager(CONTROLE_DADOS)
         self.callback = callback
         self.setup_ui()
-        # self.connect_signals()
-        self.setFixedSize(600, 350) 
+        self.setFixedSize(600, 350)
 
     def cabecalho_layout(self):
         header_layout = QHBoxLayout()
@@ -86,7 +85,7 @@ class DatabaseDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("Gerenciamento de Dados")
-        self.setFont(QFont('Arial', 16))  # Define a fonte para Arial tamanho 16 para todo o diálogo
+        self.setFont(QFont('Arial', 16))
 
         layout = QVBoxLayout(self)
         
@@ -96,7 +95,6 @@ class DatabaseDialog(QDialog):
         self.info_label.setFont(QFont('Arial', 16))
         layout.addWidget(self.info_label)
 
-        # Cria e adiciona os botões de ação
         self.add_action_buttons(layout)
 
         self.table_combobox = QComboBox()
@@ -129,24 +127,16 @@ class DatabaseDialog(QDialog):
         btn.setToolTip(tooltip_text)
         return btn
 
-    def connect_signals(self):
-        self.save_button.clicked.connect(self.save_data)
-        self.load_button.clicked.connect(self.load_data)
-        self.delete_button.clicked.connect(self.populate_and_show_delete_options)
-
     def populate_and_show_delete_options(self):
-        with self.db_manager as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' 
-                AND name NOT IN ('controle_agentes_responsaveis', 'controle_om', 'controle_prazos', 'controle_processos', 'sqlite_sequence');
-            """)
-            tables = [row[0] for row in cur.fetchall()]
+        tables = self.db_manager.execute_query("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' 
+            AND name NOT IN ('controle_agentes_responsaveis', 'controle_om', 'controle_prazos', 'controle_processos', 'sqlite_sequence');
+        """)
         
         self.table_combobox.clear()
         if tables:
-            self.table_combobox.addItems(tables)
+            self.table_combobox.addItems([table[0] for table in tables])
         else:
             QMessageBox.warning(self, "Aviso", "Nenhuma tabela elegível foi encontrada.")
             return
@@ -163,7 +153,7 @@ class DatabaseDialog(QDialog):
                 try:
                     with self.db_manager as conn:
                         cur = conn.cursor()
-                        cur.execute(f'DROP TABLE "{selected_table}"')
+                        cur.execute(f'DROP TABLE IF EXISTS "{selected_table}"')
                         conn.commit()
                     QMessageBox.information(self, "Sucesso", f"Tabela '{selected_table}' excluída com sucesso!")
                 except Exception as e:
@@ -171,7 +161,7 @@ class DatabaseDialog(QDialog):
                 finally:
                     self.populate_and_show_delete_options()  # Re-populate list and reset state
 
-                    
+            
     def save_data(self):
         if isinstance(self.dataframe, pd.DataFrame) and not self.dataframe.empty:
             print("Salvando DataFrame com as colunas:", self.dataframe.columns)

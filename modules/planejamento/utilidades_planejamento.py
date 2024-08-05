@@ -55,7 +55,6 @@ class DatabaseManager:
     def __init__(self, db_path):
         self.db_path = db_path
         self.connection = None
-        self.connect_to_database()
         logging.basicConfig(level=logging.INFO, filename='app.log', filemode='a',
                             format='%(name)s - %(levelname)s - %(message)s')
 
@@ -65,44 +64,38 @@ class DatabaseManager:
 
     def connect_to_database(self):
         try:
-            self.connection = sqlite3.connect(self.db_path)
-            return self.connection
-        except sqlite3.Error as e:
-            logging.error(f"Failed to connect to database at {self.db_path}: {e}")
-            raise
-
-    def connect_to_database(self):
-        try:
-            self.connection = sqlite3.connect(self.db_path)
-            return self.connection
+            connection = sqlite3.connect(self.db_path)
+            return connection
         except sqlite3.Error as e:
             logging.error(f"Failed to connect to database at {self.db_path}: {e}")
             raise
 
     def execute_query(self, query, params=None):
-        try:
-            cursor = self.connection.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            return cursor.fetchall()
-        except sqlite3.Error as e:
-            logging.error(f"Error executing query: {query}, Error: {e}")
-            return None
+        with self.connect_to_database() as conn:
+            try:
+                cursor = conn.cursor()
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                return cursor.fetchall()
+            except sqlite3.Error as e:
+                logging.error(f"Error executing query: {query}, Error: {e}")
+                return None
 
     def execute_update(self, query, params=None):
-        try:
-            cursor = self.connection.cursor()
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            self.connection.commit()
-        except sqlite3.Error as e:
-            logging.error(f"Error executing update: {query}, Error: {e}")
-            return False
-        return True
+        with self.connect_to_database() as conn:
+            try:
+                cursor = conn.cursor()
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                conn.commit()
+            except sqlite3.Error as e:
+                logging.error(f"Error executing update: {query}, Error: {e}")
+                return False
+            return True
 
     def close_connection(self):
         if self.connection:
