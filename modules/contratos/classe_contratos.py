@@ -7,7 +7,7 @@ from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos
-from modules.contratos.database_manager import DatabaseManager, CustomTableView
+from modules.contratos.database_manager import SqlModel, DatabaseManager, CustomTableView
 from modules.contratos.add_item import AddItemDialog
 import pandas as pd
 import os
@@ -20,7 +20,7 @@ class ContratosWidget(QMainWindow):
 
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
-        self.icons_dir = Path(icons_dir)
+        self.icons_dir = Path(icons_dir) if icons_dir else Path()
         self.setup_managers()
         self.load_initial_data()  # Carregar dados iniciais antes de configurar o UI Manager
         self.model = self.init_model()
@@ -32,24 +32,13 @@ class ContratosWidget(QMainWindow):
         self.refresh_model()
 
     def init_model(self):
-        model = self.database_manager.setup_model("controle_contratos", icons_dir=self.icons_dir, editable=True)
-        self.proxy_model = QSortFilterProxyModel(self)
-        self.proxy_model.setSourceModel(model)
-        self.proxy_model.setSortRole(Qt.ItemDataRole.DisplayRole)
-        self.proxy_model.sort(model.fieldIndex("dias"), Qt.SortOrder.AscendingOrder)
-        return self.proxy_model
-
-    def refresh_model(self):
-        source_model = self.model.sourceModel()
-        if source_model:
-            source_model.select()
-            self.model.sort(source_model.fieldIndex("dias"), Qt.SortOrder.AscendingOrder)
-        else:
-            print("Source model não encontrado")
+        # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
+        sql_model = SqlModel(self.database_manager, self)
+        return sql_model.setup_model("controle_contratos", editable=True)
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
-        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        self.database_path = Path(load_config("CONTROLE_CONTRATOS_DADOS", str(CONTROLE_CONTRATOS_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
         self.event_manager = EventManager()
 
@@ -63,35 +52,6 @@ class ContratosWidget(QMainWindow):
             "excel.png", "calendar.png", "report.png", "management.png"
         ])
         self.selectedIndex = None
-
-    def excluir_linha(self):
-        selection_model = self.ui_manager.table_view.selectionModel()
-        if selection_model.hasSelection():
-            index_list = selection_model.selectedRows(0)
-            if not index_list:
-                QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
-                return
-            selected_numero_contrato = index_list[0].data()
-            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com numero_contrato '{selected_numero_contrato}'?"):
-                try:
-                    self.database_manager.execute_query("DELETE FROM controle_contratos WHERE numero_contrato = ?", (selected_numero_contrato,))
-                    QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
-                except Exception as e:
-                    QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
-        else:
-            QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
-
-    def salvar_tabela(self):
-        self.export_thread = ExportThread(self.model, self.output_path)
-        self.export_thread.finished.connect(self.handle_export_finished)
-        self.export_thread.start()
-
-    def handle_export_finished(self, message):
-        if 'successfully' in message:
-            Dialogs.info(self, "Exportação de Dados", "Dados exportados com sucesso!")
-            subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
-        else:
-            Dialogs.warning(self, "Exportação de Dados", message)
 
     def carregar_tabela(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods *.csv)")
@@ -113,7 +73,48 @@ class ContratosWidget(QMainWindow):
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
             except Exception as e:
                 Dialogs.warning(self, "Erro ao carregar", str(e))
+            finally:
+                # Fechar todas as conexões ao banco de dados
+                self.database_manager.close_all_connections()
 
+    def excluir_linha(self):
+        selection_model = self.ui_manager.table_view.selectionModel()
+
+        if selection_model.hasSelection():
+            index_list = selection_model.selectedRows(0)
+
+            if not index_list:
+                QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
+                return
+            
+            selected_numero_contrato = index_list[0].data()
+            print(f"Excluindo linha com numero_contrato: {selected_numero_contrato}")
+
+            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com numero_contrato '{selected_numero_contrato}'?"):
+                try:
+                    self.database_manager.delete_record('controle_contratos', 'numero_contrato', selected_numero_contrato)
+                    QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
+                    self.refresh_model()  # Atualiza o modelo para refletir as mudanças
+                except Exception as e:
+                    QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
+                    print(f"Erro ao excluir o registro: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
+
+    def refresh_model(self):
+        self.model.select()
+
+    def salvar_tabela(self):
+        self.export_thread = ExportThread(self.model, self.output_path)
+        self.export_thread.finished.connect(self.handle_export_finished)
+        self.export_thread.start()
+
+    def handle_export_finished(self, message):
+        if 'successfully' in message:
+            Dialogs.info(self, "Exportação de Dados", "Dados exportados com sucesso!")
+            subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
+        else:
+            Dialogs.warning(self, "Exportação de Dados", message)
 
     def validate_and_process_data(self, df):
         required_columns = [
@@ -148,13 +149,127 @@ class ContratosWidget(QMainWindow):
             self.refresh_model()  # Atualiza a interface após adicionar o item
 
     def save_to_database(self, data, delete=False):
-        print(f"Dados a serem salvos no banco de dados: {data}")
-        if delete:
-            print(f"Excluindo dado com numero_contrato: {data['numero_contrato']}")
-            self.database_manager.execute_query("DELETE FROM controle_contratos WHERE numero_contrato = ?", (data['numero_contrato'],))
+        with self.database_manager as conn:
+            cursor = conn.cursor()
+            if delete:
+                cursor.execute("DELETE FROM controle_contratos WHERE numero_contrato = ?", (data['numero_contrato'],))
+            else:
+                print("Inserindo ou atualizando dado:")
+                self.database_manager.upsert_data("controle_contratos", data, "numero_contrato")
+            self.dataUpdated.emit()
+
+    def excluir_linha(self):
+        selection_model = self.ui_manager.table_view.selectionModel()
+
+        if selection_model.hasSelection():
+            # Supondo que a coluna 0 é 'id_processo'
+            index_list = selection_model.selectedRows(0)
+
+            if not index_list:
+                QMessageBox.warning(self, "Nenhuma Seleção", "Nenhuma linha selecionada.")
+                return
+
+            selected_id_processo = index_list[0].data()  # Pega o 'id_processo' da primeira linha selecionada
+            print(f"Excluindo linha com id_processo: {selected_id_processo}")
+
+            # Confirmar a exclusão
+            if Dialogs.confirm(self, 'Confirmar exclusão', f"Tem certeza que deseja excluir o registro com ID Processo '{selected_id_processo}'?"):
+                data_to_delete = {'numero_contrato': selected_id_processo}
+                try:
+                    self.save_to_database(data_to_delete, delete=True)  # Passa o dado a ser deletado com uma flag de exclusão
+                    QMessageBox.information(self, "Sucesso", "Registro excluído com sucesso.")
+                except Exception as e:
+                    QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir o registro: {str(e)}")
+                    print(f"Erro ao excluir o registro: {str(e)}")
         else:
-            print("Inserindo ou atualizando dado:")
-            self.database_manager.upsert_data("controle_contratos", data, "numero_contrato")
+            QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
+
+    def save_to_database(self, data, delete=False):
+        with self.database_manager as conn:
+            cursor = conn.cursor()
+            if delete:
+                cursor.execute("DELETE FROM controle_contratos WHERE numero_contrato = ?", (data['numero_contrato'],))
+            else:
+                status = 'Minuta'
+                upsert_sql = '''
+                INSERT INTO controle_contratos (
+                    status, dias, pode_renovar, custeio, numero_contrato, tipo, id_processo, empresa, objeto, valor_global, 
+                    uasg, nup, cnpj, natureza_continuada, om, sigla_om, orgao_responsavel, material_servico, link_pncp, 
+                    portaria, posto_gestor, gestor, posto_gestor_substituto, gestor_substituto, posto_fiscal, fiscal, 
+                    posto_fiscal_substituto, fiscal_substituto, posto_fiscal_administrativo, fiscal_administrativo, 
+                    vigencia_inicial, vigencia_final, setor, cp, msg, comentarios, termo_aditivo, atualizacao_comprasnet, 
+                    instancia_governanca, comprasnet_contratos, registro_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(numero_contrato) DO UPDATE SET
+                    status = excluded.status,
+                    dias = excluded.dias,
+                    pode_renovar = excluded.pode_renovar,
+                    custeio = excluded.custeio,
+                    tipo = excluded.tipo,
+                    id_processo = excluded.id_processo,
+                    empresa = excluded.empresa,
+                    objeto = excluded.objeto,
+                    valor_global = excluded.valor_global,
+                    uasg = excluded.uasg,
+                    nup = excluded.nup,
+                    cnpj = excluded.cnpj,
+                    natureza_continuada = excluded.natureza_continuada,
+                    om = excluded.om,
+                    sigla_om = excluded.sigla_om,
+                    orgao_responsavel = excluded.orgao_responsavel,
+                    material_servico = excluded.material_servico,
+                    link_pncp = excluded.link_pncp,
+                    portaria = excluded.portaria,
+                    posto_gestor = excluded.posto_gestor,
+                    gestor = excluded.gestor,
+                    posto_gestor_substituto = excluded.posto_gestor_substituto,
+                    gestor_substituto = excluded.gestor_substituto,
+                    posto_fiscal = excluded.posto_fiscal,
+                    fiscal = excluded.fiscal,
+                    posto_fiscal_substituto = excluded.posto_fiscal_substituto,
+                    fiscal_substituto = excluded.fiscal_substituto,
+                    posto_fiscal_administrativo = excluded.posto_fiscal_administrativo,
+                    fiscal_administrativo = excluded.fiscal_administrativo,
+                    vigencia_inicial = excluded.vigencia_inicial,
+                    vigencia_final = excluded.vigencia_final,
+                    setor = excluded.setor,
+                    cp = excluded.cp,
+                    msg = excluded.msg,
+                    comentarios = excluded.comentarios,
+                    termo_aditivo = excluded.termo_aditivo,
+                    atualizacao_comprasnet = excluded.atualizacao_comprasnet,
+                    instancia_governanca = excluded.instancia_governanca,
+                    comprasnet_contratos = excluded.comprasnet_contratos,
+                    registro_status = excluded.registro_status
+                '''
+                if isinstance(data, pd.DataFrame):
+                    data['status'] = status
+                    for _, row in data.iterrows():
+                        cursor.execute(upsert_sql, (
+                            row['status'], row['dias'], row['pode_renovar'], row['custeio'], row['numero_contrato'], row['tipo'], 
+                            row['id_processo'], row['empresa'], row['objeto'], row['valor_global'], row['uasg'], row['nup'], 
+                            row['cnpj'], row['natureza_continuada'], row['om'], row['sigla_om'], row['orgao_responsavel'], 
+                            row['material_servico'], row['link_pncp'], row['portaria'], row['posto_gestor'], row['gestor'], 
+                            row['posto_gestor_substituto'], row['gestor_substituto'], row['posto_fiscal'], row['fiscal'], 
+                            row['posto_fiscal_substituto'], row['fiscal_substituto'], row['posto_fiscal_administrativo'], 
+                            row['fiscal_administrativo'], row['vigencia_inicial'], row['vigencia_final'], row['setor'], row['cp'], 
+                            row['msg'], row['comentarios'], row['termo_aditivo'], row['atualizacao_comprasnet'], row['instancia_governanca'], 
+                            row['comprasnet_contratos'], row['registro_status']
+                        ))
+                else:
+                    data['status'] = status
+                    cursor.execute(upsert_sql, (
+                        data['status'], data['dias'], data['pode_renovar'], data['custeio'], data['numero_contrato'], data['tipo'], 
+                        data['id_processo'], data['empresa'], data['objeto'], data['valor_global'], data['uasg'], data['nup'], 
+                        data['cnpj'], data['natureza_continuada'], data['om'], data['sigla_om'], data['orgao_responsavel'], 
+                        data['material_servico'], data['link_pncp'], data['portaria'], data['posto_gestor'], data['gestor'], 
+                        data['posto_gestor_substituto'], data['gestor_substituto'], data['posto_fiscal'], data['fiscal'], 
+                        data['posto_fiscal_substituto'], data['fiscal_substituto'], data['posto_fiscal_administrativo'], 
+                        data['fiscal_administrativo'], data['vigencia_inicial'], data['vigencia_final'], data['setor'], data['cp'], 
+                        data['msg'], data['comentarios'], data['termo_aditivo'], data['atualizacao_comprasnet'], data['instancia_governanca'], 
+                        data['comprasnet_contratos'], data['registro_status']
+                    ))
+            conn.commit()
         self.dataUpdated.emit()
 
     def excluir_database(self):
@@ -173,7 +288,6 @@ class ContratosWidget(QMainWindow):
                 self.refresh_model()
             except Exception as e:
                 QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir a tabela: {str(e)}")
-
 
 
     def teste(self):
@@ -223,12 +337,11 @@ class UIManager:
         self.apply_custom_style()
 
         center_delegate = CenterAlignDelegate(self.table_view)
-        source_model = self.model.sourceModel()
-        for column in range(source_model.columnCount()):
+        for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        dias_index = source_model.fieldIndex("dias")
-        status_index = source_model.fieldIndex("status")
+        dias_index = self.model.fieldIndex("dias")
+        status_index = self.model.fieldIndex("status")
 
         self.table_view.setItemDelegateForColumn(dias_index, ColorDelegate(self.table_view))
         self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons_dir, self.table_view))

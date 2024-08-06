@@ -7,6 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 CONFIG_FILE = BASE_DIR / "config.json"
 # CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
+CONTROLE_CONTRATOS_DADOS = DATABASE_DIR / "controle_contrato.db"
 HOME_PATH = BASE_DIR / "home.py"
 def load_config(key, default_value):
     try:

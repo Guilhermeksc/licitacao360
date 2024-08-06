@@ -209,9 +209,6 @@ class SqlModel:
         else:
             print("Tabela 'controle_dispensas' criada com sucesso.")
 
-
-
-
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13])
         self.model.setTable(table_name)
