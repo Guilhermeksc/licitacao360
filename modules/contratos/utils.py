@@ -159,3 +159,23 @@ def carregar_dados_contratos(index, caminho_banco_dados):
     except Exception as e:
         print(f"Erro ao carregar dados do banco de dados: {e}")
         return {}  # Retorna um dicionário vazio em caso de erro
+
+class Dialogs:
+    @staticmethod
+    def info(parent, title, message):
+        QMessageBox.information(parent, title, message)
+
+    @staticmethod
+    def warning(parent, title, message):
+        QMessageBox.warning(parent, title, message)
+
+    @staticmethod
+    def error(parent, title, message):
+        QMessageBox.critical(parent, title, message)
+
+    @staticmethod
+    def confirm(parent, title, message):
+        reply = QMessageBox.question(parent, title, message,
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+        return reply == QMessageBox.StandardButton.Yes

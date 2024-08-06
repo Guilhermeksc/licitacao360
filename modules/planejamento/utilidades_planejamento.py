@@ -420,8 +420,6 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print("Erro ao atualizar dias na etapa:", e)
 
-
-
     def inserir_controle_prazo(self, chave_processo, etapa, data_inicial, comentario):
         with self as conn:
             cursor = conn.cursor()
