@@ -7,7 +7,7 @@ from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos
-from modules.contratos.database_manager import DatabaseManager, SqlModel, CustomTableView
+from modules.contratos.database_manager import DatabaseManager, CustomTableView
 from modules.contratos.add_item import AddItemDialog
 import pandas as pd
 import os
@@ -22,6 +22,7 @@ class ContratosWidget(QMainWindow):
         super().__init__(parent)
         self.icons_dir = Path(icons_dir)
         self.setup_managers()
+        self.load_initial_data()  # Carregar dados iniciais antes de configurar o UI Manager
         self.model = self.init_model()
         self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
         self.setup_ui()
@@ -31,8 +32,7 @@ class ContratosWidget(QMainWindow):
         self.refresh_model()
 
     def init_model(self):
-        sql_model = SqlModel(self.database_manager, self)
-        model = sql_model.setup_model("controle_contratos", editable=True)
+        model = self.database_manager.setup_model("controle_contratos", icons_dir=self.icons_dir, editable=True)
         self.proxy_model = QSortFilterProxyModel(self)
         self.proxy_model.setSourceModel(model)
         self.proxy_model.setSortRole(Qt.ItemDataRole.DisplayRole)
@@ -63,14 +63,6 @@ class ContratosWidget(QMainWindow):
             "excel.png", "calendar.png", "report.png", "management.png"
         ])
         self.selectedIndex = None
-
-    def on_add_item(self):
-        dialog = AddItemDialog(self)
-        if dialog.exec():
-            item_data = dialog.get_data()
-            item_data['status'] = 'Minuta'
-            self.save_to_database(item_data)
-            self.refresh_model()  # Atualiza a interface após adicionar o item
 
     def excluir_linha(self):
         selection_model = self.ui_manager.table_view.selectionModel()
@@ -111,10 +103,17 @@ class ContratosWidget(QMainWindow):
                     df = pd.read_excel(filepath)
                 self.validate_and_process_data(df)
                 df['status'] = 'Minuta'
+
+                # Criar a tabela com a coluna numero_contrato como chave primária
+                self.database_manager.create_table_controle_contratos()
+
+                # Salvar o DataFrame na tabela
                 self.database_manager.save_dataframe(df, 'controle_contratos')
+
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
             except Exception as e:
                 Dialogs.warning(self, "Erro ao carregar", str(e))
+
 
     def validate_and_process_data(self, df):
         required_columns = [
@@ -142,6 +141,12 @@ class ContratosWidget(QMainWindow):
         df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
         df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
 
+    def on_add_item(self):
+        dialog = AddItemDialog(self)
+        dialog.itemAdded.connect(self.save_to_database)
+        if dialog.exec():
+            self.refresh_model()  # Atualiza a interface após adicionar o item
+
     def save_to_database(self, data, delete=False):
         print(f"Dados a serem salvos no banco de dados: {data}")
         if delete:
@@ -151,6 +156,25 @@ class ContratosWidget(QMainWindow):
             print("Inserindo ou atualizando dado:")
             self.database_manager.upsert_data("controle_contratos", data, "numero_contrato")
         self.dataUpdated.emit()
+
+    def excluir_database(self):
+        reply = QMessageBox.question(
+            self, 'Confirmar Exclusão',
+            'Tem certeza que deseja excluir a tabela controle_contratos?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                self.database_manager.close_all_connections()  # Fechar todas as conexões antes de excluir
+                self.database_manager.execute_query("DROP TABLE IF EXISTS controle_contratos")
+                QMessageBox.information(self, "Sucesso", "Tabela controle_contratos excluída com sucesso.")
+                self.refresh_model()
+            except Exception as e:
+                QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir a tabela: {str(e)}")
+
+
 
     def teste(self):
         print("Teste de controle de PDM")   
@@ -321,6 +345,7 @@ class ButtonManager:
             ("  Importar", self.parent.image_cache['import_de'], self.parent.carregar_tabela, "Carrega dados de uma tabela"),
             ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
             ("  Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
+            ("  Excluir Database", self.parent.image_cache['delete'], self.parent.excluir_database, "Exclui a tabela controle_contratos do banco de dados"),  # Novo botão
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = create_button(text, icon, callback, tooltip, self.parent)

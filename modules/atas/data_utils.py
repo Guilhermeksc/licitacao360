@@ -151,10 +151,7 @@ class DatabaseDialog(QDialog):
             confirm = QMessageBox.question(self, "Confirmar Exclusão", f"Tem certeza que deseja excluir a tabela '{selected_table}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if confirm == QMessageBox.StandardButton.Yes:
                 try:
-                    with self.db_manager as conn:
-                        cur = conn.cursor()
-                        cur.execute(f'DROP TABLE IF EXISTS "{selected_table}"')
-                        conn.commit()
+                    self.db_manager.execute_query(f'DROP TABLE IF EXISTS "{selected_table}"')
                     QMessageBox.information(self, "Sucesso", f"Tabela '{selected_table}' excluída com sucesso!")
                 except Exception as e:
                     QMessageBox.critical(self, "Erro", f"Erro ao excluir a tabela: {e}")

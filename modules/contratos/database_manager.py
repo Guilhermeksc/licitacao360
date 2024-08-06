@@ -1,11 +1,10 @@
 ## modules/contratos/database_manager.py
 
+from modules.contratos.edit_dialog import AtualizarDadosContratos
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQuery
-from modules.contratos.edit_dialog import AtualizarDadosContratos
-from functools import partial
 import sqlite3
 import pandas as pd
 from functools import partial
@@ -13,9 +12,13 @@ from datetime import datetime
 from pathlib import Path
 
 class DatabaseManager:
-    def __init__(self, db_path):
+    def __init__(self, db_path, parent=None):
         self.db_path = Path(db_path)
         self.connection = None
+        self.parent = parent
+        self.db = None
+        self.model = None
+        self.init_database()
 
     def __enter__(self):
         self.connect()
@@ -25,31 +28,32 @@ class DatabaseManager:
         self.disconnect()
 
     def connect(self):
-        print(f"Connecting to database at {self.db_path}...")
         self.connection = sqlite3.connect(self.db_path)
-        print("Database connected")
 
     def disconnect(self):
         if self.connection:
-            print("Disconnecting database...")
             self.connection.close()
-            print("Database disconnected")
 
+    def close_all_connections(self):
+        if self.connection:
+            self.connection.close()
+            del self.connection
+            self.connection = None
+
+        if QSqlDatabase.contains("my_conn"):
+            QSqlDatabase.removeDatabase("my_conn")
+            
     def execute_query(self, query, params=None):
-        print(f"Executing query: {query} with params: {params}")
         with self:
             cursor = self.connection.cursor()
             cursor.execute(query, params or [])
             self.connection.commit()
-        print("Query executed")
 
     def fetch_query(self, query, params=None):
-        print(f"Fetching query: {query} with params: {params}")
         with self:
             cursor = self.connection.cursor()
             cursor.execute(query, params or [])
             result = cursor.fetchall()
-        print(f"Query fetched with result: {result}")
         return result
 
     def upsert_data(self, table, data, conflict_column):
@@ -61,21 +65,112 @@ class DatabaseManager:
             INSERT INTO {table} ({columns}) VALUES ({placeholders})
             ON CONFLICT({conflict_column}) DO UPDATE SET {update_columns}
         '''
-        print(f"Upsert query: {upsert_query} with data: {data}")
         self.execute_query(upsert_query, list(data.values()))
 
     def load_dataframe(self, table):
-        print(f"Loading dataframe from table: {table}")
         with self:
             df = pd.read_sql_query(f"SELECT * FROM {table}", self.connection)
-        print(f"Dataframe loaded: {df}")
         return df
 
     def save_dataframe(self, df, table):
-        print(f"Saving dataframe to table: {table}")
         with self:
-            df.to_sql(table, self.connection, if_exists='replace', index=False)
-        print("Dataframe saved")
+            df.to_sql(table, self.connection, if_exists='append', index=False)
+
+    def create_table_controle_contratos(self):
+        create_table_query = """
+            CREATE TABLE IF NOT EXISTS controle_contratos (
+                status TEXT,
+                dias TEXT,     
+                pode_renovar TEXT,                          
+                custeio TEXT,
+                numero_contrato TEXT PRIMARY KEY,
+                tipo TEXT,  
+                id_processo TEXT,
+                empresa TEXT,                                          
+                objeto TEXT,
+                valor_global TEXT, 
+                uasg TEXT,
+                nup TEXT,
+                cnpj TEXT,                        
+                natureza_continuada TEXT,
+                om TEXT,
+                sigla_om TEXT,
+                orgao_responsavel TEXT,
+                material_servico TEXT,
+                link_pncp TEXT,
+                portaria TEXT,
+                posto_gestor TEXT,
+                gestor TEXT,
+                posto_gestor_substituto TEXT,
+                gestor_substituto TEXT,
+                posto_fiscal TEXT,
+                fiscal TEXT,
+                posto_fiscal_substituto TEXT,
+                fiscal_substituto TEXT,
+                posto_fiscal_administrativo TEXT,
+                fiscal_administrativo TEXT,
+                vigencia_inicial TEXT,
+                vigencia_final TEXT,
+                setor TEXT,
+                cp TEXT,
+                msg TEXT,
+                comentarios TEXT,
+                termo_aditivo TEXT,
+                atualizacao_comprasnet TEXT,
+                instancia_governanca TEXT,
+                comprasnet_contratos TEXT,
+                registro_status TEXT
+            )
+        """
+        self.execute_query(create_table_query)
+
+    def init_database(self):
+        if QSqlDatabase.contains("my_conn"):
+            QSqlDatabase.removeDatabase("my_conn")
+        self.db = QSqlDatabase.addDatabase('QSQLITE', "my_conn")
+        self.db.setDatabaseName(str(self.db_path))
+        if not self.db.open():
+            print("Não foi possível abrir a conexão com o banco de dados.")
+        else:
+            self.adjust_table_structure()
+
+    def adjust_table_structure(self):
+        query = QSqlQuery(self.db)
+        query.exec("SELECT name FROM sqlite_master WHERE type='table'")
+        while query.next():
+            print(query.value(0))
+
+        if not query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_contratos'"):
+            print("Erro ao verificar a existência da tabela 'controle_contratos':", query.lastError().text())
+        elif not query.next():
+            print("Tabela 'controle_contratos' não encontrada, criando tabela...")
+            self.create_table_controle_contratos()
+        else:
+            print("Tabela 'controle_contratos' já existe.")
+            self.print_table_info()
+
+    def print_table_info(self):
+        query = QSqlQuery(self.db)
+        query.exec("PRAGMA table_info(controle_contratos)")
+        while query.next():
+            print(f"Column: {query.value(1)}, Type: {query.value(2)}, Primary Key: {query.value(5)}")
+
+    def setup_model(self, table_name, icons_dir, editable=False):
+        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[0, 1, 2, 3, 5, 6], icons_dir=icons_dir)
+        self.model.setTable(table_name)
+        if editable:
+            self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
+        self.model.select()
+        return self.model
+
+    def configure_columns(self, table_view, visible_columns):
+        for column in range(self.model.columnCount()):
+            header = self.model.headerData(column, Qt.Orientation.Horizontal)
+            if column not in visible_columns:
+                table_view.hideColumn(column)
+            else:
+                self.model.setHeaderData(column, Qt.Orientation.Horizontal, header)
+
 
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
@@ -169,7 +264,6 @@ class TableMenu(QMenu):
         dialog.dadosContratosSalvos.connect(self.atualizar_interface)
         dialog.show()
 
-
     def atualizar_interface(self):
         print("Interface atualizada com os novos dados.")
         self.main_app.refresh_model()
@@ -233,103 +327,3 @@ class CustomSqlTableModel(QSqlTableModel):
                 except ValueError:
                     return "Data Inválida"
         return super().data(index, role)
-
-class SqlModel:
-    def __init__(self, database_manager, parent=None):
-        self.database_manager = database_manager
-        self.parent = parent
-        self.init_database()
-
-    def init_database(self):
-        if QSqlDatabase.contains("my_conn"):
-            QSqlDatabase.removeDatabase("my_conn")
-        self.db = QSqlDatabase.addDatabase('QSQLITE', "my_conn")
-        self.db.setDatabaseName(str(self.database_manager.db_path))
-        if not self.db.open():
-            print("Não foi possível abrir a conexão com o banco de dados.")
-        else:
-            self.adjust_table_structure()
-
-    def adjust_table_structure(self):
-        query = QSqlQuery(self.db)
-        query.exec("SELECT name FROM sqlite_master WHERE type='table'")
-        while query.next():
-            print(query.value(0))
-
-        if not query.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='controle_contratos'"):
-            print("Erro ao verificar a existência da tabela 'controle_contratos':", query.lastError().text())
-        elif not query.next():
-            print("Tabela 'controle_contratos' não encontrada, criando tabela...")
-            self.create_table_if_not_exists()
-        else:
-            print("Tabela 'controle_contratos' já existe.")
-
-    def create_table_if_not_exists(self):
-        print("Creating table if not exists...")
-        query = QSqlQuery(self.db)
-        create_table_query = """
-            CREATE TABLE IF NOT EXISTS controle_contratos (
-                status TEXT,
-                dias TEXT,     
-                pode_renovar TEXT,                          
-                custeio TEXT,
-                numero_contrato TEXT PRIMARY KEY,
-                tipo TEXT,  
-                id_processo TEXT,
-                fornecedor TEXT,                                          
-                objeto TEXT,
-                valor_global TEXT, 
-                uasg TEXT,
-                nup TEXT,
-                cnpj TEXT,                        
-                natureza_continuada TEXT,
-                om TEXT,
-                material_servico TEXT,
-                link_pncp TEXT,
-                portaria TEXT,
-                posto_gestor TEXT,
-                gestor TEXT,
-                posto_gestor_substituto TEXT,
-                gestor_substituto TEXT,
-                posto_fiscal TEXT,
-                fiscal TEXT,
-                posto_fiscal_substituto TEXT,
-                fiscal_substituto TEXT,
-                posto_fiscal_administrativo TEXT,
-                fiscal_administrativo TEXT,
-                vigencia_inicial TEXT,
-                vigencia_final TEXT,
-                setor TEXT,
-                cp TEXT,
-                msg TEXT,
-                comentarios TEXT,
-                termo_aditivo TEXT,
-                atualizacao_comprasnet TEXT,
-                instancia_governanca TEXT,
-                comprasnet_contratos TEXT,
-                registro_status TEXT
-            )
-        """
-        if not query.exec(create_table_query):
-            print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
-        else:
-            print("Tabela 'controle_contratos' criada com sucesso.")
-        print("Table creation process finished")
-
-    def setup_model(self, table_name, editable=False):
-        print(f"Setting up model for table: {table_name}...")
-        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[0, 1, 2, 3, 5, 6], icons_dir=self.parent.icons_dir)
-        self.model.setTable(table_name)
-        if editable:
-            self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
-        self.model.select()
-        print("Model set up complete")
-        return self.model
-
-    def configure_columns(self, table_view, visible_columns):
-        for column in range(self.model.columnCount()):
-            header = self.model.headerData(column, Qt.Orientation.Horizontal)
-            if column not in visible_columns:
-                table_view.hideColumn(column)
-            else:
-                self.model.setHeaderData(column, Qt.Orientation.Horizontal, header)
