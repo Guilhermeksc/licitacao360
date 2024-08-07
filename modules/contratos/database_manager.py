@@ -81,38 +81,57 @@ class DatabaseContratosManager:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
+                assinatura_contrato TEXT,
                 registro_status TEXT
             )
         """)
         conn.commit()
+    """
+0 - status,                     1 - dias,                       2 - pode_renovar,                   3 - custeio,                4 - numero_contrato, 
+5 - tipo,  6 - id_processo,     7 - empresa,                    8 - objeto,                         9 - valor_global,           10 - uasg, 
+11 - nup,                       12 - cnpj,                      13 - natureza_continuada,           14 - om,                    15 - sigla_om, 
+16 - orgao_responsavel          17 - material_servico,          18 - link_pncp,                     19 - portaria,              20 - posto_gestor, 
+21 - gestor,                    22 - posto_gestor_substituto,   23 - gestor_substituto,             24 - posto_fiscal,          25 - fiscal, 
+26 - posto_fiscal_substituto,   27 - fiscal_substituto,         28 - posto_fiscal_administrativo,   29 - fiscal_administrativo, 30 - vigencia_inicial,          
+31 - vigencia_final,            32 - setor,                     33 - cp,                            34 - msg,                   35 - comentarios, 
+36 - termo_aditivo,             37 - atualizacao_comprasnet,    38 - instancia_governanca,          39 - comprasnet_contratos,  40 - assinatura_contrato, 41 - registro_status
 
+    """
     def save_dataframe(self, df, table_name):
-        with self.connect_to_database() as conn:
+        conn = self.connect_to_database()
+        try:
             df.to_sql(table_name, conn, if_exists='append', index=False)
-        self.close_connection()
-
+        except sqlite3.Error as e:
+            logging.error(f"Error saving dataframe: {e}")
+        finally:
+            self.close_connection()
+            
     def delete_record(self, table_name, column, value):
-        with self.connect_to_database() as conn:
+        conn = self.connect_to_database()
+        try:
             cursor = conn.cursor()
             cursor.execute(f"DELETE FROM {table_name} WHERE {column} = ?", (value,))
             conn.commit()
-        self.close_connection()
+        except sqlite3.Error as e:
+            logging.error(f"Error deleting record: {e}")
+        finally:
+            self.close_connection()
 
     def execute_query(self, query, params=None):
-        with self.connect_to_database() as conn:
-            try:
-                cursor = conn.cursor()
-                if params:
-                    cursor.execute(query, params)
-                else:
-                    cursor.execute(query)
-                conn.commit()
-                return cursor.fetchall()
-            except sqlite3.Error as e:
-                logging.error(f"Error executing query: {query}, Error: {e}")
-                return None
-            finally:
-                self.close_connection()
+        conn = self.connect_to_database()
+        try:
+            cursor = conn.cursor()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            conn.commit()
+            return cursor.fetchall()
+        except sqlite3.Error as e:
+            logging.error(f"Error executing query: {query}, Error: {e}")
+            return None
+        finally:
+            self.close_connection()
 
 class SqlModel:
     def __init__(self, database_manager, parent=None):
@@ -203,6 +222,7 @@ class SqlModel:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
+                assinatura_contrato TEXT,
                 registro_status TEXT
             )
         """):

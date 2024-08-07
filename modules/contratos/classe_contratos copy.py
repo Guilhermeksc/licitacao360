@@ -1,29 +1,7 @@
 
 
 
-    def on_add_item(self):
-        add_item_dialog = AddItemDialog(self)
-        if add_item_dialog.exec() == QDialog.DialogCode.Accepted:
-            item_data = add_item_dialog.get_data()
-            item_data = self.completar_dados_adicionais(item_data)
-            print("Dados do item a serem adicionados:", item_data)  # Print de depuração
-            self.database_manager.save_to_database(item_data)
-            self.refresh_model()
 
-    def completar_dados_adicionais(self, item_data):
-        # Define todas as outras colunas como None
-        all_columns = [
-            'status', 'dias', 'pode_renovar', 'custeio', 'numero_contrato', 'tipo', 'id_processo', 'empresa', 
-            'objeto', 'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'sigla_om', 
-            'orgao_responsavel', 'material_servico', 'link_pncp', 'portaria', 'posto_gestor', 'gestor', 
-            'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal', 'fiscal', 'posto_fiscal_substituto', 
-            'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo', 'vigencia_inicial', 
-            'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'termo_aditivo', 'atualizacao_comprasnet', 
-            'instancia_governanca', 'comprasnet_contratos', 'registro_status'
-        ]
-        default_data = {col: None for col in all_columns}
-        default_data.update(item_data)
-        return default_data
 
 
     def excluir_database(self):
@@ -35,4 +13,52 @@
                 self.refresh_model()
             except Exception as e:
                 QMessageBox.warning(self, "Erro ao excluir", f"Erro ao excluir a tabela: {str(e)}")
-                
+
+
+    def carregar_tabela(self):
+        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods *.csv)")
+        if filepath:
+            try:
+                if filepath.endswith('.csv'):
+                    df = pd.read_csv(filepath)
+                else:
+                    df = pd.read_excel(filepath)
+                self.validate_and_process_data(df)
+                df['status'] = 'Minuta'
+
+                with self.database_manager as conn:
+                    DatabaseContratosManager.create_table_controle_contratos(conn)
+
+                self.database_manager.save_dataframe(df, 'controle_contratos')
+                Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
+            except Exception as e:
+                logging.error("Erro ao carregar tabela: %s", e)
+                Dialogs.warning(self, "Erro ao carregar", str(e))
+
+    def validate_and_process_data(self, df):
+        try:
+            self.validate_columns(df)
+            self.add_missing_columns(df)
+            self.salvar_detalhes_uasg_sigla_nome(df)
+        except ValueError as e:
+            Dialogs.warning(self, "Erro de Validação", str(e))
+        except Exception as e:
+            Dialogs.error(self, "Erro Inesperado", str(e))
+
+    def validate_columns(self, df):
+        missing_columns = [col for col in self.required_columns if col not in df.columns]
+        if missing_columns:
+            raise ValueError(f"Colunas obrigatórias faltando: {', '.join(missing_columns)}")
+
+    def add_missing_columns(self, df):
+        for col in self.required_columns:
+            if col not in df.columns:
+                df[col] = ""
+
+    def salvar_detalhes_uasg_sigla_nome(self, df):
+        with sqlite3.connect(self.database_om_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
+            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
+        df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
+        df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))

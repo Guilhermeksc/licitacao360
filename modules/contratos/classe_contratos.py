@@ -9,6 +9,7 @@ from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
 from modules.contratos.gerenciar_inclusao_exclusao import GerenciarInclusaoExclusaoContratos
+from modules.contratos.treeview_atas import TreeViewAtasDialog
 import pandas as pd
 import os
 import subprocess
@@ -27,7 +28,7 @@ class ContratosWidget(QMainWindow):
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
             'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'termo_aditivo', 'atualizacao_comprasnet',
-            'instancia_governanca', 'comprasnet_contratos', 'registro_status'
+            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'registro_status'
         ]
         self.setup_managers()
         self.load_initial_data()
@@ -49,26 +50,6 @@ class ContratosWidget(QMainWindow):
         self.database_om_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseContratosManager(self.database_path)
 
-    def carregar_tabela(self):
-        filepath, _ = QFileDialog.getOpenFileName(self, "Abrir arquivo de tabela", "", "Tabelas (*.xlsx *.xls *.ods *.csv)")
-        if filepath:
-            try:
-                if filepath.endswith('.csv'):
-                    df = pd.read_csv(filepath)
-                else:
-                    df = pd.read_excel(filepath)
-                self.validate_and_process_data(df)
-                df['status'] = 'Minuta'
-
-                with self.database_manager as conn:
-                    DatabaseContratosManager.create_table_controle_contratos(conn)
-
-                self.database_manager.save_dataframe(df, 'controle_contratos')
-                Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
-            except Exception as e:
-                logging.error("Erro ao carregar tabela: %s", e)
-                Dialogs.warning(self, "Erro ao carregar", str(e))
-
     def refresh_model(self):
         self.model.select()
 
@@ -76,7 +57,7 @@ class ContratosWidget(QMainWindow):
         self.setCentralWidget(self.ui_manager.main_widget)
 
     def load_initial_data(self):
-        self.image_cache = load_images(self.icons_dir, ["plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "report.png", "management.png"])
+        self.image_cache = load_images(self.icons_dir, ["production.png", "production_red.png", "website_menu.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "report.png", "management.png"])
 
     def gerenciar_itens(self):
         # Encerrar conexões existentes antes de abrir o diálogo
@@ -103,34 +84,14 @@ class ContratosWidget(QMainWindow):
         else:
             Dialogs.warning(self, "Exportação de Dados", message)
 
-    def validate_and_process_data(self, df):
-        try:
-            self.validate_columns(df)
-            self.add_missing_columns(df)
-            self.salvar_detalhes_uasg_sigla_nome(df)
-        except ValueError as e:
-            Dialogs.warning(self, "Erro de Validação", str(e))
-        except Exception as e:
-            Dialogs.error(self, "Erro Inesperado", str(e))
-
-    def validate_columns(self, df):
-        missing_columns = [col for col in self.required_columns if col not in df.columns]
-        if missing_columns:
-            raise ValueError(f"Colunas obrigatórias faltando: {', '.join(missing_columns)}")
-
-    def add_missing_columns(self, df):
-        for col in self.required_columns:
-            if col not in df.columns:
-                df[col] = ""
-
-    def salvar_detalhes_uasg_sigla_nome(self, df):
-        with sqlite3.connect(self.database_om_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
-            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
-        df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
-        df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
-
+    def treeview_atas(self):
+        self.close_database_connections()
+        dialog = TreeViewAtasDialog(self)
+        dialog.exec()
+    
+    def treeview_contratos(self):
+        self.close_database_connections()   
+        pass
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
@@ -143,27 +104,42 @@ class UIManager:
         self.init_ui()
 
     def init_ui(self):
-        self.setup_search_bar()
+        self.setup_search_bar_and_buttons()
         self.setup_table_view()
-        self.setup_buttons_layout()
         self.parent.setCentralWidget(self.main_widget)
 
-    def setup_search_bar(self):
+    def setup_search_bar_and_buttons(self):
+        search_layout = QHBoxLayout()
+        
+        # Adicionar texto "Localizar:"
+        search_label = QLabel("Localizar:")
+        search_label.setStyleSheet("font-size: 14px;")
+        search_layout.addWidget(search_label)
+        
+        # Adicionar barra de pesquisa
         self.search_bar = QLineEdit(self.parent)
         self.search_bar.setPlaceholderText("Digite para buscar...")
-        self.main_layout.addWidget(self.search_bar)
-
+        self.search_bar.setStyleSheet("font-size: 14px;")
+        search_layout.addWidget(self.search_bar)
+        
         def handle_text_change(text):
             regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
             self.parent.proxy_model.setFilterRegularExpression(regex)
-
+        
         self.search_bar.textChanged.connect(handle_text_change)
-        self.main_layout.addWidget(self.search_bar)
 
-    def setup_buttons_layout(self):
+        # Adicionar layout de botões na mesma linha da barra de pesquisa
+        self.setup_buttons_layout(search_layout)
+        self.main_layout.addLayout(search_layout)
+
+    def setup_buttons_layout(self, parent_layout):
         self.buttons_layout = QHBoxLayout()
         self.button_manager.add_buttons_to_layout(self.buttons_layout)
-        self.main_layout.addLayout(self.buttons_layout)
+        parent_layout.addLayout(self.buttons_layout)
+        for i in range(self.buttons_layout.count()):
+            widget = self.buttons_layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                widget.setStyleSheet("font-size: 14px; min-width: 120px; min-height: 20px; max-width: 120px; max-height: 20px;")
 
     def setup_table_view(self):
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
@@ -212,19 +188,17 @@ class UIManager:
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(0, 70)
         header.resizeSection(1, 50)
         header.resizeSection(2, 65)
         header.resizeSection(3, 65)
-        header.resizeSection(4, 130)
         header.resizeSection(5, 75)
-        header.resizeSection(6, 90)
         header.resizeSection(7, 150)
         header.resizeSection(8, 170)
         header.resizeSection(9, 125)
@@ -291,9 +265,10 @@ class ButtonManager:
 
     def create_buttons(self):
         button_specs = [
-            ("  Adicionar/Excluir Itens", self.parent.image_cache['plus'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
-            ("  Abrir Excel", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
-            ("  Importar Tabela", self.parent.image_cache['import_de'], self.parent.carregar_tabela, "Carrega dados de uma tabela"),
+            ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Salva o dataframe em um arquivo Excel"),
+            ("  Contratos", self.parent.image_cache['production'], self.parent.treeview_contratos, "Salva o dataframe em um arquivo Excel"),
+            ("  Alterar Dados", self.parent.image_cache['website_menu'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
+            ("  Abrir Tabela", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = create_button(text, icon, callback, tooltip, self.parent)
@@ -312,19 +287,6 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(25
         btn.clicked.connect(callback)
     if tooltip_text:
         btn.setToolTip(tooltip_text)
-    btn.setStyleSheet("""
-        QPushButton {
-            color: white;
-            font-size: 14pt;
-            min-height: 26px;
-            padding: 5px;      
-        }
-        QPushButton:hover {
-            background-color: white;
-            color: black;
-        }
-
-    """)
     return btn
 
 class CenterAlignDelegate(QStyledItemDelegate):

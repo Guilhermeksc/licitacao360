@@ -619,6 +619,7 @@ class AtualizarDadosContratos(QDialog):
                 'atualizacao_comprasnet': '01/12/2023 11:31',  # Exemplo de valor fixo, ajuste conforme necessário
                 'instancia_governanca': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'comprasnet_contratos': '00037/2023',  # Exemplo de valor fixo, ajuste conforme necessário
+                'assinatura_contrato': None,
                 'registro_status': ''  # Exemplo de valor fixo, ajuste conforme necessário
             }
 
