@@ -11,6 +11,7 @@ from functools import partial
 from datetime import datetime
 from pathlib import Path
 import logging
+import time
 
 class DatabaseContratosManager:
     def __init__(self, db_path):
@@ -20,14 +21,15 @@ class DatabaseContratosManager:
     def connect_to_database(self):
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_path)
-            print(f"Conexão com o banco de dados aberta em {self.db_path}")
+            # print(f"Conexão com o banco de dados aberta em {self.db_path}")
         return self.connection
 
     def close_connection(self):
         if self.connection:
+            # print("Fechando conexão...")
             self.connection.close()
             self.connection = None
-            print(f"Conexão com o banco de dados fechada em {self.db_path}")
+            # print(f"Conexão com o banco de dados fechada em {self.db_path}")
 
     def __enter__(self):
         self.connect_to_database()
@@ -35,6 +37,23 @@ class DatabaseContratosManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_connection()
+
+    def create_table_controle_assinatura(self):
+        conn = self.connect_to_database()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS controle_assinaturas (
+                    numero_contrato TEXT PRIMARY KEY,
+                    assinatura_contrato TEXT
+                )
+            """)
+            conn.commit()
+            print("Tabela 'controle_assinaturas' criada ou já existente.")
+        except sqlite3.Error as e:
+            logging.error(f"Erro ao criar tabela 'controle_assinaturas': {e}")
+        finally:
+            self.close_connection()
 
     @staticmethod
     def create_table_controle_contratos(conn):
@@ -343,9 +362,24 @@ class TableMenu(QMenu):
         self.main_app.refresh_model()
 
 class CustomSqlTableModel(QSqlTableModel):
+    def __init__(self, parent=None, db=None, non_editable_columns=None):
+        super().__init__(parent, db)
+        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
+
+    def flags(self, index):
+        if index.column() in self.non_editable_columns:
+            return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if index.column() in self.non_editable_columns:
+            return False
+        return super().setData(index, value, role)
+    
+class CustomSqlTableModel(QSqlTableModel):
     def __init__(self, parent=None, db=None, non_editable_columns=None, icons_dir=None):
         super().__init__(parent, db)
-        self.non_editable_columns = non_editable_columns or []
+        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
         self.icons_dir = icons_dir
 
     def flags(self, index):
@@ -354,6 +388,11 @@ class CustomSqlTableModel(QSqlTableModel):
             return default_flags & ~Qt.ItemFlag.ItemIsEditable
         return default_flags
 
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if index.column() in self.non_editable_columns:
+            return False
+        return super().setData(index, value, role)
+    
     def update_record(self, row, data):
         record = self.record(row)
         for column, value in data.items():

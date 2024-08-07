@@ -2,33 +2,68 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.contratos.database_manager import DatabaseContratosManager, SqlModel
+from modules.contratos.utils import Dialogs
 import sqlite3
-from diretorios import load_config, CONTROLE_CONTRATOS_DADOS, IMAGE_PATH, ICONS_DIR
+from diretorios import load_config, CONTROLE_CONTRATOS_DADOS, CONTROLE_ASS_CONTRATOS_DADOS, IMAGE_PATH, ICONS_DIR
 from pathlib import Path
-import time
+import logging
+from functools import partial
+import pandas as pd
 
 class TreeViewAtasDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, database_path, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Visualização das Atas de Registro de Preços (ARP)")
         self.setFixedWidth(800)
         self.setMinimumHeight(600)
-        self.layout = QVBoxLayout(self)
-
+        self.database_path = database_path 
+        self.database_manager = DatabaseContratosManager(self.database_path)
+        self.database_manager_assinatura = self.init_database_manager_assinatura()
         self.icons_dir = Path(str(ICONS_DIR))
         self.icon_existe = QIcon(str(self.icons_dir / "checked.png"))
         self.icon_nao_existe = QIcon(str(self.icons_dir / "cancel.png"))
+        self.icon_alert = QIcon(str(self.icons_dir / "alert.png"))
+        self.init_ui()
+        self.populate_tree_view(self.load_data())
 
-        caminho_imagem = Path(str(IMAGE_PATH / "titulo360superior.png"))
+    def init_database_manager_assinatura(self):
+        database_path = Path(load_config("CONTROLE_CONTRATOS_DADOS", str(CONTROLE_ASS_CONTRATOS_DADOS)))
+        db_manager = DatabaseContratosManager(database_path)
+        db_manager.create_table_controle_assinatura()  # Garante que a tabela seja criada
+        return db_manager
+    
+    def check_initial_status(self, numero_contrato):
+        try:
+            conn = self.database_manager_assinatura.connect_to_database()
+            cursor = conn.cursor()
+            cursor.execute("SELECT assinatura_contrato FROM controle_assinaturas WHERE numero_contrato = ?", (numero_contrato,))
+            result = cursor.fetchone()
+            if result:
+                assinatura_contrato = result[0]
+                checked = assinatura_contrato == "Sim"
+                return checked, assinatura_contrato
+            else:
+                return False, "Não"
+        except sqlite3.Error as e:
+            logging.error(f"Erro ao verificar assinatura_contrato no banco de dados: {e}")
+            return False, "Não"
+        finally:
+            self.database_manager_assinatura.close_connection()
+
+    def init_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.setup_header()
+        self.setup_tree_view()
+
+    def setup_header(self):
         header_layout = QHBoxLayout()
-        
         title_label = QLabel("Controle de Atas de Registro de Preços")
         title_font = QFont()
         title_font.setPointSize(16)
         title_label.setFont(title_font)
-        
+
         image_label = QLabel()
-        pixmap = QPixmap(str(caminho_imagem))
+        pixmap = QPixmap(str(IMAGE_PATH / "titulo360superior.png"))
         image_label.setPixmap(pixmap)
         image_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
@@ -38,24 +73,19 @@ class TreeViewAtasDialog(QDialog):
 
         self.layout.addLayout(header_layout)
 
+    def setup_tree_view(self):
         self.tree_view = QTreeView(self)
         self.tree_view.setStyleSheet("""
             QTreeView::item:hover { background-color: transparent; }
             QTreeView::item:selected { background-color: transparent; }
         """)
         self.model = QStandardItemModel()
-        self.model.setHorizontalHeaderLabels(["Detalhes do Contrato"])
         self.tree_view.setModel(self.model)
         self.layout.addWidget(self.tree_view)
 
         font = QFont()
         font.setPointSize(14)
         self.tree_view.setFont(font)
-
-        self.database_manager = self.init_database_manager()
-        data = self.load_data(self.database_manager)
-        self.populate_tree_view(data)
-        self.close_database_connections()
 
         self.tree_view.expanded.connect(self.expand_all_children)
         self.tree_view.collapsed.connect(self.collapse_all_children)
@@ -66,7 +96,7 @@ class TreeViewAtasDialog(QDialog):
             for row in range(item.rowCount()):
                 child_index = item.child(row).index()
                 self.tree_view.expand(child_index)
-    
+
     def collapse_all_children(self, index):
         item = self.model.itemFromIndex(index)
         if item:
@@ -74,98 +104,217 @@ class TreeViewAtasDialog(QDialog):
                 child_index = item.child(row).index()
                 self.tree_view.collapse(child_index)
 
-    def init_database_manager(self):
-        database_path = Path(load_config("CONTROLE_CONTRATOS_DADOS", str(CONTROLE_CONTRATOS_DADOS)))
-        return DatabaseContratosManager(database_path)
-
-    def load_data(self, database_manager):
+    def load_data(self):
         try:
-            conn = database_manager.connect_to_database()
+            conn = self.database_manager.connect_to_database()
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM controle_contratos")
             results = cursor.fetchall()
-            conn.close()
-            return results
+
+            col_names = [desc[0] for desc in cursor.description]
+
+            if results:
+                df = pd.DataFrame(results, columns=col_names)
+                print("Dados retornados do banco de dados:")
+                print(df)
+                return df
+            return pd.DataFrame(columns=col_names)
+        except Exception as e:
+            logging.error("Erro ao carregar dados do banco de dados: %s", e)
+            Dialogs.warning(self, "Erro", f"Erro ao carregar dados do banco de dados: {e}")
+            return pd.DataFrame()
+        finally:
+            self.database_manager.close_connection()
+
+    def update_assinatura_contrato(self, numero_contrato, assinatura_contrato):
+        try:
+            if self.database_manager_assinatura.connection:
+                print("Conexão aberta encontrada. Fechando conexão...")
+                self.database_manager_assinatura.close_connection()
+            else:
+                print("Nenhuma conexão aberta encontrada.")
+            
+            conn = self.database_manager_assinatura.connect_to_database()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO controle_assinaturas (numero_contrato, assinatura_contrato) 
+                VALUES (?, ?)
+                ON CONFLICT(numero_contrato) 
+                DO UPDATE SET assinatura_contrato = ?
+            """, (numero_contrato, assinatura_contrato, assinatura_contrato))
+            conn.commit()
+            print(f"Assinatura atualizada com sucesso para {numero_contrato}: {assinatura_contrato}")
         except sqlite3.Error as e:
-            print(f"Database Error: {e}")
-            return []
+            logging.error(f"Erro ao atualizar assinatura_contrato no banco de dados: {e}")
+            Dialogs.warning(self, "Erro", f"Erro ao atualizar assinatura_contrato no banco de dados: {e}")
+        finally:
+            self.database_manager_assinatura.close_connection()
 
     def populate_tree_view(self, data):
+        unique_combinations = self.organize_data(data)
+        self.create_tree_items(unique_combinations)
+
+    def organize_data(self, data):
         unique_combinations = {}
-        for row in data:
-            uasg = row[10]
-            id_processo = row[6]
-            numero_contrato = row[4]
-            empresa = row[7]
-            objeto = row[8]
-            valor_global = row[9]
-            link_pncp = row[18]
-            assinatura_contrato = row[40] if row[40] is not None else "Não"
+        parent_status = {}
 
-            parent_text = f"{id_processo} (UASG: {uasg})"
-            if parent_text not in unique_combinations:
-                unique_combinations[parent_text] = []
+        for index, row in data.iterrows():
+            try:
+                tipo = row.iloc[5] if len(row) > 5 else "Desconhecido"
+                if tipo != "Ata":
+                    continue
 
-            child_text = f"{numero_contrato} - {empresa}"
-            unique_combinations[parent_text].append((child_text, objeto, valor_global, link_pncp, assinatura_contrato))
+                uasg = str(row.iloc[10]) if len(row) > 10 else "Desconhecido"
+                try:
+                    if '.' in uasg:
+                        uasg = uasg.split('.')[0]
+                except Exception as e:
+                    logging.error(f"Erro ao formatar UASG na linha {index}: {e}")
+                
+                id_processo = row.iloc[6] if len(row) > 6 else "Desconhecido"
+                numero_contrato = row.iloc[4] if len(row) > 4 else "Desconhecido"
+                empresa = row.iloc[7] if len(row) > 7 else "Desconhecido"
+                objeto = row.iloc[8] if len(row) > 8 else "Desconhecido"
+                valor_global = row.iloc[9] if len(row) > 9 else "Desconhecido"
+                link_pncp = row.iloc[18] if len(row) > 18 else "Desconhecido"
+                checked, assinatura_contrato = self.check_initial_status(numero_contrato)
 
-        for parent_text, children in unique_combinations.items():
-            parent_item = QStandardItem(parent_text)
-            for child_text, objeto, valor_global, link_pncp, assinatura_contrato in children:
-                child_item = QStandardItem(child_text)
+                parent_text = f"{id_processo} (UASG: {uasg})"
+                if parent_text not in unique_combinations:
+                    unique_combinations[parent_text] = []
+                    parent_status[parent_text] = {"Sim": 0, "Não": 0}
+
+                icon = self.icon_existe if assinatura_contrato == "Sim" else self.icon_nao_existe
+                child_text = f"{numero_contrato} - {empresa}"
+                unique_combinations[parent_text].append((icon, child_text, objeto, valor_global, link_pncp, assinatura_contrato, numero_contrato))
+
+                if assinatura_contrato == "Sim":
+                    parent_status[parent_text]["Sim"] += 1
+                else:
+                    parent_status[parent_text]["Não"] += 1
+
+            except Exception as e:
+                logging.error(f"Erro ao acessar índices da linha {index}: {e}")
+                print(f"Erro ao acessar índices da linha {index}: {e}")
+                continue
+        
+        for parent_text, status in parent_status.items():
+            if status["Não"] == 0:
+                parent_icon = self.icon_existe
+            elif status["Sim"] == 0:
+                parent_icon = self.icon_nao_existe
+            else:
+                parent_icon = self.icon_alert
+            unique_combinations[parent_text] = (parent_icon, unique_combinations[parent_text])
+
+        return unique_combinations
+
+    def update_icon_and_db(self, item, checked, numero_contrato):
+        assinatura_contrato = "Sim" if checked else "Não"
+        self.update_assinatura_contrato(numero_contrato, assinatura_contrato)
+        icon = self.icon_existe if assinatura_contrato == "Sim" else self.icon_nao_existe
+        item.setIcon(icon)
+        
+        # Atualizar ícone do parent
+        parent_item = item.parent()
+        if parent_item:
+            sim_count = 0
+            nao_count = 0
+            for row in range(parent_item.rowCount()):
+                child_item = parent_item.child(row)
+                child_icon = child_item.icon()
+                if child_icon.cacheKey() == self.icon_existe.cacheKey():
+                    sim_count += 1
+                elif child_icon.cacheKey() == self.icon_nao_existe.cacheKey():
+                    nao_count += 1
+
+            if nao_count == 0:
+                parent_icon = self.icon_existe
+            elif sim_count == 0:
+                parent_icon = self.icon_nao_existe
+            else:
+                parent_icon = self.icon_alert
+
+            parent_item.setIcon(parent_icon)
+            
+            # Atualizar o contador
+            total_atas = sim_count + nao_count
+            contador_text = f"Total de Atas: {total_atas}\nAtas assinadas: {sim_count}\nAtas não assinadas: {nao_count}"
+            contador_item = parent_item.child(0)
+            contador_item.setText(contador_text)
+
+    def create_tree_items(self, unique_combinations):
+        parent_font = QFont()
+        parent_font.setPointSize(14)
+        child_font = QFont()
+        child_font.setPointSize(12)
+
+        for parent_text, (parent_icon, children) in unique_combinations.items():
+            parent_item = QStandardItem(parent_icon, parent_text)
+            parent_item.setFont(parent_font)
+
+            # Contadores
+            sim_count = sum(1 for _, _, _, _, _, assinatura_contrato, _ in children if assinatura_contrato == "Sim")
+            nao_count = sum(1 for _, _, _, _, _, assinatura_contrato, _ in children if assinatura_contrato == "Não")
+            total_atas = len(children)
+            contador_text = f"Total de Atas: {total_atas}\nAtas assinadas: {sim_count}\nAtas não assinadas: {nao_count}"
+            contador_item = QStandardItem(contador_text)
+            contador_item.setFont(child_font)
+            parent_item.appendRow(contador_item)
+
+            for icon, child_text, objeto, valor_global, link_pncp, assinatura_contrato, numero_contrato in children:
+                child_item = QStandardItem(icon, child_text)
+                child_item.setFont(child_font)
                 objeto_item = QStandardItem(f"Objeto: {objeto}")
+                objeto_item.setFont(child_font)
                 valor_global_item = QStandardItem(f"Valor Global: {valor_global}")
+                valor_global_item.setFont(child_font)
                 link_pncp_item = QStandardItem(f"Link PNCP: {link_pncp}")
+                link_pncp_item.setFont(child_font)
 
                 child_item.appendRow(objeto_item)
                 child_item.appendRow(valor_global_item)
                 child_item.appendRow(link_pncp_item)
 
-                assinatura_item = QStandardItem("")
-                child_item.appendRow(assinatura_item)
+                assinatura_widget = self.create_assinatura_widget(assinatura_contrato, numero_contrato, child_item)
+                child_item.appendRow(QStandardItem())
+                self.tree_view.setIndexWidget(self.model.indexFromItem(child_item.child(child_item.rowCount() - 1)), assinatura_widget)
+                    
                 parent_item.appendRow(child_item)
 
-                conferido_widget = QWidget()
-                conferido_layout = QHBoxLayout()
-                font = QFont()
-                font.setPointSize(14)
-                label = QLabel("Assinado?")
-                label.setFont(font)
-                sim_radio = QRadioButton("Sim")
-                sim_radio.setFont(font)
-                nao_radio = QRadioButton("Não")
-                nao_radio.setFont(font)
-                conferido_layout.addWidget(label)
-                conferido_layout.addWidget(sim_radio)
-                conferido_layout.addWidget(nao_radio)
-                conferido_layout.addStretch()
-                conferido_widget.setLayout(conferido_layout)
-                
-                if assinatura_contrato == "Sim":
-                    sim_radio.setChecked(True)
-                else:
-                    nao_radio.setChecked(True)
-
-                index = self.model.indexFromItem(assinatura_item)
-                if index.isValid():
-                    self.tree_view.setIndexWidget(index, conferido_widget)
-
-                sim_radio.toggled.connect(lambda checked, item=child_item, contrato=numero_contrato: self.handle_radio_button_change(checked, item, contrato))
-
             self.model.appendRow(parent_item)
-            self.tree_view.setFirstColumnSpanned(self.model.indexFromItem(parent_item).row(), self.tree_view.rootIndex(), True)
+        self.model.setHorizontalHeaderLabels(["Atas de Registro de Preços"])
 
-    def handle_radio_button_change(self, checked, item, contrato):
-        self.update_icon_and_db(item, checked, contrato)
-
-    def update_icon_and_db(self, item, checked, contrato):
+    def create_assinatura_widget(self, assinatura_contrato, numero_contrato, item):
+        checked, assinatura_contrato = self.check_initial_status(numero_contrato)
+        assinatura_widget = QWidget()
+        assinatura_layout = QHBoxLayout()
+        assinatura_layout.setContentsMargins(0, 0, 0, 0)
+        
+        assinatura_label = QLabel("Assinado?")
+        assinatura_sim = QRadioButton("Sim")
+        assinatura_nao = QRadioButton("Não")
+        
+        font = QFont()
+        font.setPointSize(12)
+        assinatura_label.setFont(font)
+        assinatura_sim.setFont(font)
+        assinatura_nao.setFont(font)
+        
         if checked:
+            assinatura_sim.setChecked(True)
             item.setIcon(self.icon_existe)
         else:
+            assinatura_nao.setChecked(True)
             item.setIcon(self.icon_nao_existe)
+        
+        assinatura_layout.addWidget(assinatura_label)
+        assinatura_layout.addWidget(assinatura_sim)
+        assinatura_layout.addWidget(assinatura_nao)
+        assinatura_layout.addStretch()
+        assinatura_widget.setLayout(assinatura_layout)
+        
+        assinatura_sim.toggled.connect(partial(self.update_icon_and_db, item, True, numero_contrato))
+        assinatura_nao.toggled.connect(partial(self.update_icon_and_db, item, False, numero_contrato))
 
-    def close_database_connections(self):
-        self.database_manager.close_connection()
-        source_model = self.tree_view.model()
-        if hasattr(source_model, 'database_manager'):
-            source_model.database_manager.close_connection()
+        return assinatura_widget

@@ -86,12 +86,13 @@ class ContratosWidget(QMainWindow):
 
     def treeview_atas(self):
         self.close_database_connections()
-        dialog = TreeViewAtasDialog(self)
+        dialog = TreeViewAtasDialog(self.database_path, self)
         dialog.exec()
     
     def treeview_contratos(self):
         self.close_database_connections()   
         pass
+
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent

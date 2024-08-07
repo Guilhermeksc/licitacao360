@@ -6,6 +6,7 @@ from diretorios import *
 from datetime import datetime
 import sqlite3
 import pandas as pd
+import os
 import logging
 from modules.contratos.database_manager import DatabaseContratosManager, SqlModel
 
@@ -22,6 +23,20 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
     def init_ui(self):
         self.layout = QVBoxLayout(self)
+
+        # Adicionando o layout horizontal para a barra de busca e o label
+        search_layout = QHBoxLayout()
+        
+        self.search_label = QLabel("Localizar:", self)
+        search_layout.addWidget(self.search_label)
+
+        self.search_bar = QLineEdit(self)
+        self.search_bar.setPlaceholderText("Buscar...")
+        self.search_bar.textChanged.connect(self.filter_table)
+        search_layout.addWidget(self.search_bar)
+
+        self.layout.addLayout(search_layout)
+
         self.table_view = QTableView(self)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.layout.addWidget(self.table_view)
@@ -29,11 +44,69 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         self.model = self.init_model()
         self.table_view.setModel(self.model)
 
+        # Verificações de contagem de linhas
+        model_row_count = self.model.rowCount()
+        table_view_row_count = self.table_view.model().rowCount()
+        print(f"Quantidade de linhas no model: {model_row_count}")
+        print(f"Quantidade de linhas no table_view: {table_view_row_count}")
+
         form_layout = self.create_form_layout()
         self.layout.addLayout(form_layout)
 
         button_layout = self.create_button_layout()
         self.layout.addLayout(button_layout)
+        
+        # Adicionando o botão para gerar a tabela
+        self.generate_table_button = QPushButton("Gerar Tabela", self)
+        self.generate_table_button.clicked.connect(self.gerar_tabela)
+        self.layout.addWidget(self.generate_table_button)
+
+    def gerar_tabela(self):
+        try:
+            # Contar a quantidade de linhas no table_view (visíveis e invisíveis)
+            table_view_row_count = self.model.rowCount()
+
+            # Cria um DataFrame com os dados do modelo, incluindo linhas ocultas
+            data = []
+            for row in range(table_view_row_count):
+                row_data = []
+                for column in range(self.model.columnCount()):
+                    item = self.model.index(row, column).data()
+                    row_data.append(item)
+                data.append(row_data)
+
+            headers = [self.model.headerData(column, Qt.Orientation.Horizontal) for column in range(self.model.columnCount())]
+            df = pd.DataFrame(data, columns=headers)
+
+            # Contar a quantidade de linhas na tabela gerada
+            generated_table_row_count = len(df)
+
+            # Printar as quantidades de linhas
+            print(f"Quantidade de linhas no table_view: {table_view_row_count}")
+            print(f"Quantidade de linhas na tabela gerada: {generated_table_row_count}")
+
+            # Define o caminho do arquivo Excel
+            file_path = os.path.join(os.path.expanduser("~"), "tabela_dados.xlsx")
+
+            # Salva o DataFrame em um arquivo Excel
+            df.to_excel(file_path, index=False)
+
+            # Abre o arquivo Excel
+            os.startfile(file_path)
+        except Exception as e:
+            logging.error("Erro ao gerar a tabela Excel: %s", e)
+            Dialogs.warning(self, "Erro", f"Erro ao gerar a tabela Excel: {e}")
+
+
+    def filter_table(self, text):
+        for row in range(self.model.rowCount()):
+            match = False
+            for column in range(self.model.columnCount()):
+                item = self.model.index(row, column).data()
+                if text.lower() in str(item).lower():
+                    match = True
+                    break
+            self.table_view.setRowHidden(row, not match)
 
     def create_form_layout(self):
         form_layout = QFormLayout()
