@@ -1,12 +1,4 @@
-![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/licitacao360_brasil.png)
-
-
-# Licitação 360
-
-
-![Texto Início](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/logo.png)
-
-
+![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/licitacao360_brasil.png)
 
 ## Sinopse
 **Licitação 360** é um projeto desenvolvido em Python para automatizar processos repetitivos relacionados a licitações eletrônicas e acordos administrativos. Com um foco na otimização e eficiência, o projeto oferece ferramentas para manipulação de documentos PDF, DOCX e XLSX, geração de relatórios, e automação de tarefas via RPA (Robotic Process Automation). O objetivo principal é melhorar a qualidade de vida no trabalho, minimizando erros e reduzindo a quantidade de cliques necessários para completar uma tarefa.
@@ -41,4 +33,12 @@ selenium==4.21.0
 setuptools==70.0.0
 tools==0.1.9
 XlsxWriter==3.2.0
-s mas no índice lateral da interface gráfica ta contando 527, pq será?
+
+## Menu Inicial
+![Menu Inicial](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme1.png)
+
+## Módulo Atas
+![Atas](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme2.png)
+
+## Módulo Contratos
+![Contratos](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme3.png)
