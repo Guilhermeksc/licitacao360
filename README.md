@@ -1,8 +1,10 @@
-![Texto Início](https://github.com/Guilhermeksc/licitacao360/blob/master/texto_inicio.png)
+![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/licitacao360_brasil.png)
+
 
 # Licitação 360
 
-![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/main/licitacao360_brasil.png)
+
+![Texto Início](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/logo.png)
 
 
 
@@ -39,3 +41,4 @@ selenium==4.21.0
 setuptools==70.0.0
 tools==0.1.9
 XlsxWriter==3.2.0
+s mas no índice lateral da interface gráfica ta contando 527, pq será?
