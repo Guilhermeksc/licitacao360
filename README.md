@@ -1,5 +1,5 @@
 
-# Licitação 360 Brasil
+# Licitação 360
 
 ![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/licitacao360_brasil.png)
 
