@@ -24,7 +24,7 @@ import sys
 import time
 from win32com.client import Dispatch
 
-ATA_CONTRATO_DIR = MODULES_DIR / "modulo_ata_contratos"
+ATA_CONTRATO_DIR = MODULES_DIR / "atas"
 INDICADORES_NORMCEIM = ATA_CONTRATO_DIR / "indicadores_normceim"
 TEMPLATE_INDICADORES_PATH = INDICADORES_NORMCEIM / "template_indicadores.docx"
 SHAPEFILE_MUNICIPIOS = DATABASE_DIR / "BR_Municipios_2022.shp"
@@ -131,65 +131,65 @@ class RelatorioIndicadores(QDialog):
         # Juntar as palavras de volta em uma string
         return ' '.join(final_words)
             
-    def verificar_pdm_e_classe(self):
-        # Preencher valores nulos com 'PDM não definido' e 'Classe não definida' antes da agregação
-        self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['Padrão Desc Material'].fillna('PDM não definido')
-        self.current_dataframe['Classe Material'] = self.current_dataframe['Classe Material'].fillna('Classe não definida')
-        self.current_dataframe['Unnamed: 6'] = self.current_dataframe['Unnamed: 6'].fillna('Descrição PDM não disponível')
-        self.current_dataframe['Unnamed: 4'] = self.current_dataframe['Unnamed: 4'].fillna('Descrição Classe não disponível')
+    # def verificar_pdm_e_classe(self):
+    #     # Preencher valores nulos com 'PDM não definido' e 'Classe não definida' antes da agregação
+    #     self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['Padrão Desc Material'].fillna('PDM não definido')
+    #     self.current_dataframe['Classe Material'] = self.current_dataframe['Classe Material'].fillna('Classe não definida')
+    #     self.current_dataframe['Unnamed: 6'] = self.current_dataframe['Unnamed: 6'].fillna('Descrição PDM não disponível')
+    #     self.current_dataframe['Unnamed: 4'] = self.current_dataframe['Unnamed: 4'].fillna('Descrição Classe não disponível')
 
-        # Agrega os dados somando os valores estimados e homologados
-        agregado_pdm = self.current_dataframe.groupby('Padrão Desc Material').agg({
-            'valor_estimado_total_do_item': 'sum',
-            'valor_homologado_total_item': 'sum',
-            'Unnamed: 6': 'first'
-        }).reset_index()
+    #     # Agrega os dados somando os valores estimados e homologados
+    #     agregado_pdm = self.current_dataframe.groupby('Padrão Desc Material').agg({
+    #         'valor_estimado_total_do_item': 'sum',
+    #         'valor_homologado_total_item': 'sum',
+    #         'Unnamed: 6': 'first'
+    #     }).reset_index()
 
-        agregado_classe = self.current_dataframe.groupby('Classe Material').agg({
-            'valor_estimado_total_do_item': 'sum',
-            'valor_homologado_total_item': 'sum',
-            'Unnamed: 4': 'first'
-        }).reset_index()
+    #     agregado_classe = self.current_dataframe.groupby('Classe Material').agg({
+    #         'valor_estimado_total_do_item': 'sum',
+    #         'valor_homologado_total_item': 'sum',
+    #         'Unnamed: 4': 'first'
+    #     }).reset_index()
 
-        # Converter para lista para uso no template
-        lista_pdm = agregado_pdm.apply(lambda row: f"PDM {row['Padrão Desc Material']} - {self.title_case_custom(row['Unnamed: 6'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
-        lista_classe = agregado_classe.apply(lambda row: f"Classe {row['Classe Material']} - {self.title_case_custom(row['Unnamed: 4'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
+    #     # Converter para lista para uso no template
+    #     lista_pdm = agregado_pdm.apply(lambda row: f"PDM {row['Padrão Desc Material']} - {self.title_case_custom(row['Unnamed: 6'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
+    #     lista_classe = agregado_classe.apply(lambda row: f"Classe {row['Classe Material']} - {self.title_case_custom(row['Unnamed: 4'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
 
-        # Remover entradas vazias
-        lista_pdm = [item for item in lista_pdm if item]
-        lista_classe = [item for item in lista_classe if item]
+    #     # Remover entradas vazias
+    #     lista_pdm = [item for item in lista_pdm if item]
+    #     lista_classe = [item for item in lista_classe if item]
 
-        total_estimado_pdm = self.current_dataframe['valor_estimado_total_do_item'].sum()
-        if total_estimado_pdm > 0:
-            lista_pdm.append(f"Total estimado dos itens homologados: {self.formatar_brl(total_estimado_pdm)}")
+    #     total_estimado_pdm = self.current_dataframe['valor_estimado_total_do_item'].sum()
+    #     if total_estimado_pdm > 0:
+    #         lista_pdm.append(f"Total estimado dos itens homologados: {self.formatar_brl(total_estimado_pdm)}")
 
-        # Adicionar somatório de valores homologados no final da lista de PDM
-        total_homologado_pdm = self.current_dataframe['valor_homologado_total_item'].sum()
-        if total_homologado_pdm > 0:
-            lista_pdm.append(f"Total Homologado: {self.formatar_brl(total_homologado_pdm)}")
+    #     # Adicionar somatório de valores homologados no final da lista de PDM
+    #     total_homologado_pdm = self.current_dataframe['valor_homologado_total_item'].sum()
+    #     if total_homologado_pdm > 0:
+    #         lista_pdm.append(f"Total Homologado: {self.formatar_brl(total_homologado_pdm)}")
 
-        return lista_pdm, lista_classe
+    #     return lista_pdm, lista_classe
     
-    def adicionar_dados(self):
-        with DatabaseManager(ARQUIVO_DADOS_PDM_CATSER) as conn_pdm:
-            query = """
-            SELECT `Codigo Material Serviço`, `Unnamed: 4`, `Padrão Desc Material`, `Unnamed: 6`, `Classe Material`
-            FROM dados_pdm
-            """
-            pdm_data = pd.read_sql(query, conn_pdm)
+    # def adicionar_dados(self):
+    #     with DatabaseManager(ARQUIVO_DADOS_PDM_CATSER) as conn_pdm:
+    #         query = """
+    #         SELECT `Codigo Material Serviço`, `Unnamed: 4`, `Padrão Desc Material`, `Unnamed: 6`, `Classe Material`
+    #         FROM dados_pdm
+    #         """
+    #         pdm_data = pd.read_sql(query, conn_pdm)
         
-        # Criar um dicionário a partir de pdm_data para mapeamento rápido
-        pdm_dict = pdm_data.set_index('Codigo Material Serviço').to_dict('index')
+    #     # Criar um dicionário a partir de pdm_data para mapeamento rápido
+    #     pdm_dict = pdm_data.set_index('Codigo Material Serviço').to_dict('index')
         
-        # Adiciona as novas colunas ao DataFrame
-        self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['catalogo'].map(
-            lambda x: pdm_dict.get(x, {}).get('Padrão Desc Material', ''))
-        self.current_dataframe['Unnamed: 6'] = self.current_dataframe['catalogo'].map(
-            lambda x: pdm_dict.get(x, {}).get('Unnamed: 6', ''))
-        self.current_dataframe['Classe Material'] = self.current_dataframe['catalogo'].map(
-            lambda x: pdm_dict.get(x, {}).get('Classe Material', ''))
-        self.current_dataframe['Unnamed: 4'] = self.current_dataframe['catalogo'].map(
-            lambda x: pdm_dict.get(x, {}).get('Unnamed: 4', ''))
+    #     # Adiciona as novas colunas ao DataFrame
+    #     self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['catalogo'].map(
+    #         lambda x: pdm_dict.get(x, {}).get('Padrão Desc Material', ''))
+    #     self.current_dataframe['Unnamed: 6'] = self.current_dataframe['catalogo'].map(
+    #         lambda x: pdm_dict.get(x, {}).get('Unnamed: 6', ''))
+    #     self.current_dataframe['Classe Material'] = self.current_dataframe['catalogo'].map(
+    #         lambda x: pdm_dict.get(x, {}).get('Classe Material', ''))
+    #     self.current_dataframe['Unnamed: 4'] = self.current_dataframe['catalogo'].map(
+    #         lambda x: pdm_dict.get(x, {}).get('Unnamed: 4', ''))
 
     def setup_ui(self):
         layout = QVBoxLayout()
@@ -281,8 +281,8 @@ class RelatorioIndicadores(QDialog):
 
 
     def gerar_relatorio_docx(self):
-        self.adicionar_dados()  # Primeiro adicionar os dados de PDM e classe
-        lista_pdm, lista_classe = self.verificar_pdm_e_classe()  # Obter as listas de PDM e classe com somas
+        # self.adicionar_dados()  # Primeiro adicionar os dados de PDM e classe
+        # lista_pdm, lista_classe = self.verificar_pdm_e_classe()  # Obter as listas de PDM e classe com somas
         
         # Gerar gráficos
         self.grafico_percentual_desconto()
@@ -329,8 +329,8 @@ class RelatorioIndicadores(QDialog):
                 # 'grafico_02': InlineImage(doc, grafico_localidade_geografica_path, width=Mm(150)) if os.path.exists(grafico_localidade_geografica_path) else 'Gráfico não disponível',
                 'controle_dias_processo': controle_dias_processo,  # Adicionar os dados da tabela controle_prazos ao contexto
                 'relacao_itens_top10_desconto': '\n'.join(relacao_itens_top10_desconto),
-                'lista_pdm': '\n'.join(lista_pdm),
-                'lista_classe': '\n'.join(lista_classe),
+                # 'lista_pdm': '\n'.join(lista_pdm),
+                # 'lista_classe': '\n'.join(lista_classe),
                 'pregoeiro': pregao_data['pregoeiro'],
                 'parecer_agu': pregao_data['parecer_agu'],
                 'msg_irp': pregao_data['msg_irp'],

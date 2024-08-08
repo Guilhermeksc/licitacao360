@@ -1,0 +1,46 @@
+    mensagem = (
+        "ROTINA<br>"
+        f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
+        "DE NICITB<br>"
+        "PARA SETDIS<br>"
+        "GRNC<br>"
+        "BT<br><br>"
+        "Renovação de Contrato Administrativo<br><br>"
+        f"VTD proximidade de termo final da vigência do contrato administrativo n° <span style='color: blue;'>{numero_contrato}</span>, de natureza continuada, "
+        f"firmado com a empresa <span style='color: blue;'>{nome_empresa}</span>, inscrita no CNPJ: <span style='color: blue;'>{cnpj}</span>, com o valor global de <span style='color: blue;'>{valor_global}</span>, "
+        "cujo objeto é xxxxxxxx, CNS PSB:<br><br>"
+        "ALFA - INF intenção, ou não, de iniciar os procedimentos para a prorrogação<br>"
+        "contratual;<br><br>"
+        "BRAVO - Havendo interesse em prorrogar o REF contrato, PTC NEC ENC subsídios<br>"
+        f"para referida renovação ao CeIMBra, até <span style='color: blue;'>{prazo_limite}</span>; e<br><br>"
+        "CHARLIE - Informações adicionais:<br><br>"
+        "UNO - Gestora do contrato: POSTO (ESPECIALIDADE) NOME; e<br><br>"
+        f"DOIS - Término da vigência contratual: <span style='color: blue;'>{fim_vigencia}</span> BT"
+    )
+
+    return mensagem
+
+    def prepararTextoAlertaPrazo(self, dados_selecionados):
+        texto = "<p>ROTINA<br>"
+        mes_atual = datetime.now().strftime("%b").upper()
+        ano_atual = datetime.now().strftime('%Y')
+        texto += f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
+        texto += "DE NICITB<br>PARA SETDIS<br>GRNC<br>BT<br><br>"
+        texto += "Renovação de Acordos Administrativos<br><br>"
+        texto += "<br>ALFA - Contratos Administrativo<br><br>"        
+        for idx, dados in enumerate(dados_selecionados, start=1):
+            numero_extenso = DataProcessor.numero_para_extenso(idx)
+
+            texto += (f"{numero_extenso} - <span style='color: blue;'>{dados['processo']}</span>:<br>"
+                    f" Contrato Administrativo n° <span style='color: blue;'>{dados['numero_contrato']};</span><br>"
+                    f" Nup: <span style='color: blue;'>{dados['nup']};</span><br>" 
+                    f" Nome da Empresa: <span style='color: blue;'>{dados['empresa']}</span>, CNPJ: <span style='color: blue;'>{dados['cnpj']};</span><br>"
+                    f" Objeto: <span style='color: blue;'>{dados['objeto']};</span><br>"
+                    f" Valor global: <span style='color: blue;'>{dados['valor_global']}; e</span><br>"
+                    f" Final da Vigência: <span style='color: blue;'>{dados['fim_vigencia']}.</span><br>"
+                    f" Gestor do Contrato: <span style='color: blue;'>{dados['posto_gestor']} {dados['gestor']}</span><br><br>"
+                    # f" fiscal <span style='color: blue;'>{dados['fiscal']}</span><br><br>"
+                    f" Prazo limite para encaminhamento da documentação: <span style='color: red;'>{dados['prazo_limite']}</span><br><br>"
+                    )
+        texto += "</p>BT"
+        return texto

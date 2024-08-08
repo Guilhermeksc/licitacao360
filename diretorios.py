@@ -44,6 +44,27 @@ def update_file_path(title, key, default_value, parent=None, file_type="All File
         return Path(new_file)
     return default_value
 
+# Diretórios de recursos
+RESOURCES_DIR = BASE_DIR / "resources"
+
+# Diretórios de ícones
+ICONS_DIR = RESOURCES_DIR / "icons"
+ICONE = ICONS_DIR / "icone.ico"
+
+# Diretórios de imagens
+IMAGE_PATH = RESOURCES_DIR / "image"
+ACANTO_IMAGE_PATH = IMAGE_PATH / "acanto.png"
+BRASIL_IMAGE_PATH = IMAGE_PATH / "brasil.png"
+TUCANO_PATH = RESOURCES_DIR / "imagem_excel.png"
+MARINHA_PATH = RESOURCES_DIR / "marinha.png"
+CEIMBRA_BG = RESOURCES_DIR / "ceimbra_bg.png"
+
+
+# Diretórios de templates
+TEMPLATE_DIR = RESOURCES_DIR / "template"
+CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
+TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
+TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
@@ -52,8 +73,6 @@ DISPENSA_DIR = MODULES_DIR / "dispensa_eletronica"
 JSON_DISPENSA_DIR = DISPENSA_DIR / "json"
 FILE_PATH_DISPENSA = DISPENSA_DIR / "dispensa_eletronica.json"
 TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
-ICONS_DIR = DATABASE_DIR / "icons"
-ICONE = ICONS_DIR / "icone.ico"
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))
@@ -87,19 +106,13 @@ WEBDRIVER_DIR = DATABASE_DIR / "selenium"
 WEBDRIVER_FIREFOX_PATH = WEBDRIVER_DIR / "geckodriver.exe"
 
 TREEVIEW_DATA_PATH =  DATABASE_DIR / "treeview_data.csv"
-TEMPLATE_DIR = DATABASE_DIR / "template"
-CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
+
+
 
 ESCALACAO_PREGOEIROS = DATABASE_DIR / "pregoeiros.json"
-TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
-TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
-IMAGE_PATH = DATABASE_DIR / "image"
-ACANTO_IMAGE_PATH = IMAGE_PATH / "acanto.png"
-BRASIL_IMAGE_PATH = IMAGE_PATH / "brasil.png"
-TUCANO_PATH = DATABASE_DIR / "image" / "imagem_excel.png"
-MARINHA_PATH = DATABASE_DIR / "image" / "marinha.png"
-CEIMBRA_BG = DATABASE_DIR / "image" / "ceimbra_bg.png"
+
+
 
 MENSAGEM_DIR = DATABASE_DIR / "mensagem"
 ITEM_SELECIONADO_PATH = DATABASE_DIR / "item_selecionado.csv"

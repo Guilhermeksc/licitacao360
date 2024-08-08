@@ -24,7 +24,7 @@ class MenuManager:
         if pixmap.isNull():
             print("Failed to load image!")  # Debug print
         else:
-            print("Image loaded successfully")  # Debug print
+            pass
         pixmap = pixmap.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label_equerda = QLabel()

@@ -329,7 +329,7 @@ class ApplicationUI(QMainWindow):
         self.event_manager = EventManager()
 
     def load_initial_data(self):
-        print("Carregando dados iniciais...")
+        # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
             "plus.png", "save_to_drive.png", "loading.png", "delete.png", 
             "excel.png", "calendar.png", "report.png", "management.png"
@@ -666,7 +666,7 @@ class UIManager:
         index_id_processo = self.model.fieldIndex('id_processo')
         if index_etapa != -1 and index_id_processo != -1:
             self.table_view.horizontalHeader().moveSection(index_etapa, 0)  # Mover para a primeira posição
-            print(f"Coluna 'Etapa' movida para a posição inicial.")
+            # print(f"Coluna 'Etapa' movida para a posição inicial.")
         else:
             print("Falha ao mover colunas: Índices não encontrados.")
 
