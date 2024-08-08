@@ -153,7 +153,8 @@ class DatabaseContratosManager:
             self.close_connection()
 
 class SqlModel:
-    def __init__(self, database_manager, parent=None):
+    def __init__(self, icons_dir, database_manager, parent=None):
+        self.icons_dir = icons_dir
         self.database_manager = database_manager
         self.parent = parent
         self.init_database()
@@ -250,7 +251,7 @@ class SqlModel:
             print("Tabela 'controle_contratos' criada com sucesso.")
 
     def setup_model(self, table_name, editable=False):
-        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=None)
+        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=None, icons_dir=self.icons_dir)
         self.model.setTable(table_name)
         if editable:
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
@@ -360,22 +361,7 @@ class TableMenu(QMenu):
     def atualizar_interface(self):
         print("Interface atualizada com os novos dados.")
         self.main_app.refresh_model()
-
-class CustomSqlTableModel(QSqlTableModel):
-    def __init__(self, parent=None, db=None, non_editable_columns=None):
-        super().__init__(parent, db)
-        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
-
-    def flags(self, index):
-        if index.column() in self.non_editable_columns:
-            return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
-        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
-
-    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-        if index.column() in self.non_editable_columns:
-            return False
-        return super().setData(index, value, role)
-    
+   
 class CustomSqlTableModel(QSqlTableModel):
     def __init__(self, parent=None, db=None, non_editable_columns=None, icons_dir=None):
         super().__init__(parent, db)

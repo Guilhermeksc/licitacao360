@@ -5,20 +5,22 @@ from PyQt6.QtCore import QSize
 import pandas as pd
 from pathlib import Path
 
-def create_button(text, icon, callback, tooltip_text, icon_size=QSize(40, 40), parent=None):
+def create_button(text, icon, callback, tooltip_text, icon_size=QSize(40, 40), button_size=QSize(120, 40), parent=None):
     btn = QPushButton(text, parent)
     if icon:
         btn.setIcon(QIcon(icon))
         btn.setIconSize(icon_size)
     btn.clicked.connect(callback)
     btn.setToolTip(tooltip_text)
+    btn.setMinimumWidth(button_size.width())
+    btn.setMinimumHeight(button_size.height())
 
     btn.setStyleSheet("""
     QPushButton {
         background-color: black;
         color: white;
-        font-size: 14pt;
-        min-height: 35px;
+        font-size: 12pt;
+        min-height: 30px;
         padding: 5px;      
     }
     QPushButton:hover {

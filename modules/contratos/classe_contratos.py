@@ -41,7 +41,7 @@ class ContratosWidget(QMainWindow):
         self.refresh_model()
 
     def init_model(self):
-        sql_model = SqlModel(self.database_manager, self)
+        sql_model = SqlModel(self.icons_dir, self.database_manager, self)
         return sql_model.setup_model("controle_contratos", editable=True)
 
     def setup_managers(self):

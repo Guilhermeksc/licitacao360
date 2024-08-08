@@ -35,7 +35,7 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(40
         background-color: black;
         color: white;
         font-size: 14pt;
-        min-height: 35px;
+        min-height: 30px;
         padding: 5px;      
     }
     QPushButton:hover {
@@ -67,7 +67,7 @@ def create_button_2(text, icon, callback, tooltip_text, parent, icon_size=QSize(
         background-color: #000000;
         color: white;
         font-size: 14pt;
-        min-height: 35px;
+        min-height: 30px;
         padding: 5px;      
     }
     QPushButton:hover {

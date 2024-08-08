@@ -42,7 +42,7 @@ class DispensaEletronicaWidget(QMainWindow):
         self.setCentralWidget(self.ui_manager.main_widget)
 
     def load_initial_data(self):
-        print("Carregando dados iniciais...")
+        # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
             "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", 
             "excel.png", "calendar.png", "report.png", "management.png"

@@ -133,10 +133,15 @@ class GerarAtasWidget(QWidget):
         self.icons_dir = Path(icons_dir)
         self.buttons = {}
         self.tr_variavel_df_carregado = None 
+        # Diretórios configurados
         self.pdf_dir = Path(PDF_DIR)
-        self.txt_dir = Path(TXT_DIR) 
+        self.txt_dir = Path(TXT_DIR)
         self.sicaf_dir = Path(SICAF_DIR)
         self.sicaf_txt_dir = Path(SICAF_TXT_DIR)
+        
+        # Verificação e criação das pastas, se necessário
+        self.verificar_ou_criar_diretorios([self.pdf_dir, self.txt_dir, self.sicaf_dir, self.sicaf_txt_dir])
+        
         self.mapeamento_colunas = self.obter_mapeamento_colunas()
         self.current_dataframe = None
         self.pe_pattern = None
@@ -144,7 +149,12 @@ class GerarAtasWidget(QWidget):
         self.progressDialog = ProgressDialog(self.pdf_dir, self)
         self.setup_pdf_processing_thread()        
         self.db_manager = DatabaseManager(CONTROLE_DADOS)
-        
+
+    def verificar_ou_criar_diretorios(self, diretorios):
+        for diretorio in diretorios:
+            if not diretorio.exists():
+                diretorio.mkdir(parents=True, exist_ok=True)
+
     def obter_mapeamento_colunas(self):
         return {
             "Grupo": "grupo",
@@ -188,7 +198,7 @@ class GerarAtasWidget(QWidget):
         self.setup_treeview()
         self.setup_buttons_down()
         self.setLayout(self.main_layout)
-        self.setMinimumSize(1200, 600)
+        self.setMinimumSize(1000, 580)
 
     def setup_alert_label(self):
         icon_path = str(self.icons_dir / 'alert.png')
@@ -197,7 +207,7 @@ class GerarAtasWidget(QWidget):
                 "'Descrição' e 'Descrição Detalhada' do Termo de Referência. "
                 f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
         self.alert_label = QLabel(text)
-        self.alert_label.setStyleSheet("color: white; font-size: 14pt; padding: 5px;")
+        self.alert_label.setStyleSheet("color: white; font-size: 12pt; padding: 5px;")
         self.alert_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.alert_label)
         self.atasDialog = None
@@ -208,7 +218,7 @@ class GerarAtasWidget(QWidget):
         button_definitions = self.obter_definicoes_botoes()
         for name, icon_key, callback, tooltip, animate in button_definitions:
             icon = self.icons.get(icon_key, None)
-            button = create_button(name, icon, callback, tooltip, QSize(40, 40), None)
+            button = create_button(name, icon, callback, tooltip, QSize(30, 30), QSize(120, 30), None)
             self.buttons[name] = button
             self.buttons_layout.addWidget(button)
         self.main_layout.addLayout(self.buttons_layout)
@@ -227,7 +237,7 @@ class GerarAtasWidget(QWidget):
         button_definitions = self.obter_definicoes_botoes_embaixo()
         for name, icon_key, callback, tooltip, animate in button_definitions:
             icon = self.icons.get(icon_key, None)
-            button = create_button(name, icon, callback, tooltip, QSize(40, 40), None)
+            button = create_button(name, icon, callback, tooltip, QSize(30, 30), QSize(120, 30), None)
             self.buttons[name] = button
             self.buttons_layout.addWidget(button)
         self.main_layout.addLayout(self.buttons_layout)
@@ -265,7 +275,7 @@ class GerarAtasWidget(QWidget):
             }
             QTreeView::item:selected {
                 background-color: #b0c4de;
-                color: white;
+                color: black;
             }
             QTreeView::item:hover {
                 background-color: #d3d3d3;
@@ -276,6 +286,7 @@ class GerarAtasWidget(QWidget):
                 padding: 5px;
                 border: 1px solid #ccc;
                 font-size: 16px;
+                color: black;
             }
         """)
 

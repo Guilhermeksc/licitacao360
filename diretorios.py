@@ -77,6 +77,9 @@ CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/control
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))
 SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
+TXT_DIR = PDF_DIR / "homolog_txt"
+SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"
+
 PASTA_TEMPLATE = Path(load_config("PASTA_TEMPLATE", DATABASE_DIR / "template"))
 RELATORIO_PATH = Path(load_config("RELATORIO_PATH", DATABASE_DIR / "relatorio"))
 LV_DIR = Path(load_config("LV_DIR", BASE_DIR / "Lista_de_Verificacao"))
@@ -85,8 +88,7 @@ LV_DIR = Path(load_config("LV_DIR", BASE_DIR / "Lista_de_Verificacao"))
 CONTROLE_LIMITE_DISPENSA_DIR = DATABASE_DIR / "controle_limite_dispensa"
 ARQUIVO_DADOS_PDM_CATSER = CONTROLE_LIMITE_DISPENSA_DIR / 'dados_pdm.db'
 
-TXT_DIR = PDF_DIR / "homolog_txt"
-SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"
+
 ATA_DIR = DATABASE_DIR / "atas"
 TR_VAR_DIR = DATABASE_DIR / "tr_variavel.xlsx"
 ULTIMO_CONTRATO_DIR = DATABASE_DIR / "ultimo_contrato.txt"
