@@ -1,3 +1,6 @@
+
+# Licitação 360 Brasil
+
 ![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/licitacao360_brasil.png)
 
 ## Sinopse
@@ -33,12 +36,28 @@ selenium==4.21.0
 setuptools==70.0.0
 tools==0.1.9
 XlsxWriter==3.2.0
+```
+
+## Instalação
+Para instalar os pacotes necessários, você pode utilizar o seguinte comando:
+
+```sh
+pip install -r requirements.txt
+```
 
 ## Menu Inicial
 ![Menu Inicial](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme1.png)
 
-## Módulo Atas
+## Módulos do Projeto
+
+### Módulo Atas
 ![Atas](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme2.png)
 
-## Módulo Contratos
+### Módulo Contratos
 ![Contratos](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme3.png)
+
+## Contribuição
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e enviar pull requests.
+
+## Contato
+Para mais informações, entre em contato pelo e-mail: [siqueira.campos@marinha.mil.br](mailto:siqueira.campos@marinha.mil.br)
