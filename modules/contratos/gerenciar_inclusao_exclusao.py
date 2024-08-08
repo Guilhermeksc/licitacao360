@@ -11,8 +11,9 @@ import logging
 from modules.contratos.database_manager import DatabaseContratosManager, SqlModel
 
 class GerenciarInclusaoExclusaoContratos(QDialog):
-    def __init__(self, database_path, parent=None):
+    def __init__(self, icons_dir, database_path, parent=None):
         super().__init__(parent)
+        self.icons_dir = icons_dir
         self.database_path = database_path
         self.setWindowTitle("Gerenciar Inclusão/Exclusão de Contratos")
         self.resize(800, 600)
@@ -146,7 +147,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         return button_layout
 
     def init_model(self):
-        sql_model = SqlModel(self.database_manager, self)
+        sql_model = SqlModel(self.icons_dir, self.database_manager, self)
         model = sql_model.setup_model("controle_contratos", editable=True)
         return model
 

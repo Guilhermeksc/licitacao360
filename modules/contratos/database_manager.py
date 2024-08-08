@@ -352,11 +352,12 @@ class TableMenu(QMenu):
             self.main_app.icons_dir,
             df_registro_selecionado,
             self.main_app.ui_manager.table_view,
-            self.main_app.model.sourceModel(),
+            self.main_app.ui_manager.table_view.model().sourceModel(),
             indice_linha
         )
         dialog.dadosContratosSalvos.connect(self.atualizar_interface)
         dialog.show()
+
 
     def atualizar_interface(self):
         print("Interface atualizada com os novos dados.")

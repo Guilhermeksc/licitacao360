@@ -62,10 +62,14 @@ class ContratosWidget(QMainWindow):
     def gerenciar_itens(self):
         # Encerrar conexões existentes antes de abrir o diálogo
         self.close_database_connections()
-
-        dialog = GerenciarInclusaoExclusaoContratos(self.database_path, self)
+        dialog = GerenciarInclusaoExclusaoContratos(self.icons_dir, self.database_path, self)
         dialog.exec()
 
+    def treeview_atas(self):
+        self.close_database_connections()
+        dialog = TreeViewAtasDialog(self.database_path, self)
+        dialog.exec()
+        
     def close_database_connections(self):
         self.database_manager.close_connection()
         source_model = self.ui_manager.table_view.model().sourceModel()
@@ -84,10 +88,7 @@ class ContratosWidget(QMainWindow):
         else:
             Dialogs.warning(self, "Exportação de Dados", message)
 
-    def treeview_atas(self):
-        self.close_database_connections()
-        dialog = TreeViewAtasDialog(self.database_path, self)
-        dialog.exec()
+
     
     def treeview_contratos(self):
         self.close_database_connections()   
@@ -178,6 +179,7 @@ class UIManager:
 
         self.update_column_headers()
         self.hide_unwanted_columns()
+
 
     def adjust_columns(self):
         self.table_view.resizeColumnsToContents()
