@@ -4,7 +4,7 @@
 ![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/licitacao360_brasil.png)
 
 ## Sinopse
-**Licitação 360** é um projeto desenvolvido em Python para automatizar processos repetitivos relacionados a licitações eletrônicas e acordos administrativos. Com um foco na otimização e eficiência, o projeto oferece ferramentas para manipulação de documentos PDF, DOCX e XLSX, geração de relatórios, e automação de tarefas via RPA (Robotic Process Automation). O objetivo principal é melhorar a qualidade de vida no trabalho, minimizando erros e reduzindo a quantidade de cliques necessários para completar uma tarefa.
+**Licitação 360** é um projeto desenvolvido em Python para automatizar processos repetitivos relacionados a licitações e acordos administrativos. Com um foco na otimização e eficiência, o projeto oferece ferramentas para manipulação de documentos PDF, DOCX e XLSX, geração de relatórios, e automação de tarefas via RPA (Robotic Process Automation). O objetivo principal é melhorar a qualidade de vida no trabalho, minimizando erros e reduzindo a quantidade de cliques necessários para completar uma tarefa.
 
 ## Requisitos
 Para executar o projeto, os seguintes pacotes Python são necessários:
