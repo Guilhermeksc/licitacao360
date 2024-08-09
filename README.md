@@ -3,10 +3,13 @@
 
 ![Licitação 360 Brasil](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/licitacao360_brasil.png)
 
+
 ## Sinopse
 **Licitação 360** é um projeto desenvolvido em Python para automatizar processos repetitivos relacionados a licitações e acordos administrativos. Com um foco na otimização e eficiência, o projeto oferece ferramentas para manipulação de documentos PDF, DOCX e XLSX, geração de relatórios, e automação de tarefas via RPA (Robotic Process Automation). O objetivo principal é melhorar a qualidade de vida no trabalho, minimizando erros e reduzindo a quantidade de cliques necessários para completar uma tarefa.
 
 Ele visa fornecer uma solução completa para automatizar processos complexos e repetitivos, permitindo que os usuários se concentrem em tarefas mais estratégicas.
+
+![Python Version](https://img.shields.io/badge/python-3.12.4-blue)
 
 ## Como Usar
 Após instalar os pacotes necessários, você pode iniciar o aplicativo executando o seguinte comando:
@@ -19,8 +22,6 @@ Ao iniciar o Licitação 360, você verá o menu principal, onde poderá navegar
 ## Versão Executável
 
 Baixe aqui a versão Executável mais recente do Licitação 360 (Em breve)
-
-![Python Version](https://img.shields.io/badge/python-3.12.4-blue)
 
 ## Requisitos de Sistema
 Este projeto foi desenvolvido e testado em máquinas Windows. Para garantir o funcionamento correto do **Licitação 360**, certifique-se de que o ambiente atenda aos seguintes requisitos:
@@ -72,8 +73,6 @@ pip install -r requirements.txt
 ![Menu Inicial](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme1.png)
 
 ### Módulo Atas
-
-### Módulo Atas
 ![Atas](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme2.png)
 
 ### Módulo Contratos
@@ -95,5 +94,3 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e enviar 
 
 ## Contato
 Para mais informações, entre em contato pelo e-mail: [siqueira.campos@marinha.mil.br](mailto:siqueira.campos@marinha.mil.br)
-
-![Logo](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/marinha.png)
