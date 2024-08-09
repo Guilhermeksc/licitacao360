@@ -17,7 +17,7 @@ sys.path.insert(0, str(BASE_DIR))
 block_cipher = None
 
 a = Analysis(
-    ['home.py'],
+    ['main.py'],
     pathex=[str(BASE_DIR)],
     binaries=[],
     datas=[],  # Removido datas individuais

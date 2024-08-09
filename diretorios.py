@@ -9,7 +9,8 @@ CONFIG_FILE = BASE_DIR / "config.json"
 # CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
 CONTROLE_CONTRATOS_DADOS = DATABASE_DIR / "controle_contrato.db"
 CONTROLE_ASS_CONTRATOS_DADOS = DATABASE_DIR / "controle_assinatura.db"
-HOME_PATH = BASE_DIR / "home.py"
+HOME_PATH = BASE_DIR / "main.py"
+
 def load_config(key, default_value):
     try:
         with open(CONFIG_FILE, 'r') as f:

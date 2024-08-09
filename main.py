@@ -11,7 +11,7 @@ from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletr
 from modules.contratos.classe_contratos import ContratosWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
-from menu_manager import MenuManager
+from modules.menu_manager import MenuManager
 
 class InicioWidget(QWidget):
     def __init__(self, parent=None):
