@@ -76,3 +76,5 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e enviar 
 
 ## Contato
 Para mais informações, entre em contato pelo e-mail: [siqueira.campos@marinha.mil.br](mailto:siqueira.campos@marinha.mil.br)
+
+![Logo](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/marinha.png)
