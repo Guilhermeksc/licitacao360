@@ -6,11 +6,31 @@
 ## Sinopse
 **Licitação 360** é um projeto desenvolvido em Python para automatizar processos repetitivos relacionados a licitações e acordos administrativos. Com um foco na otimização e eficiência, o projeto oferece ferramentas para manipulação de documentos PDF, DOCX e XLSX, geração de relatórios, e automação de tarefas via RPA (Robotic Process Automation). O objetivo principal é melhorar a qualidade de vida no trabalho, minimizando erros e reduzindo a quantidade de cliques necessários para completar uma tarefa.
 
+Ele visa fornecer uma solução completa para automatizar processos complexos e repetitivos, permitindo que os usuários se concentrem em tarefas mais estratégicas.
+
+## Como Usar
+Após instalar os pacotes necessários, você pode iniciar o aplicativo executando o seguinte comando:
+
+```sh
+python home.py
+```
+Ao iniciar o Licitação 360, você verá o menu principal, onde poderá navegar pelos diferentes módulos.
+
 ## Versão Executável
 
 Baixe aqui a versão Executável mais recente do Licitação 360 (Em breve)
 
-## Requisitos
+![Python Version](https://img.shields.io/badge/python-3.12.4-blue)
+
+## Requisitos de Sistema
+Este projeto foi desenvolvido e testado em máquinas Windows. Para garantir o funcionamento correto do **Licitação 360**, certifique-se de que o ambiente atenda aos seguintes requisitos:
+
+- **Sistema Operacional**: Windows 10 ou superior
+- **Python**: Versão 3.12.4
+- **Pacote Office**: Microsoft Office instalado
+- **Adobe Acrobat Reader**: Versão mais recente instalada
+
+## Bibliotecas Necessárias
 Para executar o projeto, os seguintes pacotes Python são necessários:
 
 ```plaintext
@@ -48,11 +68,10 @@ Para instalar os pacotes necessários, você pode utilizar o seguinte comando:
 ```sh
 pip install -r requirements.txt
 ```
-
-## Menu Inicial
+## Screenshots dos Módulos do Projeto
 ![Menu Inicial](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme1.png)
 
-## Módulos do Projeto
+### Módulo Atas
 
 ### Módulo Atas
 ![Atas](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme2.png)
