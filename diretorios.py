@@ -67,6 +67,10 @@ CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada"
 TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
 TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
 
+# Diretórios de mensagens
+MSG_DIR = RESOURCES_DIR / "msg"
+MSG_CONTRATOS_DIR = MSG_DIR / "contratos"
+
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
@@ -76,7 +80,7 @@ FILE_PATH_DISPENSA = DISPENSA_DIR / "dispensa_eletronica.json"
 TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
-PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_pdf"))
+PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_homologacao"))
 SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
 TXT_DIR = PDF_DIR / "homolog_txt"
 SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"

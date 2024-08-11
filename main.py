@@ -13,6 +13,10 @@ from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.menu_manager import MenuManager
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent  # Isso define BASE_DIR como o diretório onde main.py está localizado
+
 class InicioWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

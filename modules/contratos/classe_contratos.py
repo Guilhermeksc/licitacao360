@@ -10,6 +10,7 @@ from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
 from modules.contratos.gerenciar_inclusao_exclusao import GerenciarInclusaoExclusaoContratos
 from modules.contratos.treeview_atas import TreeViewAtasDialog
+from modules.contratos.msg.msg_alerta_prazo import MensagemDialog
 import pandas as pd
 import os
 import subprocess
@@ -59,6 +60,31 @@ class ContratosWidget(QMainWindow):
     def load_initial_data(self):
         self.image_cache = load_images(self.icons_dir, ["production.png", "production_red.png", "website_menu.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "report.png", "management.png"])
 
+    def show_mensagem_dialog(self):
+        selected_index = self.ui_manager.table_view.selectionModel().currentIndex()
+        source_index = self.proxy_model.mapToSource(selected_index)
+        
+        # Obtém os dados diretamente do modelo usando o índice da linha
+        row_data = {}
+        for column in range(self.model.columnCount()):
+            header = self.model.headerData(column, Qt.Orientation.Horizontal)
+            value = self.model.data(self.model.index(source_index.row(), column))
+            row_data[header] = value
+        
+        # Converte os dados da linha selecionada em um DataFrame
+        df_registro_selecionado = pd.DataFrame([row_data])
+        
+        # Print do DataFrame completo para depuração
+        print(f"[DEBUG] - DataFrame completo:\n{df_registro_selecionado}")
+
+        indice_linha = source_index.row()
+        print(f"[DEBUG] - Indice da linha selecionada: {indice_linha}")  # Depuração
+
+        if df_registro_selecionado is not None and not df_registro_selecionado.empty:
+            dialog = MensagemDialog(df_registro_selecionado, self.icons_dir, indice_linha, self)
+            dialog.exec()
+
+
     def gerenciar_itens(self):
         # Encerrar conexões existentes antes de abrir o diálogo
         self.close_database_connections()
@@ -87,8 +113,6 @@ class ContratosWidget(QMainWindow):
             subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
         else:
             Dialogs.warning(self, "Exportação de Dados", message)
-
-
     
     def treeview_contratos(self):
         self.close_database_connections()   
@@ -268,8 +292,9 @@ class ButtonManager:
 
     def create_buttons(self):
         button_specs = [
-            ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Salva o dataframe em um arquivo Excel"),
-            ("  Contratos", self.parent.image_cache['production'], self.parent.treeview_contratos, "Salva o dataframe em um arquivo Excel"),
+            ("  Mensagem", self.parent.image_cache['report'], self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
+            ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Abre a janela de visualização de atas"),
+            ("  Contratos", self.parent.image_cache['production'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
             ("  Alterar Dados", self.parent.image_cache['website_menu'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
             ("  Abrir Tabela", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
         ]
@@ -280,6 +305,8 @@ class ButtonManager:
     def add_buttons_to_layout(self, layout):
         for btn in self.buttons:
             layout.addWidget(btn)
+
+
 
 def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(25, 25)):
     btn = QPushButton(text, parent)

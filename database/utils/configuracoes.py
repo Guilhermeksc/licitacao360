@@ -67,7 +67,7 @@ def config_canvas(canvas):
 
     button_labels = ["", "", "", "", "", ""]
     button_commands = [
-        lambda: update_dir("Selecione o novo diretório para PDF_DIR", "PDF_DIR", DATABASE_DIR / "pasta_pdf"),
+        lambda: update_dir("Selecione o novo diretório para PDF_DIR", "PDF_DIR", DATABASE_DIR / "pasta_homologacao"),
         lambda: update_dir("Selecione o novo diretório para SICAF_DIR", "SICAF_DIR", DATABASE_DIR / "pasta_sicaf"),
         lambda: update_dir("Selecione o novo diretório para PASTA_TEMPLATE", "PASTA_TEMPLATE", BASE_DIR / "template"),
         lambda: update_dir("Selecione o novo diretório para RELATORIO_PATH", "RELATORIO_PATH", DATABASE_DIR / "relatorio"),

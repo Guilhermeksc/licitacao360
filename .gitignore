@@ -4,3 +4,5 @@ dist/
 build/
 settings_comprasnet.json
 config.py
+hook-fitz.py
+main.spec

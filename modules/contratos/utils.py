@@ -138,7 +138,7 @@ class ExportThread(QThread):
     
 def carregar_dados_contratos(index, caminho_banco_dados):
     """
-    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
+    Carrega os dados de contrato do banco de dados SQLite especificado pelo caminho_banco_dados.
 
     Parâmetros:
     - index: O índice da linha selecionada na QTableView.
@@ -149,9 +149,22 @@ def carregar_dados_contratos(index, caminho_banco_dados):
     """
     try:
         connection = sqlite3.connect(caminho_banco_dados)
-        query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+        
+        # Recupere o número do contrato com base no índice da linha
+        cursor = connection.cursor()
+        cursor.execute("SELECT numero_contrato FROM controle_contratos LIMIT 1 OFFSET ?", (index,))
+        resultado = cursor.fetchone()
+        
+        if resultado is None:
+            raise Exception("Nenhum contrato encontrado para o índice fornecido.")
+        
+        numero_contrato = resultado[0]
+        
+        # Carrega os dados do contrato específico
+        query = f"SELECT * FROM controle_contratos WHERE numero_contrato='{numero_contrato}'"
         df_registro_selecionado = pd.read_sql_query(query, connection)
         connection.close()
+
         if not df_registro_selecionado.empty:
             return df_registro_selecionado.iloc[0].to_dict()  # Retorna o primeiro registro como dicionário
         else:
@@ -159,6 +172,7 @@ def carregar_dados_contratos(index, caminho_banco_dados):
     except Exception as e:
         print(f"Erro ao carregar dados do banco de dados: {e}")
         return {}  # Retorna um dicionário vazio em caso de erro
+
 
 class Dialogs:
     @staticmethod

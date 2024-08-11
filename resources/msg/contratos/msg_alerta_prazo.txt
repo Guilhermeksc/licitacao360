@@ -1,0 +1,17 @@
+
+teste
+{{Objeto}}
+
+testes
+{{Processo}}
+testes
+
+{{uasg}}
+nup  {{nup}}
+
+material{{material_servico}}{{Renova?}}
+
+
+teste {{Empresa}}
+
+{{orgao_responsavel}}{{orgao_responsavel}}

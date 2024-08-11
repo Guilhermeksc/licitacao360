@@ -138,19 +138,7 @@ class MSGIRP(QDialog):
         except Exception as e:
             QMessageBox.warning(self, "Erro ao salvar template", str(e))
         super().closeEvent(event)
-        
-    # def renderTemplate(self, template, data):
-    #     mes_atual = datetime.now().strftime("%b").upper()
-    #     ano_atual = datetime.now().strftime('%Y')
-    #     header = f"R000000Z/<span style='color: blue;'>{mes_atual}</span>/<span style='color: blue;'>{ano_atual}</span><br>"
-    #     # Substitui quebras de linha por <br> para HTML
-    #     template = template.replace('\n', '<br>')
-
-    #     rendered_text = header + template
-    #     for key, value in data.items():
-    #         rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='color: blue;'>{value}</span>", rendered_text)
-    #     return rendered_text
-    
+            
     def renderTemplate(self, template, data):
         # Método atualizado para incluir a lógica de descrição de serviço e conversão de datas
         tipo_servico = data.get("material_servico", "").lower()

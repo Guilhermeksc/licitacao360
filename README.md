@@ -9,13 +9,13 @@
 
 Ele visa fornecer uma solução completa para automatizar processos complexos e repetitivos, permitindo que os usuários se concentrem em tarefas mais estratégicas.
 
-![Python Version](https://img.shields.io/badge/python-3.12.4-blue)
+![Python Version](https://img.shields.io/badge/python-3.12.5-blue)
 
 ## Como Usar
 Após instalar os pacotes necessários, você pode iniciar o aplicativo executando o seguinte comando:
 
 ```sh
-python home.py
+python main.py
 ```
 Ao iniciar o Licitação 360, você verá o menu principal, onde poderá navegar pelos diferentes módulos.
 
