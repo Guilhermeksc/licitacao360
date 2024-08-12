@@ -1,3 +1,5 @@
+#diretorios.py
+
 from pathlib import Path
 from PyQt6.QtWidgets import QFileDialog
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -79,6 +81,10 @@ JSON_DISPENSA_DIR = DISPENSA_DIR / "json"
 FILE_PATH_DISPENSA = DISPENSA_DIR / "dispensa_eletronica.json"
 TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
+CONTROLE_ATAS_DADOS = Path(load_config("CONTROLE_ATAS", BASE_DIR / "database/controle_atas.db"))
+CONTROLE_CONTRATOS_DADOS = Path(load_config("CONTROLE_CONTRATOS", BASE_DIR / "database/controle_contrato.db"))                     
+CONTROLE_CONTRATACAO_DIRETAS = Path(load_config("CONTROLE_CONTRATACAO_DIRETAS", BASE_DIR / "database/controle_contratacao_direta.db"))
+
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_homologacao"))
 SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
@@ -212,6 +218,36 @@ class EventManager(QObject):
         global CONTROLE_DADOS
         if new_file != CONTROLE_DADOS:
             CONTROLE_DADOS = new_file
+            save_config("CONTROLE_DADOS", str(new_file))
+            self.controle_dados_dir_updated.emit(new_file)
+            print(f"CONTROLE_DADOS atualizado para {new_file}")
+
+    def update_contratacoes_diretas_database_dir(self, new_file):
+        global CONTROLE_CONTRATACAO_DIRETAS
+        CONTROLE_CONTRATACAO_DIRETAS = new_file
+        save_config("CONTROLE_DADOS", str(new_file))
+        self.controle_dir_updated.emit(new_file)
+
+    def update_atas_dados_dir(self, new_file):
+        global CONTROLE_ATAS_DADOS
+        if new_file != CONTROLE_ATAS_DADOS:
+            CONTROLE_ATAS_DADOS = new_file
+            save_config("CONTROLE_DADOS", str(new_file))
+            self.controle_dados_dir_updated.emit(new_file)
+            print(f"CONTROLE_DADOS atualizado para {new_file}")
+
+    def update_contratos_dados_dir(self, new_file):
+        global CONTROLE_CONTRATOS_DADOS
+        if new_file != CONTROLE_CONTRATOS_DADOS:
+            CONTROLE_CONTRATOS_DADOS = new_file
+            save_config("CONTROLE_DADOS", str(new_file))
+            self.controle_dados_dir_updated.emit(new_file)
+            print(f"CONTROLE_DADOS atualizado para {new_file}")
+
+    def update_contratacoes_diretas_dados_dir(self, new_file):
+        global CONTROLE_CONTRATACAO_DIRETAS
+        if new_file != CONTROLE_CONTRATACAO_DIRETAS:
+            CONTROLE_CONTRATACAO_DIRETAS = new_file
             save_config("CONTROLE_DADOS", str(new_file))
             self.controle_dados_dir_updated.emit(new_file)
             print(f"CONTROLE_DADOS atualizado para {new_file}")

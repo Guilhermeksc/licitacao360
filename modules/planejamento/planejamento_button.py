@@ -308,7 +308,7 @@ class TableMenu(QMenu):
         dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
         dialog.exec()
 
-class ApplicationUI(QMainWindow):
+class PlanejamentoWidget(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
         self.app = app
@@ -621,27 +621,40 @@ class UIManager:
         self.init_ui()
 
     def init_ui(self):
-        self.setup_search_bar()
-        self.setup_buttons_layout()
+        self.setup_search_and_buttons_layout()
         self.setup_table_view()
-        self.parent.setCentralWidget(self.main_widget) 
+        self.parent.setCentralWidget(self.main_widget)
 
-    def setup_search_bar(self):
+    def setup_search_and_buttons_layout(self):
+        # Cria um QHBoxLayout para a barra de busca e botões
+        self.search_buttons_layout = QHBoxLayout()
+
+        # Adicionar texto "Localizar:"
+        search_label = QLabel("Localizar:")
+        search_label.setStyleSheet("font-size: 14px;")
+        self.search_buttons_layout .addWidget(search_label)
+
+        # Configura a barra de busca
         self.search_bar = QLineEdit(self.parent)
         self.search_bar.setPlaceholderText("Digite para buscar...")
-        self.main_layout.addWidget(self.search_bar)
+        self.search_bar.setStyleSheet("font-size: 14px;")
 
         def handle_text_change(text):
             regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
             self.parent.proxy_model.setFilterRegularExpression(regex)
 
         self.search_bar.textChanged.connect(handle_text_change)
-        self.main_layout.addWidget(self.search_bar)
 
-    def setup_buttons_layout(self):
+        # Adiciona a barra de busca ao QHBoxLayout
+        self.search_buttons_layout.addWidget(self.search_bar)
+
+        # Configura os botões e os adiciona ao QHBoxLayout
         self.buttons_layout = QHBoxLayout()
-        self.button_manager.add_buttons_to_layout(self.buttons_layout)
-        self.main_layout.addLayout(self.buttons_layout)
+        self.button_manager.add_buttons_to_layout(self.search_buttons_layout)
+
+        # Adiciona o QHBoxLayout que contém a barra de busca e os botões ao layout principal
+        self.main_layout.addLayout(self.search_buttons_layout)
+
 
     def setup_table_view(self):
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
@@ -849,7 +862,6 @@ class ButtonManager:
             ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
             ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
             ("Controle de Datas", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
-            ("Configurações", self.parent.image_cache['management'], self.parent.open_settings_dialog, "Abre as configurações da aplicação"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
@@ -868,26 +880,16 @@ class ButtonManager:
             btn.clicked.connect(callback)
         if tooltip_text:
             btn.setToolTip(tooltip_text)
-
+        
+        # Aplicando estilo ao botão
         btn.setStyleSheet("""
-        QPushButton {
-            background-color: #333;
-            color: white;
-            font-size: 12pt;
-            min-height: 35px;
-            padding: 5px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: white;
-            color: black;
-        }
-        QPushButton:pressed {
-            background-color: #ddd;
-            color: black;
-        }
+            font-size: 14px; 
+            min-width: 120px; 
+            min-height: 20px; 
+            max-width: 120px; 
+            max-height: 20px;
         """)
-
+        
         return btn
 
 class CenterAlignDelegate(QStyledItemDelegate):

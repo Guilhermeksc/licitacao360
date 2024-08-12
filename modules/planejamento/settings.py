@@ -312,28 +312,7 @@ class SettingsDialog(QDialog):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("""
-        QDialog {
-            font-size: 12pt;
-            color: #333;
-            background-color: #f0f0f0;
-        }
-        QGroupBox {
-            font-size: 12pt;
-            border: 2px solid #6c6c6c;
-            border-radius: 5px;
-            margin-top: 2ex;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 10px;
-            padding: 0 3px 0 3px;
-            color: #444;
-        }
-        QLineEdit, QPushButton, QLabel, QComboBox, QTableView{
-            font-size: 12pt;
-        }
-        """)
+
         main_layout = QVBoxLayout(self)  # Único layout vertical para todo o diálogo
 
         # Configurar OM/UASG

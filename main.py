@@ -1,17 +1,20 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QMessageBox
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 import qdarktheme
 from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.atas.gerar_atas_contratos import GerarAtasWidget
-from modules.planejamento.planejamento_button import ApplicationUI
+from modules.planejamento.planejamento_button import PlanejamentoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.contratos.classe_contratos import ContratosWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
-from modules.menu_manager import MenuManager
+from modules.menu_superior.menu_manager import MenuManager
+from modules.web_scraping.web_scrapping_initial import WebScrapingWidget
+from modules.manipular_pdf.pdf import ManipularPDFsWidget
+
 
 from pathlib import Path
 
@@ -23,20 +26,30 @@ class InicioWidget(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setStyleSheet("background-color: black;")  # Define o fundo preto
-
         self.layout = QVBoxLayout(self)
         self.layout.addStretch(1)
+
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap(str(IMAGE_PATH / "texto_inicio"))
-        self.image_label.setPixmap(pixmap.scaled(1000, 625, Qt.AspectRatioMode.KeepAspectRatio))
         self.layout.addWidget(self.image_label)
 
+        self.pixmap = QPixmap(str(IMAGE_PATH / "texto_inicio"))
+        self.image_label.setPixmap(self.pixmap)
+
+        self.layout.addStretch(1)  # Adiciona espaço flexível abaixo da imagem
+
+    def resizeEvent(self, event):
+        # Redimensiona o pixmap mantendo a proporção
+        scaled_pixmap = self.pixmap.scaled(self.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        self.image_label.setPixmap(scaled_pixmap)
+        super().resizeEvent(event)
+
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, app):
         super().__init__()
-        self.buttons = {}  # Inicializa self.buttons
+        self.app = app 
+        self.is_menu_visible = True
+        self.buttons = {}
         self.setup_ui()
         self.open_initial_page()
 
@@ -75,6 +88,8 @@ class MainWindow(QMainWindow):
             "Matriz de Riscos",
             "Dispensa Eletrônica",
             "Selenium",
+            "Web Scraping",
+            "Manipular PDF's"
         ]
 
         for button_name in menu_buttons:
@@ -130,8 +145,7 @@ class MainWindow(QMainWindow):
         self.set_active_button("Início")
         self.content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                border: 1px solid #000000;
-                background-color: black;
+                border: 10px solid #000000;
             }
         """)
 
@@ -149,6 +163,8 @@ class MainWindow(QMainWindow):
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             "Matriz de Riscos": self.setup_matriz_riscos,
             "Selenium": self.setup_selenium_automacao,
+            "Web Scraping": self.setup_webscraping,
+            "Manipular PDF's": self.setup_manipular_pdfs
         }
         action = content_actions.get(content_name)
         if action:
@@ -156,7 +172,7 @@ class MainWindow(QMainWindow):
 
     def setup_planejamento(self):
         self.clear_content_area()
-        self.application_ui = ApplicationUI(self, str(ICONS_DIR))
+        self.application_ui = PlanejamentoWidget(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
     def setup_atas(self):
@@ -186,6 +202,16 @@ class MainWindow(QMainWindow):
         self.selenium_widget = SeleniumAutomacao(self)
         self.content_layout.addWidget(self.selenium_widget)
 
+    def setup_webscraping(self):
+        self.clear_content_area()
+        self.webscraping_widget = WebScrapingWidget(self)
+        self.content_layout.addWidget(self.webscraping_widget)
+
+    def setup_manipular_pdfs(self):
+        self.clear_content_area()
+        self.manipular_pdfs_widget = ManipularPDFsWidget(self)
+        self.content_layout.addWidget(self.manipular_pdfs_widget)
+        
     def clear_content_area(self, keep_image_label=False):
         for i in reversed(range(self.content_layout.count())):
             layout_item = self.content_layout.itemAt(i)
@@ -211,6 +237,17 @@ class MainWindow(QMainWindow):
     def show_message(self, message):
         print(message)  # Aqui você pode substituir pelo método de exibição de mensagens na interface
 
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Confirmar Saída',
+                                     "Você realmente deseja fechar o aplicativo?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            event.accept()
+        else:
+            event.ignore()
+
 def main():
     app = QApplication(sys.argv)
 
@@ -218,7 +255,7 @@ def main():
     app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
 
     try:
-        window = MainWindow()
+        window = MainWindow(app)
         window.show()
         sys.exit(app.exec())
     except Exception as e:

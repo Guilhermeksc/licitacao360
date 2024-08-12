@@ -33,13 +33,21 @@ class MensagemDialog(QDialog):
         # Ajusta o estilo para definir a fonte como 14px
         self.setStyleSheet("""
             QDialog {
-                font-size: 14px;
+                font-size: 16px;
             }
             QTextEdit, QListWidget {
-                font-size: 14px;
+                font-size: 16px;
             }
+            QGroupBox {
+                font-size: 18px;
+            }                           
             QPushButton {
                 font-size: 14px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                padding-top: -10px;
+                color: #2196F3;
             }
         """)
         
@@ -57,7 +65,7 @@ class MensagemDialog(QDialog):
     def setupGroupBoxes(self):
         groupBoxLayout = QHBoxLayout()  # Layout horizontal para os GroupBoxes
         
-        self.variableListGroupBox = QGroupBox("Índice de Variáveis")
+        self.variableListGroupBox = QGroupBox("Índice de Variáveis - Variável Atual")
         variableListLayout = QVBoxLayout()
         self.variableList = QListWidget()
 
@@ -90,6 +98,12 @@ class MensagemDialog(QDialog):
         modelEditorLayout = QVBoxLayout()
         self.modelEditor = QTextEdit()
         modelEditorLayout.addWidget(self.modelEditor)
+        
+        # Botão "Aplicar Modelo" no canto inferior do editor
+        applyButton = create_button(text="Aplicar Modelo", icon=self.image_cache['apply'], callback=self.applyTemplate,
+                                    tooltip_text="Aplica o modelo atual", parent=self, icon_size=QSize(40, 40))
+        modelEditorLayout.addWidget(applyButton)
+        
         self.modelEditorGroupBox.setLayout(modelEditorLayout)
         groupBoxLayout.addWidget(self.modelEditorGroupBox)
 
@@ -99,10 +113,16 @@ class MensagemDialog(QDialog):
         self.textViewer = QTextEdit()
         self.textViewer.setReadOnly(True)
         textViewerLayout.addWidget(self.textViewer)
+        
+        # Botão "Copiar Mensagem" no canto inferior do visualizador
+        copyButton = create_button(text="Copiar Mensagem", icon=self.image_cache['copy'], callback=self.copyTextToClipboard,
+                                tooltip_text="Copia a mensagem para a área de transferência", parent=self, icon_size=QSize(40, 40))
+        textViewerLayout.addWidget(copyButton)
+        
         self.textViewerGroupBox.setLayout(textViewerLayout)
         groupBoxLayout.addWidget(self.textViewerGroupBox)
 
-        self.mainLayout.addLayout(groupBoxLayout) 
+        self.mainLayout.addLayout(groupBoxLayout)
 
     def setupButtonsLayout(self):
         self.buttons_layout = QHBoxLayout()
@@ -112,11 +132,11 @@ class MensagemDialog(QDialog):
     def createButtons(self):
         icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
         self.button_specs = [
-            ("Aplicar Modelo", self.image_cache['apply'], self.applyTemplate, "Aplica o modelo atual", icon_size),
-            ("Copiar Mensagem", self.image_cache['copy'], self.copyTextToClipboard, "Copia a mensagem para a área de transferência", icon_size),
             ("Alerta Prazo", self.image_cache['mensagem'], self.alertaPrazo, "Envia alerta de prazo", icon_size),
             ("Ata Assinada", self.image_cache['mensagem'], self.ataAssinada, "Marca a ata como assinada", icon_size),
             ("Contrato Assinado", self.image_cache['mensagem'], self.contratoAssinado, "Marca o contrato como assinado", icon_size),
+            ("Autorização", self.image_cache['mensagem'], self.aprovacaoIntanciaGovernanca, "Marca o contrato como assinado", icon_size),
+            ("Outra", self.image_cache['mensagem'], self.msgNaoDefinida, "Marca o contrato como assinado", icon_size),
         ]
 
         for text, icon, callback, tooltip, icon_size in self.button_specs:
@@ -137,19 +157,29 @@ class MensagemDialog(QDialog):
         QTimer.singleShot(timeout, msg_box.close)
 
     def alertaPrazo(self):
-        self.loadTemplate("msg_alerta_prazo.txt")
         self.cabecalhoAtual = self.gerarCabecalho("alerta_prazo")
+        self.loadTemplate("msg_alerta_prazo.txt")
         self.showAutoCloseMessageBox("Alerta Prazo", "Template de alerta de prazo carregado.")
 
     def ataAssinada(self):
-        self.loadTemplate("msg_ata_assinada.txt")
         self.cabecalhoAtual = self.gerarCabecalho("ata_assinada")
+        self.loadTemplate("msg_ata_assinada.txt")
         self.showAutoCloseMessageBox("Ata Assinada", "Template de ata assinada carregado.")
 
     def contratoAssinado(self):
-        self.loadTemplate("msg_contrato_assinado.txt")
         self.cabecalhoAtual = self.gerarCabecalho("contrato_assinado")
+        self.loadTemplate("msg_contrato_assinado.txt")        
         self.showAutoCloseMessageBox("Contrato Assinado", "Template de contrato assinado carregado.")
+
+    def aprovacaoIntanciaGovernanca(self):
+        self.cabecalhoAtual = self.gerarCabecalho("autorizacao")
+        self.loadTemplate("msg_autorizacao.txt")
+        self.showAutoCloseMessageBox("Instância de Governança", "Template de Instância de Governança carregado.")
+
+    def msgNaoDefinida(self):
+        self.cabecalhoAtual = self.gerarCabecalho("outra")
+        self.loadTemplate("msg_nao_definida.txt")
+        self.showAutoCloseMessageBox("Contrato Assinado", "Template de outra msg carregado.")
     
     def gerarCabecalho(self, tipo):
         mes_atual = datetime.now().strftime("%b").upper()
@@ -159,6 +189,8 @@ class MensagemDialog(QDialog):
             "alerta_prazo": "Renovação de Acordos Administrativos",
             "ata_assinada": "Ata de Assinatura",
             "contrato_assinado": "Assinatura de Contratos Administrativos",
+            "autorizacao": "Autorização de Contratos Administrativos",
+            "outra": ""
         }
         
         descricao = tipos.get(tipo, "Descrição não encontrada")

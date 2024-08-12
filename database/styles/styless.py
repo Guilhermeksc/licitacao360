@@ -2,11 +2,10 @@ def get_menu_button_style():
     return """
         QPushButton {
             background-color: transparent;
-            color: white;
             font-weight: bold;
             font-size: 16px;
             text-align: left;
-            border: 1px solid black; 
+            border: 1px solid transparent; 
             border-radius: 0px;
             border-left: 4px solid blacx;
             padding: 10px;
@@ -31,7 +30,6 @@ def get_menu_button_activated_style():
             padding: 10px;
         }
     """
-
 
 def get_menu_title_style():
     return """
