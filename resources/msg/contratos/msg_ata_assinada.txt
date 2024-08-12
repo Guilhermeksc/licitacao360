@@ -1,3 +1,8 @@
-testse {{posto_gestor_substituto}}{{orgao_responsavel}}{{Processo}}{{Empresa}}
+Teste do Messias
 
-ata ass{{Processo}}{{Contrato/Ata}}{{Custeio?}}
+para atas de registro de preços
+
+nup: {{nup}}
+
+OM: {{om}}
+

@@ -25,7 +25,7 @@ class MensagemDialog(QDialog):
         
         self.templatePath = Path(MSG_CONTRATOS_DIR) / "msg_alerta_prazo.txt"
         self.setWindowTitle("Enviar Mensagem de Alerta")
-        self.resize(1500, 800)
+        self.resize(1400, 700)
 
         self.image_cache = load_images(self.icons_dir, ["apply.png", "copy.png", "mensagem.png"])
 
@@ -213,7 +213,7 @@ class MensagemDialog(QDialog):
 
         rendered_text = template
         for key, value in data.items():
-            rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='color: yellow; font-weight: bold; text-decoration: underline;'>{value}</span>", rendered_text)
+            rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='font-weight: bold; text-decoration: underline;'>{value}</span>", rendered_text)
         return rendered_text
 
     def loadTemplate(self, template_name):

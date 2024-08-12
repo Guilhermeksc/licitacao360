@@ -1,21 +1,7 @@
+Contrato: {{Contrato/Ata}}
 
-teste
-{{Objeto}}
+Tipo: {{Tipo}}
 
-testes
-{{Processo}}
-testes
+Empresa: {{Empresa}}
 
-{{uasg}}
-nup  {{nup}}
-
-material{{material_servico}}{{Renova?}}
-
-
-teste {{Empresa}}
-
-{{orgao_responsavel}}{{orgao_responsavel}}
-
-teste p
-p
-p{{orgao_responsavel}}
+Teste de verificação para Jane ver

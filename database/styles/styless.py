@@ -7,7 +7,7 @@ def get_menu_button_style():
             text-align: left;
             border: 1px solid transparent; 
             border-radius: 0px;
-            border-left: 4px solid blacx;
+            border-left: 4px solid transparent;
             padding: 10px;
         }
         QPushButton:hover {

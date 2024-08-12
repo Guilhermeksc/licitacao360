@@ -861,7 +861,7 @@ class ButtonManager:
             ("Adicionar Item", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
             ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
             ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
-            ("Controle de Datas", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
+            ("Controle", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
