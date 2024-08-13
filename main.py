@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
         self.set_active_button("Início")
         self.content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                border: 10px solid #000040;
+                border: 10px solid #000000;
             }
         """)
 
