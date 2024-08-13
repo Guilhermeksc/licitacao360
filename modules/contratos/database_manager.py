@@ -75,8 +75,8 @@ class DatabaseContratosManager:
                 cnpj TEXT,                        
                 natureza_continuada TEXT,
                 om TEXT,
-                sigla_om TEXT,
-                orgao_responsavel TEXT,
+                indicativo_om TEXT,
+                om_extenso TEXT,
                 material_servico TEXT,
                 link_pncp TEXT,
                 portaria TEXT,
@@ -96,12 +96,13 @@ class DatabaseContratosManager:
                 cp TEXT,
                 msg TEXT,
                 comentarios TEXT,
+                registro_status TEXT,                    
                 termo_aditivo TEXT,
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
                 assinatura_contrato TEXT,
-                registro_status TEXT
+                registro_comprasnet TEXT
             )
         """)
         conn.commit()
@@ -217,8 +218,8 @@ class SqlModel:
                 cnpj TEXT,                        
                 natureza_continuada TEXT,
                 om TEXT,
-                sigla_om TEXT,
-                orgao_responsavel TEXT,
+                indicativo_om TEXT,
+                om_extenso TEXT,
                 material_servico TEXT,
                 link_pncp TEXT,
                 portaria TEXT,
@@ -238,12 +239,13 @@ class SqlModel:
                 cp TEXT,
                 msg TEXT,
                 comentarios TEXT,
+                registro_status TEXT,                    
                 termo_aditivo TEXT,
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
                 assinatura_contrato TEXT,
-                registro_status TEXT
+                registro_comprasnet TEXT
             )
         """):
             print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
@@ -266,6 +268,70 @@ class SqlModel:
             else:
                 self.model.setHeaderData(column, Qt.Orientation.Horizontal, header)
 
+class CustomSqlTableModel(QSqlTableModel):
+    def __init__(self, parent=None, db=None, non_editable_columns=None, icons_dir=None):
+        super().__init__(parent, db)
+        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
+        self.icons_dir = icons_dir
+
+    def flags(self, index):
+        default_flags = super().flags(index)
+        if index.column() in self.non_editable_columns:
+            return default_flags & ~Qt.ItemFlag.ItemIsEditable
+        return default_flags
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if index.column() in self.non_editable_columns:
+            return False
+        return super().setData(index, value, role)
+    
+    def update_record(self, row, data):
+        record = self.record(row)
+        for column, value in data.items():
+            record.setValue(column, value)
+        if not self.setRecord(row, record):
+            print("Erro ao definir registro:", self.lastError().text())
+        if not self.submitAll():
+            print("Erro ao submeter alterações:", self.lastError().text())
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if self.icons_dir and role == Qt.ItemDataRole.DecorationRole:
+            if index.column() == self.fieldIndex("pode_renovar"):
+                pode_renovar = self.index(index.row(), self.fieldIndex("pode_renovar")).data()
+                if pode_renovar == 'Sim':
+                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
+                elif pode_renovar == 'Não':
+                    return QIcon(str(self.icons_dir / 'unchecked.png'))
+            elif index.column() == self.fieldIndex("custeio"):
+                custeio = self.index(index.row(), self.fieldIndex("custeio")).data()
+                if custeio == 'Sim':
+                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
+                elif custeio == 'Não':
+                    return QIcon(str(self.icons_dir / 'unchecked.png'))
+
+        if self.icons_dir and role == Qt.ItemDataRole.DecorationRole and index.column() == self.fieldIndex("status"):
+            status = self.index(index.row(), self.fieldIndex("status")).data()
+            status_icons = {
+                'Minuta': 'status_secao_contratos.png',
+                'Nota Técnica': 'status_nt.png',
+                'Aguardando': 'status_cp_msg.png',
+                'AGU': 'status_agu.png'
+            }
+            if status in status_icons:
+                return QIcon(str(self.icons_dir / status_icons[status]))
+
+        if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("dias"):
+            vigencia_final_index = self.fieldIndex("vigencia_final")
+            vigencia_final = self.index(index.row(), vigencia_final_index).data()
+            if vigencia_final:
+                try:
+                    vigencia_final_date = datetime.strptime(vigencia_final, '%d/%m/%Y')
+                    hoje = datetime.today()
+                    dias = (vigencia_final_date - hoje).days
+                    return dias
+                except ValueError:
+                    return "Data Inválida"
+        return super().data(index, role)
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
@@ -362,68 +428,3 @@ class TableMenu(QMenu):
     def atualizar_interface(self):
         print("Interface atualizada com os novos dados.")
         self.main_app.refresh_model()
-   
-class CustomSqlTableModel(QSqlTableModel):
-    def __init__(self, parent=None, db=None, non_editable_columns=None, icons_dir=None):
-        super().__init__(parent, db)
-        self.non_editable_columns = non_editable_columns if non_editable_columns is not None else []
-        self.icons_dir = icons_dir
-
-    def flags(self, index):
-        default_flags = super().flags(index)
-        if index.column() in self.non_editable_columns:
-            return default_flags & ~Qt.ItemFlag.ItemIsEditable
-        return default_flags
-
-    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-        if index.column() in self.non_editable_columns:
-            return False
-        return super().setData(index, value, role)
-    
-    def update_record(self, row, data):
-        record = self.record(row)
-        for column, value in data.items():
-            record.setValue(column, value)
-        if not self.setRecord(row, record):
-            print("Erro ao definir registro:", self.lastError().text())
-        if not self.submitAll():
-            print("Erro ao submeter alterações:", self.lastError().text())
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if self.icons_dir and role == Qt.ItemDataRole.DecorationRole:
-            if index.column() == self.fieldIndex("pode_renovar"):
-                pode_renovar = self.index(index.row(), self.fieldIndex("pode_renovar")).data()
-                if pode_renovar == 'Sim':
-                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
-                elif pode_renovar == 'Não':
-                    return QIcon(str(self.icons_dir / 'unchecked.png'))
-            elif index.column() == self.fieldIndex("custeio"):
-                custeio = self.index(index.row(), self.fieldIndex("custeio")).data()
-                if custeio == 'Sim':
-                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
-                elif custeio == 'Não':
-                    return QIcon(str(self.icons_dir / 'unchecked.png'))
-
-        if self.icons_dir and role == Qt.ItemDataRole.DecorationRole and index.column() == self.fieldIndex("status"):
-            status = self.index(index.row(), self.fieldIndex("status")).data()
-            status_icons = {
-                'Minuta': 'status_secao_contratos.png',
-                'Nota Técnica': 'status_nt.png',
-                'Aguardando': 'status_cp_msg.png',
-                'AGU': 'status_agu.png'
-            }
-            if status in status_icons:
-                return QIcon(str(self.icons_dir / status_icons[status]))
-
-        if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("dias"):
-            vigencia_final_index = self.fieldIndex("vigencia_final")
-            vigencia_final = self.index(index.row(), vigencia_final_index).data()
-            if vigencia_final:
-                try:
-                    vigencia_final_date = datetime.strptime(vigencia_final, '%d/%m/%Y')
-                    hoje = datetime.today()
-                    dias = (vigencia_final_date - hoje).days
-                    return dias
-                except ValueError:
-                    return "Data Inválida"
-        return super().data(index, role)

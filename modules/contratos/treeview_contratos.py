@@ -10,10 +10,10 @@ import logging
 from functools import partial
 import pandas as pd
 
-class TreeViewAtasDialog(QDialog):
+class TreeViewContratosDialog(QDialog):
     def __init__(self, database_path, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Visualização das Atas de Registro de Preços (ARP)")
+        self.setWindowTitle("Visualização das Contratos")
         self.setFixedWidth(1000)
         self.setMinimumHeight(750)
         self.database_path = database_path 
@@ -57,13 +57,13 @@ class TreeViewAtasDialog(QDialog):
 
     def setup_header(self):
         header_layout = QHBoxLayout()
-        title_label = QLabel("Controle de Atas de Registro de Preços")
+        title_label = QLabel("Controle de Contratos")
         title_font = QFont()
         title_font.setPointSize(16)
         title_label.setFont(title_font)
 
         image_label = QLabel()
-        pixmap = QPixmap(str(ICONS_DIR / "signature.png"))
+        pixmap = QPixmap(str(IMAGE_PATH / "titulo360superior.png"))
         image_label.setPixmap(pixmap)
         image_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
@@ -144,7 +144,7 @@ class TreeViewAtasDialog(QDialog):
         for index, row in data.iterrows():
             try:
                 tipo = row.iloc[5] if len(row) > 5 else "Desconhecido"
-                if tipo != "Ata":
+                if tipo != "Contrato":
                     continue
 
                 uasg = str(row.iloc[10]) if len(row) > 10 else "Desconhecido"
@@ -209,7 +209,7 @@ class TreeViewAtasDialog(QDialog):
             total_atas = len(children)
             
             # Texto do contador
-            contador_text = f"Total de Atas: {total_atas}\nAtas assinadas: {sim_count}\nAtas não assinadas: {nao_count}\nAtas em tramitação: {tram_count}"
+            contador_text = f"Total de Contratos: {total_atas}\nContratos assinados: {sim_count}\nContratos não assinados: {nao_count}\nnContratos em tramitação: {tram_count}"
             contador_item = QStandardItem(contador_text)
             contador_item.setFont(child_font)
             parent_item.appendRow(contador_item)
@@ -332,7 +332,7 @@ class TreeViewAtasDialog(QDialog):
             parent_item.setIcon(parent_icon)
             
             # Atualizar o contador
-            contador_text = f"Total de Atas: {total_atas}\nAtas assinadas: {sim_count}\nAtas não assinadas: {nao_count}\nAtas em tramitação: {tram_count}"
+            contador_text = f"Total de Contratos: {total_atas}\nContratos assinados: {sim_count}\nContratos não assinados: {nao_count}\nnContratos em tramitação: {tram_count}"
             contador_item = parent_item.child(0)
             contador_item.setText(contador_text)
 

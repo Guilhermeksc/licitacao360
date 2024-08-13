@@ -166,14 +166,20 @@ class MenuManager:
                 background-color: transparent;
                 font-weight: bold;
                 font-size: 16px;
+                text-align: left;
+                border: 0px solid transparent; 
                 border-radius: 0px;
-                border: 1px solid transparent;
             }
             QMenuBar::item {
                 background-color: transparent;
-                font-size: 14px;
+                padding: 10px 20px;  
+                margin: 0px;
+                border: none;
             }
-            QMenu {
-                font-size: 14px;            
+            QMenuBar::item:selected {  
+                background-color: #d3d3d3;  
+                color: black;
+                border: 0px solid transparent; 
+                border-radius: 0px;
             }
         """

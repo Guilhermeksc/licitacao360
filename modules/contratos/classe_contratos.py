@@ -10,6 +10,7 @@ from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
 from modules.contratos.gerenciar_inclusao_exclusao import GerenciarInclusaoExclusaoContratos
 from modules.contratos.treeview_atas import TreeViewAtasDialog
+from modules.contratos.treeview_contratos import TreeViewContratosDialog
 from modules.contratos.msg.msg_alerta_prazo import MensagemDialog
 import pandas as pd
 import os
@@ -25,11 +26,11 @@ class ContratosWidget(QMainWindow):
         self.icons_dir = Path(icons_dir) if icons_dir else Path()
         self.required_columns = [
             'status', 'dias', 'pode_renovar', 'custeio', 'numero_contrato', 'tipo', 'id_processo', 'empresa', 'objeto',
-            'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'material_servico', 'link_pncp',
+            'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'indicativo_om', 'om_extenso', 'material_servico', 'link_pncp',
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
-            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'termo_aditivo', 'atualizacao_comprasnet',
-            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'registro_status'
+            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_staus','termo_aditivo', 'atualizacao_comprasnet',
+            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'registro_comprasnet'
         ]
         self.setup_managers()
         self.load_initial_data()
@@ -95,7 +96,12 @@ class ContratosWidget(QMainWindow):
         self.close_database_connections()
         dialog = TreeViewAtasDialog(self.database_path, self)
         dialog.exec()
-        
+
+    def treeview_contratos(self):
+        self.close_database_connections()
+        dialog = TreeViewContratosDialog(self.database_path, self)
+        dialog.exec()
+
     def close_database_connections(self):
         self.database_manager.close_connection()
         source_model = self.ui_manager.table_view.model().sourceModel()
@@ -114,10 +120,6 @@ class ContratosWidget(QMainWindow):
         else:
             Dialogs.warning(self, "Exportação de Dados", message)
     
-    def treeview_contratos(self):
-        self.close_database_connections()   
-        pass
-
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent

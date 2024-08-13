@@ -49,7 +49,7 @@ for i, row in controle_contratos_df.iterrows():
         controle_contratos_df.at[i, 'vigencia_inicial'] = ''
         controle_contratos_df.at[i, 'vigencia_final'] = ''
         controle_contratos_df.at[i, 'atualizacao_comprasnet'] = ''
-        controle_contratos_df.at[i, 'Valor'] = ''
+        controle_contratos_df.at[i, 'valor_global'] = ''
 
         # Obter valores das colunas correspondentes no contratos_df
         vigencia_inicial = matching_row['Vig. Início'].values[0]
@@ -79,12 +79,12 @@ for i, row in contratos_df.iterrows():
 
             new_row = {
                 'comprasnet_contratos': contrato,
-                'Empresa': empresa,
+                'empresa': empresa,
                 'cnpj': cnpj,
                 'vigencia_inicial': row['Vig. Início'],
                 'vigencia_final': row['Vig. Fim'],
                 'atualizacao_comprasnet': row['Atualizado em'],
-                'Valor': row['Valor Global']
+                'valor_global': row['Valor Global']
             }
 
             # Preencher colunas adicionais com valores nulos

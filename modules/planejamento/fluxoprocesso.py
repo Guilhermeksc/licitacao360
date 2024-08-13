@@ -166,12 +166,10 @@ class CustomListWidget(QListWidget):
         self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.setStyleSheet("""
             QListWidget {
-                border: 2px solid white;
+                border: 2px solid transparent;
                 border-radius: 4px;
-                background-color: white;
             }
             QListWidget::item {
-                background-color: white;
                 border: none;
             }
             QListWidget::item:selected {
@@ -235,7 +233,7 @@ class CustomListWidget(QListWidget):
         item.setText(formattedText)
         item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
         label = QLabel(formattedText)
-        label.setStyleSheet("background-color: white;")
+        label.setStyleSheet("background-color: transparent;")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.addItem(item)
         self.setItemWidget(item, label)
@@ -265,7 +263,7 @@ class CustomListWidget(QListWidget):
         if item:
             widget = self.itemWidget(item)
             if widget:
-                widget.setStyleSheet("background-color: white;")
+                widget.setStyleSheet("background-color: transparent;")
 
     def applyClickEffect(self, item):
         # Encontre o QLabel associado ao QListWidgetItem e mude seu estilo

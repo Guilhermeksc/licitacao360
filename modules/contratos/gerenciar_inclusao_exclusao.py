@@ -15,6 +15,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         super().__init__(parent)
         self.icons_dir = icons_dir
         self.database_path = database_path
+        self.model = parent.model
         self.setWindowTitle("Gerenciar Inclusão/Exclusão de Contratos")
         self.resize(800, 600)
         
@@ -38,76 +39,66 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
         self.layout.addLayout(search_layout)
 
+        # Adicionando o TableView
         self.table_view = QTableView(self)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.layout.addWidget(self.table_view)
 
-        self.model = self.init_model()
-        self.table_view.setModel(self.model)
+        # Adicionando o Formulário
+        self.layout.addLayout(self.create_form_layout())
 
-        # Verificações de contagem de linhas
-        model_row_count = self.model.rowCount()
-        table_view_row_count = self.table_view.model().rowCount()
-        print(f"Quantidade de linhas no model: {model_row_count}")
-        print(f"Quantidade de linhas no table_view: {table_view_row_count}")
+        # Adicionando os botões
+        self.layout.addLayout(self.create_button_layout())
 
-        form_layout = self.create_form_layout()
-        self.layout.addLayout(form_layout)
+    def load_data(self):
+        # Configurar o proxy model para filtrar as colunas específicas
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.parent().model)
+        self.proxy_model.setFilterKeyColumn(-1)  # Permite buscar em todas as colunas
+        self.proxy_model.setDynamicSortFilter(True)
 
-        button_layout = self.create_button_layout()
-        self.layout.addLayout(button_layout)
-        
-        # Adicionando o botão para gerar a tabela
-        self.generate_table_button = QPushButton("Gerar Tabela", self)
-        self.generate_table_button.clicked.connect(self.gerar_tabela)
-        self.layout.addWidget(self.generate_table_button)
+        # Conectar o modelo ao TableView antes de ocultar as colunas
+        self.table_view.setModel(self.proxy_model)
 
-    def gerar_tabela(self):
-        try:
-            # Contar a quantidade de linhas no table_view (visíveis e invisíveis)
-            table_view_row_count = self.model.rowCount()
+        # Ocultar todas as colunas e mostrar apenas as desejadas (4, 7, 8, 9)
+        self.hide_unwanted_columns()
 
-            # Cria um DataFrame com os dados do modelo, incluindo linhas ocultas
-            data = []
-            for row in range(table_view_row_count):
-                row_data = []
-                for column in range(self.model.columnCount()):
-                    item = self.model.index(row, column).data()
-                    row_data.append(item)
-                data.append(row_data)
+        # Ajustar o redimensionamento das colunas
+        self.table_view.resizeColumnsToContents()
+        self.table_view.horizontalHeader().setStretchLastSection(True)
 
-            headers = [self.model.headerData(column, Qt.Orientation.Horizontal) for column in range(self.model.columnCount())]
-            df = pd.DataFrame(data, columns=headers)
-
-            # Contar a quantidade de linhas na tabela gerada
-            generated_table_row_count = len(df)
-
-            # Printar as quantidades de linhas
-            print(f"Quantidade de linhas no table_view: {table_view_row_count}")
-            print(f"Quantidade de linhas na tabela gerada: {generated_table_row_count}")
-
-            # Define o caminho do arquivo Excel
-            file_path = os.path.join(os.path.expanduser("~"), "tabela_dados.xlsx")
-
-            # Salva o DataFrame em um arquivo Excel
-            df.to_excel(file_path, index=False)
-
-            # Abre o arquivo Excel
-            os.startfile(file_path)
-        except Exception as e:
-            logging.error("Erro ao gerar a tabela Excel: %s", e)
-            Dialogs.warning(self, "Erro", f"Erro ao gerar a tabela Excel: {e}")
-
+    def hide_unwanted_columns(self):
+        # Função para ocultar colunas não desejadas
+        for column in range(self.parent().model.columnCount()):
+            if column not in [4, 7, 8, 9]:
+                self.table_view.setColumnHidden(column, True)
+            else:
+                self.table_view.setColumnHidden(column, False)
 
     def filter_table(self, text):
-        for row in range(self.model.rowCount()):
-            match = False
-            for column in range(self.model.columnCount()):
-                item = self.model.index(row, column).data()
-                if text.lower() in str(item).lower():
-                    match = True
-                    break
-            self.table_view.setRowHidden(row, not match)
+        # Filtrar o TableView baseado no texto da barra de busca
+        search_regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
+        self.proxy_model.setFilterRegularExpression(search_regex)
+
+    def create_button_layout(self):
+        button_layout = QHBoxLayout()
+        self.incluir_button = QPushButton("Incluir", self)
+        self.incluir_button.clicked.connect(self.incluir_item)
+        button_layout.addWidget(self.incluir_button)
+
+        self.excluir_button = QPushButton("Excluir", self)
+        self.excluir_button.clicked.connect(self.excluir_item)
+        button_layout.addWidget(self.excluir_button)
+
+        self.excluir_database_button = QPushButton("Excluir Database", self)
+        self.excluir_database_button.clicked.connect(self.excluir_database)
+        button_layout.addWidget(self.excluir_database_button)
+
+        self.carregar_tabela_button = QPushButton("Carregar Tabela", self)
+        self.carregar_tabela_button.clicked.connect(self.carregar_tabela)
+        button_layout.addWidget(self.carregar_tabela_button)
+
+        return button_layout
 
     def create_form_layout(self):
         form_layout = QFormLayout()
@@ -122,68 +113,20 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         form_layout.addRow("Valor:", self.valor_input)
         return form_layout
 
-    def create_button_layout(self):
-        button_layout = QHBoxLayout()
-        self.incluir_button = QPushButton("Incluir", self)
-        self.incluir_button.clicked.connect(self.incluir_item)
-        button_layout.addWidget(self.incluir_button)
+    # Funções para manipulação de dados e interações com o banco de dados
+    def incluir_item(self):
+        numero_contrato = self.contrato_ata_input.text()
+        empresa = self.empresa_input.text()
+        objeto = self.objeto_input.text()
+        valor_global = self.valor_input.text()
 
-        self.excluir_button = QPushButton("Excluir", self)
-        self.excluir_button.clicked.connect(self.excluir_item)
-        button_layout.addWidget(self.excluir_button)
-
-        self.salvar_button = QPushButton("Salvar", self)
-        self.salvar_button.clicked.connect(self.salvar_alteracoes)
-        button_layout.addWidget(self.salvar_button)
-
-        self.excluir_database_button = QPushButton("Excluir Database", self)
-        self.excluir_database_button.clicked.connect(self.excluir_database)
-        button_layout.addWidget(self.excluir_database_button)
-
-        self.carregar_tabela_button = QPushButton("Carregar Tabela", self)
-        self.carregar_tabela_button.clicked.connect(self.carregar_tabela)
-        button_layout.addWidget(self.carregar_tabela_button)
-
-        return button_layout
-
-    def init_model(self):
-        sql_model = SqlModel(self.icons_dir, self.database_manager, self)
-        model = sql_model.setup_model("controle_contratos", editable=True)
-        return model
-
-    def hide_unwanted_columns(self):
-        visible_columns = {4, 7, 8, 9}
-        for column in range(self.model.columnCount()):
-            if column not in visible_columns:
-                self.table_view.hideColumn(column)
-
-    def load_data(self):
-        try:
-            conn = self.database_manager.connect_to_database()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM controle_contratos")
-            results = cursor.fetchall()
-
-            self.model.removeRows(0, self.model.rowCount())
-            for row_data in results:
-                row = self.model.record()
-                row.setValue(4, row_data[4])
-                row.setValue(7, row_data[7])
-                row.setValue(8, row_data[8])
-                row.setValue(9, row_data[9])
-                self.model.insertRecord(-1, row)
-
-            self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            self.hide_unwanted_columns()
-
-        except Exception as e:
-            logging.error("Erro ao carregar dados do banco de dados: %s", e)
-            Dialogs.warning(self, "Erro", f"Erro ao carregar dados do banco de dados: {e}")
-        finally:
-            self.database_manager.close_connection()
+        if numero_contrato and empresa and objeto or valor_global:
+            self.adicionar_linha_na_tabela(numero_contrato, empresa, objeto, valor_global)
+        else:
+            Dialogs.warning(self, "Erro", "Todos os campos devem ser preenchidos para incluir um item.")
 
     def adicionar_linha_na_tabela(self, contrato, empresa, objeto, valor):
-        if not contrato or not empresa or not objeto or not valor:
+        if not contrato or not empresa or not objeto or valor:
             Dialogs.warning(self, "Erro", "Todos os campos devem ser preenchidos.")
             return
 
@@ -198,59 +141,29 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         else:
             print("Linha inserida com sucesso no modelo")
 
-    def incluir_item(self):
-        numero_contrato = self.contrato_ata_input.text()
-        empresa = self.empresa_input.text()
-        objeto = self.objeto_input.text()
-        valor_global = self.valor_input.text()
-
-        if numero_contrato and empresa and objeto and valor_global:
-            self.adicionar_linha_na_tabela(numero_contrato, empresa, objeto, valor_global)
-        else:
-            Dialogs.warning(self, "Erro", "Todos os campos devem ser preenchidos para incluir um item.")
-
     def excluir_item(self):
         selected_indexes = self.table_view.selectionModel().selectedRows()
         if not selected_indexes:
             Dialogs.warning(self, "Erro", "Nenhum item selecionado para excluir.")
             return
+
+        # Excluir as linhas selecionadas
         for index in selected_indexes:
             self.model.removeRow(index.row())
 
-    def salvar_alteracoes(self):
-        try:
-            conn = self.database_manager.connect_to_database()
-            cursor = conn.cursor()
+        # Remover linhas vazias remanescentes
+        self.remove_empty_rows()
 
-            data_to_save = []
-            for row in range(self.model.rowCount()):
-                record = self.model.record(row)
-                numero_contrato = record.value("numero_contrato")
-                empresa = record.value("empresa")
-                objeto = record.value("objeto")
-                valor_global = record.value("valor_global")
+        # Atualizar o layout do TableView
+        self.table_view.model().layoutChanged.emit()
 
-                if not numero_contrato or not empresa or not objeto or not valor_global:
-                    logging.warning("Dados incompletos: contrato=%s, empresa=%s, objeto=%s, valor=%s",
-                                    numero_contrato, empresa, objeto, valor_global)
-                    continue
-
-                data_to_save.append((numero_contrato, empresa, objeto, valor_global))
-
-            cursor.execute("DELETE FROM controle_contratos")
-            conn.commit()
-
-            cursor.executemany(
-                "INSERT INTO controle_contratos (numero_contrato, empresa, objeto, valor_global) VALUES (?, ?, ?, ?)",
-                data_to_save
-            )
-            conn.commit()
-            Dialogs.info(self, "Sucesso", "Alterações salvas com sucesso.")
-        except Exception as e:
-            logging.error("Erro ao salvar alterações no banco de dados: %s", e)
-            Dialogs.warning(self, "Erro", f"Erro ao salvar alterações no banco de dados: {e}")
-        finally:
-            self.database_manager.close_connection()
+    def remove_empty_rows(self):
+        """Remove any rows from the model that are completely empty."""
+        for row in range(self.model.rowCount() - 1, -1, -1):  # Percorre de baixo para cima
+            record = self.model.record(row)
+            is_empty = all(not record.value(i) for i in range(record.count()))  # Verifica se todos os campos estão vazios
+            if is_empty:
+                self.model.removeRow(row)
 
     def excluir_database(self):
         reply = QMessageBox.question(self, 'Confirmar Exclusão', 'Tem certeza que deseja excluir a tabela controle_contratos?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
@@ -270,7 +183,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
                 else:
                     df = pd.read_excel(filepath)
                 self.validate_and_process_data(df)
-                df['status'] = 'Minuta'
+                df['status'] = 'Aguardando'
 
                 with self.database_manager as conn:
                     DatabaseContratosManager.create_table_controle_contratos(conn)

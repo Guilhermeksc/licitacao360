@@ -41,7 +41,7 @@ class InicioWidget(QWidget):
         )
         self.synopsis_label.setAlignment(Qt.AlignmentFlag.AlignJustify)
         self.synopsis_label.setWordWrap(True)
-        self.synopsis_label.setStyleSheet("font-size: 14px; padding: 10px;")
+        self.synopsis_label.setStyleSheet("font-size: 16px; padding: 10px;")
 
 
         # Adiciona os widgets ao layout
@@ -52,10 +52,10 @@ class InicioWidget(QWidget):
         self.image_cache = self.load_initial_data()
 
         # Adiciona os módulos ao layout com seus respectivos ícones e descrições
-        self.add_module("Atas", "Gerenciamento de atas de reuniões e eventos.", "report.png")
+        self.add_module("Atas", "Automação para criação de Atas de Registro de Preços.", "report.png")
         self.add_module("Contratos", "Gerenciamento de contratos administrativos.", "signature.png")
         self.add_module("Planejamento", "Ferramentas de planejamento para licitações.", "planning.png")
-        self.add_module("Web Scraping", "Coleta automática de dados de sites para licitações.", "website_menu.png")
+        self.add_module("Web Scraping", "Coleta automática de dados do Comprasnet.", "website_menu.png")
         self.add_module("RPA", "Automação de processos repetitivos via RPA.", "automation.png")
         self.add_module("Funcionalidades PDF", "Manipulação avançada de documentos PDF.", "pdf.png")
 
@@ -65,6 +65,7 @@ class InicioWidget(QWidget):
         )
         self.contact_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.contact_label.setOpenExternalLinks(True)
+        self.contact_label.setStyleSheet("font-size: 16px; padding: 10px;")
 
         self.layout.addStretch(1)
         self.layout.addWidget(self.contact_label)
@@ -79,7 +80,7 @@ class InicioWidget(QWidget):
         module_layout.setSpacing(0)
         
         icon_label = QLabel()
-        icon_label.setPixmap(icon.pixmap(32, 32))
+        icon_label.setPixmap(icon.pixmap(40, 40))
         
         title_layout = QVBoxLayout()
         title_layout.setContentsMargins(0, 0, 0, 0)
@@ -94,7 +95,7 @@ class InicioWidget(QWidget):
         description_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignJustify)
         description_label.setWordWrap(True)
         description_label.setFixedWidth(800)
-        description_label.setStyleSheet("font-size: 14px; padding-left: 5px;")
+        description_label.setStyleSheet("font-size: 16px; padding-left: 5px;")
         title_layout.addWidget(description_label)
         
         module_layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignRight)
@@ -225,7 +226,7 @@ class MainWindow(QMainWindow):
         self.set_active_button("Início")
         self.content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                border: 10px solid #000000;
+                border: 10px solid #000040;
             }
         """)
 
