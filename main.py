@@ -25,7 +25,15 @@ class InicioWidget(QWidget):
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
-        
+
+        # Aplica o estilo CSS para bordas arredondadas ao QWidget
+        self.setStyleSheet("""
+            InicioWidget {
+                border-radius: 15px;
+                border: 1px solid #0081DB;
+            }
+        """)
+
         # Título do projeto
         self.title_label = QLabel("Licitação 360")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -108,7 +116,7 @@ class InicioWidget(QWidget):
         
     def load_initial_data(self):
         image_file_names = [
-            "report.png", "signature.png", "checklist.png", "planning.png", 
+            "report.png", "signature.png", "planning.png", 
             "website_menu.png", "automation.png", "pdf.png"
         ]
         return self.load_images(self.icons_dir, image_file_names)
@@ -226,7 +234,7 @@ class MainWindow(QMainWindow):
         self.set_active_button("Início")
         self.content_widget.setStyleSheet("""
             QWidget#contentWidget {
-                border: 10px solid #000000;
+                border: 1px solid #E4E7EB;
             }
         """)
 
@@ -340,7 +348,7 @@ def main():
     app = QApplication(sys.argv)
 
     # Apply dark theme.
-    app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
+    app.setStyleSheet(qdarktheme.load_stylesheet("light"))
 
     try:
         window = MainWindow(app)

@@ -36,9 +36,9 @@ class FluxoProcessoDialog(QDialog):
         self.icons_dir = Path(icons_dir)
         self.image_cache = load_images(self.icons_dir, ["excel.png", "pdf64.png"])
         self.setWindowTitle("Painel de Fluxo dos Processos")
-        self.setStyleSheet("QDialog { background-color: #050f41; }")
+        # self.setStyleSheet("QDialog { background-color: #050f41; }")
         self._setup_ui()
-        self.showMaximized()
+        # self.showMaximized()
         # self.showFullScreen()
 
     def closeEvent(self, event):
@@ -73,7 +73,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_header_layout(self):
         header_layout = QHBoxLayout()
         titleLabel = QLabel("Controle do Fluxo dos Processos")
-        titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        titleLabel.setStyleSheet("font-size: 32px; font-weight: bold;")
 
         header_layout.addWidget(titleLabel)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
@@ -106,10 +106,10 @@ class FluxoProcessoDialog(QDialog):
         icon_pdf = QIcon(str(ICONS_DIR / "pdf64.png"))
 
         # Botões
-        button_gerar_excel = create_button_2("Gerar Relatório Excel", icon_excel, self.generate_excel, "Gerar arquivo Excel", self)
+        button_gerar_excel = create_button_2("Relatório Excel", icon_excel, self.generate_excel, "Gerar arquivo Excel", self)
         layout.addWidget(button_gerar_excel)  # Adiciona diretamente ao layout do cabeçalho
 
-        button_gerar_pdf = create_button_2("Gerar Relatório PDF", icon_pdf, self.generate_pdf, "Gerar arquivo PDF", self)
+        button_gerar_pdf = create_button_2("Relatório PDF", icon_pdf, self.generate_pdf, "Gerar arquivo PDF", self)
         layout.addWidget(button_gerar_pdf)  # Adiciona diretamente ao layout do cabeçalho
             
     def generate_excel(self):
@@ -127,7 +127,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_group_box(self, etapa):
         group_box = QGroupBox(etapa)
         group_box.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        group_box.setStyleSheet("QGroupBox { border: 1px solid white; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px; color: white; }")
+        group_box.setStyleSheet("QGroupBox { color: #8AB4F7; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px}")
         layout = QVBoxLayout(group_box)
         layout.setContentsMargins(1, 25, 1, 4)
         list_widget = CustomListWidget(parent=self, database_path=self.database_path)
@@ -159,6 +159,7 @@ class CustomListWidget(QListWidget):
     def __init__(self, parent=None, database_path=None):
         super().__init__(parent)
         self.database_path = database_path
+        self.last_selected_item = None  # Referência ao último item selecionado
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
@@ -166,14 +167,19 @@ class CustomListWidget(QListWidget):
         self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.setStyleSheet("""
             QListWidget {
+                background-color: white;
+                color: #4A4A4A;  
                 border: 2px solid transparent;
                 border-radius: 4px;
+                           
             }
             QListWidget::item {
-                border: none;
+                background-color: white;
+                color: #4A4A4A;  
             }
             QListWidget::item:selected {
-                background-color: #a8d3ff;
+                background-color: white;
+                color: #4A4A4A;
             }
         """)
 
@@ -233,7 +239,11 @@ class CustomListWidget(QListWidget):
         item.setText(formattedText)
         item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
         label = QLabel(formattedText)
-        label.setStyleSheet("background-color: transparent;")
+        label.setStyleSheet("""
+            background-color: white;
+            color: #4A4A4A;
+        """)
+        # label.setStyleSheet("background-color: #F8F9FA;")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.addItem(item)
         self.setItemWidget(item, label)
@@ -249,29 +259,37 @@ class CustomListWidget(QListWidget):
 
         elif event.button() == Qt.MouseButton.RightButton:
             if item:
-                self.setCurrentItem(item)  # Certifica-se de que o item esteja selecionado ao clicar com o botão direito
-                self.applyRightClickEffect(item)
+                self.setCurrentItem(item)
                 self.effect_timer.start()
+
 
     def applyRightClickEffect(self, item):
         widget = self.itemWidget(item)
         if widget:
-            widget.setStyleSheet("background-color: #00fbff; border: 1px solid #000080;")
+            widget.setStyleSheet("background-color: white")
 
     def clearClickEffect(self):
         item = self.currentItem()
         if item:
             widget = self.itemWidget(item)
             if widget:
-                widget.setStyleSheet("background-color: transparent;")
+                widget.setStyleSheet("background-color: white;")
 
     def applyClickEffect(self, item):
-        # Encontre o QLabel associado ao QListWidgetItem e mude seu estilo
-        if item:
-            widget = self.itemWidget(item)
-            if widget:
-                # Altera a cor de fundo para amarelo e adiciona uma borda azul marinho
-                widget.setStyleSheet("background-color: #FFFF00; border: 1px solid #000080;")
+        # Remova o efeito do último item selecionado, se houver
+        if self.last_selected_item:
+            last_widget = self.itemWidget(self.last_selected_item)
+            if last_widget:
+                last_widget.setStyleSheet("background-color: white;")  # Estilo original
+
+        # Aplique o efeito ao item atual
+        widget = self.itemWidget(item)
+        if widget:
+            widget.setStyleSheet("background-color: #8AB4F7; border: 1px solid #000080;")
+
+        # Atualize a referência ao último item selecionado
+        self.last_selected_item = item
+
 
     def startDrag(self, supportedActions):
         item = self.currentItem()

@@ -17,6 +17,8 @@ except locale.Error:
     # Tenta a configuração comum em sistemas Windows
     locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
 
+import math
+
 def convert_pdf_to_txt(pdf_dir, txt_dir, progress_bar, progress_callback):    
     # Verifica se TXT_DIR existe. Se não, cria o diretório.
     if not txt_dir.exists():
@@ -41,8 +43,13 @@ def convert_pdf_to_txt(pdf_dir, txt_dir, progress_bar, progress_callback):
                 f.write(all_text)
 
         # Atualiza a barra de progresso
-        progress = (index + 1) / total_files * 100
+        progress = math.ceil((index + 1) / total_files * 100)
         progress_callback(progress)
+    
+    # Garante que a barra de progresso atinja 100%
+    progress_callback(100)
+
+
 
 def obter_arquivos_txt(directory: str) -> list:
     """Retorna a lista de arquivos TXT em um diretório."""

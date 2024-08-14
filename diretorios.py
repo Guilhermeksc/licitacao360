@@ -68,6 +68,7 @@ TEMPLATE_DIR = RESOURCES_DIR / "template"
 CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
 TEMPLATE_CHECKLIST = TEMPLATE_DIR / "checklist.docx"
 TEMPLATE_AUTUACAO = TEMPLATE_DIR / "template_autuacao.docx"
+TEMPLATE_PATH = TEMPLATE_DIR / 'template_ata.docx'
 
 # Diretórios de mensagens
 MSG_DIR = RESOURCES_DIR / "msg"
@@ -105,7 +106,7 @@ TR_VAR_DIR = DATABASE_DIR / "tr_variavel.xlsx"
 ULTIMO_CONTRATO_DIR = DATABASE_DIR / "ultimo_contrato.txt"
 
 NOMES_INVALIDOS = ['N/A', None, 'None', 'nan', 'null']
-TEMPLATE_PATH = DATABASE_DIR / 'template_ata.docx'
+
 TEMPLATE_PATH_TEMP = BASE_DIR / 'database/template_ata_temp.docx'
 TEMPLATE_CONTRATO_PATH = DATABASE_DIR / 'template_contrato.docx'
 CSV_DIR = DATABASE_DIR / "dados.csv"

@@ -7,26 +7,25 @@ def get_menu_button_style():
             text-align: left;
             border: 1px solid transparent; 
             border-radius: 0px;
-            border-left: 4px solid transparent;
             padding: 10px;
         }
         QPushButton:hover {
             background-color: #d3d3d3;
             color: black;
+            border-radius: 0px;
         }
     """
 
 def get_menu_button_activated_style():
     return """
         QPushButton {
-            background-color: #000000;
-            color: white;
+            background-color: #E4E7EB;
+            color: black;
             font-weight: bold;
             font-size: 16px;
             text-align: left;
-            border: 1px solid black;
+            border: 1px solid #E4E7EB;
             border-radius: 0px;
-            border-left: 4px solid red;
             padding: 10px;
         }
     """

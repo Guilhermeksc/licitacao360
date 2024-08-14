@@ -308,9 +308,7 @@ class ButtonManager:
         for btn in self.buttons:
             layout.addWidget(btn)
 
-
-
-def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(25, 25)):
+def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(30, 30)):
     btn = QPushButton(text, parent)
     if icon:
         btn.setIcon(QIcon(icon))

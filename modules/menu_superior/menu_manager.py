@@ -19,7 +19,7 @@ class MenuManager:
         self.container.setLayout(self._create_header_layout())
         self.parent.setMenuWidget(self.container)
         # Estado atual do tema
-        self.current_theme = "dark"
+        self.current_theme = "light"
 
     def _create_header_layout(self):
         header_layout = QHBoxLayout()

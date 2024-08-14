@@ -63,9 +63,9 @@ class EditarDadosDialog(QDialog):
     def update_title_label(self, orgao_responsavel, uasg):
         self.titleLabel.setText(
             f"{self.dados['tipo']} nº {self.dados['numero']}/{self.dados['ano']} - Edição de Dados<br>"
-            f"<span style='font-size: 20px; color: #ADD8E6;'>OM RESPONSÁVEL: {orgao_responsavel} (UASG: {uasg})</span>"
+            f"<span style='font-size: 20px; '>OM RESPONSÁVEL: {orgao_responsavel} (UASG: {uasg})</span>"
         )
-        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        self.titleLabel.setStyleSheet("font-size: 32px; font-weight: bold;")
 
     def createFormLayout(self):
         self.layout = QVBoxLayout(self)  
@@ -355,7 +355,7 @@ class EditarDadosDialog(QDialog):
         self.line_edit_objeto.setText(self.dados.get('objeto', ''))
         self.line_edit_objeto.setReadOnly(False)
         # Aplicar estilo específico para o campo 'objeto'
-        self.line_edit_objeto.setStyleSheet("QLineEdit { color: darkblue; font-weight: bold; }")
+        self.line_edit_objeto.setStyleSheet("QLineEdit { font-weight: bold; }")
         layout.addWidget(label_objeto)
         layout.addWidget(self.line_edit_objeto)
         self.line_edits['objeto'] = self.line_edit_objeto
@@ -660,7 +660,7 @@ class EditarDadosDialog(QDialog):
 
     def createConfirmButton(self):
         icon_size = QSize(40, 40)  # Tamanho do ícone para todos os botões
-        button_spec = ("Confirmar", self.image_cache['confirm'], self.confirmar_edicao, "Confirmar Edição", icon_size)
+        button_spec = ("Salvar Alterações", self.image_cache['confirm'], self.confirmar_edicao, "Confirmar Edição", icon_size)
         
         text, icon, callback, tooltip, icon_size = button_spec
         btn = create_button_2(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self, icon_size=icon_size)

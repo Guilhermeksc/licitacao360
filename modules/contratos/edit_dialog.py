@@ -187,7 +187,7 @@ class StackWidgetManager:
             callback=self.on_add_record,  # Callback para o botão
             tooltip_text="Adicionar novo registro",
             button_size=QSize(200, 35),
-            icon_size=QSize(30, 30)
+            icon_size=QSize(40, 40)
         )
 
         # Criar ícone para o botão de comentários
@@ -200,7 +200,7 @@ class StackWidgetManager:
             callback=self.on_add_comment,  # Callback para o botão de comentários
             tooltip_text="Adicionar novo comentário",
             button_size=QSize(200, 35),
-            icon_size=QSize(30, 30)
+            icon_size=QSize(40, 40)
         )
 
         # Criar layout horizontal para combobox e botões
@@ -429,7 +429,7 @@ class AtualizarDadosContratos(QDialog):
             "border: 1px solid #414242; background: #B0B0B0; color: black; font-weight: bold; font-size: 12pt;"
             "border-top-left-radius: 5px; border-top-right-radius: 5px; "
             "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-            "border-bottom: none; }"
+            "border-bottom-color: #414242; }"
             "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
         )
 
@@ -440,7 +440,7 @@ class AtualizarDadosContratos(QDialog):
                     "QPushButton { border: 1px solid #414242; background: #414242; font-weight: bold; color: white; "
                     "border-top-left-radius: 5px; border-top-right-radius: 5px; "
                     "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom: none; font-size: 12pt; }"
+                    "border-bottom-color: #414242; font-size: 12pt; }"
                     "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
                 )
             else:
@@ -448,43 +448,13 @@ class AtualizarDadosContratos(QDialog):
                     "QPushButton { background: #B0B0B0; font-weight: bold; color: black; border: 1px solid #414242; "
                     "border-top-left-radius: 5px; border-top-right-radius: 5px; "
                     "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom: none; font-size: 12pt; }"
+                    "border-bottom-color: #414242; font-size: 12pt; }"
                     "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
                 )
 
     def show_widget(self, name):
         self.stack_manager.show_widget(name)
         self.update_button_styles(next(button for button in self.navigation_buttons if button.text() == name))
-
-
-    def get_button_style(self):
-        return (
-            "QPushButton {"
-            "border: 1px solid #414242; background: #B0B0B0; color: black; font-weight: bold; font-size: 12pt;"
-            "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-            "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-            "border-bottom: none; }"
-            "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-        )
-
-    def update_button_styles(self, active_button):
-        for button in self.navigation_buttons:
-            if button == active_button:
-                button.setStyleSheet(
-                    "QPushButton { border: 1px solid #414242; background: #414242; font-weight: bold; color: white; "
-                    "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-                    "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom: none; font-size: 12pt; }"
-                    "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-                )
-            else:
-                button.setStyleSheet(
-                    "QPushButton { background: #B0B0B0; font-weight: bold; color: black; border: 1px solid #414242; "
-                    "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-                    "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom: none; font-size: 12pt; }"
-                    "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-                )
 
     def show_widget(self, name):
         self.stack_manager.show_widget(name)
@@ -495,12 +465,12 @@ class AtualizarDadosContratos(QDialog):
         print("Dados extraídos para o título:", data)  # Adicionado print para depuração
         html_text = (
             f"{data['tipo']} {data['numero_contrato']} - {data['objeto']}<br>"
-            f"<span style='font-size: 18px; color: #ADD8E6;'>(UASG: {data['uasg']})</span>"
+            f"<span style='font-size: 18px; '>(UASG: {data['uasg']})</span>"
         )
         if not hasattr(self, 'titleLabel'):
             self.titleLabel = QLabel()
             self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-            self.titleLabel.setStyleSheet("color: white; font-size: 26px; font-weight: bold;")
+            self.titleLabel.setStyleSheet("font-size: 26px; font-weight: bold;")
 
         self.titleLabel.setText(html_text)
         print("Título atualizado:", html_text)  # Adicionado print para depuração

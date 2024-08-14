@@ -83,6 +83,19 @@ class RelatorioIndicadores(QDialog):
         self.setWindowTitle("Relatório de Indicadores")
         self.setup_ui()
 
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Adicionando o título "Relatório de Indicadores" com fonte tamanho 16
+        title_label = QLabel("Relatório de Indicadores")
+        title_label.setFont(QFont("Arial", 16))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centraliza o texto horizontalmente
+        layout.addWidget(title_label)
+
+        # Aqui você pode adicionar outros widgets ao layout
+
+        self.setLayout(layout)
+
     @staticmethod
     def convert_pe_format(pe_string):
         pe_formatted = pe_string.replace('PE-', 'PE ').replace('-', '/')
@@ -98,7 +111,7 @@ class RelatorioIndicadores(QDialog):
         except Exception as e:
             print(f"Erro ao formatar valor: {valor} - Erro: {str(e)}")
             return "R$ 0,00"
-
+        
     def fetch_pregao_data(self, pe_formatted):
         try:
             with DatabaseManager(CONTROLE_DADOS) as conn:
@@ -193,41 +206,54 @@ class RelatorioIndicadores(QDialog):
 
     def setup_ui(self):
         layout = QVBoxLayout()
-        self.grafico_local_btn = QPushButton("Gráfico por Localidade Geográfica")
-        self.grafico_desconto_btn = QPushButton("Gráfico por Percentual de Desconto")
-        self.report_button = QPushButton("Gerar Relatório de Indicadores")
+        self.report_button = QPushButton(" Relatório de Indicadores")
         
-        self.grafico_desconto_btn.clicked.connect(self.grafico_percentual_desconto)
         self.report_button.clicked.connect(self.report_button_clicked)
 
-        layout.addWidget(self.grafico_local_btn)
-        layout.addWidget(self.grafico_desconto_btn)
         layout.addWidget(self.report_button)
         self.setLayout(layout)
 
     def report_button_clicked(self):
-        self.gerar_relatorio_docx()
+        try:
+            # Gera o relatório inicial
+            self.gerar_relatorio_docx()
 
-        original_doc_path = str(INDICADORES_NORMCEIM / "Relatorio_Indicadores_Final.docx")
-        doc = Document(original_doc_path)
-        
-        pe_formatted = self.convert_pe_format(self.pe_pattern)
+            # Carrega o documento original
+            original_doc_path = str(INDICADORES_NORMCEIM / "Relatorio_Indicadores_Final.docx")
+            doc = Document(original_doc_path)
+            
+            # Formata o padrão PE
+            pe_formatted = self.convert_pe_format(self.pe_pattern)
 
-        pregao_data = self.fetch_pregao_data(pe_formatted)
-        
-        if pregao_data is not None and 'link_portal_marinha' in pregao_data:
-            for paragraph in doc.paragraphs:
-                if "<link portal marinha>" in paragraph.text:
-                    paragraph.clear()
-                    add_hyperlink(paragraph, pregao_data['link_portal_marinha'], "Link do processo íntegra no 'Portal de Licitações da Marinha'")
-                    
-            new_doc_path = str(INDICADORES_NORMCEIM / f"relatorio_{pe_formatted.replace('/', '_').replace(' ', '_')}.docx")
-            doc.save(new_doc_path)
+            # Busca os dados do pregão
+            pregao_data = self.fetch_pregao_data(pe_formatted)
+            
+            if pregao_data is not None and 'link_portal_marinha' in pregao_data:
+                link_portal_marinha = pregao_data.get('link_portal_marinha')
+                
+                if link_portal_marinha:  # Verifica se o link não é None ou vazio
+                    for paragraph in doc.paragraphs:
+                        if "<link portal marinha>" in paragraph.text:
+                            paragraph.clear()  # Limpa o conteúdo existente
+                            add_hyperlink(paragraph, link_portal_marinha, "Link do processo íntegra no 'Portal de Licitações da Marinha'")
+                
+                # Salva o novo documento com o nome formatado
+                new_doc_path = str(INDICADORES_NORMCEIM / f"relatorio_{pe_formatted.replace('/', '_').replace(' ', '_')}.docx")
+                doc.save(new_doc_path)
 
-            QMessageBox.information(self, "Relatório Atualizado", f"O relatório com hiperlink foi gerado com sucesso em: {new_doc_path}")
-            self.gerarPdf(new_doc_path)
-        else:
-            QMessageBox.warning(self, "Aviso", "Dados do pregão não encontrados ou incompletos para o padrão PE especificado.")
+                # Exibe uma mensagem de sucesso
+                QMessageBox.information(self, "Relatório Atualizado", f"O relatório com hiperlink foi gerado com sucesso em: {new_doc_path}")
+                
+                # Gera o PDF a partir do novo documento
+                self.gerarPdf(new_doc_path)
+            else:
+                QMessageBox.warning(self, "Aviso", "Dados do pregão não encontrados ou incompletos para o padrão PE especificado.")
+
+        except Exception as e:
+            # Tratamento de erro geral para capturar exceções e exibir uma mensagem de erro
+            QMessageBox.critical(self, "Erro", f"Ocorreu um erro durante a geração do relatório: {e}")
+            print(f"Erro ao gerar relatório: {e}")
+
 
     def calcular_percentual_desconto_total(self):
         if self.current_dataframe is not None and 'valor_estimado_total_do_item' in self.current_dataframe.columns:

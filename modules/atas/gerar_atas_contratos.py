@@ -207,7 +207,7 @@ class GerarAtasWidget(QWidget):
                 "'Descrição' e 'Descrição Detalhada' do Termo de Referência. "
                 f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
         self.alert_label = QLabel(text)
-        self.alert_label.setStyleSheet("color: white; font-size: 12pt; padding: 5px;")
+        self.alert_label.setStyleSheet("font-size: 12pt; padding: 5px;")
         self.alert_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.alert_label)
         self.atasDialog = None
@@ -225,10 +225,10 @@ class GerarAtasWidget(QWidget):
 
     def obter_definicoes_botoes(self):
         return [
-            ("Termo de Referência", 'stats', self.import_tr, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
+            ("Tabela Vazia", 'excel_down', self.tabela_vazia, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
+            ("Termo de Referência", 'excel_up', self.import_tr, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
             ("Termo de Homologação", 'data-collection', self.processar_homologacao, "Faça o download dos termos de homologação e mova para a pasta de processamento dos Termos de Homologação", False),
             ("SICAF", 'sicaf', self.processar_sicaf, "Faça o download do SICAF (Nível I - Credenciamento) e mova para a pasta de processamento do SICAF", False),
-            ("Ata / Contrato", 'verify_menu', self.abrir_dialog_atas, "Com o database concluíodo é possível gerar as atas ou contratos", False),
         ]
 
     def setup_buttons_down(self):
@@ -244,12 +244,30 @@ class GerarAtasWidget(QWidget):
 
     def obter_definicoes_botoes_embaixo(self):
         return [
+            ("Ata / Contrato", 'verify_menu', self.abrir_dialog_atas, "Com o database concluíodo é possível gerar as atas ou contratos", False),
             ("Database", 'data-processing', self.update_database, "Salva ou Carrega os dados do Database", False),
             ("Salvar Tabela", 'excel', self.salvar_tabela, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
             ("Indicadores", 'performance', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
-            ("Configurações", 'gear_menu', self.processar_sicaf, "Faça o download do SICAF (Nível I - Credenciamento) e mova para a pasta de processamento do SICAF", False),
         ]
-    
+
+    def tabela_vazia(self):
+        # Definindo o nome do arquivo XLSX
+        arquivo_xlsx = str(self.sicaf_dir / "tabela_vazia.xlsx")
+
+        # Definindo as colunas da tabela
+        colunas = [
+            "item_num", "catalogo", "descricao_tr", "descricao_detalhada", 
+        ]
+
+        # Criando um DataFrame vazio com as colunas definidas
+        df_vazio = pd.DataFrame(columns=colunas)
+
+        # Salvando o DataFrame como um arquivo XLSX
+        df_vazio.to_excel(arquivo_xlsx, index=False)
+
+        # Abrindo o arquivo XLSX gerado
+        os.startfile(arquivo_xlsx)
+
     def setup_treeview(self):
         self.model = QStandardItemModel()  # Inicializando o modelo
         self.treeView = CustomTreeView()
@@ -265,30 +283,6 @@ class GerarAtasWidget(QWidget):
     def setup_treeview_styles(self):
         header = self.treeView.header()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.treeView.setStyleSheet("""
-            QTreeView {
-                background-color: #f9f9f9;
-                alternate-background-color: #e0e0e0;
-                color: #333;
-                font-size: 16px;
-                border: 1px solid #ccc;
-            }
-            QTreeView::item:selected {
-                background-color: #b0c4de;
-                color: black;
-            }
-            QTreeView::item:hover {
-                background-color: #d3d3d3;
-                color: black;
-            }
-            QHeaderView::section {
-                background-color: #d3d3d3;
-                padding: 5px;
-                border: 1px solid #ccc;
-                font-size: 16px;
-                color: black;
-            }
-        """)
 
     def setup_pdf_processing_thread(self):
         if not self.pdf_dir.exists() or not self.txt_dir.exists():
@@ -299,34 +293,60 @@ class GerarAtasWidget(QWidget):
         self.processing_thread.processing_complete.connect(self.progressDialog.on_conversion_finished)
 
     def import_tr(self):
-        try:
-            arquivo, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo", "", "Excel files (*.xlsx *.xls)")
-            if arquivo:
-                self.tr_variavel_df_carregado = pd.read_excel(arquivo)
-                colunas_relevantes = ["item_num", "catalogo", "descricao_tr", "descricao_detalhada"]
-                df_relevante = self.tr_variavel_df_carregado[colunas_relevantes]
-                QMessageBox.information(self, "Arquivo Carregado", f"O arquivo '{QFileInfo(arquivo).fileName()}' foi carregado com sucesso!")
-                self.atualizar_modelo_com_dados(df_relevante)
-                self.atualizar_alerta_apos_importar_tr()
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao importar o arquivo: {e}")
+        # Abrir um diálogo de arquivo para selecionar o arquivo
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Importar Termo de Referência", "", 
+                                                   "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)", 
+                                                   options=options)
+        if not file_path:
+            return  # Se o usuário cancelar, não faça nada
 
-    def atualizar_alerta_apos_importar_tr(self):
-        icon_path = str(self.icons_dir / 'confirm.png')
-        new_text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
-                    "Salve os Termos de Homologação na pasta correta e pressione '<b><u>Termo de Homologação</u></b>' para processar os dados. "
-                    f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
-        self.alert_label.setText(new_text)
+        # Verifica a extensão do arquivo para usar o método adequado
+        ext = Path(file_path).suffix.lower()
 
-    def atualizar_alerta_apos_processar_homologacao(self):
-        icon_path = str(self.icons_dir / 'sicaf.png')
-        new_text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
-                    "Clique com o botão direito no TreeView para copiar o CNPJ para facilitar a busca do SICAF Nível I. "
-                    f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
-        self.alert_label.setText(new_text)
+        if ext == '.xlsx':
+            # Para arquivos Excel (.xlsx)
+            df = pd.read_excel(file_path)
+        elif ext == '.ods':
+            # Para arquivos LibreOffice (.ods)
+            df = pd.read_excel(file_path, engine='odf')
+        else:
+            QMessageBox.warning(self, "Formato não suportado", "Formato de arquivo não suportado.")
+            return
+
+        # Agora, df contém o DataFrame com os dados do arquivo importado
+        # Você pode manipular o DataFrame conforme necessário
+        self.tr_variavel_df_carregado = df
+
+        # Aqui você pode fazer a manipulação adicional do DataFrame
+        print(df.head())  # Para depuração, imprime as primeiras linhas do DataFrame
+
+        QMessageBox.information(self, "Importação Concluída", f"Arquivo {Path(file_path).name} importado com sucesso.")
+
+
+    def formatar_e_validar_dados(self, df):
+        erros = []
+
+        # Remover quebras de linha e espaços extras
+        for col in ["catalogo", "descricao_tr", "descricao_detalhada"]:
+            df[col] = df[col].apply(lambda x: " ".join(str(x).replace("\n", " ").split()) if pd.notnull(x) else x)
+        
+        # Verificar se item_num é inteiro e sequencial
+        df['item_num'] = pd.to_numeric(df['item_num'], errors='coerce')
+        
+        if df['item_num'].isnull().any():
+            erros.append("A coluna 'item_num' contém valores não numéricos.")
+        
+        # Verificar sequencialidade
+        sequencia = df['item_num'].dropna().astype(int).sort_values().unique()
+        esperado = list(range(sequencia.min(), sequencia.max() + 1))
+        if not all(item in sequencia for item in esperado):
+            faltando = set(esperado) - set(sequencia)
+            erros.append(f"Números sequenciais faltando em 'item_num': {sorted(faltando)}")
+        
+        return erros
 
     def atualizar_modelo_com_dados(self, df_relevante):
-        limpar_quebras_de_linha(df_relevante)
         self.model.clear()
         self.model.setHorizontalHeaderLabels(['Item', 'Catálogo', 'Descrição', 'Descrição Detalhada'])
         for _, row in df_relevante.iterrows():
@@ -343,18 +363,34 @@ class GerarAtasWidget(QWidget):
         for column in range(self.model.columnCount()):
             self.treeView.resizeColumnToContents(column)
 
+
+    def atualizar_alerta_apos_importar_tr(self):
+        icon_path = str(self.icons_dir / 'confirm.png')
+        new_text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
+                    "Salve os Termos de Homologação na pasta correta e pressione '<b><u>Termo de Homologação</u></b>' para processar os dados. "
+                    f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
+        self.alert_label.setText(new_text)
+
+    def atualizar_alerta_apos_processar_homologacao(self):
+        icon_path = str(self.icons_dir / 'sicaf.png')
+        new_text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
+                    "Clique com o botão direito no TreeView para copiar o CNPJ para facilitar a busca do SICAF Nível I. "
+                    f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
+        self.alert_label.setText(new_text)
+
     def processar_homologacao(self):
+        # Verifica se a pasta de PDFs existe
         if not self.pdf_dir.exists():
             QMessageBox.warning(self, "Erro", "Pasta de PDFs não encontrada.")
             return
+        
+        # Lista todos os arquivos PDF na pasta
         pdf_files = list(self.pdf_dir.glob("*.pdf"))
-        new_files = [file for file in pdf_files if file not in self.progressDialog.processed_files]
-        if not new_files:
-            QMessageBox.information(self, "Informação", "Nenhum novo arquivo PDF para processar.")
-            return
-        total_files = len(new_files)
+        
+        # Inicializa o ProgressDialog e processa todos os arquivos, sem verificar por novos arquivos
+        total_files = len(pdf_files)
         self.progressDialog = ProgressDialog(total_files, self.pdf_dir, self)
-        self.progressDialog.processing_complete.connect(lambda extracted_data: self.finalizar_processamento_homologacao(extracted_data))
+        self.progressDialog.processing_complete.connect(self.finalizar_processamento_homologacao)
         self.progressDialog.show()
 
     def finalizar_processamento_homologacao(self, extracted_data):
@@ -554,7 +590,6 @@ class GerarAtasWidget(QWidget):
                 QMessageBox.critical(self, "Erro", "A combinação de 'num_pregao', 'ano_pregao', e 'uasg' não é única. Por favor, verifique os dados.")
         else:
             QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
-
 
     def salvar_tabela(self):
         if self.current_dataframe is not None:
@@ -763,11 +798,11 @@ class AtasDialog(QDialog):
 
     def update_title_label(self):
         html_text = (
-            f"<span style='font-size: 28px; color: black;'>Painel de Geração de Atas/Contratos</span>"
+            f"<span style='font-size: 28px'>Painel de Geração de Atas/Contratos</span>"
         )
         self.titleLabel.setText(html_text)
         self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-        self.titleLabel.setStyleSheet("color: white; font-size: 32px; font-weight: bold;")
+        self.titleLabel.setStyleSheet(" font-size: 32px; font-weight: bold;")
 
         header_layout = QHBoxLayout()
         header_layout.addWidget(self.titleLabel)
@@ -784,17 +819,13 @@ class AtasDialog(QDialog):
 
     def add_action_buttons(self, layout):
         # Caminhos para os ícones
-        icon_confirm = QIcon(str(ICONS_DIR / "confirm.png"))  # Caminho para o ícone de confirmação
         icon_x = QIcon(str(ICONS_DIR / "cancel.png"))  # Caminho para o ícone de cancelamento
         
         # Criação dos botões
-        button_confirm = self.create_button("  Gerar", icon_confirm, self.gerar_ata_de_registro_de_precos, "Após inserir as informações, clique para gerar as Atas", QSize(130, 50), QSize(40, 40))
-        button_x = self.create_button("  Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
+        button_x = self.create_button("  Sair", icon_x, self.reject, "Cancelar alterações e fechar", QSize(130, 50), QSize(30, 30))
         
         # Adicionando os botões ao layout
-        layout.addWidget(button_confirm)
         layout.addWidget(button_x)
-        self.apply_widget_style(button_confirm)
         self.apply_widget_style(button_x)
 
     def apply_widget_style(self, widget):
@@ -823,7 +854,7 @@ class AtasDialog(QDialog):
 
         # Cria um QVBoxLayout principal para o QDialog
         layout = QVBoxLayout(self)
-        self.resize(1000, 650)
+        self.resize(800, 650)
 
         # Cria e configura o titleLabel
         self.titleLabel = QLabel()
@@ -895,7 +926,8 @@ class AtasDialog(QDialog):
             "Centro de Intendência da Marinha em Salvador (CeIMSa)",
             "Centro de Intendência da Marinha em Rio Grande (CeIMRG)",
             "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)",
-            "Hospital Naval de Brasília (HNBra)"
+            "Hospital Naval de Brasília (HNBra)",
+            "Hospital Naval Marcílio Dias (HNMD)",
         ]
         self.org_combobox.addItems(organizations)
         self.org_combobox.setFont(QFont('Arial', 14))
@@ -910,7 +942,7 @@ class AtasDialog(QDialog):
         # self.configurar_entrada_e_botao_confirmar(layout)
         # self.configurar_botoes_acao(layout)
         self.carregar_e_exibir_ultimo_contrato()
-
+        self.criar_botao_gerar_ata(layout)
         self.setLayout(layout)
 
     def closeEvent(self, event):
@@ -935,7 +967,7 @@ class AtasDialog(QDialog):
         self.entradaAta = QLineEdit(self)
         self.entradaAta.setFont(QFont('Arial', 14))
         self.entradaAta.setPlaceholderText("Digite um número até 4 dígitos")
-        self.entradaAta.setMaxLength(4)
+        self.entradaAta.setMaxLength(10)
         self.entradaAta.setFixedWidth(self.entradaAta.fontMetrics().horizontalAdvance('0000') + 20)
         linha_rotulo_entrada.addWidget(self.entradaAta)
 
@@ -954,14 +986,26 @@ class AtasDialog(QDialog):
         else:
             self.rotulo_ultimo_contrato.setText("O último número de ata/contrato gerado foi: Nenhum")
 
-    def criar_botao_especial(self, texto, caminho_icone):
-        botao = QToolButton(self)
-        botao.setText(texto)
-        botao.setIcon(QIcon(caminho_icone))
-        botao.setIconSize(QSize(64, 64))
-        botao.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        botao.setFixedSize(200, 160)
-        return botao
+    def criar_botao_gerar_ata(self, layout):
+        # Caminhos para os ícones
+        icon_confirm = QIcon(str(ICONS_DIR / "production_red.png"))  # Caminho para o ícone de confirmação
+        
+        # Criação do botão
+        button_confirm = self.create_button("  Gerar Atas de Registro de Preços", icon_confirm, self.gerar_ata_de_registro_de_precos, "Após inserir as informações, clique para gerar as Atas", QSize(380, 50), QSize(50, 50))
+        
+        # Criação de um layout horizontal para centralizar o botão
+        hbox = QHBoxLayout()
+        hbox.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        hbox.addWidget(button_confirm)
+        hbox.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        
+        # Adicionando o layout horizontal ao layout principal
+        layout.addLayout(hbox)
+        
+        # Aplicar estilo ao botão
+        self.apply_widget_style(button_confirm)
+
+
 
     @staticmethod
     def convert_pe_format(pe_string):

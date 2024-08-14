@@ -25,6 +25,7 @@ class SICAFDialog(QDialog):
         self.sicaf_dir = sicaf_dir
         self.dataframe = dataframe
         self.df_final = None
+        self.total_files = 0
         self.setWindowTitle("Processamento SICAF")
         self.setFixedSize(800, 300)
         self.setFont(QFont("Arial", 14))
@@ -53,6 +54,9 @@ class SICAFDialog(QDialog):
         self.confirmButton = self.create_button("Iniciar Processamento", QIcon(str(ICONS_DIR / "rpa.png")), self.iniciar_processamento_sicaf, "Iniciar o processamento para obtenção dos dados do SICAF", QSize(40, 40))
         layout.addWidget(self.confirmButton)
 
+        # Atualiza a contagem de arquivos ao iniciar o diálogo
+        self.atualizar_contagem_arquivos()
+
     def cabecalho_layout(self):
         header_layout = QHBoxLayout()
         title_label = QLabel("Processar Dados SICAF")
@@ -71,12 +75,14 @@ class SICAFDialog(QDialog):
         self.total_files = len(pdf_files)
         self.label.setText(f"{self.total_files} arquivos PDF encontrados. Deseja processá-los?")
         self.progressBar.setMaximum(self.total_files)
+        self.progressBar.setValue(0)  # Reseta o progresso ao atualizar a contagem de arquivos
 
     def abrir_comprasnet(self):
         webbrowser.open("https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras")
         
     def iniciar_processamento_sicaf(self):
-        total_arquivos = len(list(self.sicaf_dir.glob("*.pdf")))
+        pdf_files = list(self.sicaf_dir.glob("*.pdf"))
+        total_arquivos = len(pdf_files)
         self.progressBar.setMaximum(total_arquivos)
         print(f"Total de arquivos PDF para processar: {total_arquivos}")
 
@@ -104,6 +110,10 @@ class SICAFDialog(QDialog):
     def update_progress(self, value):
         self.progressBar.setValue(int(round(value)))
 
+        # Verificação manual para garantir que atinja 100%
+        if value >= self.progressBar.maximum():
+            self.progressBar.setValue(self.progressBar.maximum())
+
     def closeEvent(self, event):
         if self.df_final is not None:
             self.processing_complete.emit(self.df_final)  # Assegure-se de emitir ao fechar
@@ -120,94 +130,4 @@ class SICAFDialog(QDialog):
         fonte_btn = QFont()
         fonte_btn.setPointSize(14)
         btn.setFont(fonte_btn)
-        return btn        
-# class SICAFDialog(QDialog):
-#     def __init__(self, sicaf_dir, parent=None):
-#         super().__init__(parent)
-#         self.sicaf_dir = sicaf_dir  # Recebe sicaf_dir como parâmetro
-#         global_event_manager.sicaf_dir_updated.connect(self.on_sicaf_dir_updated)
-
-#         self.setWindowTitle("Processamento SICAF")
-#         self.setLayout(QVBoxLayout())
-
-#         fonte_padrao = QFont()
-#         fonte_padrao.setPointSize(14)
-
-#         # Layout Horizontal para botões "Relatório SICAF" e Informação
-#         button_layout = QHBoxLayout()
-        
-#         # Botão "Relatório SICAF"
-#         self.relatorioSicafButton = QPushButton("Relatório SICAF", self)
-#         self.relatorioSicafButton.setFont(fonte_padrao)
-#         self.relatorioSicafButton.clicked.connect(self.abrir_bloco_notas)
-#         button_layout.addWidget(self.relatorioSicafButton)
-
-#         # Botão de Informação
-#         info_icon_path = str(ICONS_DIR / 'info.png')
-#         tooltip_image_path = str(IMAGE_PATH / 'sicaf_info_small.png')
-
-#         # Redimensionar o ícone
-#         icon_size = QSize(32, 32)  # Substitua 32, 32 pelo tamanho desejado
-#         pixmap = QPixmap(info_icon_path).scaled(icon_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-
-#         info_icon = QIcon(pixmap)
-
-#         self.infoButton = QPushButton("", self)  # Removido o ícone do construtor
-#         self.infoButton.setIcon(info_icon)  # Define o ícone no botão
-#         self.infoButton.setIconSize(icon_size)  # Define o tamanho do ícone no botão
-
-#         # Configurar o tamanho do botão para combinar com o tamanho do ícone
-#         button_size = QSize(icon_size.width() + 10, icon_size.height() + 10)  # Adiciona uma margem ao tamanho do botão
-#         self.infoButton.setFixedSize(button_size)
-
-#         self.infoButton.setToolTip(f'<img src="{tooltip_image_path}" />')
-#         self.infoButton.clicked.connect(lambda: QToolTip.showText(self.infoButton.mapToGlobal(QPoint(0, 0)), self.infoButton.toolTip()))
-#         button_layout.addWidget(self.infoButton)
-
-#         self.layout().addLayout(button_layout)
-
-#         # Botão "Abrir Pasta"
-#         self.abrirPastaButton = QPushButton("Abrir Pasta", self)
-#         self.abrirPastaButton.setFont(fonte_padrao)
-#         self.abrirPastaButton.clicked.connect(lambda: open_folder(self.sicaf_dir))
-
-#         self.layout().addWidget(self.abrirPastaButton)
-
-#         # Label de informação
-#         self.label = QLabel("Deseja processar os dados do SICAF?")
-#         self.label.setFont(fonte_padrao)
-#         self.layout().addWidget(self.label)
-
-#         # Adiciona a barra de progresso
-#         self.progressBar = QProgressBar(self)
-#         self.progressBar.setFont(fonte_padrao)
-#         self.layout().addWidget(self.progressBar)
-
-#         # Botão de confirmação
-#         self.confirmButton = QPushButton("Confirmar", self)
-#         self.confirmButton.setFont(fonte_padrao)
-#         self.confirmButton.clicked.connect(self.iniciar_processamento_sicaf)
-#         self.layout().addWidget(self.confirmButton)
-
-#     def on_sicaf_dir_updated(self, new_sicaf_dir):
-#         self.sicaf_dir = new_sicaf_dir
-
-#     def abrir_bloco_notas(self):
-#         TXT_OUTPUT_PATH = DATABASE_DIR / "relacao_cnpj.txt"
-#         os.startfile(TXT_OUTPUT_PATH)
-
-#     def iniciar_processamento_sicaf(self):
-#         total_arquivos = len(list(self.sicaf_dir.glob("*.pdf")))
-#         self.progressBar.setMaximum(total_arquivos)
-
-#         try:
-#             df_final_ordered = processar_arquivos_sicaf(self, self.progressBar, self.update_progress)
-#             self.progressBar.setValue(self.progressBar.maximum())
-#             QMessageBox.information(self, "Processamento Concluído", "Os arquivos SICAF foram processados com sucesso.")
-#         except Exception as e:
-#             traceback.print_exc()  # Imprime detalhes do erro no terminal
-#             QMessageBox.critical(self, "Erro", f"Ocorreu um erro durante o processamento: {e}")
-
-#     def update_progress(self, value):
-#         # Converte o valor float para int antes de passar para setValue
-#         self.progressBar.setValue(int(round(value)))
+        return btn
