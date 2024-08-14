@@ -110,9 +110,8 @@ class DatabaseManager:
                 self.create_database(conn)
             self.criar_tabela_controle_prazos(conn)
             required_columns = {
-                "id": "INTEGER PRIMARY KEY",
                 "etapa": "TEXT",
-                "id_processo": "TEXT",
+                "id_processo": "PRIMARY KEY",
                 "nup": "TEXT",
                 "objeto": "TEXT", 
                 "uasg": "TEXT",
@@ -145,55 +144,6 @@ class DatabaseManager:
             self.verify_and_create_columns(conn, 'controle_processos', required_columns)
             self.check_and_fix_id_sequence(conn)
             
-    @staticmethod
-    def create_database(conn):
-        """
-        Cria o banco de dados e a tabela de controle de processos se não existirem.
-
-        Parameters:
-            conn (sqlite3.Connection): Conexão com o banco de dados.
-        """
-        cursor = conn.cursor()
-        # Query para criar tabela 'controle_processos'
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS controle_processos (
-                    id INTEGER PRIMARY KEY,
-                    etapa TEXT,
-                    id_processo TEXT,
-                    nup TEXT,
-                    objeto TEXT,
-                    uasg TEXT,
-                    sigla_om TEXT,
-                    pregoeiro TEXT,
-                    tipo TEXT,
-                    numero TEXT,
-                    ano TEXT,
-                    objeto_completo TEXT,
-                    valor_total TEXT,
-                    orgao_responsavel TEXT,
-                    setor_responsavel TEXT,
-                    coordenador_planejamento TEXT,
-                    item_pca TEXT,
-                    portaria_PCA TEXT,
-                    data_sessao TEXT,
-                    data_limite_entrega_tr TEXT,
-                    nup_portaria_planejamento TEXT,
-                    srp TEXT,
-                    material_servico TEXT,
-                    parecer_agu TEXT,
-                    msg_irp TEXT,
-                    data_limite_manifestacao_irp TEXT,
-                    data_limite_confirmacao_irp TEXT,
-                    num_irp TEXT,
-                    om_participantes TEXT,
-                    link_pncp TEXT,
-                    link_portal_marinha TEXT,
-                    comentarios TEXT   
-                )
-        ''')
-        conn.commit()
-
-
     def atualizar_ultima_etapa_data_final(self, conn):
         today_str = datetime.today().strftime('%Y-%m-%d')
         try:
@@ -279,8 +229,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS controle_prazos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chave_processo TEXT,
+                chave_processo PRIMARY KEY,
                 etapa TEXT,
                 data_inicial TEXT,
                 data_final TEXT,
@@ -519,54 +468,27 @@ class DatabaseManager:
 
             self.connection.commit()
             print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
-
-def extrair_chave_processo(itemText):
-    # Exemplo usando BeautifulSoup para análise HTML
-    soup = BeautifulSoup(itemText, 'html.parser')
-    texto_completo = soup.get_text()
-    # Supondo que o texto completo tenha a forma 'MOD NUM_PREGAO/ANO_PREGAO Objeto'
-    # Use expressão regular para extrair a chave
-    match = re.search(r'(\w+)\s(\d+)/(\d+)', texto_completo)
-    if match:
-        return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
-    return None
-
-def extrair_chave_processo(itemText):
-    # Exemplo usando BeautifulSoup para análise HTML
-    soup = BeautifulSoup(itemText, 'html.parser')
-    texto_completo = soup.get_text()
-    # Supondo que o texto completo tenha a forma 'MOD NUM_PREGAO/ANO_PREGAO Objeto'
-    # Use expressão regular para extrair a chave
-    match = re.search(r'(\w+)\s(\d+)/(\d+)', texto_completo)
-    if match:
-        return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
-    return None
-
 import traceback
 
-def carregar_dados_pregao(index, caminho_banco_dados):
-    """
-    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
+def carregar_dados_pregao(linha, database_path):
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
 
-    Parâmetros:
-    - index: O índice da linha selecionada na QTableView.
-    - caminho_banco_dados: O caminho para o arquivo do banco de dados SQLite.
-    
-    Retorna:
-    - Um DataFrame do Pandas contendo os dados do registro selecionado.
-    """
+    # Supondo que a chave é 'id_processo' e 'linha' representa a posição na tabela.
     try:
-        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
-        connection = sqlite3.connect(caminho_banco_dados)
-        query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
-        logging.debug(f"Executando consulta SQL: {query}")
-        df_registro_selecionado = pd.read_sql_query(query, connection)
-        connection.close()
-        logging.debug(f"Dados carregados com sucesso para o índice {index}: {df_registro_selecionado}")
-        return df_registro_selecionado
-    except Exception as e:
-        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
-        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+        cursor.execute("SELECT * FROM controle_processos LIMIT 1 OFFSET ?", (linha,))
+        row = cursor.fetchone()
+        if row:
+            # Transformar em DataFrame ou outra estrutura conforme necessário
+            df_registro_selecionado = pd.DataFrame([row], columns=[desc[0] for desc in cursor.description])
+            return df_registro_selecionado
+        else:
+            return pd.DataFrame()  # Retorna DataFrame vazio se nada for encontrado
+    except sqlite3.Error as e:
+        print(f"Erro ao carregar os dados do prego: {e}")
+        return pd.DataFrame()
+    finally:
+        conn.close()
 
 
 def carregar_dados_dispensa(id_processo, caminho_banco_dados):

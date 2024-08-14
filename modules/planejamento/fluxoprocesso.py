@@ -41,6 +41,25 @@ class FluxoProcessoDialog(QDialog):
         # self.showMaximized()
         # self.showFullScreen()
 
+        self.last_selected_item = None
+        self.last_selected_list_widget = None
+
+    def update_selected_item(self, current_list_widget, current_item):
+        # Remove o efeito do último item selecionado, se existir
+        if self.last_selected_item and self.last_selected_list_widget:
+            last_widget = self.last_selected_list_widget.itemWidget(self.last_selected_item)
+            if last_widget:
+                last_widget.setStyleSheet("background-color: white;")
+
+        # Aplica o efeito ao item atual
+        widget = current_list_widget.itemWidget(current_item)
+        if widget:
+            widget.setStyleSheet("background-color: #8AB4F7; border: 1px solid #000080;")
+
+        # Atualiza as referências ao item e QListWidget atuais
+        self.last_selected_item = current_item
+        self.last_selected_list_widget = current_list_widget
+
     def closeEvent(self, event):
         # Emitir sinal quando o diálogo for fechado
         super().closeEvent(event)
@@ -141,23 +160,21 @@ class CustomListWidget(QListWidget):
     updateRequired = pyqtSignal()
     etapas = {
         'Planejamento': None,
-        'Setor Responsável': None,
-        'IRP': None,
+        'Consolidação de Demanda': None,
         'Montagem do Processo': None,
         'Nota Técnica': None,
         'AGU': None,
         'Recomendações AGU': None,
         'Pré-Publicação': None,
-        'Impugnado': None,
         'Sessão Pública': None,
-        'Em recurso': None,
-        'Homologado': None,
         'Assinatura Contrato': None,
         'Concluído': None
     }
 
+
     def __init__(self, parent=None, database_path=None):
         super().__init__(parent)
+        self.parent_dialog = self.parent()
         self.database_path = database_path
         self.last_selected_item = None  # Referência ao último item selecionado
         self.setDragEnabled(True)
@@ -254,14 +271,15 @@ class CustomListWidget(QListWidget):
 
         if event.button() == Qt.MouseButton.LeftButton:
             if item:
-                self.applyClickEffect(item)
+                # Utilize o método do diálogo pai para gerenciar a seleção
+                if self.parent_dialog:
+                    self.parent_dialog.update_selected_item(self, item)
                 self.startDrag(Qt.DropAction.MoveAction)
 
         elif event.button() == Qt.MouseButton.RightButton:
             if item:
                 self.setCurrentItem(item)
                 self.effect_timer.start()
-
 
     def applyRightClickEffect(self, item):
         widget = self.itemWidget(item)
@@ -498,9 +516,9 @@ class AlterarDatasDialog(QDialog):
             hbox = QHBoxLayout(groupBox)
             comboBox = QComboBox()
             comboBox.addItems([
-                'Planejamento', 'Setor Responsável', 'IRP', 'Montagem do Processo',
-                'Nota Técnica', 'AGU', 'Recomendações AGU', 'Pré-Publicação', 'Impugnado',
-                'Sessão Pública', 'Em recurso', 'Homologado', 'Assinatura Contrato', 'Concluído'
+                'Planejamento', 'Consolidação de Demanda', 'Montagem do Processo',
+                'Nota Técnica', 'AGU', 'Recomendações AGU', 'Pré-Publicação',
+                'Sessão Pública', 'Assinatura Contrato', 'Concluído'
             ])
 
             comboBox.setCurrentText(etapa)
@@ -677,9 +695,9 @@ class ReportButton(QPushButton):
 
 def status_sort_key(status):
     order = [
-        'Concluído', 'Assinatura Contrato', 'Homologado', 'Em recurso',
-        'Sessão Pública', 'Impugnado', 'Pré-Publicação', 'Recomendações AGU',
-        'AGU', 'Nota Técnica', 'Montagem do Processo', 'IRP', 'Setor Responsável', 'Planejamento'
+        'Concluído', 'Assinatura Contrato',
+        'Sessão Pública','Pré-Publicação', 'Recomendações AGU',
+        'AGU', 'Nota Técnica', 'Montagem do Processo', 'Consolidação de Demanda', 'Planejamento'
     ]
     try:
         return order.index(status)

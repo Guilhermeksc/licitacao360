@@ -6,7 +6,7 @@ import qdarktheme
 from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.atas.gerar_atas_contratos import GerarAtasWidget
-from modules.planejamento.planejamento_button import PlanejamentoWidget
+from modules.planejamento_novo.novo_planejamento_button import PlanejamentoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.contratos.classe_contratos import ContratosWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
