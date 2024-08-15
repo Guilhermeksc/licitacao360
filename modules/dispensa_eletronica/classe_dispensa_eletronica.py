@@ -356,19 +356,7 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(25
         btn.clicked.connect(callback)
     if tooltip_text:
         btn.setToolTip(tooltip_text)
-    btn.setStyleSheet("""
-        QPushButton {
-            color: white;
-            font-size: 14pt;
-            min-height: 26px;
-            padding: 5px;      
-        }
-        QPushButton:hover {
-            background-color: white;
-            color: black;
-        }
 
-    """)
     return btn
 
 class CenterAlignDelegate(QStyledItemDelegate):

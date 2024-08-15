@@ -124,7 +124,7 @@ class SeleniumAutomacao(QWidget):
         grid_layout.addWidget(self.btn_alterar_dados, 3, 4)
 
         # Rótulo para "Consolidação de Demandas"
-        label_consolidacao = QLabel("Consolidação de Demandas")
+        label_consolidacao = QLabel("Consolidar Demandas")
         label_consolidacao.setStyleSheet(get_transparent_title_style())  # Ajuste o estilo conforme necessário
         grid_layout.addWidget(label_consolidacao, 4, 0, 1, 3)  # Span across 3 columns
         username = None

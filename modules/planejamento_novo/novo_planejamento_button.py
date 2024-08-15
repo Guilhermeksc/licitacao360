@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
-from PyQt6.QtSql import QSqlQuery
+from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQuery
 from pathlib import Path
 from diretorios import *
 from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
@@ -9,22 +9,35 @@ import pandas as pd
 import os
 from modules.planejamento.settings import SettingsDialog
 from modules.planejamento.adicionar_itens import AddItemDialog
+from modules.planejamento.editar_dados import EditarDadosDialog
 from modules.planejamento.popup_relatorio import ReportDialog
 from modules.planejamento.fluxoprocesso import FluxoProcessoDialog
+from modules.planejamento.settings import SettingsDialog
+from modules.planejamento.capa_edital import CapaEdital
+from modules.planejamento.checklist import ChecklistWidget
+from modules.planejamento.msg_planejamento import MSGIRP, MSGHomolog, MSGPublicacao
+from modules.planejamento.dfd import GerarDFD, GerarManifestoIRP
+from modules.planejamento.etp import GerarETP
+from modules.planejamento.matriz_risco import GerarMR
+from modules.planejamento.portaria_planejamento import GerarPortariaPlanejamento
+from modules.planejamento.cp_agu import CPEncaminhamentoAGU
+from modules.planejamento.escalar_pregoeiro import EscalarPregoeiroDialog
+from modules.planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
+from modules.planejamento.edital import EditalDialog
 from modules.planejamento_novo.utilidades import DatabaseManager, carregar_dados_processos, carregar_dados_pregao
 from modules.planejamento_novo.custom import CustomItemDelegate, CenterAlignDelegate, load_and_map_icons
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
-from functools import partial
-from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
+
 from datetime import datetime
 import logging
 import sqlite3
+from functools import partial
 
 etapas = {
     'Planejamento': None,
-    'Consolidação de Demanda': None,
+    'Consolidar Demandas': None,
     'Montagem do Processo': None,
     'Nota Técnica': None,
     'AGU': None,
@@ -40,6 +53,46 @@ class CustomTableView(QTableView):
         super().__init__(parent)
         self.main_app = main_app
         self.config_manager = config_manager
+
+        # Ativar o menu de contexto
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_context_menu)
+
+    def mouseDoubleClickEvent(self, event):
+        selected_index = self.currentIndex()
+        if not selected_index.isValid():
+            return
+        
+        # Verifica se a coluna selecionada é "NUP" ou "Objeto"
+        selected_column = selected_index.column()
+        column_name = self.model().headerData(selected_column, Qt.Orientation.Horizontal)
+        
+        if column_name in ["NUP", "Objeto"]:
+            # Permite a edição direta nessas colunas
+            self.edit(selected_index)
+        else:
+            # Mapeia o índice do modelo proxy para o modelo original
+            source_index = self.main_app.proxy_model.mapToSource(selected_index)
+        
+            # Obtém a linha selecionada do modelo original
+            selected_row = source_index.row()
+        
+            # Carrega os dados da linha selecionada
+            df_registro_selecionado = carregar_dados_pregao(selected_row, self.main_app.database_path)
+
+            # Abre o diálogo de edição se houver dados selecionados
+            if not df_registro_selecionado.empty:
+                self.main_app.editar_dados(df_registro_selecionado)
+        
+        super().mouseDoubleClickEvent(event)
+
+    def open_context_menu(self, position):
+        index = self.indexAt(position)
+        if index.isValid():
+            # Abre o menu de contexto personalizado
+            menu = TableMenu(self.main_app, index, model=self.model(), config_manager=self.config_manager)
+            menu.exec(self.viewport().mapToGlobal(position))
+
 
 class PlanejamentoWidget(QMainWindow):
     def __init__(self, app, icons_dir):
@@ -59,6 +112,11 @@ class PlanejamentoWidget(QMainWindow):
         self.setup_signals()
         self.init_ui()
 
+    def editar_dados(self, df_registro_selecionado):
+        dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
+        dialog.dados_atualizados.connect(self.atualizar_tabela)
+        dialog.show()
+
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
@@ -72,7 +130,8 @@ class PlanejamentoWidget(QMainWindow):
     def load_icons(self):
         # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
-            "plus.png", "save_to_drive.png", "loading.png", "delete.png", 
+            "plus.png", "save_to_drive.png", "loading.png", "delete.png", "contrato.png",
+            "planification.png", "business.png", "deal.png", "law.png", "puzzle.png",
             "excel.png", "calendar.png", "report.png", "management.png", "data-processing.png"
         ])
         self.selectedIndex = None
@@ -94,11 +153,6 @@ class PlanejamentoWidget(QMainWindow):
         self.database_manager.update_database_path(new_dir)
         self.ui_manager.update_ui_after_database_change()
         print("ApplicationUI inicializada.")
-
-    def atualizar_tabela(self):
-        self.model.select()
-        self.table_view.viewport().update()
-        # logging.debug("Tabela atualizada.")
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(config_manager=self.config_manager, parent=self)
@@ -184,20 +238,47 @@ class PlanejamentoWidget(QMainWindow):
             conn.commit()
             
     def save_to_database(self, data):
-        with self.database_manager as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                '''
-                INSERT INTO controle_processos (
-                    tipo, numero, ano, objeto, sigla_om, material_servico, 
-                    id_processo, nup, orgao_responsavel, uasg) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                      data['sigla_om'], data['material_servico'], data['id_processo'], 
-                      data['nup'], data['orgao_responsavel'], data['uasg'])
-            )
-            conn.commit()
-        self.init_model()
+        try:
+            with self.database_manager as conn:
+                cursor = conn.cursor()
+
+                # Definir valores fixos para 'etapa' e 'pregoeiro'
+                data['etapa'] = "Planejamento"
+                data['pregoeiro'] = "-"
+
+                # Verificar se o id_processo já existe
+                cursor.execute(
+                    '''
+                    SELECT COUNT(*) FROM controle_processos 
+                    WHERE id_processo = ?
+                    ''', (data['id_processo'],)
+                )
+                if cursor.fetchone()[0] > 0:
+                    QMessageBox.warning(self, "Duplicidade", f"O processo com o ID '{data['id_processo']}' já existe.")
+                    return
+
+                # Inserir o novo registro se não houver duplicidade
+                cursor.execute(
+                    '''
+                    INSERT INTO controle_processos (
+                        tipo, numero, ano, objeto, sigla_om, material_servico, 
+                        id_processo, nup, orgao_responsavel, uasg, etapa, pregoeiro) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
+                        data['sigla_om'], data['material_servico'], data['id_processo'], 
+                        data['nup'], data['orgao_responsavel'], data['uasg'], data['etapa'], 
+                        data['pregoeiro'])
+                )
+                conn.commit()
+
+            self.initialize_ui()  # Reconfigura o modelo e a UI
+            
+        except sqlite3.IntegrityError as e:
+            print(f"Erro de integridade ao salvar no banco de dados: {e}")
+            QMessageBox.critical(self, "Erro", "Erro ao adicionar o item ao banco de dados.")
+        except Exception as e:
+            print(f"Erro ao salvar no banco de dados: {e}")
+            QMessageBox.critical(self, "Erro", f"Erro ao adicionar o item ao banco de dados: {e}")
 
     def salvar_tabela(self):
         # Cria um DataFrame vazio
@@ -287,8 +368,9 @@ class PlanejamentoWidget(QMainWindow):
     def exibir_dialogo_process_flow(self):
         df_processos = carregar_dados_processos(self.database_path)
         dialog = FluxoProcessoDialog(ICONS_DIR, etapas, df_processos, self.database_manager, self.database_path, self)
-        dialog.updateRequired.connect(self.atualizarTableView)  # Conectar ao método de atualização
-        dialog.exec()
+        dialog.updateRequired.connect(self.atualizarTableView)
+        dialog.exec()  # Executa o diálogo e espera até que seja fechado
+        self.initialize_ui()  # Inicializa a UI após o fechamento do diálogo
         
     def atualizarTableView(self):
         print("Atualizando TableView...")
@@ -323,6 +405,27 @@ class PlanejamentoWidget(QMainWindow):
     def update_database(self):
         # Isso agora é um método público que pode ser chamado de SettingsDialog
         self.update_database_file()
+
+    def save_to_control_prazos_batch(self, id_processos):
+        with self.database_manager as conn:
+            cursor = conn.cursor()
+            today = datetime.today().strftime('%Y-%m-%d')
+
+            for id_processo in id_processos:
+                # Verificar se a chave já existe
+                cursor.execute("SELECT COUNT(*) FROM controle_prazos WHERE chave_processo = ?", (id_processo,))
+                if cursor.fetchone()[0] > 0:
+                    # Se já existe, não sobrescrever (ou pode implementar uma lógica diferente se necessário)
+                    continue
+
+                # Inserir novos dados
+                cursor.execute('''
+                    INSERT INTO controle_prazos (chave_processo, etapa, data_inicial, sequencial)
+                    VALUES (?, ?, ?, ?)
+                ''', (id_processo, "Planejamento", today, 1))
+
+            conn.commit()
+
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -429,16 +532,18 @@ class UIManager:
         header = self.table_view.horizontalHeader()
         
         # Configurações específicas de redimensionamento para colunas selecionadas
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch) 
         # Definir tamanhos específicos onde necessário
-        header.resizeSection(1, 160)
-        header.resizeSection(5, 100)
+        header.resizeSection(0, 250)
+        header.resizeSection(1, 110)
+        header.resizeSection(2, 200)
+        header.resizeSection(4, 80)
 
     def apply_custom_style(self):
         # Aplica um estilo CSS personalizado ao tableView
@@ -488,13 +593,13 @@ class UIManager:
             2: "NUP",
             3: "Objeto",
             4: "UASG",
-            5: "Pregoeiro"
+            6: "Pregoeiro"
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 1,2,3,4,5}
+        visible_columns = {0, 1,2,3,4,6}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
@@ -523,6 +628,7 @@ class CustomSqlTableModel(QSqlTableModel):
 
         return super().data(index, role)
 
+
 class SqlModel:
     def __init__(self, database_manager, parent=None):
         self.database_manager = database_manager
@@ -530,7 +636,7 @@ class SqlModel:
         self.etapa_order = {
             'Concluído': 0, 'Assinatura Contrato': 1, 
             'Sessão Pública': 2, 'Pré-Publicação': 3, 'Recomendações AGU': 4,
-            'AGU': 5, 'Nota Técnica': 6, 'Montagem do Processo': 7, 'Consolidação de Demanda': 8, 'Planejamento': 9
+            'AGU': 5, 'Nota Técnica': 6, 'Montagem do Processo': 7, 'Consolidar Demandas': 8, 'Planejamento': 9
         }
         self.init_database()
 
@@ -588,9 +694,34 @@ class SqlModel:
             print("Tabela 'controle_processos' verificada/criada com sucesso.")
         else:
             print("Erro ao criar/verificar a tabela 'controle_processos':", query.lastError().text())
-            
+        # Verificar/criar tabela controle_prazos
+        query.exec(
+            '''
+            CREATE TABLE IF NOT EXISTS controle_prazos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chave_processo TEXT,
+                etapa TEXT,
+                data_inicial TEXT,
+                data_final TEXT,
+                dias_na_etapa INTEGER,
+                comentario TEXT,
+                sequencial INTEGER
+            )
+            '''
+        )
+        if query.isActive():
+            print("Tabela 'controle_prazos' verificada/criada com sucesso.")
+        else:
+            print("Erro ao criar/verificar a tabela 'controle_prazos':", query.lastError().text())
+                        
     def setup_model(self, table_name, editable=False):
-        self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=[4, 8, 10, 13], etapa_order=self.etapa_order)
+        # Colunas 0, 1 e 4 não devem ser editáveis
+        self.model = CustomSqlTableModel(
+            parent=self.parent, 
+            db=self.db, 
+            non_editable_columns=[0, 1, 4],  # Adicione aqui as colunas não editáveis
+            etapa_order=self.etapa_order
+        )
         self.model.setTable(table_name)
         if editable:
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
@@ -690,52 +821,48 @@ class CarregarTabelaDialog(QDialog):
                 QMessageBox.warning(self, "Erro", f"O campo obrigatório '{campo}' não foi encontrado no arquivo Excel.")
                 return
 
-        with self.database_manager as conn:
-            cursor = conn.cursor()
+        # Preparar uma lista de dados para inserção em massa
+        itens_para_inserir = []
+        id_processos = []
 
-            # Garante que a tabela 'controle_processos' exista
-            sql_model = SqlModel(self.database_manager)
-            sql_model.create_table_if_not_exists()
+        for index, row in df.iterrows():
+            # Prepara o item_data com os valores necessários
+            item_data = {
+                'tipo': row['tipo'],
+                'numero': f"{int(row['numero']):02}",
+                'ano': row['ano'],
+                'objeto': row['objeto'],
+                'sigla_om': row.get('sigla_om', None),
+                'material_servico': row.get('material_servico', None),
+                'id_processo': f"{row['tipo']} {int(row['numero']):02}/{row['ano']}",
+                'nup': row.get('nup', None),
+                'orgao_responsavel': row.get('orgao_responsavel', None),
+                'uasg': row['uasg'],
+                'etapa': "Planejamento",
+                'pregoeiro': "-"
+            }
 
-            # Percorre o DataFrame e insere os dados na tabela controle_processos
-            for index, row in df.iterrows():
-                # Prepara os valores de id_processo e etapa
-                id_processo, etapa = self.prepare_context(row)
+            # Adiciona o item à lista de itens para inserção
+            itens_para_inserir.append(item_data)
+            id_processos.append(item_data['id_processo'])
 
-                # Verifica se o registro já existe
-                cursor.execute('''
-                    SELECT COUNT(*) FROM controle_processos WHERE id_processo = ?
-                ''', (id_processo,))
-                
-                if cursor.fetchone()[0] > 0:
-                    # Se o registro já existe, atualiza os dados
-                    cursor.execute('''
-                        UPDATE controle_processos SET
-                            tipo = ?, numero = ?, ano = ?, objeto = ?, uasg = ?, 
-                            sigla_om = ?, material_servico = ?, nup = ?, orgao_responsavel = ?,
-                            etapa = ?
-                        WHERE id_processo = ?
-                    ''', (
-                        row['tipo'], row['numero'], row['ano'], row['objeto'], row['uasg'], 
-                        row.get('sigla_om', None), row.get('material_servico', None), 
-                        row.get('nup', None), row.get('orgao_responsavel', None), etapa, id_processo
-                    ))
-                else:
-                    # Se o registro não existe, insere novos dados
-                    cursor.execute('''
-                        INSERT INTO controle_processos (
-                            tipo, numero, ano, objeto, uasg, sigla_om, material_servico, 
-                            id_processo, nup, orgao_responsavel, etapa
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        row['tipo'], row['numero'], row['ano'], row['objeto'], row['uasg'], 
-                        row.get('sigla_om', None), row.get('material_servico', None), 
-                        id_processo, row.get('nup', None), row.get('orgao_responsavel', None), etapa
-                    ))
-            conn.commit()
+        # Desabilita atualizações na interface enquanto processa os itens
+        self.parent().model.layoutAboutToBeChanged.emit()
 
-        # Recriar o modelo no UIManager
-        self.parent().initialize_ui()
+        try:
+            # Inserir todos os itens no banco de dados
+            for item_data in itens_para_inserir:
+                print(f"Processando id_processo: {item_data['id_processo']}")
+                self.parent().save_to_database(item_data)
+
+            # Inserir todos os id_processo no controle_prazos de uma vez
+            self.parent().save_to_control_prazos_batch(id_processos)
+
+            # Recriar o modelo e notificar a interface gráfica que o layout foi alterado
+            self.parent().initialize_ui()
+        finally:
+            # Reabilita as atualizações na interface
+            self.parent().model.layoutChanged.emit()
 
         QMessageBox.information(self, "Carregamento Completo", "Os dados foram carregados e salvos no banco de dados com sucesso.")
 
@@ -749,26 +876,263 @@ class CarregarTabelaDialog(QDialog):
         Returns:
         tuple: Retorna uma tupla contendo (id_processo, etapa).
         """
-        id_processo = f"{row['tipo']} {row['numero']}-{row['ano']}"
+        # Formata o valor de 'numero' para ter duas casas decimais
+        numero_formatado = f"{int(row['numero']):02}"
+        id_processo = f"{row['tipo']} {numero_formatado}/{row['ano']}"
         etapa = "Planejamento"
         return id_processo, etapa
 
+
     def excluir_tabela(self):
-        reply = QMessageBox.question(self, "Confirmação", "Tem certeza que deseja excluir todos os registros da tabela 'controle_processos'?", 
+        reply = QMessageBox.question(self, "Confirmação", "Tem certeza que deseja excluir todos os registros das tabelas 'controle_processos' e 'controle_prazos'?", 
                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
                                     QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 with self.database_manager as conn:
                     cursor = conn.cursor()
+                    # Exclui todos os registros de controle_processos
                     cursor.execute("DELETE FROM controle_processos")
+                    # Exclui todos os registros de controle_prazos
+                    cursor.execute("DELETE FROM controle_prazos")
                     conn.commit()
                     
                     # Atualiza o modelo da UI
                     self.parent().model.select()
                     self.parent().ui_manager.table_view.viewport().update()
                     
-                    QMessageBox.information(self, "Sucesso", "Todos os registros da tabela 'controle_processos' foram excluídos com sucesso.")
+                    QMessageBox.information(self, "Sucesso", "Todos os registros das tabelas 'controle_processos' e 'controle_prazos' foram excluídos com sucesso.")
             except sqlite3.Error as e:
-                print(f"Erro ao tentar excluir os registros da tabela: {e}")
-                QMessageBox.warning(self, "Erro", f"Não foi possível excluir os registros da tabela: {e}")
+                print(f"Erro ao tentar excluir os registros das tabelas: {e}")
+                QMessageBox.warning(self, "Erro", f"Não foi possível excluir os registros das tabelas: {e}")
+
+
+class TableMenu(QMenu):
+    def __init__(self, main_app, index, model=None, config_manager=None):
+        super().__init__()
+        self.main_app = main_app
+        self.index = index
+        self.config_manager = config_manager 
+        self.model = model
+
+        # Configuração do estilo do menu
+        self.setStyleSheet("""
+            QMenu {
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+
+        # Opções do menu principal
+        actions = [
+            "Editar Dados do Processo",
+            "1. Autorização para Abertura de Licitação",
+            "2. Portaria de Equipe de Planejamento",
+            "3. Documento de Formalização de Demanda (DFD)",
+        ]
+        
+        for actionText in actions:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+        # Submenu para "4. Intenção de Registro de Preços (IRP)"
+        submenu_irp = QMenu("4. Intenção de Registro de Preços (IRP)", self)
+        submenu_irp.setStyleSheet(self.styleSheet())
+        opcoes_irp = [
+            ("4.1. Manifesto de IRP da OM participante", self.openDialogIRPManifesto),
+            ("4.2. Mensagem de Divulgação de IRP", self.abrirDialogoIRP),
+            ("4.3. Lançar o IRP", self.abrirDialogoIRP),
+            ("4.4. Conformidade do IRP (Local, R$, etc)", self.abrirDialogoIRP),
+        ]
+        for texto, funcao in opcoes_irp:
+            sub_action = QAction(texto, submenu_irp)
+            sub_action.triggered.connect(partial(self.trigger_sub_action, funcao))
+            submenu_irp.addAction(sub_action)
+        self.addMenu(submenu_irp)
+
+        # Adicionando as opções do menu
+        actions_2 = [
+            "6. Estudo Técnico Preliminar (ETP)",
+            "7. Termo de Referência (TR)",
+            "8. Matriz de Riscos",
+        ]
+
+        for actionText in actions_2:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+        # Submenu "10. Edital e Anexos"
+        submenu_edital = QMenu("9. Edital e Anexos", self)
+        submenu_edital.setStyleSheet(self.styleSheet())
+        opcoes_edital = [
+            ("9.1 Edital", self.openDialogEdital),
+            ("9.2 Capa do Edital", self.openDialogCapaEdital),
+            ("9.3 Contrato", self.openDialogContrato),
+            ("9.4 Ata de Registro de Preços", self.openDialogAtaRegistro)
+        ]
+        for texto, funcao in opcoes_edital:
+            sub_action = QAction(texto, submenu_edital)
+            sub_action.triggered.connect(partial(self.trigger_sub_action, funcao))
+            submenu_edital.addAction(sub_action)
+        self.addMenu(submenu_edital)
+
+        # Adicionando mais ações principais após o submenu
+        actions_3 = [
+            "10. Check-list",
+            "11. Nota Técnica",
+            "12. CP Encaminhamento AGU",
+            "13. CP Recomendações AGU",
+            "14. Escalar Pregoeiro",
+            "15. Mensagem de Publicação",
+            "16. Mensagem de Homologação",            
+            "17. Gerar Relatório de Processo",
+        ]
+        for actionText in actions_3:
+            action = QAction(actionText, self)
+            action.triggered.connect(partial(self.trigger_action, actionText))
+            self.addAction(action)
+
+    def trigger_sub_action(self, funcao):
+        if self.index.isValid():
+            source_index = self.model.mapToSource(self.index)
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))
+            if not df_registro_selecionado.empty:
+                funcao(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Dados não encontrados.")
+
+    def trigger_action(self, actionText):
+        if self.index.isValid():
+            if isinstance(self.model, QSortFilterProxyModel):
+                source_index = self.model.mapToSource(self.index)
+            else:
+                source_index = self.index
+            
+            selected_row = source_index.row()
+            df_registro_selecionado = carregar_dados_pregao(selected_row, str(self.main_app.database_path))                                    
+            if not df_registro_selecionado.empty:
+                if actionText == "Editar Dados do Processo":
+                    self.editar_dados(df_registro_selecionado)
+                elif actionText == "1. Autorização para Abertura de Licitação":
+                    self.openDialogAutorizacao(df_registro_selecionado)
+                elif actionText == "2. Portaria de Equipe de Planejamento":
+                    self.openDialogPortariaPlanejamento(df_registro_selecionado)
+                elif actionText == "3. Documento de Formalização de Demanda (DFD)":
+                    self.openDialogDFD(df_registro_selecionado)
+                elif actionText == "5. Mensagem de Divulgação de IRP":
+                    self.abrirDialogoIRP(df_registro_selecionado)
+                elif actionText == "6. Estudo Técnico Preliminar (ETP)":
+                    self.openDialogETP(df_registro_selecionado)
+                elif actionText == "8. Matriz de Riscos":
+                    self.openDialogMatrizRiscos(df_registro_selecionado)
+                elif actionText == "12. CP Encaminhamento AGU":
+                    self.openDialogEncaminhamentoAGU(df_registro_selecionado)
+                elif actionText == "14. Escalar Pregoeiro":
+                    self.openDialogEscalarPregoeiro(df_registro_selecionado)
+                elif actionText == "15. Mensagem de Publicação":
+                    self.abrirDialogoPublicacao(df_registro_selecionado)
+                elif actionText == "16. Mensagem de Homologação":
+                    self.abrirDialogoHomologacao(df_registro_selecionado)
+                elif actionText == "10. Check-list":
+                    self.openChecklistDialog(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+        else:
+            QMessageBox.warning(self, "Atenção", "Nenhuma linha selecionada.")
+
+    # No final da classe TableMenu:
+    def on_get_pregoeiro(self):
+        id_processo = self.df_licitacao_completo['id_processo'].iloc[0]
+        dialog = EscalarPregoeiroDialog(self.df_licitacao_completo, id_processo, self)
+        dialog.exec()
+
+    def openDialogIRPManifesto(self, df_registro_selecionado):
+        dialog = GerarManifestoIRP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def abrirDialogoIRP(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGIRP(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def abrirDialogoPublicacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGPublicacao(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def abrirDialogoHomologacao(self, df_registro_selecionado):
+        if not df_registro_selecionado.empty:
+            dados = df_registro_selecionado.iloc[0].to_dict()
+            dialogo = MSGHomolog(dados=dados, icons_dir=str(ICONS_DIR), parent=self)
+            dialogo.exec()
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum registro selecionado.")
+
+    def editar_dados(self, df_registro_selecionado):
+        dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
+        dialog.dados_atualizados.connect(self.main_app.atualizar_tabela)
+        dialog.show()
+
+    def openChecklistDialog(self, df_registro_selecionado):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Check-list")
+        dialog.resize(950, 800)
+        dialog.setStyleSheet("background-color: black; color: white;")
+        
+        # Instancia o ChecklistWidget e passa o DataFrame como argumento
+        checklist_widget = ChecklistWidget(parent=dialog, config_manager=self.config_manager, icons_path=self.main_app.icons_dir, df_registro_selecionado=df_registro_selecionado)
+
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(checklist_widget)
+        dialog.exec()
+
+    def openDialogDFD(self, df_registro_selecionado):
+        dialog = GerarDFD(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogAutorizacao(self, df_registro_selecionado):
+        dialog = AutorizacaoAberturaLicitacaoDialog(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogPortariaPlanejamento(self, df_registro_selecionado):
+        dialog = GerarPortariaPlanejamento(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogETP(self, df_registro_selecionado):
+        dialog = GerarETP(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogMatrizRiscos(self, df_registro_selecionado):
+        dialog = GerarMR(main_app=self, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogEncaminhamentoAGU(self, df_registro_selecionado):
+        dialog = CPEncaminhamentoAGU(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogCapaEdital(self, df_registro_selecionado):
+        dialog = CapaEdital(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogEdital(self, df_registro_selecionado):
+        dialog = EditalDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()
+
+    def openDialogContrato(self, df_registro_selecionado):
+        pass
+
+    def openDialogAtaRegistro(self, df_registro_selecionado):
+        pass
+
+    def openDialogEscalarPregoeiro(self, df_registro_selecionado):
+        dialog = EscalarPregoeiroDialog(main_app=self.main_app, config_manager=self.config_manager, df_registro=df_registro_selecionado)
+        dialog.exec()

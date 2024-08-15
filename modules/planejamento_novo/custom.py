@@ -38,13 +38,34 @@ class CenterAlignDelegate(QStyledItemDelegate):
         super().initStyleOption(option, index)
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
+
+etapas = {
+    'Planejamento': None,
+    'Consolidar Demandas': None,
+    'Montagem do Processo': None,
+    'Nota Técnica': None,
+    'AGU': None,
+    'Recomendações AGU': None,
+    'Pré-Publicação': None,
+    'Sessão Pública': None,
+    'Assinatura Contrato': None,
+    'Concluído': None
+}
+
+
 def load_and_map_icons(icons_dir):
     icons = {}
     icon_mapping = {
+        'Planejamento': 'business.png',
+        'Consolidar Demandas': 'puzzle.png',
         'Concluído': 'concluido.png',
+        'AGU': 'law.png',
         'Pré-Publicação': 'arrows.png',
         'Montagem do Processo': 'arrows.png',
-        'Consolidação de Demanda': 'icon_warning.png'
+        'Nota Técnica': 'law_menu.png',
+        'Assinatura Contrato': 'contrato.png',
+        'Recomendações AGU': 'certified.png',
+        'Sessão Pública': 'deal.png'
     }
     # print(f"Verificando ícones no diretório: {icons_dir}")
     for status, filename in icon_mapping.items():

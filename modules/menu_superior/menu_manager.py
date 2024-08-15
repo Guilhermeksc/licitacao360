@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtCore import Qt
 
-from diretorios import ACANTO_IMAGE_PATH, BRASIL_IMAGE_PATH
+from diretorios import ACANTO_IMAGE_PATH, BRASIL_IMAGE_PATH, ICONS_DIR
 
 from modules.menu_superior.config.config_database import ConfigurarDatabaseDialog
 from modules.menu_superior.config.config_responsaveis import AgentesResponsaveisDialog

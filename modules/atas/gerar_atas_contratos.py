@@ -294,10 +294,8 @@ class GerarAtasWidget(QWidget):
 
     def import_tr(self):
         # Abrir um diálogo de arquivo para selecionar o arquivo
-        options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Importar Termo de Referência", "", 
-                                                   "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)", 
-                                                   options=options)
+                                                "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)")
         if not file_path:
             return  # Se o usuário cancelar, não faça nada
 
@@ -314,13 +312,22 @@ class GerarAtasWidget(QWidget):
             QMessageBox.warning(self, "Formato não suportado", "Formato de arquivo não suportado.")
             return
 
-        # Agora, df contém o DataFrame com os dados do arquivo importado
-        # Você pode manipular o DataFrame conforme necessário
+        # Formatar e validar os dados (se necessário)
+        erros = self.formatar_e_validar_dados(df)
+        if erros:
+            QMessageBox.critical(self, "Erro de Validação", "\n".join(erros))
+            return
+
+        # Atualizar o DataFrame carregado
         self.tr_variavel_df_carregado = df
 
-        # Aqui você pode fazer a manipulação adicional do DataFrame
-        print(df.head())  # Para depuração, imprime as primeiras linhas do DataFrame
+        # Atualizar a visualização da tabela com os dados importados
+        self.atualizar_modelo_com_dados(df)
 
+        # Atualizar o alerta para informar o usuário que o Termo de Referência foi carregado
+        self.atualizar_alerta_apos_importar_tr()
+
+        # Exibir uma mensagem informando que o arquivo foi importado com sucesso
         QMessageBox.information(self, "Importação Concluída", f"Arquivo {Path(file_path).name} importado com sucesso.")
 
 
@@ -1128,29 +1135,32 @@ class AtasDialog(QDialog):
     
     def limpar_nome_empresa(self, nome_empresa):
         # Substituir caracteres não permitidos por "_" ou remover
-        caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+        caracteres_invalidos = ['<', '>', ':', '_', '"', '/', '\\', '|', '?', '*']
         for char in caracteres_invalidos:
-            nome_empresa = nome_empresa.replace(char, '_')
+            nome_empresa = nome_empresa.replace(char, ' ')
         
-        # Remover pontos extras apenas no final do nome da empresa
-        if nome_empresa.endswith('.'):
-            nome_empresa = nome_empresa.rstrip('.')
-        
-        # Remover sublinhados extras no final do nome da empresa resultantes da substituição
-        nome_empresa = nome_empresa.rstrip(' _.')
+        # Substituir pontos internos por sublinhados, mas não substituir os pontos finais já removidos
+        nome_empresa = nome_empresa.replace('.', '_')
+
+        # Remover espaços extras e sublinhados no final do nome da empresa
+        nome_empresa = nome_empresa.rstrip(' _')
 
         return nome_empresa
 
     def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):
         nome_empresa_limpo = self.limpar_nome_empresa(empresa)
         print(f"Preparando diretórios para empresa original: {empresa}, empresa limpa: {nome_empresa_limpo}")
+        
         nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
         path_dir_principal = relatorio_path / nome_dir_principal
-        nome_subpasta = nome_empresa_limpo
-        path_subpasta = path_dir_principal / nome_subpasta
+        path_subpasta = path_dir_principal / empresa
+        
         if not path_subpasta.exists():
             path_subpasta.mkdir(parents=True, exist_ok=True)
+        
         return path_dir_principal, path_subpasta
+
+
 
     def processar_empresa(self, registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado):
         if not registros_empresa.empty:
@@ -1215,16 +1225,16 @@ class AtasDialog(QDialog):
             arquivo_txt.write(texto_email)
 
     def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados, num_contrato):
-        max_len = 45  # Definindo o limite máximo para o nome da empresa
-        empresa_limpa = self.limpar_nome_empresa(empresa)[:max_len]
-        contrato_limpo = self.limpar_nome_empresa(num_contrato)
+        max_len = 40  # Definindo o limite máximo para o nome da empresa
+        empresa_limpa = self.limpar_nome_empresa(empresa)[:max_len].rstrip() 
+        contrato_limpo = self.limpar_nome_empresa(num_contrato)[:max_len].rstrip()
 
         # Preparar o template do documento
         tpl = DocxTemplate(TEMPLATE_PATH)
         tpl.render(context)
 
         # Montar o nome do arquivo, garantindo que não ultrapasse os limites comuns de sistemas de arquivos
-        nome_documento = f"{contrato_limpo} - {empresa_limpa}.docx"
+        nome_documento = f"{contrato_limpo}.docx"
         path_documento = path_subpasta / nome_documento
 
         # Salvar o documento

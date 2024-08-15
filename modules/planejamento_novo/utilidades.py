@@ -1,13 +1,8 @@
-import json
 import sqlite3
 import pandas as pd
 import os
 import re
-# from bs4 import BeautifulSoup 
 from datetime import datetime
-from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog
-from PyQt6.QtWidgets import QMessageBox
 import logging
 import num2words
 import locale
@@ -103,46 +98,6 @@ class DatabaseManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_connection()
-
-    def ensure_database_exists(self):
-        with self.connect_to_database() as conn:
-            if not self.database_exists(conn):
-                self.create_database(conn)
-            self.criar_tabela_controle_prazos(conn)
-            required_columns = {
-                "etapa": "TEXT",
-                "id_processo": "PRIMARY KEY",
-                "nup": "TEXT",
-                "objeto": "TEXT", 
-                "uasg": "TEXT",
-                "sigla_om": "TEXT",
-                "pregoeiro": "TEXT",    
-                "tipo": "TEXT", 
-                "numero": "TEXT", 
-                "ano": "TEXT",          
-                "objeto_completo": "TEXT", 
-                "valor_total": "TEXT", 
-                "orgao_responsavel": "TEXT",
-                "setor_responsavel": "TEXT", 
-                "coordenador_planejamento": "TEXT", 
-                "item_pca": "TEXT", 
-                "portaria_PCA": "TEXT", 
-                "data_sessao": "TEXT", 
-                "data_limite_entrega_tr": "TEXT",
-                "nup_portaria_planejamento": "TEXT", 
-                "srp": "TEXT", "material_servico": "TEXT", 
-                "parecer_agu": "TEXT", 
-                "msg_irp": "TEXT",
-                "data_limite_manifestacao_irp": "TEXT", 
-                "data_limite_confirmacao_irp": "TEXT", 
-                "num_irp": "TEXT", 
-                "om_participantes": "TEXT",
-                "link_pncp": "TEXT", 
-                "link_portal_marinha": "TEXT", 
-                "comentarios": "TEXT"
-            }
-            self.verify_and_create_columns(conn, 'controle_processos', required_columns)
-            self.check_and_fix_id_sequence(conn)
             
     def atualizar_ultima_etapa_data_final(self, conn):
         today_str = datetime.today().strftime('%Y-%m-%d')
@@ -266,76 +221,6 @@ class DatabaseManager:
         
         conn.commit()
         print("Dados inseridos na tabela controle_prazos com sucesso.")
-
-
-    def carregar_tabela(self, parent):
-        """
-        Carrega dados de um arquivo .xlsx selecionado pelo usuário, faz correspondência das colunas,
-        e insere os dados na tabela controle_processos do banco de dados SQLite.
-        """
-        fileName, _ = QFileDialog.getOpenFileName(
-            parent, 
-            "Carregar dados", 
-            "", 
-            "Excel Files (*.xlsx);;ODF Files (*.odt)"
-        )
-        if not fileName:
-            QMessageBox.warning(parent, "Carregar Dados", "Nenhum arquivo selecionado.")
-            return
-
-        if not fileName.endswith('.xlsx'):
-            QMessageBox.warning(parent, "Carregar Dados", "Formato de arquivo não suportado.")
-            return
-        
-        try:
-            df = pd.read_excel(fileName)
-
-            # Colunas esperadas no DataFrame
-            expected_columns = ["tipo", "numero", "ano", "id_processo", "nup", "objeto", "objeto_completo", "valor_total", "uasg", 
-                                "orgao_responsavel", "sigla_om", "setor_responsavel", "coordenador_planejamento", 
-                                "etapa", "pregoeiro", "item_pca", "portaria_PCA", "data_sessao",
-                                "data_limite_entrega_tr", "nup_portaria_planejamento", "srp", 
-                                "material_servico", "parecer_agu", "msg_irp", "data_limite_manifestacao_irp",
-                                "data_limite_confirmacao_irp", "num_irp", "om_participantes", 
-                                "link_pncp", "link_portal_marinha"]
-
-            for col in expected_columns:
-                if col not in df.columns:
-                    df[col] = None  # Adiciona colunas faltantes como nulas para compatibilidade com SQL
-
-            # Mapeamento de tipos abreviados para tipos completos
-            tipo_abreviado_para_tipo = {
-                "PE": "Pregão Eletrônico",
-                "DE": "Dispensa Eletrônica",
-                "CC": "Concorrência",
-                "TJDL": "Termo de Justificativa de Dispensa de Licitação",
-                "TJIL": "Termo de Justificativa de Inexigibilidade de Licitação"
-            }
-
-            # Processa cada linha para ajustar os valores de 'tipo', 'numero' e 'ano' com base em 'id_processo'
-            def processar_linha(row):
-                if pd.notna(row['id_processo']):
-                    partes = row['id_processo'].split()
-                    if len(partes) == 2 and '/' in partes[1]:
-                        tipo_abreviado, ano_numero = partes[0], partes[1].split('/')
-                        if tipo_abreviado in tipo_abreviado_para_tipo:
-                            row['tipo'] = tipo_abreviado_para_tipo[tipo_abreviado]
-                            row['numero'], row['ano'] = ano_numero[0], ano_numero[1]
-                            return row
-                return row
-
-            df = df.apply(processar_linha, axis=1)
-
-            if not df.empty:
-                # Conecta ao banco de dados e insere os dados
-                with sqlite3.connect(self.db_path) as conn:
-                    df.to_sql('controle_processos', conn, if_exists='append', index=False, method="multi")
-                    QMessageBox.information(parent, "Carregar Dados", "Dados carregados com sucesso.")
-            else:
-                QMessageBox.warning(parent, "Carregar Dados", "O arquivo está vazio.")
-
-        except Exception as e:
-            QMessageBox.critical(parent, "Carregar Dados", f"Erro ao carregar os dados: {e}")
 
     def atualizar_ultima_etapa_data_final(self, conn):
         """
@@ -468,7 +353,6 @@ class DatabaseManager:
 
             self.connection.commit()
             print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
-import traceback
 
 def carregar_dados_pregao(linha, database_path):
     conn = sqlite3.connect(database_path)
@@ -490,21 +374,6 @@ def carregar_dados_pregao(linha, database_path):
     finally:
         conn.close()
 
-
-def carregar_dados_dispensa(id_processo, caminho_banco_dados):
-    try:
-        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
-        connection = sqlite3.connect(caminho_banco_dados)
-        query = f"SELECT * FROM controle_dispensas WHERE id_processo='{id_processo}'"
-        logging.debug(f"Executando consulta SQL: {query}")
-        df_registro_selecionado = pd.read_sql_query(query, connection)
-        connection.close()
-        logging.debug(f"Dados carregados com sucesso para id_processo {id_processo}: {df_registro_selecionado}")
-        return df_registro_selecionado
-    except Exception as e:
-        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
-        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
-
 def carregar_dados_processos(controle_processos_path):
     try:
         conn = sqlite3.connect(str(controle_processos_path))
@@ -523,9 +392,4 @@ ABREV_MAP = {
     "Termo de Justificativa de Dispensa de Licitação": "TJDL",
     "Termo de Justificativa de Inexigibilidade de Licitação": "TJIL"
 }
-
-STYLE_BORDER = """
-    QGroupBox { border: 1px solid gray; border-radius: 5px; margin-top: 0.5em; }
-    QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; }
-"""
 

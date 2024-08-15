@@ -18,7 +18,7 @@ class MatrizRiscosWidget(QWidget):
         main_layout = QVBoxLayout(self)
 
         # Título
-        title_label = self.create_label("Matriz de Riscos", font_size=30, bold=True, color="white", alignment=Qt.AlignmentFlag.AlignCenter)
+        title_label = self.create_label("Matriz de Riscos", font_size=30, bold=True, color=None, alignment=Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title_label)
 
         # Layout horizontal para combobox e botões
@@ -28,7 +28,7 @@ class MatrizRiscosWidget(QWidget):
         label_buttons_layout = QVBoxLayout()
 
         escolha_processo_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o processo:", font_size=20, color="white")
+        combobox_label = self.create_label("Escolha o processo:", font_size=20, color=None)
         escolha_processo_layout.addWidget(combobox_label)
 
         self.combobox_processo = QComboBox()
@@ -39,7 +39,7 @@ class MatrizRiscosWidget(QWidget):
         label_buttons_layout.addLayout(escolha_processo_layout)
 
         escolha_padrao_matriz_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20, color="white")
+        combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20, color=None)
         escolha_padrao_matriz_layout.addWidget(combobox_label)
 
         self.combobox_matriz = QComboBox()
@@ -51,7 +51,7 @@ class MatrizRiscosWidget(QWidget):
 
         carregar_dados_riscos_layout = QHBoxLayout()
 
-        load_button_label = self.create_label("Escolha o arquivo para carregar os dados:", font_size=20, color="white")
+        load_button_label = self.create_label("Escolha o arquivo para carregar os dados:", font_size=20, color=None)
         carregar_dados_riscos_layout.addWidget(load_button_label)
 
         load_button = self.create_button("Carregar Dados", font_size=20, callback=self.load_data)
@@ -83,8 +83,7 @@ class MatrizRiscosWidget(QWidget):
         main_layout.addLayout(fases_layout)
         self.setLayout(main_layout)
 
-
-    def create_label(self, text, font_size=12, bold=False, color="black", alignment=None):
+    def create_label(self, text, font_size=12, bold=False, color=None, alignment=None):
         label = QLabel(text)
         style = f"font-size: {font_size}px; color: {color};"
         if bold:
