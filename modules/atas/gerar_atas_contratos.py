@@ -9,7 +9,7 @@ from modules.atas.processar_sicaf import SICAFDialog
 from modules.atas.relatorio_indicadores import RelatorioIndicadores
 from modules.atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
 from modules.atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
-from modules.atas.canvas_gerar_atas import *
+from modules.atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
 from diretorios import *
 import pandas as pd
 import numpy as np
@@ -22,6 +22,8 @@ from datetime import datetime
 import json
 # import seaborn as sns
 from modules.planejamento.utilidades_planejamento import DatabaseManager
+from openpyxl import load_workbook
+from docx import Document
 
 NUMERO_ATA_GLOBAL = None
 GERADOR_NUMERO_ATA = None
@@ -85,48 +87,6 @@ class CustomTreeView(QTreeView):
             childIndex = model.index(row, 0, parentIndex)
             self.collapseAllChildren(childIndex)
             self.setExpanded(childIndex, False)
-
-class HTMLDelegate(QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        painter.save()
-        options = QStyleOptionViewItem(option)  # Faz uma cópia para evitar modificar o original
-        self.initStyleOption(options, index)
-
-        # Definição do espaçamento vertical para o ícone
-        vertical_padding = 5  # Adiciona um espaçamento vertical para baixar o ícone
-
-        # Desenho do ícone
-        icon = options.icon
-        iconSize = options.decorationSize
-        iconRect = QRect(options.rect.x(), options.rect.y() + vertical_padding, iconSize.width(), iconSize.height())
-        icon.paint(painter, iconRect, Qt.AlignmentFlag.AlignTop)  # Uso correto da flag de alinhamento
-
-        # Ajustar o rect para o texto
-        textRect = options.rect.adjusted(iconSize.width() + 2, 0, 0, 0)  # Ajusta o rect para o texto baseado no tamanho do ícone
-
-        # Configuração e desenho do texto HTML
-        doc = QTextDocument()
-        doc.setHtml(options.text)
-        options.text = ""  # Limpa o texto para evitar desenho pelo estilo padrão
-        style = QApplication.style() if options.widget is None else options.widget.style()
-        painter.translate(textRect.topLeft())
-        painter.setClipRect(textRect.translated(-textRect.topLeft()))
-        doc.setTextWidth(textRect.width())
-        ctx = QAbstractTextDocumentLayout.PaintContext()
-        doc.documentLayout().draw(painter, ctx)
-
-        painter.restore()
-
-    def sizeHint(self, option, index):
-        options = QStyleOptionViewItem(option)
-        self.initStyleOption(options, index)
-        doc = QTextDocument()
-        doc.setHtml(options.text)
-        doc.setTextWidth(options.rect.width() - options.decorationSize.width() - 2)  # Subtrai o tamanho do ícone
-        vertical_padding = 5  # Mesmo espaçamento vertical definido no paint
-        return QSize(int(doc.idealWidth() + options.decorationSize.width()), max(int(doc.size().height()), options.decorationSize.height() + vertical_padding))
-
-
 class GerarAtasWidget(QWidget):
     def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
@@ -138,10 +98,7 @@ class GerarAtasWidget(QWidget):
         self.txt_dir = Path(TXT_DIR)
         self.sicaf_dir = Path(SICAF_DIR)
         self.sicaf_txt_dir = Path(SICAF_TXT_DIR)
-        
-        # Verificação e criação das pastas, se necessário
-        self.verificar_ou_criar_diretorios([self.pdf_dir, self.txt_dir, self.sicaf_dir, self.sicaf_txt_dir])
-        
+            
         self.mapeamento_colunas = self.obter_mapeamento_colunas()
         self.current_dataframe = None
         self.pe_pattern = None
@@ -193,13 +150,82 @@ class GerarAtasWidget(QWidget):
     
     def setup_ui(self):
         self.main_layout = QVBoxLayout(self)
+
+        # Configurar o alerta com tamanho mínimo
         self.setup_alert_label()
+
+        # Configurar os botões
         self.setup_buttons()
-        self.setup_treeview()
+
+        # Adicionar um widget vazio que atuará como um espaçador no topo
+        spacer_top = QWidget()
+        spacer_top.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.main_layout.addWidget(spacer_top)
+
+        # Adicionar a mensagem centralizada e definir uma área fixa para ela
+        self.message_label = QLabel("Simplicidade é o último degrau da sabedoria\n(Khalil Gibran)")
+        self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.message_label.setStyleSheet("font-size: 16pt; font-style: italic; padding: 20px;")
+        
+        # Definir um tamanho fixo para a área onde o message_label ou treeView será exibido
+        self.fixed_area_widget = QWidget()
+        self.fixed_area_layout = QVBoxLayout(self.fixed_area_widget)
+        self.fixed_area_layout.addWidget(self.message_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Garantir que o fixed_area_widget ocupe o máximo de espaço disponível
+        self.main_layout.addWidget(self.fixed_area_widget)
+        self.fixed_area_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # Adicionar um widget vazio que atuará como um espaçador na parte inferior
+        spacer_bottom = QWidget()
+        spacer_bottom.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.main_layout.addWidget(spacer_bottom)
+
+        # Setup da parte inferior dos botões
         self.setup_buttons_down()
+
         self.setLayout(self.main_layout)
         self.setMinimumSize(1000, 580)
 
+    def setup_alert_label(self):
+        icon_path = str(self.icons_dir / 'alert.png')
+        text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
+                "Pressione '<b><u>Termo de Referência</u></b>' para adicionar os dados 'Catálogo', "
+                "'Descrição' e 'Descrição Detalhada' do Termo de Referência. "
+                f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
+        self.alert_label = QLabel(text)
+        
+        # Reduzir o padding e margem para mínimo possível
+        self.alert_label.setStyleSheet("font-size: 10pt; padding: 2px; margin: 0px;")
+        
+        # Centralizar e ajustar o tamanho
+        self.alert_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.alert_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        # Adicionar ao layout principal, na parte superior
+        self.main_layout.addWidget(self.alert_label, alignment=Qt.AlignmentFlag.AlignTop)
+
+    def setup_treeview(self):
+        # Remover ou ocultar a mensagem quando o treeView for exibido
+        if self.message_label:
+            self.message_label.hide()
+
+        self.model = QStandardItemModel()  # Inicializando o modelo se ainda não foi inicializado
+        self.treeView = CustomTreeView()
+        self.treeView.setModel(self.model)
+        
+        # Remover a mensagem e adicionar o treeView na área fixa
+        self.fixed_area_layout.removeWidget(self.message_label)
+        self.message_label.deleteLater()  # Opcional: deletar o label para liberar memória
+        self.fixed_area_layout.addWidget(self.treeView)
+
+        self.treeView.header().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.treeView.setAnimated(True)  # Facilita a visualização da expansão/colapso
+        self.treeView.setUniformRowHeights(True)  # Uniformiza a altura das linhas      
+        self.treeView.setItemsExpandable(True)  # Garantir que o botão para expandir esteja visível
+        self.treeView.setExpandsOnDoubleClick(False)  # Evita a expansão por duplo clique
+        self.setup_treeview_styles()
+        
     def setup_alert_label(self):
         icon_path = str(self.icons_dir / 'alert.png')
         text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
@@ -225,8 +251,8 @@ class GerarAtasWidget(QWidget):
 
     def obter_definicoes_botoes(self):
         return [
-            ("Tabela Vazia", 'excel_down', self.tabela_vazia, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
-            ("Termo de Referência", 'excel_up', self.import_tr, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
+            ("Tabela Vazia", 'add-task', self.tabela_vazia, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
+            ("Termo de Referência", 'priority', self.import_tr, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
             ("Termo de Homologação", 'data-collection', self.processar_homologacao, "Faça o download dos termos de homologação e mova para a pasta de processamento dos Termos de Homologação", False),
             ("SICAF", 'sicaf', self.processar_sicaf, "Faça o download do SICAF (Nível I - Credenciamento) e mova para a pasta de processamento do SICAF", False),
         ]
@@ -259,26 +285,39 @@ class GerarAtasWidget(QWidget):
             "item_num", "catalogo", "descricao_tr", "descricao_detalhada", 
         ]
 
-        # Criando um DataFrame vazio com as colunas definidas
-        df_vazio = pd.DataFrame(columns=colunas)
+        # Criando um DataFrame com a coluna item_num numerada até a linha 10
+        df_vazio = pd.DataFrame({
+            "item_num": range(1, 11),
+            "catalogo": [""] * 10,
+            "descricao_tr": [""] * 10,
+            "descricao_detalhada": [""] * 10
+        })
 
-        # Salvando o DataFrame como um arquivo XLSX
-        df_vazio.to_excel(arquivo_xlsx, index=False)
+        try:
+            # Tentar abrir o arquivo em modo exclusivo para escrita para verificar se ele está em uso
+            with open(arquivo_xlsx, 'w') as f:
+                pass  # O arquivo pode ser aberto e escrito
 
-        # Abrindo o arquivo XLSX gerado
-        os.startfile(arquivo_xlsx)
+            # Salvando o DataFrame como um arquivo XLSX
+            df_vazio.to_excel(arquivo_xlsx, index=False)
 
-    def setup_treeview(self):
-        self.model = QStandardItemModel()  # Inicializando o modelo
-        self.treeView = CustomTreeView()
-        self.treeView.setModel(self.model)
-        self.main_layout.addWidget(self.treeView)
-        self.treeView.header().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.treeView.setAnimated(True)  # Facilita a visualização da expansão/colapso
-        self.treeView.setUniformRowHeights(True)  # Uniformiza a altura das linhas      
-        self.treeView.setItemsExpandable(True)  # Garantir que o botão para expandir esteja visível
-        self.treeView.setExpandsOnDoubleClick(False)  # Evita a expansão por duplo clique
-        self.setup_treeview_styles()
+            # Ajustando a largura das colunas usando openpyxl
+            workbook = load_workbook(arquivo_xlsx)
+            worksheet = workbook.active
+
+            worksheet.column_dimensions['A'].width = 15  # item_num
+            worksheet.column_dimensions['B'].width = 100  # catalogo
+            worksheet.column_dimensions['C'].width = 150  # descricao_tr
+            worksheet.column_dimensions['D'].width = 200  # descricao_detalhada
+
+            workbook.save(arquivo_xlsx)
+
+            # Abrindo o arquivo XLSX gerado
+            os.startfile(arquivo_xlsx)
+
+        except PermissionError:
+            # Se houver um PermissionError, significa que o arquivo está aberto em outra aplicação
+            QMessageBox.warning(self, "Arquivo Aberto", "A tabela 'tabela_vazia.xlsx' está aberta. Feche o arquivo antes de tentar salvá-lo novamente.")
         
     def setup_treeview_styles(self):
         header = self.treeView.header()
@@ -293,9 +332,13 @@ class GerarAtasWidget(QWidget):
         self.processing_thread.processing_complete.connect(self.progressDialog.on_conversion_finished)
 
     def import_tr(self):
+        # Oculta o message_label ao importar
+        if self.message_label:
+            self.message_label.hide()
+
         # Abrir um diálogo de arquivo para selecionar o arquivo
         file_path, _ = QFileDialog.getOpenFileName(self, "Importar Termo de Referência", "", 
-                                                "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)")
+                                                    "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)")
         if not file_path:
             return  # Se o usuário cancelar, não faça nada
 
@@ -321,6 +364,10 @@ class GerarAtasWidget(QWidget):
         # Atualizar o DataFrame carregado
         self.tr_variavel_df_carregado = df
 
+        # Verifique se o treeView já foi inicializado, se não, inicialize-o
+        if not hasattr(self, 'treeView'):
+            self.setup_treeview()
+
         # Atualizar a visualização da tabela com os dados importados
         self.atualizar_modelo_com_dados(df)
 
@@ -330,27 +377,50 @@ class GerarAtasWidget(QWidget):
         # Exibir uma mensagem informando que o arquivo foi importado com sucesso
         QMessageBox.information(self, "Importação Concluída", f"Arquivo {Path(file_path).name} importado com sucesso.")
 
-
     def formatar_e_validar_dados(self, df):
         erros = []
 
+        # Verificar se as colunas obrigatórias estão presentes
+        colunas_obrigatorias = ["item_num", "catalogo", "descricao_tr", "descricao_detalhada"]
+        for coluna in colunas_obrigatorias:
+            if coluna not in df.columns:
+                erros.append(f"A coluna obrigatória '{coluna}' está faltando no arquivo.")
+
+        # Se houver erros nas colunas obrigatórias, retornar imediatamente
+        if erros:
+            return erros
+
         # Remover quebras de linha e espaços extras
-        for col in ["catalogo", "descricao_tr", "descricao_detalhada"]:
+        for col in colunas_obrigatorias:
             df[col] = df[col].apply(lambda x: " ".join(str(x).replace("\n", " ").split()) if pd.notnull(x) else x)
-        
+
         # Verificar se item_num é inteiro e sequencial
         df['item_num'] = pd.to_numeric(df['item_num'], errors='coerce')
-        
+
         if df['item_num'].isnull().any():
             erros.append("A coluna 'item_num' contém valores não numéricos.")
-        
+
         # Verificar sequencialidade
         sequencia = df['item_num'].dropna().astype(int).sort_values().unique()
         esperado = list(range(sequencia.min(), sequencia.max() + 1))
         if not all(item in sequencia for item in esperado):
             faltando = set(esperado) - set(sequencia)
             erros.append(f"Números sequenciais faltando em 'item_num': {sorted(faltando)}")
-        
+
+        # Verificar se catalogo, descricao_tr, e descricao_detalhada são textos
+        df['catalogo'] = df['catalogo'].astype(str)
+        df['descricao_tr'] = df['descricao_tr'].astype(str)
+        df['descricao_detalhada'] = df['descricao_detalhada'].astype(str)
+
+        # Verificar valores em branco nas colunas obrigatórias
+        for coluna in colunas_obrigatorias:
+            if df[coluna].isnull().any() or df[coluna].eq("").any():
+                erros.append(f"A coluna '{coluna}' contém valores em branco.")
+
+        # Verificar se há erros
+        if erros:
+            erros.insert(0, "Não foi possível carregar a tabela devido aos seguintes erros:")
+
         return erros
 
     def atualizar_modelo_com_dados(self, df_relevante):
@@ -515,9 +585,31 @@ class GerarAtasWidget(QWidget):
             self.pe_pattern = pe_pattern  # Armazena o padrão PE identificado
             print(f"DataFrame atualizado e carregado:\n{self.current_dataframe.head()}")
             print(f"Padrão PE identificado: {self.pe_pattern}")
+
+            # Verifique se o treeView já foi inicializado, se não, inicialize-o
+            if not hasattr(self, 'treeView'):
+                self.setup_treeview()
+
             self.update_treeview_with_dataframe(self.current_dataframe)
         else:
             QMessageBox.warning(self, "Aviso", "Os dados carregados não são um DataFrame válido ou estão vazios.")
+
+    def update_treeview_with_dataframe(self, dataframe):
+        if dataframe is None:
+            QMessageBox.critical(self, "Erro", "O DataFrame não está disponível para atualizar a visualização.")
+            return
+        
+        creator = ModeloTreeview(self.icons_dir)
+        self.model = creator.criar_modelo(dataframe)
+        
+        # Verifique se o treeView está inicializado
+        if not hasattr(self, 'treeView'):
+            self.setup_treeview()
+
+        self.treeView.setModel(self.model)
+        # self.treeView.setItemDelegate(HTMLDelegate())
+        self.treeView.reset()
+
 
     def update_database(self):
         # Sempre abre o diálogo, independentemente da existência de um DataFrame atual
@@ -531,16 +623,6 @@ class GerarAtasWidget(QWidget):
             # Caso a barra de progresso não esteja visível, você pode optar por mostrá-la aqui
             self.progressDialog.show()
             self.progressDialog.progressBar.setValue(value)
-
-    def update_treeview_with_dataframe(self, dataframe):
-        if dataframe is None:
-            QMessageBox.critical(self, "Erro", "O DataFrame não está disponível para atualizar a visualização.")
-            return
-        creator = ModeloTreeview(self.icons_dir)
-        self.model = creator.criar_modelo(dataframe)
-        self.treeView.setModel(self.model)
-        self.treeView.setItemDelegate(HTMLDelegate())
-        self.treeView.reset()
                     
     def abrir_dialog_atas(self):
         if self.current_dataframe is not None:
@@ -711,22 +793,21 @@ class ModeloTreeview:
 
         # Atualizar o texto do container com base na contagem de itens
         item_count_text = "Item" if empresa_items[parent_key]['count'] == 1 else "Relação de itens:"
-        empresa_items[parent_key]['items_container'].setText(f"<span style='font-size: {font_size};'><b>{item_count_text}</b> ({empresa_items[parent_key]['count']})</span>")
+        empresa_items[parent_key]['items_container'].setText(f"{item_count_text} ({empresa_items[parent_key]['count']})")
         
     def atualizar_contador_cabecalho(self, empresa_items, model):
         font_size = "16px"  # Definir o tamanho da fonte para os cabeçalhos dos itens
         for chave_item_pai, empresa in empresa_items.items():
             count = empresa['count']
             # Formatar o texto com HTML para ajustar o tamanho da fonte
-            display_text = f"<span style='font-size: {font_size};'>{chave_item_pai} (<b>1 item</b>)</span>" if count == 1 else f"<span style='font-size: {font_size};'>{chave_item_pai} (<b>{count} itens</b>)</span>"
+            display_text = f"{chave_item_pai} (1 item)" if count == 1 else f"{chave_item_pai} ({count} itens)"
             empresa['item'].setText(display_text)
 
     def adicionar_detalhes_empresa(self, row, parent_item):
-        font_size = "14px"
         infos = [
-            f"<span style='font-size: {font_size};'><b>Endereço:</b> {row['endereco']}, CEP: {row['cep']}, Município: {row['municipio']}</span>" if pd.notna(row['endereco']) else f"<span style='font-size: {font_size};'><b>Endereço:</b> Não informado</span>",
-            f"<span style='font-size: {font_size};'><b>Contato:</b> {row['telefone']} <b>Email:</b> {row['email']}</span>" if pd.notna(row['telefone']) else f"<span style='font-size: {font_size};'><b>Contato:</b> Não informado</span>",
-            f"<span style='font-size: {font_size};'><b>Responsável Legal:</b> {row['responsavel_legal']}</span>" if pd.notna(row['responsavel_legal']) else f"<span style='font-size: {font_size};'><b>Responsável Legal:</b> Não informado</span>"
+            f"Endereço: {row['endereco']}, CEP: {row['cep']}, Município: {row['municipio']}" if pd.notna(row['endereco']) else "Endereço: Não informado",
+            f"Contato: {row['telefone']} Email: {row['email']}" if pd.notna(row['telefone']) else "Contato: Não informado",
+            f"Responsável Legal: {row['responsavel_legal']}" if pd.notna(row['responsavel_legal']) else "Responsável Legal: Não informado"
         ]
         for info in infos:
             info_item = QStandardItem(info)
@@ -738,21 +819,20 @@ class ModeloTreeview:
         return [self.criar_detalhe_item(field.capitalize(), row[field]) for field in fields if pd.notna(row[field])]
 
     def adicionar_subitens_detalhados(self, row, sub_items_layout):
-        font_size = "14px"  # Definir o tamanho da fonte para os detalhes dos itens
-        # Criar o item principal com formatação HTML para o tamanho da fonte
-        item_info_html = f"<span style='font-size: {font_size};'>Item {row['item_num']} - {row['descricao_tr']} - {row['situacao']}</span>"
+        item_info_html = f"Item {row['item_num']} - {row['descricao_tr']} - {row['situacao']}"
         item_info = QStandardItem(item_info_html)
         item_info.setEditable(False)
         sub_items_layout.appendRow(item_info)
 
-        # Adicionar mais detalhes com formatação HTML
-        detalhes_html = [
-            f"<span style='font-size: {font_size};'><b>Descrição Detalhada:</b> {row['descricao_detalhada']}</span>",
-            f"<span style='font-size: {font_size};'><b>Unidade de Fornecimento:</b> {row['unidade']} <b>Quantidade:</b> {self.formatar_quantidade(row['quantidade'])} <b>Valor Estimado:</b> {self.formatar_brl(row['valor_estimado'])} <b>Valor Homologado:</b> {self.formatar_brl(row['valor_homologado_item_unitario'])} <b>Desconto:</b> {self.formatar_percentual(row['percentual_desconto'])} <b>Marca:</b> {row['marca_fabricante']} <b>Modelo:</b> {row['modelo_versao']}</span>",
+        detalhes = [
+            f"Descrição Detalhada: {row['descricao_detalhada']}",
+            f"Unidade de Fornecimento: {row['unidade']} Quantidade: {self.formatar_quantidade(row['quantidade'])} "
+            f"Valor Estimado: {self.formatar_brl(row['valor_estimado'])} Valor Homologado: {self.formatar_brl(row['valor_homologado_item_unitario'])} "
+            f"Desconto: {self.formatar_percentual(row['percentual_desconto'])} Marca: {row['marca_fabricante']} Modelo: {row['modelo_versao']}",
         ]
 
-        for detalhe_html in detalhes_html:
-            detalhe_item = QStandardItem(detalhe_html)
+        for detalhe in detalhes:
+            detalhe_item = QStandardItem(detalhe)
             detalhe_item.setEditable(False)
             item_info.appendRow(detalhe_item)
 
@@ -788,6 +868,7 @@ class ModeloTreeview:
 class AtasDialog(QDialog):
     NUMERO_ATA_GLOBAL = None  # Defina isso em algum lugar adequado dentro de sua classe
     dataframe_updated = pyqtSignal(object)  # Sinal para emitir o DataFrame atualizado
+    pastas_criadas = set()  # Rastreador de pastas criadas
 
     def __init__(self, parent=None, pe_pattern=None, dataframe=None):
         super().__init__(parent)
@@ -795,7 +876,7 @@ class AtasDialog(QDialog):
         self.pe_pattern = pe_pattern
         self.nup_data = None
         self.dataframe = dataframe 
-        self.settings = QSettings("YourCompany", "YourApp")  # Adjust these values for your app
+        self.settings = QSettings("YourCompany", "YourApp")  # Ajuste esses valores para seu aplicativo
         self.configurar_ui()
 
     def closeEvent(self, event):
@@ -1012,8 +1093,6 @@ class AtasDialog(QDialog):
         # Aplicar estilo ao botão
         self.apply_widget_style(button_confirm)
 
-
-
     @staticmethod
     def convert_pe_format(pe_string):
         if pe_string is None:
@@ -1023,7 +1102,6 @@ class AtasDialog(QDialog):
         pe_formatted = pe_string.replace('PE-', 'PE ').replace('-', '/')
         print(f"Converted PE format: {pe_formatted}")  # Depuração
         return pe_formatted
-
 
     def obter_nup(self, pe_formatted):
         try:
@@ -1093,17 +1171,13 @@ class AtasDialog(QDialog):
         self.processar_ata_de_registro_de_precos(self.nup_data, self.dataframe)
 
     def processar_ata_de_registro_de_precos(self, nup_data, dataframe):
-        # Verifica se o número da ATA já está definido
         if AtasDialog.NUMERO_ATA_GLOBAL is None:
-            # Mostra uma mensagem para que o usuário insira o número da ATA
             QMessageBox.information(self, "Inserir Número da ATA", "Por favor, insira o número da ATA para continuar.")
-            return  # Interrompe o processamento até que o número da ATA seja confirmado
+            return
 
-        # Se o número da ATA está definido, continua o processo
-        criar_pastas_com_subpastas(dataframe)
+        criar_pastas_com_subpastas(dataframe)  # Chamando função externa de criação de pastas
         ultimo_num_ata = self.processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
 
-        # Atualizar e salvar o último número da ATA
         self.salvar_ultimo_contrato(ultimo_num_ata)
         self.atualizar_rotulo_ultimo_contrato(ultimo_num_ata)
 
@@ -1133,35 +1207,62 @@ class AtasDialog(QDialog):
         print(dataframe[['numero_ata', 'item_num']])  # Mostra os valores das colunas 'numero_ata' e 'item_num'
         return NUMERO_ATA_atualizado
     
-    def limpar_nome_empresa(self, nome_empresa):
-        # Substituir caracteres não permitidos por "_" ou remover
-        caracteres_invalidos = ['<', '>', ':', '_', '"', '/', '\\', '|', '?', '*']
+    def limpar_nome_empresa(nome_empresa):
+        # Definindo os caracteres que não podem ser usados em nomes de pastas no Windows
+        caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+
+        # Substituir caracteres inválidos por sublinhado
         for char in caracteres_invalidos:
-            nome_empresa = nome_empresa.replace(char, ' ')
+            nome_empresa = nome_empresa.replace(char, '_')
+
+        # Remover espaços extras e caracteres especiais no final do nome
+        nome_empresa = nome_empresa.rstrip(' ._')
+
+        # Substituir múltiplos espaços consecutivos por um único espaço
+        nome_empresa = ' '.join(nome_empresa.split())
+
+        return nome_empresa
+
+    def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):        
+        nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
+        path_dir_principal = relatorio_path / nome_dir_principal
+        nome_empresa_limpa = self.limpar_nome_empresa(empresa)
+        path_subpasta = path_dir_principal / nome_empresa_limpa
+
+        # Verifica se a pasta já foi criada anteriormente
+        chave_pasta = (nome_dir_principal, nome_empresa_limpa)
+        if chave_pasta not in AtasDialog.pastas_criadas:
+            if not path_subpasta.exists():
+                path_subpasta.mkdir(parents=True, exist_ok=True)
+                print(f"Criado subdiretório: {path_subpasta}")
+            AtasDialog.pastas_criadas.add(chave_pasta)
+        else:
+            print(f"Subdiretório já existente, não será recriado: {path_subpasta}")
+
+        return path_dir_principal, path_subpasta
+
+    def limpar_nome_empresa(self, nome_empresa):
+        # Substituir '/' e ':' por sublinhado
+        caracteres_para_sublinhado = ['/', ':']
+        for char in caracteres_para_sublinhado:
+            nome_empresa = nome_empresa.replace(char, '_')
         
-        # Substituir pontos internos por sublinhados, mas não substituir os pontos finais já removidos
-        nome_empresa = nome_empresa.replace('.', '_')
+        # Substituir '.' por nada (remover)
+        nome_empresa = nome_empresa.replace('.', '')
+
+        # Substituir outros caracteres inválidos por sublinhados
+        caracteres_invalidos = ['<', '>', '_', '"', '\\', '|', '?', '*']
+        for char in caracteres_invalidos:
+            nome_empresa = nome_empresa.replace(char, '_')
 
         # Remover espaços extras e sublinhados no final do nome da empresa
         nome_empresa = nome_empresa.rstrip(' _')
 
+        # Substituir múltiplos espaços ou sublinhados consecutivos por um único sublinhado
+        nome_empresa = '_'.join(filter(None, nome_empresa.split(' ')))
+
         return nome_empresa
-
-    def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):
-        nome_empresa_limpo = self.limpar_nome_empresa(empresa)
-        print(f"Preparando diretórios para empresa original: {empresa}, empresa limpa: {nome_empresa_limpo}")
-        
-        nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
-        path_dir_principal = relatorio_path / nome_dir_principal
-        path_subpasta = path_dir_principal / empresa
-        
-        if not path_subpasta.exists():
-            path_subpasta.mkdir(parents=True, exist_ok=True)
-        
-        return path_dir_principal, path_subpasta
-
-
-
+    
     def processar_empresa(self, registros_empresa, empresa, path_subpasta, nup, NUMERO_ATA_atualizado):
         if not registros_empresa.empty:
             registro = registros_empresa.iloc[0].to_dict()
@@ -1226,7 +1327,6 @@ class AtasDialog(QDialog):
 
     def salvar_documento(self, path_subpasta, empresa, context, registro, itens_relacionados, num_contrato):
         max_len = 40  # Definindo o limite máximo para o nome da empresa
-        empresa_limpa = self.limpar_nome_empresa(empresa)[:max_len].rstrip() 
         contrato_limpo = self.limpar_nome_empresa(num_contrato)[:max_len].rstrip()
 
         # Preparar o template do documento

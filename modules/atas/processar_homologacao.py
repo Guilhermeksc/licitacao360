@@ -21,9 +21,6 @@ class ProgressDialog(QDialog):
         self.processed_files = set()
         self.setup_ui()
 
-    def update_processed_files(self, new_files):
-        self.processed_files.update(new_files)
-
     def set_conversion_callback(self, callback):
         self.confirmButton.clicked.connect(callback)
 
@@ -80,14 +77,19 @@ class ProgressDialog(QDialog):
 
     def update_progress(self, current, total, current_file):
         if self.isVisible():
+            # Calcular a porcentagem baseada na proporção de arquivos processados
             progress_percent = int((current / total) * 100)
             self.progressBar.setValue(progress_percent)
-            self.progress_label.setText(f"Analisando \"{current_file}\"")  # Remover o percentual aqui
+            self.progress_label.setText(f"Analisando \"{current_file}\"")
+        
+            # Se for o último arquivo, garantir que a barra vá até 100%
+            if current == total:
+                self.progressBar.setValue(100)
 
     def on_conversion_finished(self, extracted_data):
         self.processing_complete.emit(extracted_data)
-        QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
-        self.confirmButton.setEnabled(True)
+        # QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
+        # self.confirmButton.setEnabled(True)
         self.close()
 
     def abrir_pasta_homolog(self):

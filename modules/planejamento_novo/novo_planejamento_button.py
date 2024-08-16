@@ -541,7 +541,7 @@ class UIManager:
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch) 
         # Definir tamanhos específicos onde necessário
         header.resizeSection(0, 250)
-        header.resizeSection(1, 110)
+        header.resizeSection(1, 130)
         header.resizeSection(2, 200)
         header.resizeSection(4, 80)
 

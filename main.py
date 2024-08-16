@@ -307,7 +307,6 @@ class MainWindow(QMainWindow):
         self.relatoria_widget = RelatoriaWidget(self)
         self.content_layout.addWidget(self.relatoria_widget)
 
-
     def clear_content_area(self, keep_image_label=False):
         for i in reversed(range(self.content_layout.count())):
             layout_item = self.content_layout.itemAt(i)

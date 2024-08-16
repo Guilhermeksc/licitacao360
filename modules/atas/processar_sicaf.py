@@ -49,7 +49,7 @@ class SICAFDialog(QDialog):
         self.label = QLabel("Deseja processar os dados do SICAF?")
         self.label.setFont(fonte_padrao)
         layout.addWidget(self.label)
-        self.progressBar = QProgressBar(self)
+        self.progressBar = CustomProgressBar(self)
         layout.addWidget(self.progressBar)
         self.confirmButton = self.create_button("Iniciar Processamento", QIcon(str(ICONS_DIR / "rpa.png")), self.iniciar_processamento_sicaf, "Iniciar o processamento para obtenção dos dados do SICAF", QSize(40, 40))
         layout.addWidget(self.confirmButton)
@@ -92,6 +92,9 @@ class SICAFDialog(QDialog):
 
             self.df_final = processar_arquivos_sicaf(self, self.progressBar, self.update_progress, self.dataframe)
 
+            # Após o processamento, assegure que a barra de progresso esteja em 100%
+            self.progressBar.setValue(self.progressBar.maximum())
+
             if isinstance(self.df_final, pd.DataFrame):
                 print("DataFrame resultante do processamento:")
                 print(self.df_final)
@@ -131,3 +134,22 @@ class SICAFDialog(QDialog):
         fonte_btn.setPointSize(14)
         btn.setFont(fonte_btn)
         return btn
+
+class CustomProgressBar(QProgressBar):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFont(QFont("Arial", 16))  # Aumentar a fonte do percentual
+        self.setTextVisible(False)  # Desativar o texto padrão do QProgressBar
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setPen(QColor(Qt.GlobalColor.black))
+        rect = self.rect()
+        font_metrics = self.fontMetrics()
+        progress_percent = self.value()
+        text = f"{progress_percent}%" if progress_percent >= 0 else ""
+        text_width = font_metrics.horizontalAdvance(text)
+        text_height = font_metrics.height()
+        painter.drawText(int((rect.width() - text_width) / 2), int((rect.height() + text_height) / 2), text)
+        painter.end()

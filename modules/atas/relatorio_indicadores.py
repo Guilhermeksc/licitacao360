@@ -144,66 +144,6 @@ class RelatorioIndicadores(QDialog):
         # Juntar as palavras de volta em uma string
         return ' '.join(final_words)
             
-    # def verificar_pdm_e_classe(self):
-    #     # Preencher valores nulos com 'PDM não definido' e 'Classe não definida' antes da agregação
-    #     self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['Padrão Desc Material'].fillna('PDM não definido')
-    #     self.current_dataframe['Classe Material'] = self.current_dataframe['Classe Material'].fillna('Classe não definida')
-    #     self.current_dataframe['Unnamed: 6'] = self.current_dataframe['Unnamed: 6'].fillna('Descrição PDM não disponível')
-    #     self.current_dataframe['Unnamed: 4'] = self.current_dataframe['Unnamed: 4'].fillna('Descrição Classe não disponível')
-
-    #     # Agrega os dados somando os valores estimados e homologados
-    #     agregado_pdm = self.current_dataframe.groupby('Padrão Desc Material').agg({
-    #         'valor_estimado_total_do_item': 'sum',
-    #         'valor_homologado_total_item': 'sum',
-    #         'Unnamed: 6': 'first'
-    #     }).reset_index()
-
-    #     agregado_classe = self.current_dataframe.groupby('Classe Material').agg({
-    #         'valor_estimado_total_do_item': 'sum',
-    #         'valor_homologado_total_item': 'sum',
-    #         'Unnamed: 4': 'first'
-    #     }).reset_index()
-
-    #     # Converter para lista para uso no template
-    #     lista_pdm = agregado_pdm.apply(lambda row: f"PDM {row['Padrão Desc Material']} - {self.title_case_custom(row['Unnamed: 6'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
-    #     lista_classe = agregado_classe.apply(lambda row: f"Classe {row['Classe Material']} - {self.title_case_custom(row['Unnamed: 4'])} | Valor Homologado: {self.formatar_brl(row['valor_homologado_total_item'])}" if row['valor_homologado_total_item'] > 0 else "", axis=1).tolist()
-
-    #     # Remover entradas vazias
-    #     lista_pdm = [item for item in lista_pdm if item]
-    #     lista_classe = [item for item in lista_classe if item]
-
-    #     total_estimado_pdm = self.current_dataframe['valor_estimado_total_do_item'].sum()
-    #     if total_estimado_pdm > 0:
-    #         lista_pdm.append(f"Total estimado dos itens homologados: {self.formatar_brl(total_estimado_pdm)}")
-
-    #     # Adicionar somatório de valores homologados no final da lista de PDM
-    #     total_homologado_pdm = self.current_dataframe['valor_homologado_total_item'].sum()
-    #     if total_homologado_pdm > 0:
-    #         lista_pdm.append(f"Total Homologado: {self.formatar_brl(total_homologado_pdm)}")
-
-    #     return lista_pdm, lista_classe
-    
-    # def adicionar_dados(self):
-    #     with DatabaseManager(ARQUIVO_DADOS_PDM_CATSER) as conn_pdm:
-    #         query = """
-    #         SELECT `Codigo Material Serviço`, `Unnamed: 4`, `Padrão Desc Material`, `Unnamed: 6`, `Classe Material`
-    #         FROM dados_pdm
-    #         """
-    #         pdm_data = pd.read_sql(query, conn_pdm)
-        
-    #     # Criar um dicionário a partir de pdm_data para mapeamento rápido
-    #     pdm_dict = pdm_data.set_index('Codigo Material Serviço').to_dict('index')
-        
-    #     # Adiciona as novas colunas ao DataFrame
-    #     self.current_dataframe['Padrão Desc Material'] = self.current_dataframe['catalogo'].map(
-    #         lambda x: pdm_dict.get(x, {}).get('Padrão Desc Material', ''))
-    #     self.current_dataframe['Unnamed: 6'] = self.current_dataframe['catalogo'].map(
-    #         lambda x: pdm_dict.get(x, {}).get('Unnamed: 6', ''))
-    #     self.current_dataframe['Classe Material'] = self.current_dataframe['catalogo'].map(
-    #         lambda x: pdm_dict.get(x, {}).get('Classe Material', ''))
-    #     self.current_dataframe['Unnamed: 4'] = self.current_dataframe['catalogo'].map(
-    #         lambda x: pdm_dict.get(x, {}).get('Unnamed: 4', ''))
-
     def setup_ui(self):
         layout = QVBoxLayout()
         self.report_button = QPushButton(" Relatório de Indicadores")
@@ -305,16 +245,17 @@ class RelatorioIndicadores(QDialog):
 
         return "\n\n".join(relacao_empresas)
 
-
     def gerar_relatorio_docx(self):
-        # self.adicionar_dados()  # Primeiro adicionar os dados de PDM e classe
-        # lista_pdm, lista_classe = self.verificar_pdm_e_classe()  # Obter as listas de PDM e classe com somas
-        
         # Gerar gráficos
         self.grafico_percentual_desconto()
         grafico_path = str(INDICADORES_NORMCEIM / "grafico_01.png")
-        # self.grafico_localidade_geografica()
-        # grafico_localidade_geografica_path = str(INDICADORES_NORMCEIM / "grafico_02.png")
+        
+        # Gerar o gráfico de dispersão
+        self.grafico_dispersao()
+        grafico_dispersao_path = str(INDICADORES_NORMCEIM / "grafico_dispersao.png")
+
+        self.grafico_barras_empilhadas()
+        grafico_barra_path = str(INDICADORES_NORMCEIM / "grafico_barras_empilhadas.png")
 
         # Formatar os valores totais
         percentual_desconto_total, total_estimado, total_homologado = self.calcular_percentual_desconto_total()
@@ -334,10 +275,8 @@ class RelatorioIndicadores(QDialog):
         with DatabaseManager(CONTROLE_DADOS) as conn:
             query = f"SELECT sequencial, etapa, dias_na_etapa FROM controle_prazos WHERE chave_processo LIKE '%{pe_formatted}%' ORDER BY sequencial"
             controle_prazos_data = pd.read_sql(query, conn)
-            # Filtrar para não incluir etapas de Planejamento
             controle_prazos_data = controle_prazos_data[controle_prazos_data['etapa'] != 'Planejamento']
             controle_dias_processo = "\n".join(f"{row['etapa']} ({row['dias_na_etapa']} dias)" for index, row in controle_prazos_data.iterrows())
-            # Calcular o somatório dos dias
             somatorio_dias_todas_etapas = controle_prazos_data['dias_na_etapa'].sum()
             controle_dias_processo += f"\nTotal de dias {somatorio_dias_todas_etapas}"
 
@@ -349,14 +288,13 @@ class RelatorioIndicadores(QDialog):
             relacao_itens_top10_desconto = [f"Item {row['item_num']} - {row['descricao_tr']} - {row['percentual_desconto']:.2f}%" for index, row in top10_items.iterrows()]
             context = {
                 'percentual_desconto_total': f"{percentual_desconto_total:.2f}%",
-                'total_estimado': total_estimado_fmt,  # Formatação como número com duas casas decimais
+                'total_estimado': total_estimado_fmt,
                 'total_homologado': total_homologado_fmt,
                 'grafico_01': InlineImage(doc, grafico_path, width=Mm(150)) if os.path.exists(grafico_path) else 'Gráfico não disponível',
-                # 'grafico_02': InlineImage(doc, grafico_localidade_geografica_path, width=Mm(150)) if os.path.exists(grafico_localidade_geografica_path) else 'Gráfico não disponível',
-                'controle_dias_processo': controle_dias_processo,  # Adicionar os dados da tabela controle_prazos ao contexto
+                'grafico_dispersao': InlineImage(doc, grafico_dispersao_path, width=Mm(150)) if os.path.exists(grafico_dispersao_path) else 'Gráfico não disponível',
+                'grafico_barras_empilhadas': InlineImage(doc, grafico_barra_path, width=Mm(150)) if os.path.exists(grafico_barra_path) else 'Gráfico não disponível',
+                'controle_dias_processo': controle_dias_processo,
                 'relacao_itens_top10_desconto': '\n'.join(relacao_itens_top10_desconto),
-                # 'lista_pdm': '\n'.join(lista_pdm),
-                # 'lista_classe': '\n'.join(lista_classe),
                 'pregoeiro': pregao_data['pregoeiro'],
                 'parecer_agu': pregao_data['parecer_agu'],
                 'msg_irp': pregao_data['msg_irp'],
@@ -437,52 +375,80 @@ class RelatorioIndicadores(QDialog):
         plt.savefig(grafico_path)
         plt.close()
 
-    # def grafico_localidade_geografica(self):
-    #     grafico_localidade_geografica_path = str(INDICADORES_NORMCEIM / "grafico_02.png")
-    #     if self.current_dataframe is not None:
-    #         try:
-    #             # Normalizar os nomes dos municípios
-    #             self.current_dataframe['municipio_normalizado'] = self.current_dataframe['municipio'].apply(
-    #                 lambda x: x.split('/')[0].strip() if x else ''
-    #             )
+        self.grafico_dispersao()
+        self.grafico_barras_empilhadas()
 
-    #             # Contar o número de fornecedores por município normalizado
-    #             fornecedor_por_municipio = self.current_dataframe.groupby('municipio_normalizado').size().reset_index(name='contagem')
-    #             fornecedor_por_municipio.rename(columns={'municipio_normalizado': 'NM_MUN'}, inplace=True)
+    def grafico_barras_empilhadas(self):
+        if self.current_dataframe is None:
+            print("O DataFrame atual não está disponível.")
+            return
 
-    #             # Carregar o shapefile do Brasil e projetar
-    #             brasil = gpd.read_file(str(SHAPEFILE_MUNICIPIOS)).to_crs(epsg=3857)
+        # Preparar os dados
+        df_analysis = self.current_dataframe[['item_num', 'valor_estimado', 'valor_homologado_item_unitario']].dropna()
+        df_analysis['valor_estimado'] = pd.to_numeric(df_analysis['valor_estimado'], errors='coerce')
+        df_analysis['valor_homologado_item_unitario'] = pd.to_numeric(df_analysis['valor_homologado_item_unitario'], errors='coerce')
+        df_analysis['desconto'] = df_analysis['valor_estimado'] - df_analysis['valor_homologado_item_unitario']
+        df_analysis['percentual_desconto'] = (df_analysis['desconto'] / df_analysis['valor_estimado']) * 100
 
-    #             # Filtrar os municípios de interesse
-    #             municípios_para_plotar = brasil.loc[brasil['NM_MUN'].isin(fornecedor_por_municipio['NM_MUN'])].copy()
-    #             municípios_para_plotar.loc[:, 'centroid'] = municípios_para_plotar.geometry.centroid
+        df_analysis = df_analysis.sort_values(by='percentual_desconto', ascending=False)
 
-    #             # Merge com contagens
-    #             municípios_para_plotar = municípios_para_plotar.merge(fornecedor_por_municipio, how='left', on='NM_MUN')
-    #             municípios_para_plotar.loc[:, 'contagem'] = municípios_para_plotar['contagem'].fillna(0)
+        # Plotar o gráfico de barras empilhadas
+        plt.figure(figsize=(12, 8))
+        plt.barh(df_analysis['item_num'], df_analysis['valor_homologado_item_unitario'], color='darkorange', label='Valor Homologado')
+        plt.barh(df_analysis['item_num'], df_analysis['desconto'], left=df_analysis['valor_homologado_item_unitario'], color='navy', label='Desconto')
 
-    #             # Plotar o mapa
-    #             fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-    #             municípios_para_plotar.plot(ax=ax, color='red', markersize=50, marker='o')
-    #             ctx.add_basemap(ax, crs=municípios_para_plotar.crs.to_string(), source=ctx.providers.OpenStreetMap.Mapnik)
-    #             bounds = municípios_para_plotar.total_bounds
-    #             dx = (bounds[2] - bounds[0]) * 0.1  # 10% padding
-    #             dy = (bounds[3] - bounds[1]) * 0.1  # 10% padding
-    #             ax.set_xlim([bounds[0] - dx, bounds[2] + dx])
-    #             ax.set_ylim([bounds[1] - dy, bounds[3] + dy])
-    #             ax.set_axis_off()
-    #             plt.title('Distribuição Geográfica dos Fornecedores')
+        plt.xlabel('Valor em Reais')
+        plt.ylabel('Número do Item')
+        plt.title('Desconto por Item: Valor Homologado vs Desconto')
+        plt.legend()
 
-    #             # Salvar o gráfico como imagem PNG
-    #             plt.savefig(grafico_localidade_geografica_path)
-    #             plt.close()
+        # Adicionar rótulos
+        for index, row in df_analysis.iterrows():
+            plt.text(row['valor_estimado'], index, f"{row['percentual_desconto']:.2f}%", va='center', ha='right', color='white', fontweight='bold')
 
-    #         except Exception as e:
-    #             error_msg = str(e) + "\n\n" + traceback.format_exc()
-    #             print("Falha ao gerar o gráfico:\n" + error_msg)
-    #             QMessageBox.warning(self, "Aviso", "Falha ao gerar gráfico de localidade geográfica.")
-    #     else:
-    #         QMessageBox.warning(self, "Aviso", "Nenhum DataFrame carregado para gerar indicadores.")
+        plt.tight_layout()
+        grafico_empilhado_path = str(INDICADORES_NORMCEIM / "grafico_barras_empilhadas.png")
+        plt.savefig(grafico_empilhado_path)
+        plt.close()
+
+        # Chamar essa função em gerar_relatorio_docx para incluir no relatório
+        return grafico_empilhado_path
+
+    def grafico_dispersao(self):
+        if self.current_dataframe is None:
+            print("O DataFrame atual não está disponível.")
+            return
+
+        # Preparar os dados
+        df_analysis = self.current_dataframe[['item_num', 'percentual_desconto']].dropna()
+
+        # Converter item_num para inteiros se não houver valores fracionados
+        df_analysis['item_num'] = df_analysis['item_num'].astype(int)
+
+        plt.figure(figsize=(10, 6))
+        plt.scatter(df_analysis['item_num'], df_analysis['percentual_desconto'], color='blue', label='Percentual de Desconto')
+
+        # Adicionar linha tracejada verde representando 30% de desconto
+        plt.axhline(y=30, color='green', linestyle='--', label='30% de Desconto')
+
+        # Marcar os 10 valores mais altos
+        df_top10_desconto = df_analysis.nlargest(10, 'percentual_desconto')
+        for i, row in df_top10_desconto.iterrows():
+            plt.annotate(f"Item: {row['item_num']}", (row['item_num'], row['percentual_desconto']),
+                        textcoords="offset points", xytext=(5, 5), ha='center', color='red', fontsize=10, fontweight='bold')
+
+        plt.xlabel('Número do Item')
+        plt.ylabel('Percentual de Desconto (%)')
+        plt.title('Distribuição Percentual de Desconto por Item')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.legend()
+
+        # Salvar o gráfico de dispersão
+        grafico_dispersao_path = str(INDICADORES_NORMCEIM / "grafico_dispersao.png")
+        plt.savefig(grafico_dispersao_path)
+        plt.close()
+
 
     def gerarPdf(self, docx_path):
         if docx_path is None or not os.path.isfile(docx_path):
