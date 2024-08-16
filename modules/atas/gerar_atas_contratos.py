@@ -24,6 +24,9 @@ import json
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 from openpyxl import load_workbook
 from docx import Document
+from docx.shared import Pt
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
 
 NUMERO_ATA_GLOBAL = None
 GERADOR_NUMERO_ATA = None
@@ -1347,23 +1350,30 @@ class AtasDialog(QDialog):
         self.salvar_email(path_subpasta, context)
 
     def alterar_documento_criado(self, caminho_documento, registro, cnpj, itens):
-        # Carregando o documento real
+        # Carregar o documento
         doc = Document(caminho_documento)
-        
-        # Iterando por cada parágrafo do documento
+
+        # Iterar por cada parágrafo
         for paragraph in doc.paragraphs:
             if '{relacao_empresa}' in paragraph.text:
-                # Substituindo o marcador pelo conteúdo gerado pelo método inserir_relacao_empresa
-                paragraph.clear()  # Limpar o parágrafo atual
-                self.inserir_relacao_empresa(paragraph, registro, cnpj)
-            
-            # Verificando o marcador {relacao_item}
+                paragraph.clear()
+                inserir_relacao_empresa(paragraph, registro, cnpj)
+
             if '{relacao_item}' in paragraph.text:
-                # Substituindo o marcador pelo conteúdo gerado pela função inserir_relacao_itens
-                paragraph.clear()  # Limpar o parágrafo atual
+                paragraph.clear()
                 inserir_relacao_itens(paragraph, itens)
-        
-        # Salvando as alterações no documento
+
+        # Extrair o diretório do caminho do documento
+        diretorio_documento = os.path.dirname(caminho_documento)
+
+        # Gerar o arquivo Excel no mesmo diretório do documento
+        caminho_arquivo_excel = os.path.join(diretorio_documento, 'relacao_itens.xlsx')
+        gerar_excel_relacao_itens(itens, caminho_arquivo_excel)
+
+        # Inserir a tabela do Excel no local do marcador <<tabela_itens>>
+        inserir_tabela_do_excel_no_documento(doc, caminho_arquivo_excel)
+
+        # Salvar o documento atualizado
         doc.save(caminho_documento)
 
     def inserir_relacao_empresa(self, paragrafo, registro, cnpj):
@@ -1397,6 +1407,58 @@ class AtasDialog(QDialog):
         adicione_texto_formatado(paragrafo, "Representada neste ato, por seu representante legal, o(a) Sr(a) ", False)
         adicione_texto_formatado(paragrafo, f'{registro["responsavel_legal"]}.\n', False)
 
+from openpyxl import load_workbook
+from docx.shared import Pt
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
+
+def inserir_tabela_do_excel_no_documento(doc, caminho_arquivo_excel):
+    # Carregar a planilha do Excel
+    wb = load_workbook(caminho_arquivo_excel)
+    ws = wb.active
+
+    for paragraph in doc.paragraphs:
+        if '<<tabela_itens>>' in paragraph.text:
+            # Remover o texto do marcador
+            paragraph.text = paragraph.text.replace('<<tabela_itens>>', '')
+
+            # Criar uma nova tabela no documento Word
+            table = doc.add_table(rows=0, cols=3)
+
+            # Iterar sobre as linhas do Excel e adicionar ao documento Word
+            for i in range(0, ws.max_row, 3):
+                # Primeira linha (mesclada e pintada de cinza claro)
+                row_cells = table.add_row().cells
+                row_cells[0].merge(row_cells[2])
+                row_cells[0].text = str(ws.cell(row=i+1, column=1).value)
+                row_cells[0].paragraphs[0].runs[0].font.size = Pt(12)
+                shading_elm = parse_xml(r'<w:shd {} w:fill="D3D3D3"/>'.format(nsdecls('w')))
+                row_cells[0]._element.get_or_add_tcPr().append(shading_elm)
+
+                # Segunda linha (mesclada)
+                row_cells = table.add_row().cells
+                row_cells[0].merge(row_cells[2])
+                row_cells[0].text = str(ws.cell(row=i+2, column=1).value)
+                row_cells[0].paragraphs[0].runs[0].font.size = Pt(10)
+
+                # Terceira linha (manter formatação padrão)
+                row_cells = table.add_row().cells
+                for j in range(3):
+                    value = ws.cell(row=i+3, column=j+1).value
+                    if value is not None:
+                        row_cells[j].text = str(value)
+                        row_cells[j].paragraphs[0].runs[0].font.size = Pt(10)
+
+            # Mover a tabela para logo após o parágrafo atual
+            move_table_after_paragraph(paragraph, table)
+            break
+
+def move_table_after_paragraph(paragraph, table):
+    # Move a tabela para ficar logo após o parágrafo atual
+    tbl, p = table._tbl, paragraph._element
+    p.addnext(tbl)
+
+
 def salvar_configuracoes(dados):
     with open('configuracoes.json', 'w') as arquivo:
         json.dump(dados, arquivo)
@@ -1407,3 +1469,45 @@ def carregar_configuracoes():
             return json.load(arquivo)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}  # Retorna um dicionário vazio se o arquivo não existir ou estiver corrompido
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+
+def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx'):
+    # Criar um novo workbook e selecionar a planilha ativa
+    wb = Workbook()
+    ws = wb.active
+
+    # Definir estilos
+    fonte_tamanho_12_cinza = Font(size=12, bold=True)
+    fundo_cinza = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
+    fonte_tamanho_10 = Font(size=10)
+
+    # Inicializar a linha
+    linha_atual = 1
+
+    # Iterar sobre os itens e preparar os dados para o Excel
+    for item in itens:
+        # Linha 1
+        ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
+        cell_1 = ws.cell(row=linha_atual, column=1, value=f"Item: {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})")
+        cell_1.font = fonte_tamanho_12_cinza
+        cell_1.fill = fundo_cinza
+
+        # Linha 2
+        linha_atual += 1
+        ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
+        cell_2 = ws.cell(row=linha_atual, column=1, value=f"Descrição Detalhada: {item['descricao_detalhada']}")
+        cell_2.font = fonte_tamanho_10
+
+        # Linha 3
+        linha_atual += 1
+        ws.cell(row=linha_atual, column=1, value=f"Quantidade: {item['quantidade']}").font = fonte_tamanho_10
+        ws.cell(row=linha_atual, column=2, value=f"Valor Unitário: {item['valor_homologado_item_unitario']}").font = fonte_tamanho_10
+        ws.cell(row=linha_atual, column=3, value=f"Valor Total: {item['valor_homologado_total_item']}").font = fonte_tamanho_10
+
+        # Incrementar a linha para o próximo item
+        linha_atual += 1
+
+    # Salvar o arquivo Excel
+    wb.save(caminho_arquivo_excel)

@@ -51,12 +51,6 @@ def confirmar_numero_ata(numero_ata, parent=None):
     GERADOR_NUMERO_ATA = seu_gerador_inicial(NUMERO_ATA_GLOBAL)
     next(GERADOR_NUMERO_ATA)
 
-def iniciar_processo(dataframe):
-    if NUMERO_ATA_GLOBAL is None:
-        raise ValueError("NUMERO_ATA not set!")
-
-    processar_ata(NUMERO_ATA_GLOBAL, dataframe)
-
 def limpar_nome_empresa(nome_empresa):
     # Substituir '/' e ':' por sublinhado
     nome_empresa = nome_empresa.replace('/', '_').replace(':', '_')
@@ -131,108 +125,10 @@ def abrir_pasta(pasta):
     else:
         subprocess.Popen(["xdg-open", pasta])
 
-def processar_ata(NUMERO_ATA: int, dataframe):
-    relatorio_path = get_relatorio_path()
-    combinacoes = dataframe[['uasg', 'num_pregao', 'ano_pregao', 'empresa']].drop_duplicates().values
-    
-    pastas_criadas = set()
-
-    for uasg, num_pregao, ano_pregao, empresa in combinacoes:
-        if pd.isna(num_pregao) or pd.isna(ano_pregao) or pd.isna(empresa):
-            continue
-
-        chave_pasta = (int(num_pregao), int(ano_pregao), empresa)
-        if chave_pasta not in pastas_criadas:
-            path_subpasta = criar_diretorio(relatorio_path, int(num_pregao), int(ano_pregao), empresa)
-            print(f"Criado 2 diretório para {empresa}")
-            pastas_criadas.add(chave_pasta)
-        # Processa o restante do código
-        registros_empresa = dataframe[dataframe['empresa'] == empresa]
-        if not registros_empresa.empty:
-            registro = registros_empresa.iloc[0].to_dict()
-            itens_relacionados = registros_empresa.to_dict('records')
-            email = registro.get("email", "E-mail não fornecido")
-
-            texto_substituto = f"Nº {uasg}/2024-{NUMERO_ATA:03}/00\nPregão Eletrônico nº {num_pregao}/{ano_pregao}"
-            num_contrato = f"Nº {uasg}/2024-{NUMERO_ATA:03}/00"
-            tpl = DocxTemplate(TEMPLATE_PATH)
-
-            soma_valor_homologado = gerar_soma_valor_homologado(itens_relacionados)
-
-            context = {
-                "num_pregao": str(num_pregao),
-                "ano_pregao": str(ano_pregao),
-                "empresa": empresa,
-                "uasg": str(uasg),
-                "numero_ata": NUMERO_ATA,
-                "soma_valor_homologado": soma_valor_homologado,
-                "cabecalho": texto_substituto,
-                "contrato": num_contrato,
-                "endereco": registro["endereco"],
-                "cnpj": registro["cnpj"],
-                "objeto": registro["objeto"],
-                "ordenador_despesa": registro["ordenador_despesa"],
-                "responsavel_legal": registro["responsavel_legal"],
-                "email": email 
-            }
-            
-            tpl.render(context)
-            nome_documento = f"{empresa} ata.docx"
-            path_documento = path_subpasta / nome_documento
-
-            try:
-                nome_arquivo_txt = "E-mail.txt"
-                path_arquivo_txt = path_subpasta / nome_arquivo_txt
-                with open(path_arquivo_txt, "w") as arquivo_txt:
-                    texto = (f"{email}\n\n"
-                             f"Sr. Representante.\n\n"
-                             f"Encaminho em anexo a Vossa Senhoria a ATA {num_contrato} "
-                             f"decorrente do Pregão Eletrônico (SRP) nº {num_pregao}/{ano_pregao}, do Centro "
-                             f"de Intendêcia da Marinha em Brasília (CeIMBra).\n\n"
-                             f"Os documentos deverão ser conferidos, assinados e devolvidos a este Comando.\n\n"
-                             f"A empresa receberá uma via, devidamente assinada, após a publicação.\n\n"
-                             f"Respeitosamente,\n")
-                    arquivo_txt.write(texto)
-
-                tpl.save(path_documento)
-                alterar_documento_criado(path_documento, registro, registro["cnpj"], itens_relacionados)
-            except FileNotFoundError as e:
-                print(f"Erro ao salvar o documento: {e}")
-        else:
-            print(f"Nenhum registro encontrado para a empresa: {empresa}")
-
-def alterar_documento_criado(caminho_documento, registro, cnpj, itens):
-    doc = Document(caminho_documento)
-    
-    for paragraph in doc.paragraphs:
-        if '{relacao_empresa}' in paragraph.text:
-            paragraph.clear()
-            inserir_relacao_empresa(paragraph, registro, cnpj)
-        
-        if '{relacao_item}' in paragraph.text:
-            paragraph.clear()
-            inserir_relacao_itens(paragraph, itens)
-    
-    doc.save(caminho_documento)
-
 def gerar_soma_valor_homologado(itens):
     valor_total = sum(float(item["valor_homologado_total_item"] or 0) for item in itens)
     valor_extenso = valor_por_extenso(valor_total)
     return f'R$ {formatar_brl(valor_total)} ({valor_extenso})'
-
-def alterar_documento_criado(caminho_documento, registro, cnpj, itens):
-    doc = Document(caminho_documento)
-    
-    for paragraph in doc.paragraphs:
-        if '{relacao_empresa}' in paragraph.text:
-            paragraph.clear()
-            inserir_relacao_empresa(paragraph, registro, cnpj)
-        
-        if '{relacao_item}' in paragraph.text:
-            paragraph.clear()
-            inserir_relacao_itens(paragraph, itens)
-    
-    doc.save(caminho_documento)
 
 def inserir_relacao_empresa(paragrafo, registro, cnpj):
     dados = {
@@ -267,6 +163,17 @@ def validar_e_corrigir_item(item):
 
     return item
 
+    #Padrão Serviços
+    # return [
+    #     (f'Item {item_num_int}', False),
+    #     (f'Descrição: {item["descricao_detalhada_tr"]}', False),
+    #     (f'Unidade de Fornecimento: {item["unidade"]}', False),
+    #     # (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
+    #     (f'Quantidade: {quantidade_formatada}   |   Valor Unitário: R$ {formatar_brl(item["valor_homologado_item_unitario"])}   |   Valor Total do Item: R$ {formatar_brl(item["valor_homologado_total_item"])}', False),
+    #     (f'{"-" * 130}', False)
+    # ]
+    # Padrão Material
+
 def gerar_campos_item(item):
     if item["descricao_detalhada"] is None or not item["descricao_detalhada"].strip():
         raise ValueError(f"O campo 'descricao_detalhada' está ausente ou inválido no item: {item['item_num']}")
@@ -291,34 +198,45 @@ def gerar_campos_item(item):
         QMessageBox.critical(None, "Erro ao gerar campos do item", str(ve))
         return None  
 
-    #Padrão Serviços
-    # return [
-    #     (f'Item {item_num_int}', False),
-    #     (f'Descrição: {item["descricao_detalhada_tr"]}', False),
-    #     (f'Unidade de Fornecimento: {item["unidade"]}', False),
-    #     # (f'Marca/Fabricante: {item["marca_fabricante"]}   |   Modelo/Versão: {item["modelo_versao"]}', False),
-    #     (f'Quantidade: {quantidade_formatada}   |   Valor Unitário: R$ {formatar_brl(item["valor_homologado_item_unitario"])}   |   Valor Total do Item: R$ {formatar_brl(item["valor_homologado_total_item"])}', False),
-    #     (f'{"-" * 130}', False)
-    # ]
-    # Padrão Material
-
 def inserir_relacao_itens(paragrafo, itens):
+    # Limpar parágrafo
     paragrafo.clear()
 
+    # Iterar sobre os itens e gerar campos
     for item in itens:
         campos = gerar_campos_item(item)
         if campos:
             for texto, negrito in campos:
                 adicione_texto_formatado(paragrafo, texto + '\n', negrito)
 
+    # Calcular e adicionar o valor total homologado
     valor_total = sum(float(item["valor_homologado_total_item"] or 0) for item in itens)
     valor_extenso = valor_por_extenso(valor_total)
     texto_soma_valor_homologado = f'R$ {formatar_brl(valor_total)} ({valor_extenso})'
-
     adicione_texto_formatado(paragrafo, 'Valor total homologado para a empresa:\n', False)
     adicione_texto_formatado(paragrafo, texto_soma_valor_homologado + '\n', True)
 
+    # Chamar a função para gerar o Excel
+    gerar_excel_relacao_itens(itens)
+    
     return texto_soma_valor_homologado
+
+def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx'):
+    dados_para_tabela = []
+
+    # Iterar sobre os itens e preparar os dados para o Excel
+    for item in itens:
+        dados_para_tabela.append({
+            'Item Número': item['item_num'],
+            'Descrição': item['descricao_tr'],
+            'Quantidade': item['quantidade'],
+            'Valor Unitário': item['valor_homologado_item_unitario'],
+            'Valor Total': item['valor_homologado_total_item']
+        })
+
+    # Criar DataFrame e exportar para Excel
+    df = pd.DataFrame(dados_para_tabela)
+    df.to_excel(caminho_arquivo_excel, index=False)
 
 def formatar_brl(valor):
     try:

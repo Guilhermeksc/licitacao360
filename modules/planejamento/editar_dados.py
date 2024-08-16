@@ -406,9 +406,6 @@ class EditarDadosDialog(QDialog):
         self.vBoxLayout2.addWidget(self.line_edit_coordenador_planejamento)
         self.line_edits['coordenador_planejamento'] = self.line_edit_coordenador_planejamento 
 
-        # Inicializar os dados do ComboBox após adicionar ao layout
-        self.init_combobox_data()
-
     def definir_irp(self):
         # Layout principal para os componentes desta seção
         layout = QVBoxLayout()

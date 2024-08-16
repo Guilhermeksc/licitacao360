@@ -27,7 +27,6 @@ from win32com.client import Dispatch
 ATA_CONTRATO_DIR = MODULES_DIR / "atas"
 INDICADORES_NORMCEIM = ATA_CONTRATO_DIR / "indicadores_normceim"
 TEMPLATE_INDICADORES_PATH = INDICADORES_NORMCEIM / "template_indicadores.docx"
-SHAPEFILE_MUNICIPIOS = DATABASE_DIR / "BR_Municipios_2022.shp"
 
 from docx.oxml.shared import OxmlElement, qn
 from docx.oxml.ns import nsdecls

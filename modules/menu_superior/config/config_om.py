@@ -49,10 +49,11 @@ class OrganizacoesDialog(QDialog):
         data = {
             'uasg': ['Ex: 787010'],  
             'orgao_responsavel': ['Ex: CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA'],
-            'sigla_om': ['Ex: CeIMBra']
+            'sigla_om': ['Ex: CeIMBra'],
+            'indicativo_om': ['Ex: CITBRA']
         }
         df = pd.DataFrame(data)
-        df.columns = ['uasg', 'orgao_responsavel', 'sigla_om']
+        df.columns = ['uasg', 'orgao_responsavel', 'sigla_om', 'indicativo_om']
 
         # Salvando a tabela em Excel
         file_path = "tabela_uasg.xlsx"
