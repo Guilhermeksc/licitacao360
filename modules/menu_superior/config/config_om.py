@@ -16,18 +16,39 @@ class OrganizacoesDialog(QDialog):
         self.config_manager = config_manager
         self.database_path = Path(CONTROLE_DADOS)
         self.setWindowTitle("Organizações Militares")
-        self.setFixedSize(600, 400)
-        self.model = QSqlTableModel(self)  # Criar o modelo para interagir com o banco de dados
+        self.setFixedSize(800, 600)  # Ajustei o tamanho para acomodar a QTableView
+        
+        # Conectar ao banco de dados
+        self.db = QSqlDatabase.addDatabase("QSQLITE")
+        self.db.setDatabaseName(str(self.database_path))
+        if not self.db.open():
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir o banco de dados: {self.db.lastError().text()}")
+            return
+        
+        self.model = QSqlTableModel(self, self.db)
+        self.model.setTable("controle_om")
+        self.model.select()
+        
         self.setup_ui()
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
 
-        # Configurar OM/UASG
         om_uasg_layout = QVBoxLayout()  
         om_uasg_layout.addWidget(QLabel("Configurar OM/UASG"))
 
-        # Adicionar botões para gerar, importar e editar tabelas
+        self.table_view = QTableView()
+        self.table_view.setModel(self.model)
+
+        # Definir a largura específica para cada coluna
+        self.table_view.setColumnWidth(0, 100)  # Coluna uasg
+        self.table_view.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_view.setColumnWidth(2, 100)  # Coluna orgao_responsavel
+        self.table_view.setColumnWidth(3, 100)  # Coluna orgao_responsavel
+
+
+        om_uasg_layout.addWidget(self.table_view)
+
         buttons_layout = QHBoxLayout()
         self.gerar_tabela_btn = QPushButton("Gerar Tabela")
         self.importar_tabela_btn = QPushButton("Importar Tabela")
@@ -39,21 +60,38 @@ class OrganizacoesDialog(QDialog):
         buttons_layout.addWidget(self.importar_tabela_btn)
         buttons_layout.addWidget(self.editar_dados_btn)
 
-        # Adicionando o layout dos botões ao layout principal
         om_uasg_layout.addLayout(buttons_layout)
         main_layout.addLayout(om_uasg_layout)
 
         self.setLayout(main_layout)
 
     def generate_table(self):
-        data = {
-            'uasg': ['Ex: 787010'],  
-            'orgao_responsavel': ['Ex: CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA'],
-            'sigla_om': ['Ex: CeIMBra'],
-            'indicativo_om': ['Ex: CITBRA']
-        }
-        df = pd.DataFrame(data)
-        df.columns = ['uasg', 'orgao_responsavel', 'sigla_om', 'indicativo_om']
+        # Verifica se o modelo já tem dados
+        self.model.setTable("controle_om")
+        self.model.select()
+
+        if self.model.rowCount() > 0:
+            # Se o modelo já tem dados, gerar tabela a partir dos dados existentes
+            data = []
+            for row in range(self.model.rowCount()):
+                record = self.model.record(row)
+                data.append({
+                    'uasg': record.value('uasg'),
+                    'orgao_responsavel': record.value('orgao_responsavel'),
+                    'sigla_om': record.value('sigla_om'),
+                    'indicativo_om': record.value('indicativo_om')
+                })
+
+            df = pd.DataFrame(data)
+        else:
+            # Se não há dados, cria a tabela com os valores predefinidos
+            data = {
+                'uasg': ['Ex: 787010'],  
+                'orgao_responsavel': ['Ex: CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA'],
+                'sigla_om': ['Ex: CeIMBra'],
+                'indicativo_om': ['Ex: CITBRA']
+            }
+            df = pd.DataFrame(data)
 
         # Salvando a tabela em Excel
         file_path = "tabela_uasg.xlsx"
@@ -83,9 +121,22 @@ class OrganizacoesDialog(QDialog):
 
     def import_uasg_to_db(self, filepath):
         try:
-            df = pd.read_excel(filepath, usecols=['uasg', 'orgao_responsavel', 'sigla_om'])
+            # Carrega os dados do Excel
+            df = pd.read_excel(filepath)
+            
+            # Garante que todas as colunas necessárias estejam presentes no DataFrame
+            required_columns = ['uasg', 'orgao_responsavel', 'sigla_om', 'indicativo_om']
+            for col in required_columns:
+                if col not in df.columns:
+                    df[col] = None  # Adiciona a coluna com valores None se estiver faltando
+
+            # Reordena as colunas para garantir a ordem correta no banco de dados
+            df = df[required_columns]
+
+            # Salva o DataFrame no banco de dados
             with sqlite3.connect(self.database_path) as conn:
                 df.to_sql('controle_om', conn, if_exists='replace', index=False)
+
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao importar dados: {str(e)}")
 

@@ -196,25 +196,53 @@ class UIManager:
     def init_ui(self):
         self.setup_search_bar()
         self.setup_table_view()
-        self.setup_buttons_layout()
         self.parent.setCentralWidget(self.main_widget) 
 
-    def setup_search_bar(self):
+    def setup_search_and_buttons_layout(self):
+        # Configura a barra de busca
         self.search_bar = QLineEdit(self.parent)
         self.search_bar.setPlaceholderText("Digite para buscar...")
-        self.main_layout.addWidget(self.search_bar)
+        self.search_bar.setStyleSheet("font-size: 14px;")
 
         def handle_text_change(text):
             regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
             self.parent.proxy_model.setFilterRegularExpression(regex)
 
         self.search_bar.textChanged.connect(handle_text_change)
-        self.main_layout.addWidget(self.search_bar)
 
-    def setup_buttons_layout(self):
+        # Adiciona a barra de busca ao QHBoxLayout
+        self.search_buttons_layout.addWidget(self.search_bar)
+
+        # Configura os botões e os adiciona ao QHBoxLayout
         self.buttons_layout = QHBoxLayout()
-        self.button_manager.add_buttons_to_layout(self.buttons_layout)
-        self.main_layout.addLayout(self.buttons_layout)
+        self.button_manager.add_buttons_to_layout(self.search_buttons_layout)
+
+        # Adiciona o QHBoxLayout que contém a barra de busca e os botões ao layout principal
+        self.main_layout.addLayout(self.search_buttons_layout)
+
+    def setup_search_bar(self):
+
+        self.search_buttons_layout = QHBoxLayout()
+
+        # Adicionar texto "Localizar:"
+        search_label = QLabel("Localizar:")
+        search_label.setStyleSheet("font-size: 14px;")
+        self.search_buttons_layout .addWidget(search_label)
+
+        self.search_bar = QLineEdit(self.parent)
+        self.search_bar.setPlaceholderText("Digite para buscar...")
+        self.search_bar.setStyleSheet("font-size: 14px;")
+
+        def handle_text_change(text):
+            regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
+            self.parent.proxy_model.setFilterRegularExpression(regex)
+
+        self.search_bar.textChanged.connect(handle_text_change)
+        self.search_buttons_layout.addWidget(self.search_bar)
+
+        self.buttons_layout = QHBoxLayout()
+        self.button_manager.add_buttons_to_layout(self.search_buttons_layout)
+        self.main_layout.addLayout(self.search_buttons_layout)
 
     def setup_table_view(self):
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
@@ -340,24 +368,33 @@ class ButtonManager:
             ("  Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
-            btn = create_button(text, icon, callback, tooltip, self.parent)
+            btn = self.create_button(text, icon, callback, tooltip, self.parent)
             self.buttons.append(btn)
 
     def add_buttons_to_layout(self, layout):
         for btn in self.buttons:
             layout.addWidget(btn)
 
-def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(25, 25)):
-    btn = QPushButton(text, parent)
-    if icon:
-        btn.setIcon(QIcon(icon))
-        btn.setIconSize(icon_size)
-    if callback:
-        btn.clicked.connect(callback)
-    if tooltip_text:
-        btn.setToolTip(tooltip_text)
-
-    return btn
+    def create_button(self, text, icon, callback, tooltip_text, parent, icon_size=QSize(30, 30)):
+        btn = QPushButton(text, parent)
+        if icon:
+            btn.setIcon(QIcon(icon))
+            btn.setIconSize(icon_size)
+        if callback:
+            btn.clicked.connect(callback)
+        if tooltip_text:
+            btn.setToolTip(tooltip_text)
+        
+        # Aplicando estilo ao botão
+        btn.setStyleSheet("""
+            font-size: 14px; 
+            min-width: 85px; 
+            min-height: 20px; 
+            max-width: 120px; 
+            max-height: 20px;
+        """)
+        
+        return btn
 
 class CenterAlignDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):

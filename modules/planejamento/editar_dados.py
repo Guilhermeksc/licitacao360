@@ -46,7 +46,7 @@ class EditarDadosDialog(QDialog):
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
         self.icons_dir = Path(icons_dir)
-        self.image_cache = load_images(self.icons_dir, ["confirm.png", "report.png"])
+        self.image_cache = load_images(self.icons_dir, ["confirm.png", "report.png", "prioridade.png", "emenda_parlamentar.png"])
         self.setupUI()
         self.init_combobox_data()
         self.move(0, 0)
@@ -143,6 +143,7 @@ class EditarDadosDialog(QDialog):
         # Adicionar métodos de componentes aos layouts verticais
         self.identificar_processo()
         self.item_pca()
+        self.adicionar_checkboxes()
         self.material_servico()
         self.definir_srp()
         self.definir_objeto()
@@ -180,70 +181,89 @@ class EditarDadosDialog(QDialog):
         return header_layout
 
     def identificar_processo(self):
-        # Criar o layout vertical principal para esta seção
-        processo_layout = QVBoxLayout()
-
-        # Layout horizontal para 'Número', 'Ano' e 'ID do Processo'
+        # Criar o layout horizontal para 'ID do Processo' e 'NUP'
         detalhes_layout = QHBoxLayout()
 
-        id_layout = QVBoxLayout()
-        id_processo_label = QLabel("ID do Processo:")
+        # Layout para 'ID do Processo'
+        id_processo_label = QLabel("ID:")
         id_processo_edit = QLineEdit()
         id_processo_edit.setText(self.dados.get('id_processo', ''))
         id_processo_edit.setReadOnly(True)
-        id_processo_edit.setFixedWidth(205)
-        id_layout.addWidget(id_processo_label)
-        id_layout.addWidget(id_processo_edit)
+        id_processo_edit.setFixedWidth(100)
 
-        nup_layout = QVBoxLayout()
+        # Layout para 'NUP'
         nup_label = QLabel("NUP:")
         self.nup_edit = QLineEdit()
         self.nup_edit.setText(self.dados.get('nup', ''))
         self.nup_edit.setReadOnly(False)
-        self.nup_edit.setFixedWidth(220)
-        nup_layout.addWidget(nup_label)
-        nup_layout.addWidget(self.nup_edit)
-        self.line_edits['nup'] = self.nup_edit 
 
-        detalhes_layout.addLayout(id_layout)
-        detalhes_layout.addLayout(nup_layout)
-
-        # Adicionar um QSpacerItem no final para empurrar tudo para a esquerda
-        end_spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        detalhes_layout.addSpacerItem(end_spacer)
+        # Adicionar os widgets ao layout horizontal
+        detalhes_layout.addWidget(id_processo_label)
+        detalhes_layout.addWidget(id_processo_edit)
+        detalhes_layout.addWidget(nup_label)
+        detalhes_layout.addWidget(self.nup_edit)
 
         # Adicionar o layout horizontal ao layout vertical principal
-        processo_layout.addLayout(detalhes_layout)
+        self.vBoxLayout1.addLayout(detalhes_layout)
 
-        # Adicionar o layout completo ao layout principal da janela/dialogo
-        self.vBoxLayout1.addLayout(processo_layout)
-    
     def item_pca(self):
+        # Criar o layout horizontal para 'Item PCA' e 'Portaria PCA'
         pca_layout = QHBoxLayout()
 
-        item_pca_layout = QVBoxLayout()
-
+        # Criar o label e o campo de edição para 'Item PCA'
         item_pca_label = QLabel("Item PCA:")
         self.item_pca_edit = QLineEdit()
         self.item_pca_edit.setText(self.dados.get('item_pca', ''))
         self.item_pca_edit.setReadOnly(False)
         self.item_pca_edit.setFixedWidth(70)
-        item_pca_layout.addWidget(item_pca_label)
-        item_pca_layout.addWidget(self.item_pca_edit)
         self.line_edits['item_pca'] = self.item_pca_edit
-        portaria_pca_layout = QVBoxLayout()
 
+        # Criar o label e o campo de edição para 'Portaria PCA'
         portaria_pca_label = QLabel("Portaria PCA:")
         self.portaria_pca_edit = QLineEdit()
         self.portaria_pca_edit.setText(self.dados.get('portaria_PCA', ''))
         self.portaria_pca_edit.setReadOnly(False)
-        portaria_pca_layout.addWidget(portaria_pca_label)
-        portaria_pca_layout.addWidget(self.portaria_pca_edit)
         self.line_edits['portaria_PCA'] = self.portaria_pca_edit
-        pca_layout.addLayout(item_pca_layout)
-        pca_layout.addLayout(portaria_pca_layout)
 
+        # Adicionar os widgets ao layout horizontal
+        pca_layout.addWidget(item_pca_label)
+        pca_layout.addWidget(self.item_pca_edit)
+        pca_layout.addWidget(portaria_pca_label)
+        pca_layout.addWidget(self.portaria_pca_edit)
+
+        # Adicionar o layout horizontal ao layout vertical principal
         self.vBoxLayout1.addLayout(pca_layout)
+
+    def adicionar_checkboxes(self):
+        # Criar um layout horizontal para os checkboxes
+        checkbox_layout = QHBoxLayout()
+
+        # Criar os dois checkboxes com seus respectivos textos e ícones
+        self.prioritario_checkbox = QCheckBox("Prioritário?")
+        self.emenda_parlamentar_checkbox = QCheckBox("Emenda Parlamentar?")
+
+        # Definir o tamanho da fonte
+        font = QFont("Arial", 12)
+        self.prioritario_checkbox.setFont(font)
+        self.emenda_parlamentar_checkbox.setFont(font)
+
+        # Adicionar ícones aos checkboxes
+        self.prioritario_checkbox.setIcon(self.image_cache['prioridade'])
+        self.emenda_parlamentar_checkbox.setIcon(self.image_cache['emenda_parlamentar'])
+
+        # Carregar os valores do banco de dados e definir o estado dos checkboxes
+        prioridade = self.dados.get('prioridade', False)
+        emenda_parlamentar = self.dados.get('emenda_parlamentar', False)
+
+        self.prioritario_checkbox.setChecked(prioridade)
+        self.emenda_parlamentar_checkbox.setChecked(emenda_parlamentar)
+
+        # Adicionar os checkboxes ao layout horizontal
+        checkbox_layout.addWidget(self.prioritario_checkbox)
+        checkbox_layout.addWidget(self.emenda_parlamentar_checkbox)
+
+        # Adicionar o layout dos checkboxes ao layout vertical principal
+        self.vBoxLayout1.addLayout(checkbox_layout)
 
     def material_servico(self):
         # Grupo de RadioButton para Material ou Serviço
@@ -708,7 +728,7 @@ class EditarDadosDialog(QDialog):
         with self.database_manager as connection:
             cursor = connection.cursor()
 
-            # Diretamente coletar os valores dos QLineEdit
+            # Diretamente coletar os valores dos QLineEdit e checkboxes
             dados_atualizados = {
                 'nup': self.nup_edit.text().strip(),
                 'objeto': self.line_edit_objeto.text().strip(),
@@ -727,14 +747,16 @@ class EditarDadosDialog(QDialog):
                 'parecer_agu': self.line_edit_parecer.text().strip(),
                 'pregoeiro': self.line_edit_pregoeiro.text().strip(),
                 'setor_responsavel': self.line_edit_setor_responsavel.text().strip(),
-                'coordenador_planejamento': self.line_edit_coordenador_planejamento.text().strip()
+                'coordenador_planejamento': self.line_edit_coordenador_planejamento.text().strip(),
+                'prioridade': 1 if self.prioritario_checkbox.isChecked() else 0,  # Salvar o estado do checkbox de prioridade
+                'emenda_parlamentar': 1 if self.emenda_parlamentar_checkbox.isChecked() else 0  # Salvar o estado do checkbox de emenda parlamentar
             }
 
             # Atualizações de data
             dados_atualizados.update({date_field: self.date_edits[date_field].date().toString("yyyy-MM-dd") for date_field in self.date_edits})
             dados_atualizados['material_servico'] = 'servico' if self.radio_servico.isChecked() else 'material'
             dados_atualizados['srp'] = 'Sim' if self.radio_srp_sim.isChecked() else 'Não'
-            
+
             # Preparação da consulta SQL
             set_part = ', '.join([f"{coluna} = ?" for coluna in dados_atualizados.keys()])
             valores = list(dados_atualizados.values())
@@ -747,6 +769,7 @@ class EditarDadosDialog(QDialog):
         self.dados_atualizados.emit()
         self.accept()
         QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+
 
 class RealLineEdit(QLineEdit):
     def __init__(self, text='', parent=None):

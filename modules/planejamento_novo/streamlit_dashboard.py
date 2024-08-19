@@ -12,7 +12,7 @@ class StreamlitPlanejamentoDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Dashboard de Planejamento de Licitações")
-        self.setMinimumSize(1024, 768)
+        self.setMinimumSize(1024, 1000)
 
         layout = QVBoxLayout(self)
 

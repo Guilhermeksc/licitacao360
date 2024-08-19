@@ -662,7 +662,6 @@ class CustomSqlTableModel(QSqlTableModel):
 
         return super().data(index, role)
 
-
 class SqlModel:
     def __init__(self, database_manager, parent=None):
         self.database_manager = database_manager
@@ -720,7 +719,9 @@ class SqlModel:
                 om_participantes TEXT,
                 link_pncp TEXT,
                 link_portal_marinha TEXT,
-                comentarios TEXT   
+                comentarios TEXT,
+                prioridade INTEGER DEFAULT 0,  
+                emenda_parlamentar INTEGER DEFAULT 0 
             )
             '''
         )
@@ -779,7 +780,7 @@ class ButtonManager:
     def create_buttons(self):
         button_specs = [
             ("Adicionar", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
-            # ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
+            ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
             ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
             ("Controle", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
             ("Database", self.parent.image_cache['data-processing'], self.parent.open_carregar_tabela_dialog, "Abre o painel de controle do processo"),

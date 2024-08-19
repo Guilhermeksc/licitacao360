@@ -33,23 +33,14 @@ class TableMenu(QMenu):
     def setup_menu_style(self):
         self.setStyleSheet("""
             QMenu {
-                background-color: #f9f9f9;
-                color: #333;
-                border: 1px solid #ccc;
                 font-size: 16px;
                 font-weight: bold;
             }
             QMenu::item {
-                background-color: transparent;
                 padding: 5px 20px 5px 20px;
-            }
-            QMenu::item:selected {
-                background-color: #b0c4de;
-                color: white;
             }
             QMenu::separator {
                 height: 2px;
-                background-color: #d3d3d3;
                 margin: 5px 0;
             }
         """)

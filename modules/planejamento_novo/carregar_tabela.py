@@ -109,24 +109,31 @@ class CarregarTabelaDialog(QDialog):
 
 
     def excluir_tabela(self):
-        reply = QMessageBox.question(self, "Confirmação", "Tem certeza que deseja excluir todos os registros das tabelas 'controle_processos' e 'controle_prazos'?", 
+        reply = QMessageBox.question(self, "Confirmação", "Tem certeza que deseja excluir os registros e as tabelas 'controle_processos' e 'controle_prazos'?", 
                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
                                     QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 with self.database_manager as conn:
                     cursor = conn.cursor()
-                    # Exclui todos os registros de controle_processos
+                    
+                    # Remover todos os registros de controle_processos
                     cursor.execute("DELETE FROM controle_processos")
-                    # Exclui todos os registros de controle_prazos
+                    # Remover todos os registros de controle_prazos
                     cursor.execute("DELETE FROM controle_prazos")
                     conn.commit()
                     
-                    # Atualiza o modelo da UI
-                    self.parent().model.select()
-                    self.parent().ui_manager.table_view.viewport().update()
+                    # Tentar excluir as tabelas controle_processos e controle_prazos
+                    cursor.execute("DROP TABLE IF EXISTS controle_processos")
+                    cursor.execute("DROP TABLE IF EXISTS controle_prazos")
+                    conn.commit()
+
+                    # Atualiza o modelo da UI se necessário
+                    if self.parent().model:
+                        self.parent().model.clear()  # Limpa o modelo, já que a tabela foi excluída
+                        self.parent().ui_manager.table_view.viewport().update()
                     
-                    QMessageBox.information(self, "Sucesso", "Todos os registros das tabelas 'controle_processos' e 'controle_prazos' foram excluídos com sucesso.")
+                    QMessageBox.information(self, "Sucesso", "Os registros e as tabelas 'controle_processos' e 'controle_prazos' foram excluídos com sucesso.")
             except sqlite3.Error as e:
-                print(f"Erro ao tentar excluir os registros das tabelas: {e}")
-                QMessageBox.warning(self, "Erro", f"Não foi possível excluir os registros das tabelas: {e}")
+                print(f"Erro ao tentar excluir os registros e tabelas: {e}")
+                QMessageBox.warning(self, "Erro", f"Não foi possível excluir os registros e/ou tabelas: {e}")
