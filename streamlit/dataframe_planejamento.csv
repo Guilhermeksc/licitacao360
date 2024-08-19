@@ -1,0 +1,19 @@
+Status,ID Processo,NUP,Objeto,UASG,sigla_om,Pregoeiro,tipo,numero,ano,objeto_completo,valor_total,orgao_responsavel,setor_responsavel,coordenador_planejamento,item_pca,portaria_PCA,data_sessao,data_limite_entrega_tr,nup_portaria_planejamento,srp,material_servico,parecer_agu,msg_irp,data_limite_manifestacao_irp,data_limite_confirmacao_irp,num_irp,om_participantes,link_pncp,link_portal_marinha,comentarios
+Consolidar Demandas,PE 01/2024,55,Limpeza,787010,CeIMBra,-,PE,01,2024,,"R$ 10,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-14,,,Não,servico,,,2024-08-14,2024-08-14,,,,,
+Planejamento,CC 01/2024,,Nova Sede,787010,,-,CC,01,2024,,,,,,,,,,,,,,,,,,,,,
+Planejamento,TJDL 01/2024,,EBC,787010,,-,TJDL,01,2024,,,,,,,,,,,,,,,,,,,,,
+Consolidar Demandas,PE 21/2024,,Tintas,787010,,-,PE,21,2024,,,,,,,,,,,,,,,,,,,,,
+Nota Técnica,PE 22/2024,,Pisos,787010,,-,PE,22,2024,,,,,,,,,,,,,,,,,,,,,
+Pré-Publicação,PE 23/2024,,Eletrico,787010,,-,PE,23,2024,,,,,,,,,,,,,,,,,,,,,
+Nota Técnica,PE 24/2024,,Frigorificados,787010,,-,PE,24,2024,,,,,,,,,,,,,,,,,,,,,
+Sessão Pública,PE 25/2024,,panificados,787010,,-,PE,25,2024,,,,,,,,,,,,,,,,,,,,,
+Recomendações AGU,PE 26/2024,,expediente,787010,,-,PE,26,2024,,,,,,,,,,,,,,,,,,,,,
+Concluído,PE 27/2024,45454,cadeiras,787010,CeIMBra,teste,PE,27,2024,,"R$ 15,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-14,,,Não,material,,,2024-08-14,2024-08-14,,,,,testes|||testes
+Assinatura Contrato,PE 28/2024,,mesas,787010,,-,PE,28,2024,,,,,,,,,,,,,,,,,,,,,
+Assinatura Contrato,PE 29/2024,,computadores,787010,,-,PE,29,2024,,,,,,,,,,,,,,,,,,,,,
+AGU,PE 30/2024,676767,piso vinílicoxx,787010,CeIMBra,-,PE,30,2024,x,"R$ 15,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,x,x,x,x,2024-08-14,,,Sim,servico,x,x,2024-08-14,2024-08-14,x,,x,x,testse
+AGU,PE 31/2024,,relogio,787010,,-,PE,31,2024,,,,,,,,,,,,,,,,,,,,,
+AGU,PE 32/2024,,teste,787010,,-,PE,32,2024,,,,,,,,,,,,,,,,,,,,,
+Consolidar Demandas,PE 90002/2024,x,Teste,787010,CeIMBra,-,Pregão Eletrônico,90002,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,
+Planejamento,PE 90020/2024,x,testes,787010,CeIMBra,-,Pregão Eletrônico,90020,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,
+Planejamento,PE 90004/2024,testse,teste,787010,CeIMBra,-,Pregão Eletrônico,90004,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,

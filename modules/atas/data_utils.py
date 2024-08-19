@@ -182,7 +182,7 @@ class DatabaseDialog(QDialog):
             return
 
         # Filtrar por nomes que possivelmente contenham o padrão desejado
-        pattern = re.compile(r"\d{4}")
+        pattern = re.compile(r"\d{5}")
         pe_tables = [table for table in tables if pattern.search(table)]
 
         item, ok = QInputDialog.getItem(self, "Carregar DataFrame", "Selecione a tabela:", pe_tables, 0, False)

@@ -10,6 +10,7 @@ from modules.atas.relatorio_indicadores import RelatorioIndicadores
 from modules.atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
 from modules.atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
 from modules.atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
+from modules.atas.streamlit_dialog import StreamlitDialog
 from diretorios import *
 import pandas as pd
 import numpy as np
@@ -27,6 +28,8 @@ from docx import Document
 from docx.shared import Pt
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
+import streamlit as st
+import subprocess
 
 NUMERO_ATA_GLOBAL = None
 GERADOR_NUMERO_ATA = None
@@ -158,7 +161,7 @@ class GerarAtasWidget(QWidget):
         self.setup_alert_label()
 
         # Configurar os botões
-        self.setup_buttons()
+        self.setup_buttons_up()
 
         # Adicionar um widget vazio que atuará como um espaçador no topo
         spacer_top = QWidget()
@@ -189,24 +192,6 @@ class GerarAtasWidget(QWidget):
 
         self.setLayout(self.main_layout)
         self.setMinimumSize(1000, 580)
-
-    def setup_alert_label(self):
-        icon_path = str(self.icons_dir / 'alert.png')
-        text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
-                "Pressione '<b><u>Termo de Referência</u></b>' para adicionar os dados 'Catálogo', "
-                "'Descrição' e 'Descrição Detalhada' do Termo de Referência. "
-                f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'>")
-        self.alert_label = QLabel(text)
-        
-        # Reduzir o padding e margem para mínimo possível
-        self.alert_label.setStyleSheet("font-size: 10pt; padding: 2px; margin: 0px;")
-        
-        # Centralizar e ajustar o tamanho
-        self.alert_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.alert_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-
-        # Adicionar ao layout principal, na parte superior
-        self.main_layout.addWidget(self.alert_label, alignment=Qt.AlignmentFlag.AlignTop)
 
     def setup_treeview(self):
         # Remover ou ocultar a mensagem quando o treeView for exibido
@@ -241,16 +226,23 @@ class GerarAtasWidget(QWidget):
         self.main_layout.addWidget(self.alert_label)
         self.atasDialog = None
 
-    def setup_buttons(self):
-        self.buttons_layout = QHBoxLayout()
+    def setup_buttons_generic(self, button_definitions):
+        buttons_layout = QHBoxLayout()
         self.icons = load_icons(self.icons_dir)
-        button_definitions = self.obter_definicoes_botoes()
         for name, icon_key, callback, tooltip, animate in button_definitions:
             icon = self.icons.get(icon_key, None)
             button = create_button(name, icon, callback, tooltip, QSize(30, 30), QSize(120, 30), None)
             self.buttons[name] = button
-            self.buttons_layout.addWidget(button)
-        self.main_layout.addLayout(self.buttons_layout)
+            buttons_layout.addWidget(button)
+        return buttons_layout
+
+    def setup_buttons_up(self):
+        button_definitions = self.obter_definicoes_botoes()
+        self.main_layout.addLayout(self.setup_buttons_generic(button_definitions))
+
+    def setup_buttons_down(self):
+        button_definitions = self.obter_definicoes_botoes_embaixo()
+        self.main_layout.addLayout(self.setup_buttons_generic(button_definitions))
 
     def obter_definicoes_botoes(self):
         return [
@@ -260,23 +252,12 @@ class GerarAtasWidget(QWidget):
             ("SICAF", 'sicaf', self.processar_sicaf, "Faça o download do SICAF (Nível I - Credenciamento) e mova para a pasta de processamento do SICAF", False),
         ]
 
-    def setup_buttons_down(self):
-        self.buttons_layout = QHBoxLayout()
-        self.icons = load_icons(self.icons_dir)
-        button_definitions = self.obter_definicoes_botoes_embaixo()
-        for name, icon_key, callback, tooltip, animate in button_definitions:
-            icon = self.icons.get(icon_key, None)
-            button = create_button(name, icon, callback, tooltip, QSize(30, 30), QSize(120, 30), None)
-            self.buttons[name] = button
-            self.buttons_layout.addWidget(button)
-        self.main_layout.addLayout(self.buttons_layout)
-
     def obter_definicoes_botoes_embaixo(self):
         return [
             ("Ata / Contrato", 'verify_menu', self.abrir_dialog_atas, "Com o database concluíodo é possível gerar as atas ou contratos", False),
             ("Database", 'data-processing', self.update_database, "Salva ou Carrega os dados do Database", False),
-            ("Salvar Tabela", 'excel', self.salvar_tabela, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
-            ("Indicadores", 'performance', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
+            ("Salvar Tabela", 'table', self.salvar_tabela, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
+            ("Indicadores", 'dashboard', self.dashboard_indicadores, "Visualize os indicadores do relatório", False),
         ]
 
     def tabela_vazia(self):
@@ -442,7 +423,6 @@ class GerarAtasWidget(QWidget):
         self.treeView.expandAll()
         for column in range(self.model.columnCount()):
             self.treeView.resizeColumnToContents(column)
-
 
     def atualizar_alerta_apos_importar_tr(self):
         icon_path = str(self.icons_dir / 'confirm.png')
@@ -683,6 +663,24 @@ class GerarAtasWidget(QWidget):
         else:
             QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
 
+    def dashboard_indicadores(self):
+        if self.current_dataframe is not None:
+            # Salva o DataFrame em um arquivo CSV temporário
+            self.current_dataframe.to_csv(STREAMLIT_CSV, index=False)
+            
+            if STREAMLIT_CSV.exists():
+                # Configura a variável de ambiente para não solicitar email
+                os.environ["EMAIL_OPT_OUT"] = "true"
+                
+                # Abrir o diálogo do Streamlit
+                dialog = StreamlitDialog(self)
+                dialog.exec()
+            else:
+                QMessageBox.warning(self, "Aviso", "Erro ao salvar o arquivo CSV.")
+        else:
+            QMessageBox.warning(self, "Aviso", "Não há dados para salvar.")
+
+
     def salvar_tabela(self):
         if self.current_dataframe is not None:
             # Define o caminho do arquivo a ser salvo
@@ -701,6 +699,7 @@ class GerarAtasWidget(QWidget):
             self.dialogo_indicadores.show()
         else:
             QMessageBox.warning(self, "Aviso", "Não há dados carregados.")
+
 
 class ModeloTreeview:
     def __init__(self, icons_dir):
@@ -779,7 +778,7 @@ class ModeloTreeview:
 
         if situacao in situacoes_especificas or situacao == 'Não definido':
             # Cria um item com informações básicas sem detalhes extras para situações específicas
-            item_text = f"<span style='font-size: {font_size};'>Item {row['item_num']} - {row['descricao_tr']} - {situacao}</span>"
+            item_text = f"Item {row['item_num']} - {row['descricao_tr']} - {situacao}"
             item_info = QStandardItem(item_text)
             item_info.setEditable(False)
             parent_item.appendRow(item_info)
@@ -1209,22 +1208,6 @@ class AtasDialog(QDialog):
         abrir_pasta(str(path_dir_principal))
         print(dataframe[['numero_ata', 'item_num']])  # Mostra os valores das colunas 'numero_ata' e 'item_num'
         return NUMERO_ATA_atualizado
-    
-    def limpar_nome_empresa(nome_empresa):
-        # Definindo os caracteres que não podem ser usados em nomes de pastas no Windows
-        caracteres_invalidos = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
-
-        # Substituir caracteres inválidos por sublinhado
-        for char in caracteres_invalidos:
-            nome_empresa = nome_empresa.replace(char, '_')
-
-        # Remover espaços extras e caracteres especiais no final do nome
-        nome_empresa = nome_empresa.rstrip(' ._')
-
-        # Substituir múltiplos espaços consecutivos por um único espaço
-        nome_empresa = ' '.join(nome_empresa.split())
-
-        return nome_empresa
 
     def preparar_diretorios(self, relatorio_path, num_pregao, ano_pregao, empresa):        
         nome_dir_principal = f"PE {int(num_pregao)}-{int(ano_pregao)}"
@@ -1425,30 +1408,113 @@ def inserir_tabela_do_excel_no_documento(doc, caminho_arquivo_excel):
             # Criar uma nova tabela no documento Word
             table = doc.add_table(rows=0, cols=3)
 
-            # Iterar sobre as linhas do Excel e adicionar ao documento Word
-            for i in range(0, ws.max_row, 3):
+            for i in range(0, ws.max_row, 4):
                 # Primeira linha (mesclada e pintada de cinza claro)
                 row_cells = table.add_row().cells
                 row_cells[0].merge(row_cells[2])
-                row_cells[0].text = str(ws.cell(row=i+1, column=1).value)
-                row_cells[0].paragraphs[0].runs[0].font.size = Pt(12)
+                run = row_cells[0].paragraphs[0].add_run(str(ws.cell(row=i+1, column=1).value))
+                run.font.size = Pt(12)
+                run.font.bold = True
                 shading_elm = parse_xml(r'<w:shd {} w:fill="D3D3D3"/>'.format(nsdecls('w')))
                 row_cells[0]._element.get_or_add_tcPr().append(shading_elm)
 
-                # Segunda linha (mesclada)
+                # Segunda linha (mesclada com "Descrição Detalhada:" em negrito e quebras de linha)
                 row_cells = table.add_row().cells
                 row_cells[0].merge(row_cells[2])
-                row_cells[0].text = str(ws.cell(row=i+2, column=1).value)
-                row_cells[0].paragraphs[0].runs[0].font.size = Pt(10)
+                
+                # Adiciona quebra de linha antes de "Descrição Detalhada:"
+                run = row_cells[0].paragraphs[0].add_run("\n")
+                
+                # Adiciona "Descrição Detalhada:" em negrito
+                run = row_cells[0].paragraphs[0].add_run("Descrição Detalhada:")
+                run.font.size = Pt(10)
+                run.font.bold = True
+
+                # Adicionando o texto restante após "Descrição Detalhada:"
+                texto_segunda_linha = str(ws.cell(row=i+2, column=1).value)
+                run = row_cells[0].paragraphs[0].add_run(f" {texto_segunda_linha}")
+                run.font.size = Pt(10)
+                
+                # Adiciona quebra de linha após o texto
+                row_cells[0].paragraphs[0].add_run("\n")
 
                 # Terceira linha (manter formatação padrão)
                 row_cells = table.add_row().cells
                 for j in range(3):
                     value = ws.cell(row=i+3, column=j+1).value
                     if value is not None:
-                        row_cells[j].text = str(value)
-                        row_cells[j].paragraphs[0].runs[0].font.size = Pt(10)
+                        texto = str(value)
+                        if j == 0 and texto.startswith("UF:"):
+                            # Negrito apenas para "UF:"
+                            run = row_cells[j].paragraphs[0].add_run("UF:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+                            
+                            # Texto que segue "UF:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[3:])
+                            run.font.size = Pt(10)
+                        elif j == 1 and texto.startswith("Marca:"):
+                            # Negrito apenas para "Marca:"
+                            run = row_cells[j].paragraphs[0].add_run("Marca:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+                            
+                            # Texto que segue "Marca:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[6:])
+                            run.font.size = Pt(10)
+                        elif j == 2 and texto.startswith("Modelo:"):
+                            # Negrito apenas para "Modelo:"
+                            run = row_cells[j].paragraphs[0].add_run("Modelo:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+                            
+                            # Texto que segue "Modelo:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[7:])
+                            run.font.size = Pt(10)
+                        else:
+                            row_cells[j].text = texto
+                            row_cells[j].paragraphs[0].runs[0].font.size = Pt(10)
 
+                # Quarta linha (manter formatação padrão)
+                row_cells = table.add_row().cells
+                for j in range(3):
+                    value = ws.cell(row=i+4, column=j+1).value
+                    if value is not None:
+                        texto = str(value)
+                        if j == 0 and texto.startswith("Quantidade:"):
+                            # Negrito apenas para "Quantidade:"
+                            run = row_cells[j].paragraphs[0].add_run("Quantidade:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+
+                            # Texto que segue "Quantidade:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[11:])
+                            run.font.size = Pt(10)
+                            row_cells[j].paragraphs[0].add_run("\n")  # Adiciona quebra de linha
+                        elif j == 1 and texto.startswith("Valor Unitário:"):
+                            # Negrito apenas para "Valor Unitário:"
+                            run = row_cells[j].paragraphs[0].add_run("Valor Unitário:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+
+                            # Texto que segue "Valor Unitário:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[15:])
+                            run.font.size = Pt(10)
+                            row_cells[j].paragraphs[0].add_run("\n")  # Adiciona quebra de linha
+                        elif j == 2 and texto.startswith("Valor Total:"):
+                            # Negrito apenas para "Valor Total:"
+                            run = row_cells[j].paragraphs[0].add_run("Valor Total:")
+                            run.font.size = Pt(10)
+                            run.font.bold = True
+
+                            # Texto que segue "Valor Total:"
+                            run = row_cells[j].paragraphs[0].add_run(texto[12:])
+                            run.font.size = Pt(10)
+                            row_cells[j].paragraphs[0].add_run("\n")  # Adiciona quebra de linha
+                        else:
+                            row_cells[j].text = texto
+                            row_cells[j].paragraphs[0].runs[0].font.size = Pt(10)
+                            row_cells[j].paragraphs[0].add_run("\n")  # Adiciona quebra de linha
             # Mover a tabela para logo após o parágrafo atual
             move_table_after_paragraph(paragraph, table)
             break
@@ -1473,41 +1539,74 @@ def carregar_configuracoes():
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
+def format_currency(value):
+    """ Função para formatar valores monetários no formato brasileiro. """
+    print(f"Valor original: {value}")  # Print para depuração
+
+    if isinstance(value, str):
+        # Tentar converter string para float
+        try:
+            value = float(value.replace('.', '').replace(',', '.'))
+        except ValueError:
+            return value  # Se a conversão falhar, retorna o valor original
+    elif not isinstance(value, (int, float)):
+        return value  # Retorna o valor original se não for um número
+
+    # Formatar o valor como moeda brasileira
+    formatted_value = f"R$ {value:,.2f}".replace(',', 'temp').replace('.', ',').replace('temp', '.')
+    
+    print(f"Valor formatado: {formatted_value}")  # Print para depuração
+    return formatted_value
+
 def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx'):
-    # Criar um novo workbook e selecionar a planilha ativa
     wb = Workbook()
     ws = wb.active
 
-    # Definir estilos
     fonte_tamanho_12_cinza = Font(size=12, bold=True)
     fundo_cinza = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
     fonte_tamanho_10 = Font(size=10)
 
-    # Inicializar a linha
     linha_atual = 1
 
-    # Iterar sobre os itens e preparar os dados para o Excel
     for item in itens:
-        # Linha 1
         ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
         cell_1 = ws.cell(row=linha_atual, column=1, value=f"Item: {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})")
         cell_1.font = fonte_tamanho_12_cinza
         cell_1.fill = fundo_cinza
 
-        # Linha 2
         linha_atual += 1
         ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
-        cell_2 = ws.cell(row=linha_atual, column=1, value=f"Descrição Detalhada: {item['descricao_detalhada']}")
+        cell_2 = ws.cell(row=linha_atual, column=1, value=f"{item['descricao_detalhada']}")
         cell_2.font = fonte_tamanho_10
 
-        # Linha 3
         linha_atual += 1
-        ws.cell(row=linha_atual, column=1, value=f"Quantidade: {item['quantidade']}").font = fonte_tamanho_10
-        ws.cell(row=linha_atual, column=2, value=f"Valor Unitário: {item['valor_homologado_item_unitario']}").font = fonte_tamanho_10
-        ws.cell(row=linha_atual, column=3, value=f"Valor Total: {item['valor_homologado_total_item']}").font = fonte_tamanho_10
+        ws.cell(row=linha_atual, column=1, value=f"UF: {str(item['unidade'])}").font = fonte_tamanho_10
+        ws.cell(row=linha_atual, column=2, value=f"Marca: {item['marca_fabricante']}").font = fonte_tamanho_10
+        ws.cell(row=linha_atual, column=3, value=f"Modelo: {item['modelo_versao']}").font = fonte_tamanho_10
 
-        # Incrementar a linha para o próximo item
+        linha_atual += 1
+ 
+        # Removendo o sufixo ".0" de quantidade, se presente
+        quantidade_formatada = str(int(item['quantidade'])) if item['quantidade'] == int(item['quantidade']) else str(item['quantidade'])
+
+        # Aplicando a formatação corrigida na célula
+        ws.cell(row=linha_atual, column=1, value=f"Quantidade: {quantidade_formatada}").font = fonte_tamanho_10
+
+        
+        # Convertendo valores para número antes de formatar
+        valor_unitario = float(item['valor_homologado_item_unitario'])
+        valor_total = float(item['valor_homologado_total_item'])
+        
+        # Valor Unitário
+        print(f"Processando Valor Unitário para o item {item['item_num']}")
+        valor_unitario_formatado = format_currency(valor_unitario)
+        ws.cell(row=linha_atual, column=2, value=f"Valor Unitário: {valor_unitario_formatado}").font = fonte_tamanho_10
+        
+        # Valor Total
+        print(f"Processando Valor Total para o item {item['item_num']}")
+        valor_total_formatado = format_currency(valor_total)
+        ws.cell(row=linha_atual, column=3, value=f"Valor Total: {valor_total_formatado}").font = fonte_tamanho_10
+
         linha_atual += 1
 
-    # Salvar o arquivo Excel
     wb.save(caminho_arquivo_excel)

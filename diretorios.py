@@ -74,6 +74,14 @@ TEMPLATE_PATH = TEMPLATE_DIR / 'template_ata.docx'
 MSG_DIR = RESOURCES_DIR / "msg"
 MSG_CONTRATOS_DIR = MSG_DIR / "contratos"
 
+# Streamlit dir
+STREAMLIT_DIR = BASE_DIR / "streamlit"
+STREAMLIT_CSV = STREAMLIT_DIR / "current_dataframe.csv"
+STREAMLIT_PATH = STREAMLIT_DIR / "streamlit_app.py"
+
+STREAMLIT_PLANEJAMENTO_CSV = STREAMLIT_DIR / "dataframe_planejamento.csv"
+STREAMLIT_PLANEJAMENTO_PATH = STREAMLIT_DIR / "streamlit_planejamento.py"
+
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"

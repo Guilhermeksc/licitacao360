@@ -1,22 +1,17 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from pathlib import Path
 from modules.atas.regex_termo_homolog import *
 from modules.atas.regex_sicaf import *
 from modules.atas.canvas_gerar_atas import *
 from diretorios import *
-# import geopandas as gpd
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-# import contextily as ctx
-import traceback
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm 
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE
-# import seaborn as sns
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 import logging
 import os
@@ -29,9 +24,6 @@ INDICADORES_NORMCEIM = ATA_CONTRATO_DIR / "indicadores_normceim"
 TEMPLATE_INDICADORES_PATH = INDICADORES_NORMCEIM / "template_indicadores.docx"
 
 from docx.oxml.shared import OxmlElement, qn
-from docx.oxml.ns import nsdecls
-from docx.shared import Pt
-from docx.enum.text import WD_UNDERLINE
 
 def add_hyperlink(paragraph, url, text, font_name='Carlito', font_size=12):
     """
