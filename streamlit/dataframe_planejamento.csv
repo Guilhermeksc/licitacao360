@@ -1,11 +1,11 @@
 Status,ID Processo,NUP,Objeto,UASG,sigla_om,Pregoeiro,tipo,numero,ano,objeto_completo,valor_total,orgao_responsavel,setor_responsavel,coordenador_planejamento,item_pca,portaria_PCA,data_sessao,data_limite_entrega_tr,nup_portaria_planejamento,srp,material_servico,parecer_agu,msg_irp,data_limite_manifestacao_irp,data_limite_confirmacao_irp,num_irp,om_participantes,link_pncp,link_portal_marinha,comentarios,prioridade,emenda_parlamentar
-Planejamento,PE 01/2024,,testes,787010,CeIMBra,-,Pregão Eletrônico,01,2024,,"R$ 0,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-19,,,Não,material,,,2024-08-19,2024-08-19,,,,,,1,0
+Consolidar Demandas,PE 01/2024,,testes,787010,CeIMBra,-,Pregão Eletrônico,01,2024,,"R$ 0,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-19,,,Não,material,,,2024-08-19,2024-08-19,,,,,,1,0
 Planejamento,CC 01/2024,,Nova Sede,787010,CeIMBra,-,CC,01,2024,,,,,,,,,,,,,,,,,,,,,,0,0
 Montagem do Processo,TJDL 01/2024,,EBC,787010,CeIMBra,-,TJDL,01,2024,,"R$ 0,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-19,,,Não,material,,,2024-08-19,2024-08-19,,,,,,1,0
 Sessão Pública,PE 21/2024,,Tintas,787010,CeIMBra,-,PE,21,2024,,,,,,,,,,,,,,,,,,,,,,0,0
 Nota Técnica,PE 22/2024,,Pisos,787010,CeIMBra,-,PE,22,2024,,,,,,,,,,,,,,,,,,,,,,0,0
 Sessão Pública,PE 23/2024,,Eletrico,787010,CeIMBra,-,PE,23,2024,,,,,,,,,,,,,,,,,,,,,,0,0
-Sessão Pública,PE 24/2024,,Frigorificados,787010,CeIMBra,-,PE,24,2024,,,,,,,,,,,,,,,,,,,,,,0,0
+Sessão Pública,PE 24/2024,,Frigorificados,787010,CeIMBra,-,PE,24,2024,,"R$ 0,00",CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,2024-08-20,,,Não,material,,,2024-08-20,2024-08-20,,,,,,1,0
 Pré-Publicação,PE 25/2024,,panificados,787010,CeIMBra,-,PE,25,2024,,,,,,,,,,,,,,,,,,,,,,0,0
 Montagem do Processo,PE 26/2024,,expediente,787010,CeIMBra,-,PE,26,2024,,,,,,,,,,,,,,,,,,,,,,0,0
 Nota Técnica,PE 27/2024,,cadeiras,787010,CeIMBra,-,PE,27,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,material,,,,,,,,,,0,0
@@ -17,4 +17,5 @@ Recomendações AGU,PE 32/2024,,teste,787010,CeIMBra,-,PE,32,2024,,,,,,,,,,,,,,,
 Pré-Publicação,Pregão Eletrônico 90002/2024,,Teste,787010,CeIMBra,-,Pregão Eletrônico,90002,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0
 Planejamento,Pregão Eletrônico 90020/2024,,testes,787010,CeIMBra,-,Pregão Eletrônico,90020,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0
 Concluído,Pregão Eletrônico 90009/2024,,teste,787010,CeIMBra,-,Pregão Eletrônico,90009,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0
-Montagem do Processo,Pregão Eletrônico 90006/2024,,teste,787010,CeIMBra,-,Pregão Eletrônico,90006,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0
+Nota Técnica,Pregão Eletrônico 90006/2024,,teste,787010,CeIMBra,-,Pregão Eletrônico,90006,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0
+Planejamento,PE 90041/2024,,Cestas Básicas,787010,CeIMBra,-,Pregão Eletrônico,90041,2024,,,CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA,,,,,,,,,Material,,,,,,,,,,0,0

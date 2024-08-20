@@ -30,7 +30,7 @@ class ContratosWidget(QMainWindow):
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
             'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_staus','termo_aditivo', 'atualizacao_comprasnet',
-            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'registro_comprasnet'
+            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet'
         ]
         self.setup_managers()
         self.load_initial_data()

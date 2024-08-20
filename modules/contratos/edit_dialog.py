@@ -629,34 +629,34 @@ class AtualizarDadosContratos(QDialog):
                 'empresa': self.stack_manager.line_edits["empresa"].text().strip(),
                 'objeto': self.stack_manager.line_edits["objeto"].text().strip(),
                 'valor_global': self.stack_manager.line_edits["valor_global"].text().strip(),
-                # 'uasg': '787000',  # Exemplo de valor fixo, ajuste conforme necessário
+                'uasg': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'nup': self.stack_manager.line_edits["nup"].text().strip(),
                 'cnpj': self.stack_manager.line_edits["cnpj"].text().strip(),
                 'natureza_continuada': 'Sim' if self.stack_manager.natureza_continuada_buttons['Sim'].isChecked() else 'Não',
-                'om': 'Com7ºDN',  # Exemplo de valor fixo, ajuste conforme necessário
+                'om': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'material_servico': 'Material' if self.stack_manager.material_servico_buttons['Material'].isChecked() else 'Serviço',
                 'link_pncp': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'portaria': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_gestor': 'CC(IM)',  # Exemplo de valor fixo, ajuste conforme necessário
-                'gestor': 'Siqueira Campos',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_gestor_substituto': '2T(AA)',  # Exemplo de valor fixo, ajuste conforme necessário
-                'gestor_substituto': 'Millioli',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_fiscal': 'SG-MR',  # Exemplo de valor fixo, ajuste conforme necessário
+                'posto_gestor': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'gestor': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'posto_gestor_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'gestor_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'posto_fiscal': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'fiscal': 'Rodolfo',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_fiscal_substituto': 'SG-FR',  # Exemplo de valor fixo, ajuste conforme necessário
+                'posto_fiscal_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'fiscal_substituto': 'Vicenti',  # Exemplo de valor fixo, ajuste conforme necessário
                 'posto_fiscal_administrativo': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'fiscal_administrativo': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'vigencia_inicial': self.stack_manager.date_edit_inicial.date().toString('dd/MM/yyyy'),
                 'vigencia_final': self.stack_manager.date_edit_final.date().toString('dd/MM/yyyy'),
-                'setor': 'Divisão de Controle Patrimonial',  # Exemplo de valor fixo, ajuste conforme necessário
+                'setor': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'cp': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'msg': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'comentarios': comments_text,  # Salva os comentários reais coletados
-                'termo_aditivo': 'Ata Inicial',  # Exemplo de valor fixo, ajuste conforme necessário
-                'atualizacao_comprasnet': '01/12/2023 11:31',  # Exemplo de valor fixo, ajuste conforme necessário
+                'termo_aditivo': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'atualizacao_comprasnet': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'instancia_governanca': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'comprasnet_contratos': '00037/2023',  # Exemplo de valor fixo, ajuste conforme necessário
+                'comprasnet_contratos': '',  # Exemplo de valor fixo, ajuste conforme necessário
                 'assinatura_contrato': None,
                 'registro_status': registro_texto
             }

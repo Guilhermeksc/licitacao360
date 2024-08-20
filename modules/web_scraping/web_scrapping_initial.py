@@ -37,9 +37,9 @@ class SeleniumDriverThread(QThread):
 
     def _perform_login_actions(self):
         try:
-            # Clique no SVG dentro do botão
-            svg_selector = "#card2 > div > div > div > div.text-right > button > svg > path"
-            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, svg_selector))).click()
+            # Clique no botão com a classe 'governo'
+            button_selector = "button.governo"
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector))).click()
 
             # Preencha os campos de login
             login_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#txtLogin")))
@@ -101,6 +101,9 @@ class WebScrapingWidget(QWidget):
         self.icons_dir = Path(ICONS_DIR)
         self.image_cache = self._load_images()
         self.driver_thread = None
+        self.inactivity_timer = QTimer(self)
+        self.inactivity_timer.timeout.connect(self._on_inactivity_timeout)
+        self.inactivity_timer.setInterval(5 * 60 * 1000)  # 5 minutos em milissegundos
         self._setup_ui()
 
     def _setup_ui(self):
@@ -232,6 +235,7 @@ class WebScrapingWidget(QWidget):
         menu.addAction("Pesquisa de Preços")
         divulgacao_action = QAction("Divulgação de Compras", self)
         divulgacao_action.triggered.connect(self._start_divulgacao_de_compras_macro)
+        divulgacao_action.triggered.connect(self._reset_inactivity_timer)  # Reinicia o timer ao selecionar uma opção
         menu.addAction(divulgacao_action)
 
         self.continue_button.setMenu(menu)
@@ -245,6 +249,21 @@ class WebScrapingWidget(QWidget):
         button_layout.addWidget(self.continue_button)
         button_layout.addWidget(close_button)
         layout.addLayout(button_layout)
+
+    def _reset_inactivity_timer(self):
+        self.inactivity_timer.start()  # Reinicia o temporizador ao interagir com o menu
+
+    def _on_inactivity_timeout(self):
+        response = QMessageBox.warning(self, "Encerramento de Driver",
+                                       "Nenhuma ação foi realizada nos últimos 5 minutos. O driver será encerrado. Deseja continuar?",
+                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if response == QMessageBox.StandardButton.No:
+            if self.driver_thread and self.driver_thread.driver:
+                self.driver_thread.close_driver()
+                self.driver_thread.wait()
+            self._restore_main_window()
+        else:
+            self._reset_inactivity_timer()
 
     def _on_init_clicked(self):
         self._initialize_driver_thread()

@@ -44,9 +44,6 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.layout.addWidget(self.table_view)
 
-        # Adicionando o Formulário
-        self.layout.addLayout(self.create_form_layout())
-
         # Adicionando os botões
         self.layout.addLayout(self.create_button_layout())
 
@@ -82,10 +79,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
     def create_button_layout(self):
         button_layout = QHBoxLayout()
-        self.incluir_button = QPushButton("Incluir", self)
-        self.incluir_button.clicked.connect(self.incluir_item)
-        button_layout.addWidget(self.incluir_button)
-
+        
         self.excluir_button = QPushButton("Excluir", self)
         self.excluir_button.clicked.connect(self.excluir_item)
         button_layout.addWidget(self.excluir_button)
@@ -98,48 +92,117 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         self.carregar_tabela_button.clicked.connect(self.carregar_tabela)
         button_layout.addWidget(self.carregar_tabela_button)
 
+        # Adicionando o botão "Sincronizar CSV"
+        self.sincronizar_csv_button = QPushButton("Sincronizar CSV", self)
+        self.sincronizar_csv_button.clicked.connect(self.sincronizar_csv)
+        button_layout.addWidget(self.sincronizar_csv_button)
+
         return button_layout
 
-    def create_form_layout(self):
-        form_layout = QFormLayout()
-        self.contrato_ata_input = QLineEdit(self)
-        self.empresa_input = QLineEdit(self)
-        self.objeto_input = QLineEdit(self)
-        self.valor_input = QLineEdit(self)
-
-        form_layout.addRow("Contrato/Ata:", self.contrato_ata_input)
-        form_layout.addRow("Empresa:", self.empresa_input)
-        form_layout.addRow("Objeto:", self.objeto_input)
-        form_layout.addRow("Valor:", self.valor_input)
-        return form_layout
-
-    # Funções para manipulação de dados e interações com o banco de dados
-    def incluir_item(self):
-        numero_contrato = self.contrato_ata_input.text()
-        empresa = self.empresa_input.text()
-        objeto = self.objeto_input.text()
-        valor_global = self.valor_input.text()
-
-        if numero_contrato and empresa and objeto or valor_global:
-            self.adicionar_linha_na_tabela(numero_contrato, empresa, objeto, valor_global)
-        else:
-            Dialogs.warning(self, "Erro", "Todos os campos devem ser preenchidos para incluir um item.")
-
-    def adicionar_linha_na_tabela(self, contrato, empresa, objeto, valor):
-        if not contrato or not empresa or not objeto or valor:
-            Dialogs.warning(self, "Erro", "Todos os campos devem ser preenchidos.")
+    def sincronizar_csv(self):
+        # Abrir diálogo para selecionar o arquivo CSV
+        filepath, _ = QFileDialog.getOpenFileName(self, "Selecione o arquivo CSV", "", "CSV Files (*.csv)")
+        if not filepath:
             return
 
-        row = self.model.record()
-        row.setValue("numero_contrato", contrato)
-        row.setValue("empresa", empresa)
-        row.setValue("objeto", objeto)
-        row.setValue("valor_global", valor)
+        # Ler o arquivo CSV
+        try:
+            df_csv = pd.read_csv(filepath)
+        except Exception as e:
+            QMessageBox.warning(self, "Erro ao abrir CSV", f"Não foi possível abrir o arquivo CSV: {str(e)}")
+            return
 
-        if not self.model.insertRecord(-1, row):
-            print("Erro ao inserir a linha no modelo:", self.model.lastError().text())
-        else:
-            print("Linha inserida com sucesso no modelo")
+        # Carregar dados do banco de dados
+        with sqlite3.connect(self.database_path) as conn:
+            df_db = pd.read_sql_query("SELECT * FROM controle_contratos", conn)
+
+        # Iterar sobre cada linha do CSV para fazer a sincronização
+        for index, row in df_csv.iterrows():
+            numero_instrumento = row['Número do instrumento']
+            
+            # Verificar se existe correspondência
+            if df_db['comprasnet_contratos'].str.contains(numero_instrumento).any():
+                print(f"Correspondente encontrado: {numero_instrumento}")
+                # Atualizar a linha existente no banco de dados
+                with sqlite3.connect(self.database_path) as conn:
+                    uasg_value = row['Unidade Gestora Atual'].split(' - ')[0]
+                    fornecedor_info = row['Fornecedor']
+                    parts = fornecedor_info.split(' - ')
+                    if len(parts) >= 2:
+                        cnpj = parts[0].strip()
+                        empresa = ' - '.join(parts[1:]).strip()
+                    else:
+                        cnpj = fornecedor_info.strip()
+                        empresa = fornecedor_info.strip()
+
+                    numero_contrato = self.format_numero_contrato(numero_instrumento, uasg_value)
+                    nup = row['Processo']
+                    vigencia_inicial = row['Vig. Início']
+                    vigencia_final = row['Vig. Fim']
+                    valor_global = row['Valor Global']
+                    atualizacao_comprasnet = row['Atualizado em']
+
+                    # Montar a query de atualização
+                    update_query = """
+                        UPDATE controle_contratos
+                        SET uasg = ?, cnpj = ?, empresa = ?, numero_contrato = ?, nup = ?, 
+                            vigencia_inicial = ?, vigencia_final = ?, valor_global = ?, atualizacao_comprasnet = ?
+                        WHERE comprasnet_contratos = ?
+                    """
+                    conn.execute(update_query, (uasg_value, cnpj, empresa, numero_contrato, nup, vigencia_inicial, vigencia_final, valor_global, atualizacao_comprasnet, numero_instrumento))
+                    conn.commit()
+
+                print(f"Item {numero_instrumento} atualizado no banco de dados.")
+            else:
+                print(f"Não encontrado: {numero_instrumento}")
+                
+                # Preparar os valores para inserção no banco de dados
+                uasg_value = row['Unidade Gestora Atual'].split(' - ')[0]
+                fornecedor_info = row['Fornecedor']
+                parts = fornecedor_info.split(' - ')
+                if len(parts) >= 2:
+                    cnpj = parts[0].strip()
+                    empresa = ' - '.join(parts[1:]).strip()
+                else:
+                    cnpj = fornecedor_info.strip()
+                    empresa = fornecedor_info.strip()
+
+                numero_contrato = self.format_numero_contrato(numero_instrumento, uasg_value)
+                nup = row['Processo']
+                vigencia_inicial = row['Vig. Início']
+                vigencia_final = row['Vig. Fim']
+                valor_global = row['Valor Global']
+                atualizacao_comprasnet = row['Atualizado em']
+
+                # Inserir a nova linha no banco de dados
+                new_data = {
+                    'comprasnet_contratos': numero_instrumento,
+                    'uasg': uasg_value,
+                    'cnpj': cnpj,
+                    'empresa': empresa,
+                    'numero_contrato': numero_contrato,
+                    'nup': nup,
+                    'vigencia_inicial': vigencia_inicial,
+                    'vigencia_final': vigencia_final,
+                    'valor_global': valor_global,
+                    'atualizacao_comprasnet': atualizacao_comprasnet
+                }
+
+                with sqlite3.connect(self.database_path) as conn:
+                    df_new = pd.DataFrame([new_data])
+                    df_new.to_sql('controle_contratos', conn, if_exists='append', index=False)
+                
+                print(f"Item {numero_instrumento} adicionado ao banco de dados.")
+
+    def format_numero_contrato(self, contrato, uasg):
+        numero, ano = contrato.split('/')
+        ano_formatado = ano[-2:]
+        numero_formatado = numero.lstrip('0')  # Remove apenas os zeros à esquerda
+        if len(numero_formatado) < 3:
+            numero_formatado = numero_formatado.zfill(3)  # Garante que tenha pelo menos 3 dígitos
+        numero_contrato = f'{uasg}/{ano_formatado}-{numero_formatado}/00'
+        print(f"Original: {contrato} -> Formatado: {numero_contrato}")
+        return numero_contrato
 
     def excluir_item(self):
         selected_indexes = self.table_view.selectionModel().selectedRows()

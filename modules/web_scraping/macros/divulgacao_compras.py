@@ -28,12 +28,63 @@ class DivulgacaoComprasMacro:
             QMessageBox.critical(None, "Erro inesperado", f"Ocorreu um erro inesperado: {e}")
 
     def _clicar_pagina2_comprasnet(self):
-        pagina2_comprasnet = ".container > div:nth-child(1) > p-dataview:nth-child(1) > div:nth-child(1) > p-paginator:nth-child(2) > div:nth-child(1) > span:nth-child(3) > button:nth-child(2)"
-        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, pagina2_comprasnet))).click()
+        try:
+            # Primeiro, localize o componente app-hub-acesso-sistemas
+            app_hub_element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "app-hub-acesso-sistemas"))
+            )
+
+            # Dentro deste componente, localize o botão da página 2 no paginador
+            pagina2_botao = WebDriverWait(app_hub_element, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "div.p-paginator.p-component.ng-star-inserted button.p-ripple.p-element.p-paginator-page.p-paginator-element.p-link.ng-star-inserted:nth-child(2)"))
+            )
+
+            # Clica no botão da página 2
+            pagina2_botao.click()
+
+            # Aguardar até que a nova página seja carregada
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "app-hub-acesso-sistemas p-dataview.p-element"))  # Aguarda a atualização da tabela
+            )
+
+            print("Página 2 clicada com sucesso.")
+        except TimeoutException:
+            print("Não foi possível encontrar o botão da página 2 no tempo esperado.")
+            QMessageBox.critical(None, "Erro", "Não foi possível clicar na página 2, botão não encontrado.")
+        except NoSuchElementException:
+            print("Elemento da página 2 não foi encontrado.")
+            QMessageBox.critical(None, "Erro", "Elemento da página 2 não foi encontrado.")
+        except Exception as e:
+            print(f"Erro ao tentar clicar na página 2: {e}")
+            QMessageBox.critical(None, "Erro", f"Erro inesperado ao tentar clicar na página 2: {e}")
+
 
     def _clicar_divulgacao_de_compras(self):
-        divulgacao_de_compras = "div.col-xl-2:nth-child(4) > app-redirect-sistemas:nth-child(1) > span:nth-child(1) > span:nth-child(1) > div:nth-child(1) > p:nth-child(2)"
-        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, divulgacao_de_compras))).click()
+        try:
+            # Primeiro, localize o componente app-hub-acesso-sistemas
+            app_hub_element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "app-hub-acesso-sistemas"))
+            )
+
+            # Dentro deste componente, localize o elemento "Divulgação de Compras"
+            divulgacao_compras_element = WebDriverWait(app_hub_element, 10).until(
+                EC.element_to_be_clickable((By.XPATH, ".//p[@class='h2 main-title' and contains(text(), 'Divulgação de Compras')]"))
+            )
+
+            # Clica no botão "Divulgação de Compras"
+            divulgacao_compras_element.click()
+
+            print("Botão 'Divulgação de Compras' clicado com sucesso.")
+        except TimeoutException:
+            print("Não foi possível encontrar o botão 'Divulgação de Compras' no tempo esperado.")
+            QMessageBox.critical(None, "Erro", "Não foi possível clicar no botão 'Divulgação de Compras', elemento não encontrado.")
+        except NoSuchElementException:
+            print("Elemento 'Divulgação de Compras' não foi encontrado.")
+            QMessageBox.critical(None, "Erro", "Elemento 'Divulgação de Compras' não foi encontrado.")
+        except Exception as e:
+            print(f"Erro ao tentar clicar no botão 'Divulgação de Compras': {e}")
+            QMessageBox.critical(None, "Erro", f"Erro inesperado ao tentar clicar no botão 'Divulgação de Compras': {e}")
+
 
     def _alternar_para_janela_siasgnet(self):
         aguardar_mudanca_janela(self.driver, titulo_desejado="SIASGnet-DC - Divulgação de Compras")
@@ -212,7 +263,7 @@ class ItemLicitacaoScraper:
         tipo_item = self._raspar_valor_input("input[name='itemLicitacao.tipoItem']")
         descricao_item = self._raspar_valor_input("input[name='itemLicitacao.descricaoFormatada']")
         unidade_fornecimento = self._raspar_valor_input("input[name='itemLicitacao.unidadeFornecimento.unidadeFornecimento']")
-        descricao_detalhada = self._raspar_valor_input("input[name='itemLicitacao.descricaoDetalhada']")
+        descricao_detalhada = self._raspar_valor_textarea("textarea[name='itemLicitacao.descricaoDetalhada']")
         quantidade_total = self._raspar_valor_input("input[name='quantidadeTotal']")
         valor_unitario = self._raspar_valor_input("input[name='itemLicitacao.valorUnitarioEstimado']")
         valor_total_estimado = self._raspar_valor_input("input[name='itemLicitacao.valorTotalEstimado']")
@@ -283,6 +334,14 @@ class ItemLicitacaoScraper:
         except Exception as e:
             print(f"Erro ao clicar no próximo item {proximo_item}: {e}")
 
+    def _raspar_valor_textarea(self, css_selector):
+        try:
+            element = self.driver.find_element(By.CSS_SELECTOR, css_selector)
+            return element.text
+        except Exception as e:
+            print(f"Erro ao raspar o valor do textarea {css_selector}: {e}")
+            return None
+
     def _raspar_valor_input(self, css_selector):
         try:
             element = self.driver.find_element(By.CSS_SELECTOR, css_selector)
@@ -296,15 +355,34 @@ class ItemLicitacaoScraper:
     
 def salvar_dataframes_em_excel(df_itens, df_uasg, caminho_arquivo="resultado_licitacao.xlsx"):
     try:
+        # Separar uasg e nome_uasg em colunas diferentes
+        df_uasg[['uasg', 'nome_uasg']] = df_uasg['uasg'].str.split(' - ', expand=True)
+
+        # Converter 'numero_item' e 'quantidade' para inteiros
+        df_itens['numero_item'] = df_itens['numero_item'].astype(int)
+        df_itens['quantidade_total'] = df_itens['quantidade_total'].astype(int)
+        df_uasg['numero_item'] = df_uasg['numero_item'].astype(int)
+        df_uasg['quantidade'] = df_uasg['quantidade'].astype(int)
+
         # Reorganizar o DataFrame df_uasg
         df_uasg_pivot = df_uasg.pivot(index='numero_item', columns='uasg', values='quantidade').fillna(0)
+
+        # Adicionar coluna 'Total' com o somatório das quantidades
+        df_uasg_pivot['Total'] = df_uasg_pivot.sum(axis=1)
+
+        # Ajustar os índices e colunas conforme solicitado
+        df_uasg_pivot.index.name = "Item"
+        df_uasg_pivot.columns.name = "UASG"
         df_uasg_pivot.reset_index(inplace=True)
+
+        # Alterar o nome da coluna de "numero_item" para "Item"
+        df_itens.rename(columns={'numero_item': 'Item', 'quantidade_total': 'Quantidade'}, inplace=True)
 
         with pd.ExcelWriter(caminho_arquivo, engine='xlsxwriter') as writer:
             # Salvar df_itens na aba 'Itens'
             df_itens.to_excel(writer, sheet_name='Itens', index=False)
-            # Salvar df_uasg reorganizado na aba 'UASG_Reorganizado'
-            df_uasg_pivot.to_excel(writer, sheet_name='UASG_Reorganizado', index=False)
+            # Salvar df_uasg reorganizado na aba 'UASG_ordenada'
+            df_uasg_pivot.to_excel(writer, sheet_name='UASG_ordenada', index=False)
 
         QMessageBox.information(None, "Sucesso", f"Os dados foram salvos com sucesso em {caminho_arquivo}")
 
@@ -313,6 +391,8 @@ def salvar_dataframes_em_excel(df_itens, df_uasg, caminho_arquivo="resultado_lic
 
     except Exception as e:
         QMessageBox.critical(None, "Erro", f"Erro ao salvar o arquivo Excel: {e}")
+
+
 def abrir_arquivo_excel(caminho_arquivo):
     try:
         if os.name == 'nt':  # Windows

@@ -101,8 +101,7 @@ class DatabaseContratosManager:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT,
-                registro_comprasnet TEXT
+                assinatura_contrato TEXT
             )
         """)
         conn.commit()
@@ -244,8 +243,7 @@ class SqlModel:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT,
-                registro_comprasnet TEXT
+                assinatura_contrato TEXT
             )
         """):
             print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
