@@ -202,12 +202,12 @@ def inserir_relacao_itens(paragrafo, itens):
     # Limpar parágrafo
     paragrafo.clear()
 
-    # Iterar sobre os itens e gerar campos
-    for item in itens:
-        campos = gerar_campos_item(item)
-        if campos:
-            for texto, negrito in campos:
-                adicione_texto_formatado(paragrafo, texto + '\n', negrito)
+    # # Iterar sobre os itens e gerar campos
+    # for item in itens:
+    #     campos = gerar_campos_item(item)
+    #     if campos:
+    #         for texto, negrito in campos:
+    #             adicione_texto_formatado(paragrafo, texto + '\n', negrito)
 
     # Calcular e adicionar o valor total homologado
     valor_total = sum(float(item["valor_homologado_total_item"] or 0) for item in itens)

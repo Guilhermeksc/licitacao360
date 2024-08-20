@@ -10,7 +10,7 @@ from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
-
+from modules.web_scraping.macros.divulgacao_compras import DivulgacaoComprasMacro
 class SeleniumDriverThread(QThread):
     login_detected = pyqtSignal()  # Sinal para indicar que o login foi detectado
 
@@ -21,7 +21,7 @@ class SeleniumDriverThread(QThread):
 
     def run(self):
         self._initialize_webdriver()
-        self._wait_for_user_to_click_login()
+        self._perform_login_actions()
 
     def _initialize_webdriver(self):
         options = Options()
@@ -34,6 +34,32 @@ class SeleniumDriverThread(QThread):
         self.driver = webdriver.Firefox()
         self.driver.get("http://www.comprasnet.gov.br/seguro/loginPortal.asp")
         self.driver.maximize_window()
+
+    def _perform_login_actions(self):
+        try:
+            # Clique no SVG dentro do botão
+            svg_selector = "#card2 > div > div > div > div.text-right > button > svg > path"
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, svg_selector))).click()
+
+            # Preencha os campos de login
+            login_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#txtLogin")))
+            login_field.send_keys("07668525475")
+
+            password_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#txtSenha")))
+            password_field.send_keys("sPORT.07")
+
+            # Clique no botão de login
+            submit_button_selector = "#card2 > div > div > div.br-form > div.actions.text-right.mt-4 > button"
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, submit_button_selector))).click()
+
+            self.login_detected.emit()  # Emite o sinal quando o login for detectado
+
+        except TimeoutException as e:
+            print(f"Erro ao tentar realizar o login: {e}")
+            QMessageBox.critical(None, "Erro", f"Erro durante o processo de login: {e}")
+        except Exception as e:
+            print(f"Erro inesperado: {e}")
+            QMessageBox.critical(None, "Erro inesperado", f"Ocorreu um erro inesperado: {e}")
 
     def _wait_for_user_to_click_login(self):
         try:
@@ -200,7 +226,15 @@ class WebScrapingWidget(QWidget):
         self.continue_button.setIcon(QIcon(continue_icon))
         self.continue_button.setStyleSheet(self._button_stylesheet())
         self.continue_button.setEnabled(False)
-        self.continue_button.clicked.connect(dialog.accept)
+
+        # Criar o menu com as opções
+        menu = QMenu(self)
+        menu.addAction("Pesquisa de Preços")
+        divulgacao_action = QAction("Divulgação de Compras", self)
+        divulgacao_action.triggered.connect(self._start_divulgacao_de_compras_macro)
+        menu.addAction(divulgacao_action)
+
+        self.continue_button.setMenu(menu)
 
         close_button = QPushButton("Fechar")
         close_button.setIcon(QIcon(close_icon))
@@ -233,3 +267,11 @@ class WebScrapingWidget(QWidget):
 
     def _restore_main_window(self):
         self.main_window.showNormal()
+
+    def _start_divulgacao_de_compras_macro(self):
+        if not self.driver_thread or not self.driver_thread.driver:
+            QMessageBox.warning(self, "Erro", "Driver do Selenium não inicializado.")
+            return
+
+        macro = DivulgacaoComprasMacro(self.driver_thread.driver)
+        macro.executar()

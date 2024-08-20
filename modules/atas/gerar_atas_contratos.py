@@ -195,16 +195,25 @@ class GerarAtasWidget(QWidget):
 
     def setup_treeview(self):
         # Remover ou ocultar a mensagem quando o treeView for exibido
-        if self.message_label:
+        if hasattr(self, 'message_label') and self.message_label:
             self.message_label.hide()
 
-        self.model = QStandardItemModel()  # Inicializando o modelo se ainda não foi inicializado
+        # Verificar se o modelo já foi inicializado
+        if not hasattr(self, 'model') or self.model is None:
+            self.model = QStandardItemModel()  # Inicializando o modelo se ainda não foi inicializado
+        
+        # Criar e configurar o treeView
         self.treeView = CustomTreeView()
         self.treeView.setModel(self.model)
         
-        # Remover a mensagem e adicionar o treeView na área fixa
-        self.fixed_area_layout.removeWidget(self.message_label)
-        self.message_label.deleteLater()  # Opcional: deletar o label para liberar memória
+        # Se o fixed_area_layout já estiver inicializado, remova todos os widgets anteriores
+        if hasattr(self, 'fixed_area_layout'):
+            while self.fixed_area_layout.count():
+                widget_to_remove = self.fixed_area_layout.takeAt(0).widget()
+                if widget_to_remove is not None:
+                    widget_to_remove.deleteLater()
+
+        # Adicionar o treeView na área fixa
         self.fixed_area_layout.addWidget(self.treeView)
 
         self.treeView.header().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -213,7 +222,7 @@ class GerarAtasWidget(QWidget):
         self.treeView.setItemsExpandable(True)  # Garantir que o botão para expandir esteja visível
         self.treeView.setExpandsOnDoubleClick(False)  # Evita a expansão por duplo clique
         self.setup_treeview_styles()
-        
+
     def setup_alert_label(self):
         icon_path = str(self.icons_dir / 'alert.png')
         text = (f"<img src='{icon_path}' style='vertical-align: middle;' width='24' height='24'> "
@@ -1559,6 +1568,12 @@ def format_currency(value):
     return formatted_value
 
 def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx'):
+    # Ordenar os itens, primeiro por 'grupo' (None será considerado menor) e depois por 'item_num'
+    itens_ordenados = sorted(itens, key=lambda x: (x['grupo'] if x['grupo'] is not None else '', x['item_num']))
+    # Print do ordenamento
+    for item in itens_ordenados:
+        print(f"Grupo: {item['grupo']} - Item Num: {item['item_num']}")
+
     wb = Workbook()
     ws = wb.active
 
@@ -1568,9 +1583,16 @@ def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx')
 
     linha_atual = 1
 
-    for item in itens:
+    for item in itens_ordenados:
         ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
-        cell_1 = ws.cell(row=linha_atual, column=1, value=f"Item: {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})")
+        
+        # Adicionando lógica para verificar o valor de grupo
+        if item['grupo'] is not None:
+            valor_cell_1 = f"Grupo {item['grupo']} - Item {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})"
+        else:
+            valor_cell_1 = f"Item {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})"
+        
+        cell_1 = ws.cell(row=linha_atual, column=1, value=valor_cell_1)
         cell_1.font = fonte_tamanho_12_cinza
         cell_1.fill = fundo_cinza
 
@@ -1592,7 +1614,6 @@ def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx')
         # Aplicando a formatação corrigida na célula
         ws.cell(row=linha_atual, column=1, value=f"Quantidade: {quantidade_formatada}").font = fonte_tamanho_10
 
-        
         # Convertendo valores para número antes de formatar
         valor_unitario = float(item['valor_homologado_item_unitario'])
         valor_total = float(item['valor_homologado_total_item'])
@@ -1610,3 +1631,4 @@ def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx')
         linha_atual += 1
 
     wb.save(caminho_arquivo_excel)
+
