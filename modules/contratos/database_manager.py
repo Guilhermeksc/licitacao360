@@ -105,17 +105,7 @@ class DatabaseContratosManager:
             )
         """)
         conn.commit()
-    """
-0 - status,                     1 - dias,                       2 - pode_renovar,                   3 - custeio,                4 - numero_contrato, 
-5 - tipo,  6 - id_processo,     7 - empresa,                    8 - objeto,                         9 - valor_global,           10 - uasg, 
-11 - nup,                       12 - cnpj,                      13 - natureza_continuada,           14 - om,                    15 - sigla_om, 
-16 - orgao_responsavel          17 - material_servico,          18 - link_pncp,                     19 - portaria,              20 - posto_gestor, 
-21 - gestor,                    22 - posto_gestor_substituto,   23 - gestor_substituto,             24 - posto_fiscal,          25 - fiscal, 
-26 - posto_fiscal_substituto,   27 - fiscal_substituto,         28 - posto_fiscal_administrativo,   29 - fiscal_administrativo, 30 - vigencia_inicial,          
-31 - vigencia_final,            32 - setor,                     33 - cp,                            34 - msg,                   35 - comentarios, 
-36 - termo_aditivo,             37 - atualizacao_comprasnet,    38 - instancia_governanca,          39 - comprasnet_contratos,  40 - assinatura_contrato, 41 - registro_status
 
-    """
     def save_dataframe(self, df, table_name):
         conn = self.connect_to_database()
         try:
@@ -253,10 +243,19 @@ class SqlModel:
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=None, icons_dir=self.icons_dir)
         self.model.setTable(table_name)
+        
+        # Configurar a ordenação utilizando o UserRole para a coluna "dias"
+        proxy_model = QSortFilterProxyModel(self.parent)
+        proxy_model.setSourceModel(self.model)
+        proxy_model.setSortRole(Qt.ItemDataRole.UserRole)
+        proxy_model.sort(self.model.fieldIndex("dias"), Qt.SortOrder.DescendingOrder)
+        
         if editable:
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
+        
         self.model.select()
-        return self.model
+        return proxy_model
+
 
     def configure_columns(self, table_view, visible_columns):
         for column in range(self.model.columnCount()):
@@ -329,6 +328,17 @@ class CustomSqlTableModel(QSqlTableModel):
                     return dias
                 except ValueError:
                     return "Data Inválida"
+        elif role == Qt.ItemDataRole.UserRole and index.column() == self.fieldIndex("dias"):
+            vigencia_final_index = self.fieldIndex("vigencia_final")
+            vigencia_final = self.index(index.row(), vigencia_final_index).data()
+            if vigencia_final:
+                try:
+                    vigencia_final_date = datetime.strptime(vigencia_final, '%d/%m/%Y')
+                    hoje = datetime.today()
+                    dias = (vigencia_final_date - hoje).days
+                    return dias
+                except ValueError:
+                    return None
         return super().data(index, role)
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):

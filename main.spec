@@ -1,4 +1,4 @@
-# home.spec
+# main.spec
 # -*- mode: python ; coding: utf-8 -*-
 
 import sys
@@ -24,7 +24,7 @@ a = Analysis(
     hiddenimports=['psutil', 'fitz'],
     hookspath=['.'],  # Adicione o caminho atual para procurar hooks personalizados
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PyQt5'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

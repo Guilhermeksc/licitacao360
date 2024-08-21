@@ -96,9 +96,15 @@ class StackWidgetManager:
 
         # Natureza Continuada
         natureza_continuada_layout, self.natureza_continuada_buttons, self.natureza_continuada_group = WidgetHelper.create_radio_buttons("Natureza Continuada?", ["Sim", "Não"])
-        natureza_continuada_value = data.get('natureza_continuada', 'Sim')
+
+        # Obtém o valor de 'natureza_continuada' e define um valor padrão se estiver vazio ou inválido
+        natureza_continuada_value = data.get('natureza_continuada', '').strip()
+        if natureza_continuada_value not in self.natureza_continuada_buttons:
+            natureza_continuada_value = 'Não'  # Valor padrão
+
         self.natureza_continuada_buttons[natureza_continuada_value].setChecked(True)
         left_layout.addLayout(natureza_continuada_layout)
+
 
         # Material/Serviço (Verificação adicional)
         material_servico_layout, self.material_servico_buttons, self.material_servico_group = WidgetHelper.create_radio_buttons("Material/Serviço:", ["Material", "Serviço"])

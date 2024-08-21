@@ -53,7 +53,7 @@ class ContratosWidget(QMainWindow):
         self.database_manager = DatabaseContratosManager(self.database_path)
 
     def refresh_model(self):
-        self.model.select()
+        self.model.sourceModel().select()
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)
@@ -179,14 +179,15 @@ class UIManager:
         self.apply_custom_style()
 
         center_delegate = CenterAlignDelegate(self.table_view)
-        for column in range(self.model.columnCount()):
+        for column in range(self.model.sourceModel().columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        dias_index = self.model.fieldIndex("dias")
-        status_index = self.model.fieldIndex("status")
+        dias_index = self.model.sourceModel().fieldIndex("dias")
+        status_index = self.model.sourceModel().fieldIndex("status")
 
         self.table_view.setItemDelegateForColumn(dias_index, ColorDelegate(self.table_view))
         self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons_dir, self.table_view))
+
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -205,7 +206,6 @@ class UIManager:
 
         self.update_column_headers()
         self.hide_unwanted_columns()
-
 
     def adjust_columns(self):
         self.table_view.resizeColumnsToContents()
