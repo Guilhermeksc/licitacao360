@@ -178,8 +178,8 @@ class StackWidgetManager:
 
         # Criar combobox para status
         status_options = [
-            "Minuta", "Nota Técnica", "CP Enviada", "MSG Enviada", 
-            "AGU", "Aguardando", "Seção de Contratos"
+            "Ata Gerada", "Empresa", "SIGDEM", "Assinado", "Publicado", "Alerta Prazo",
+            "Seção de Contratos", "Nota Técnica", "AGU", "Prorrogado"
         ]
         status_layout, self.status_combo_box = WidgetHelper.create_combo_box("Status:", status_options, data.get('status'))
         

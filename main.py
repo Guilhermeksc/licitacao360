@@ -347,7 +347,7 @@ def main():
     app = QApplication(sys.argv)
 
     # Apply dark theme.
-    app.setStyleSheet(qdarktheme.load_stylesheet("light"))
+    app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
 
     try:
         window = MainWindow(app)

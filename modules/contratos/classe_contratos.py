@@ -53,7 +53,7 @@ class ContratosWidget(QMainWindow):
         self.database_manager = DatabaseContratosManager(self.database_path)
 
     def refresh_model(self):
-        self.model.sourceModel().select()
+        self.model.select()
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)
@@ -135,7 +135,7 @@ class UIManager:
         self.setup_search_bar_and_buttons()
         self.setup_table_view()
         self.parent.setCentralWidget(self.main_widget)
-
+        
     def setup_search_bar_and_buttons(self):
         search_layout = QHBoxLayout()
         
@@ -168,7 +168,7 @@ class UIManager:
             widget = self.buttons_layout.itemAt(i).widget()
             if isinstance(widget, QPushButton):
                 widget.setStyleSheet("font-size: 14px; min-width: 120px; min-height: 20px; max-width: 120px; max-height: 20px;")
-
+                
     def setup_table_view(self):
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
         self.table_view.setModel(self.model)
@@ -178,16 +178,17 @@ class UIManager:
         self.adjust_columns()
         self.apply_custom_style()
 
+        # Centralizar as colunas
         center_delegate = CenterAlignDelegate(self.table_view)
-        for column in range(self.model.sourceModel().columnCount()):
+        for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        dias_index = self.model.sourceModel().fieldIndex("dias")
-        status_index = self.model.sourceModel().fieldIndex("status")
+        # Ajusta a largura da coluna de ícones
+        icon_column_index = self.model.fieldIndex(self.model.icon_column_name)
+        self.table_view.setColumnWidth(icon_column_index, 24)
 
-        self.table_view.setItemDelegateForColumn(dias_index, ColorDelegate(self.table_view))
-        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons_dir, self.table_view))
-
+        # Reordenar as colunas para garantir que a coluna de ícones esteja na posição correta
+        self.reorder_columns()
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -214,6 +215,7 @@ class UIManager:
     def apply_custom_column_sizes(self):
         header = self.table_view.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(41, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
@@ -224,6 +226,7 @@ class UIManager:
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(0, 70)
+        header.resizeSection(41, 50)
         header.resizeSection(1, 50)
         header.resizeSection(2, 65)
         header.resizeSection(3, 65)
@@ -261,7 +264,6 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
-            0: "Status",
             1: "Dias",
             2: "Renova?",
             3: "Custeio?",
@@ -270,21 +272,25 @@ class UIManager:
             6: "Processo",
             7: "Empresa",
             8: "Objeto",
-            9: "Valor"
+            9: "Valor",
+            41: "Status"  # Cabeçalho da coluna de ícones
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        # Inclua a coluna de ícones na nova ordem
+        new_order = [0, 41, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+        # Inclua a coluna de ícones no conjunto de colunas visíveis
+        visible_columns = {1, 2, 3, 4, 5, 6, 7, 8, 9, 41}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
+
 
 class ButtonManager:
     def __init__(self, parent):

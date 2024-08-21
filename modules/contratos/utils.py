@@ -89,28 +89,97 @@ class WidgetHelper:
             btn.clicked.connect(callback)  # Conecta o callback ao evento de clique
         return btn
 
-class ColorDelegate(QStyledItemDelegate):
+class IconDelegate(QStyledItemDelegate):
+    def __init__(self, image_cache, parent=None):
+        super().__init__(parent)
+        self.image_cache = image_cache
+
     def paint(self, painter, option, index):
         value = index.data()
         if value is not None:
             try:
                 days = int(value)
-                if days < 30:
-                    color = QColor(255, 0, 0)  # Red
-                elif 31 <= days <= 90:
-                    color = QColor(255, 165, 0)  # Orange
-                elif 91 <= days <= 159:
-                    color = QColor(255, 255, 0)  # Yellow
-                else:
-                    color = QColor(0, 255, 0)  # Green
+                icon = None
 
-                option.palette.setColor(QPalette.ColorRole.Text, color)
+                if 60 <= days <= 180:
+                    icon = QPixmap(self.image_cache.get("head_skull.png"))
+                elif 30 <= days < 60:
+                    icon = QPixmap(self.image_cache.get("message_alert.png"))
+
+                if icon:
+                    # Draw the icon on the right side of the cell
+                    icon_rect = option.rect
+                    icon_rect.setLeft(icon_rect.right() - icon.width())
+                    icon_rect.setTop(icon_rect.top() + (icon_rect.height() - icon.height()) // 2)
+                    painter.drawPixmap(icon_rect, icon)
+
+                # Adjust the text area to avoid overlapping with the icon
+                option.rect.setRight(option.rect.right() - icon.width() - 5)
             except ValueError:
                 pass
-        
+
         # Centraliza o texto
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
         super().paint(painter, option, index)
+
+class ColorDelegate(QStyledItemDelegate):
+    def __init__(self, icons_dir, parent=None):
+        super().__init__(parent)
+        self.image_cache = self.load_images(icons_dir, ["head_skull.png", "message_alert.png"])
+
+    def load_images(self, icons_dir, image_names):
+        image_cache = {}
+        for name in image_names:
+            path = icons_dir / name
+            image_cache[name] = str(path)
+        return image_cache
+
+    def paint(self, painter, option, index):
+        value = index.data()
+        if value is not None:
+            try:
+                days = int(value)
+                icon = None
+                color = None
+
+                # Definir ícone com base no valor dos dias
+                if 60 <= days <= 180:
+                    icon = QPixmap(self.image_cache.get("head_skull.png"))
+                elif 30 <= days < 60:
+                    icon = QPixmap(self.image_cache.get("message_alert.png"))
+
+                # Definir cor com base no valor dos dias
+                if days < 30:
+                    color = QColor(255, 0, 0)  # Vermelho
+                elif 31 <= days <= 90:
+                    color = QColor(255, 165, 0)  # Laranja
+                elif 91 <= days <= 159:
+                    color = QColor(255, 255, 0)  # Amarelo
+                else:
+                    color = QColor(0, 255, 0)  # Verde
+
+                # Aplicar a cor ao texto
+                if color:
+                    option.palette.setColor(QPalette.ColorRole.Text, color)
+
+                # Desenhar o ícone
+                if icon:
+                    # Desenhar o ícone no lado direito da célula
+                    icon_rect = option.rect
+                    icon_rect.setLeft(icon_rect.right() - icon.width())
+                    icon_rect.setTop(icon_rect.top() + (icon_rect.height() - icon.height()) // 2)
+                    painter.drawPixmap(icon_rect, icon)
+
+                    # Ajustar a área do texto para evitar sobreposição com o ícone
+                    option.rect.setRight(option.rect.right() - icon.width() - 5)
+                
+            except ValueError:
+                pass
+
+        # Centraliza o texto
+        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
+        super().paint(painter, option, index)
+
         
 class ExportThread(QThread):
     finished = pyqtSignal(str)
