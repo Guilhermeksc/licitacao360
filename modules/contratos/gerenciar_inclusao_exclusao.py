@@ -26,7 +26,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
             'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'indicativo_om', 'om_extenso', 'material_servico', 'link_pncp',
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
-            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_staus','termo_aditivo', 'atualizacao_comprasnet',
+            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_status','termo_aditivo', 'atualizacao_comprasnet',
             'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet'
         ]
 
@@ -173,18 +173,28 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
                 with self.database_manager as conn:
                     DatabaseContratosManager.create_table_controle_contratos(conn)
 
+                # Exibir o DataFrame antes de salvar
+                print("DataFrame antes de salvar no banco de dados:")
+                print(df)
+
                 # Salvar o DataFrame ordenado no banco de dados
                 self.database_manager.save_dataframe(df, 'controle_contratos')
+
+                # Exibir o DataFrame após salvar
+                print("DataFrame após salvar no banco de dados (confirmando os dados salvos):")
+                print(df)
+                
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados e salvos com sucesso.")
             except Exception as e:
                 logging.error("Erro ao carregar tabela: %s", e)
                 Dialogs.warning(self, "Erro ao carregar", str(e))
 
+
     def validate_and_process_data(self, df):
         try:
             self.validate_columns(df)
             self.add_missing_columns(df)
-            self.salvar_detalhes_uasg_sigla_nome(df)
+            # self.salvar_detalhes_uasg_sigla_nome(df)
         except ValueError as e:
             Dialogs.warning(self, "Erro de Validação", str(e))
         except Exception as e:
@@ -202,14 +212,14 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
             if col not in df.columns:
                 df[col] = ""
 
-    def salvar_detalhes_uasg_sigla_nome(self, df):
-        # Exemplo de como preencher detalhes com base no UASG
-        with sqlite3.connect(self.database_om_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
-            om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
-        df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
-        df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
+    # def salvar_detalhes_uasg_sigla_nome(self, df):
+    #     # Exemplo de como preencher detalhes com base no UASG
+    #     with sqlite3.connect(self.database_om_path) as conn:
+    #         cursor = conn.cursor()
+    #         cursor.execute("SELECT uasg, sigla_om, orgao_responsavel FROM controle_om")
+    #         om_details = {row[0]: {'sigla_om': row[1], 'orgao_responsavel': row[2]} for row in cursor.fetchall()}
+    #     df['sigla_om'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('sigla_om', ''))
+    #     df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
 
     def processar_e_atualizar_dados(self, df_csv, df_db):
         # Certificar-se de que todas as colunas estão presentes
@@ -320,94 +330,92 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
         return df_db
 
-    # def atualizar_bd_com_arquivo(self, temp_file_path):
-    #     try:
-    #         print("Iniciando a função 'atualizar_bd_com_arquivo'")
+    def atualizar_bd_com_arquivo(self, temp_file_path):
+        try:
+            print("Iniciando a função 'atualizar_bd_com_arquivo'")
             
-    #         # Excluir a tabela existente 'controle_contratos'
-    #         print("Excluindo a tabela 'controle_contratos'")
-    #         self.excluir_database()
+            # Excluir a tabela existente 'controle_contratos'
+            print("Excluindo a tabela 'controle_contratos'")
+            self.excluir_database()
 
-    #         # Garantir que a tabela foi excluída antes de continuar
-    #         print("Conectado ao banco de dados")
-    #         conn = sqlite3.connect(self.database_path, timeout=10)  # Aumentar o timeout para 10 segundos
-    #         try:
-    #             # Recriar a tabela controle_contratos
-    #             print("Recriando a tabela 'controle_contratos'")
-    #             DatabaseContratosManager.create_table_controle_contratos(conn)
+            # Garantir que a tabela foi excluída antes de continuar
+            print("Conectado ao banco de dados")
+            conn = sqlite3.connect(self.database_path, timeout=10)  # Aumentar o timeout para 10 segundos
+            try:
+                # Recriar a tabela controle_contratos
+                print("Recriando a tabela 'controle_contratos'")
+                DatabaseContratosManager.create_table_controle_contratos(conn)
 
-    #             # Carregar o arquivo temporário para o DataFrame
-    #             print(f"Carregando o arquivo temporário: {temp_file_path}")
-    #             df_temp = pd.read_csv(temp_file_path)
+                # Carregar o arquivo temporário para o DataFrame
+                print(f"Carregando o arquivo temporário: {temp_file_path}")
+                df_temp = pd.read_csv(temp_file_path)
 
-    #             # Verificar duplicatas na coluna 'numero_contrato'
-    #             print("Verificando duplicatas na coluna 'numero_contrato'")
-    #             duplicatas = df_temp[df_temp.duplicated(subset=['numero_contrato'], keep=False)]
-    #             if not duplicatas.empty:
-    #                 print("Duplicatas encontradas no DataFrame:")
-    #                 print(duplicatas[['numero_contrato']])
-    #             else:
-    #                 print("Nenhuma duplicata encontrada inicialmente.")
+                # Verificar duplicatas na coluna 'numero_contrato'
+                print("Verificando duplicatas na coluna 'numero_contrato'")
+                duplicatas = df_temp[df_temp.duplicated(subset=['numero_contrato'], keep=False)]
+                if not duplicatas.empty:
+                    print("Duplicatas encontradas no DataFrame:")
+                    print(duplicatas[['numero_contrato']])
+                else:
+                    print("Nenhuma duplicata encontrada inicialmente.")
 
-    #             # Remover duplicatas com base na coluna 'numero_contrato'
-    #             print("Removendo duplicatas")
-    #             df_temp = df_temp.drop_duplicates(subset=['numero_contrato'])
+                # Remover duplicatas com base na coluna 'numero_contrato'
+                print("Removendo duplicatas")
+                df_temp = df_temp.drop_duplicates(subset=['numero_contrato'])
 
-    #             # Verificar novamente se há duplicatas
-    #             print("Verificando se ainda há duplicatas após a remoção")
-    #             duplicatas_restantes = df_temp[df_temp.duplicated(subset=['numero_contrato'], keep=False)]
-    #             if not duplicatas_restantes.empty:
-    #                 print("Ainda há duplicatas após a remoção:")
-    #                 print(duplicatas_restantes[['numero_contrato']])
-    #             else:
-    #                 print("Nenhuma duplicata restante após a remoção.")
+                # Verificar novamente se há duplicatas
+                print("Verificando se ainda há duplicatas após a remoção")
+                duplicatas_restantes = df_temp[df_temp.duplicated(subset=['numero_contrato'], keep=False)]
+                if not duplicatas_restantes.empty:
+                    print("Ainda há duplicatas após a remoção:")
+                    print(duplicatas_restantes[['numero_contrato']])
+                else:
+                    print("Nenhuma duplicata restante após a remoção.")
 
-    #             # Inserir ou atualizar os dados no banco de dados
-    #             for index, row in df_temp.iterrows():
-    #                 # Reabrir a conexão para cada iteração de inserção
-    #                 conn = sqlite3.connect(self.database_path, timeout=10)
+                # Inserir ou atualizar os dados no banco de dados
+                for index, row in df_temp.iterrows():
+                    # Reabrir a conexão para cada iteração de inserção
+                    conn = sqlite3.connect(self.database_path, timeout=10)
 
-    #                 # Verificar se o número de contrato já existe
-    #                 existing_data = pd.read_sql_query(
-    #                     "SELECT * FROM controle_contratos WHERE numero_contrato = ?",
-    #                     conn,
-    #                     params=(row['numero_contrato'],)
-    #                 )
+                    # Verificar se o número de contrato já existe
+                    existing_data = pd.read_sql_query(
+                        "SELECT * FROM controle_contratos WHERE numero_contrato = ?",
+                        conn,
+                        params=(row['numero_contrato'],)
+                    )
 
-    #                 if not existing_data.empty:
-    #                     print(f"Atualizando o contrato existente: {row['numero_contrato']}")
-    #                     # Atualizar o registro existente
-    #                     df_temp.loc[index:index].to_sql('controle_contratos', conn, if_exists='replace', index=False)
-    #                 else:
-    #                     print(f"Inserindo novo contrato: {row['numero_contrato']}")
-    #                     # Inserir novo registro
-    #                     df_temp.loc[index:index].to_sql('controle_contratos', conn, if_exists='append', index=False)
+                    if not existing_data.empty:
+                        print(f"Atualizando o contrato existente: {row['numero_contrato']}")
+                        # Atualizar o registro existente
+                        df_temp.loc[index:index].to_sql('controle_contratos', conn, if_exists='replace', index=False)
+                    else:
+                        print(f"Inserindo novo contrato: {row['numero_contrato']}")
+                        # Inserir novo registro
+                        df_temp.loc[index:index].to_sql('controle_contratos', conn, if_exists='append', index=False)
 
-    #                 conn.close()  # Fechar a conexão após cada operação para evitar bloqueios
+                    conn.close()  # Fechar a conexão após cada operação para evitar bloqueios
 
-    #             print("Tabela 'controle_contratos' atualizada com sucesso.")
-    #         except sqlite3.OperationalError as e:
-    #             print(f"Erro ao atualizar a tabela 'controle_contratos': {str(e)}")
-    #             raise e
-    #         except Exception as e:
-    #             print(f"Erro inesperado ao atualizar a tabela: {str(e)}")
-    #             raise e
-    #         finally:
-    #             if conn:
-    #                 print("Fechando a conexão com o banco de dados")
-    #                 conn.close()
-    #     except sqlite3.OperationalError as e:
-    #         print(f"Erro ao atualizar a tabela 'controle_contratos': {str(e)}")
-    #         raise e
-    #     except Exception as e:
-    #         print(f"Erro inesperado ao atualizar a tabela: {str(e)}")
-    #         raise e
-    #     finally:
-    #         # Garantir que a conexão seja fechada, caso ainda esteja aberta
-    #         print("Fechando a conexão com o banco de dados")
-    #         self.database_manager.close_connection()
-
-
+                print("Tabela 'controle_contratos' atualizada com sucesso.")
+            except sqlite3.OperationalError as e:
+                print(f"Erro ao atualizar a tabela 'controle_contratos': {str(e)}")
+                raise e
+            except Exception as e:
+                print(f"Erro inesperado ao atualizar a tabela: {str(e)}")
+                raise e
+            finally:
+                if conn:
+                    print("Fechando a conexão com o banco de dados")
+                    conn.close()
+        except sqlite3.OperationalError as e:
+            print(f"Erro ao atualizar a tabela 'controle_contratos': {str(e)}")
+            raise e
+        except Exception as e:
+            print(f"Erro inesperado ao atualizar a tabela: {str(e)}")
+            raise e
+        finally:
+            # Garantir que a conexão seja fechada, caso ainda esteja aberta
+            print("Fechando a conexão com o banco de dados")
+            self.database_manager.close_connection()
 
     def format_numero_contrato(self, contrato, uasg):
         numero, ano = contrato.split('/')

@@ -120,6 +120,7 @@ class InicioWidget(QWidget):
             "website_menu.png", "automation.png", "pdf.png"
         ]
         return self.load_images(self.icons_dir, image_file_names)
+    
 
     def load_images(self, icons_dir, image_file_names):
         images = {}

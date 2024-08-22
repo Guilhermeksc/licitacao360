@@ -350,7 +350,7 @@ class AtualizarDadosContratos(QDialog):
 
     def setupUI(self):
         self.setWindowTitle("Atualizar Dados do Contrato")
-        self.setGeometry(100, 100, 800, 600)
+        self.setFixedSize(1200, 600)
 
         main_layout = QVBoxLayout(self)
 
@@ -645,34 +645,34 @@ class AtualizarDadosContratos(QDialog):
                 'empresa': self.stack_manager.line_edits["empresa"].text().strip(),
                 'objeto': self.stack_manager.line_edits["objeto"].text().strip(),
                 'valor_global': self.stack_manager.line_edits["valor_global"].text().strip(),
-                'uasg': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'uasg': self._get_valid_value('uasg'), 
                 'nup': self.stack_manager.line_edits["nup"].text().strip(),
                 'cnpj': self.stack_manager.line_edits["cnpj"].text().strip(),
                 'natureza_continuada': 'Sim' if self.stack_manager.natureza_continuada_buttons['Sim'].isChecked() else 'Não',
-                'om': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'om': self._get_valid_value('om'), 
                 'material_servico': 'Material' if self.stack_manager.material_servico_buttons['Material'].isChecked() else 'Serviço',
-                'link_pncp': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'portaria': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_gestor': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'gestor': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_gestor_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'gestor_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_fiscal': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'fiscal': 'Rodolfo',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_fiscal_substituto': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'fiscal_substituto': 'Vicenti',  # Exemplo de valor fixo, ajuste conforme necessário
-                'posto_fiscal_administrativo': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'fiscal_administrativo': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'link_pncp': self._get_valid_value('link_pncp'),
+                'portaria': self._get_valid_value('portaria'),
+                'posto_gestor': self._get_valid_value('posto_gestor'),
+                'gestor': self._get_valid_value('gestor'),
+                'posto_gestor_substituto': self._get_valid_value('posto_gestor_substituto'),
+                'gestor_substituto': self._get_valid_value('gestor_substituto'),
+                'posto_fiscal': self._get_valid_value('posto_fiscal'),
+                'fiscal': self._get_valid_value('fiscal'), 
+                'posto_fiscal_substituto': self._get_valid_value('posto_fiscal_substituto'),
+                'fiscal_substituto': self._get_valid_value('fiscal_substituto'), 
+                'posto_fiscal_administrativo': self._get_valid_value('posto_fiscal_administrativo'),
+                'fiscal_administrativo': self._get_valid_value('fiscal_administrativo'),
                 'vigencia_inicial': self.stack_manager.date_edit_inicial.date().toString('dd/MM/yyyy'),
                 'vigencia_final': self.stack_manager.date_edit_final.date().toString('dd/MM/yyyy'),
-                'setor': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'cp': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'msg': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'setor': self._get_valid_value('setor'),
+                'cp': self._get_valid_value('cp'),
+                'msg': self._get_valid_value('msg'),
                 'comentarios': comments_text,  # Salva os comentários reais coletados
-                'termo_aditivo': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'atualizacao_comprasnet': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'instancia_governanca': '',  # Exemplo de valor fixo, ajuste conforme necessário
-                'comprasnet_contratos': '',  # Exemplo de valor fixo, ajuste conforme necessário
+                'termo_aditivo': self._get_valid_value('termo_aditivo'),
+                'atualizacao_comprasnet': self._get_valid_value('atualizacao_comprasnet'),
+                'instancia_governanca': self._get_valid_value('instancia_governanca'),
+                'comprasnet_contratos': self._get_valid_value('comprasnet_contratos'),
                 'assinatura_contrato': None,
                 'registro_status': registro_texto
             }
@@ -688,6 +688,13 @@ class AtualizarDadosContratos(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
+
+    def _get_valid_value(self, key):
+        """Retorna o valor válido do campo ou o valor existente no DataFrame."""
+        new_value = self.stack_manager.line_edits[key].text().strip()
+        if new_value == '':
+            return self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key]
+        return new_value
 
     def save_comments(self):
         comments = [self.comments_view.item(i).text() for i in range(self.comments_view.count())]

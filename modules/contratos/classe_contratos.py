@@ -29,7 +29,7 @@ class ContratosWidget(QMainWindow):
             'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'indicativo_om', 'om_extenso', 'material_servico', 'link_pncp',
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
-            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_staus','termo_aditivo', 'atualizacao_comprasnet',
+            'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_status','termo_aditivo', 'atualizacao_comprasnet',
             'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet', 'categoria'
         ]
         self.setup_managers()
@@ -49,7 +49,7 @@ class ContratosWidget(QMainWindow):
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
         self.database_path = Path(load_config("CONTROLE_CONTRATOS_DADOS", str(CONTROLE_CONTRATOS_DADOS)))
-        self.database_om_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        # self.database_om_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseContratosManager(self.database_path)
 
     def refresh_model(self):
@@ -191,7 +191,6 @@ class UIManager:
         self.table_view.setItemDelegateForColumn(41, custom_delegate)
 
         self.reorder_columns()
-
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)

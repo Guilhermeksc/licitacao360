@@ -113,7 +113,20 @@ class DatabaseContratosManager:
     def save_dataframe(self, df, table_name):
         conn = self.connect_to_database()
         try:
-            df.to_sql(table_name, conn, if_exists='append', index=False)
+            # Exibir o DataFrame antes de salvar
+            print(f"Salvando DataFrame na tabela '{table_name}':")
+
+            # Tentar salvar linha por linha para identificar o problema
+            for index, row in df.iterrows():
+                try:
+                    row.to_frame().T.to_sql(table_name, conn, if_exists='append', index=False)
+                except sqlite3.IntegrityError as e:
+                    # Identificar o valor duplicado
+                    valor_duplicado = row['numero_contrato']
+                    mensagem_erro = f"Erro ao salvar o DataFrame: O valor '{valor_duplicado}' na coluna 'numero_contrato' já existe no banco de dados."
+                    print(mensagem_erro)
+                    QMessageBox.warning(None, "Erro de Duplicação", mensagem_erro)
+                    break
         except sqlite3.Error as e:
             logging.error(f"Error saving dataframe: {e}")
         finally:
@@ -238,7 +251,7 @@ class SqlModel:
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
                 assinatura_contrato TEXT,
-                categoria TEXT,
+                categoria TEXT
             )
         """):
             print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
