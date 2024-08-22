@@ -31,6 +31,9 @@ class DatabaseContratosManager:
             self.connection = None
             # print(f"Conexão com o banco de dados fechada em {self.db_path}")
 
+    def is_closed(self):
+        return self.connection is None
+
     def __enter__(self):
         self.connect_to_database()
         return self.connection
@@ -101,7 +104,8 @@ class DatabaseContratosManager:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT
+                assinatura_contrato TEXT,
+                categoria TEXT
             )
         """)
         conn.commit()
@@ -233,7 +237,8 @@ class SqlModel:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT
+                assinatura_contrato TEXT,
+                categoria TEXT,
             )
         """):
             print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
@@ -291,6 +296,22 @@ class CustomSqlTableModel(QSqlTableModel):
         return super().columnCount(parent) + 1
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+
+        if self.icons_dir and role == Qt.ItemDataRole.DecorationRole:
+            if index.column() == self.fieldIndex("pode_renovar"):
+                pode_renovar = self.index(index.row(), self.fieldIndex("pode_renovar")).data()
+                if pode_renovar == 'Sim':
+                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
+                elif pode_renovar == 'Não':
+                    return QIcon(str(self.icons_dir / 'unchecked.png'))
+            elif index.column() == self.fieldIndex("custeio"):
+                custeio = self.index(index.row(), self.fieldIndex("custeio")).data()
+                if custeio == 'Sim':
+                    return QIcon(str(self.icons_dir / 'thumb-up.png'))
+                elif custeio == 'Não':
+                    return QIcon(str(self.icons_dir / 'unchecked.png'))
+
+
         # Lógica para a coluna "dias"
         if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("dias"):
             vigencia_final_index = self.fieldIndex("vigencia_final")
@@ -303,69 +324,6 @@ class CustomSqlTableModel(QSqlTableModel):
                     return dias
                 except ValueError:
                     return "Data Inválida"
-
-        # Lógica para a coluna de ícones ao lado direito de "dias"
-        if index.column() == self.fieldIndex(self.icon_column_name) and role == Qt.ItemDataRole.DecorationRole:
-            if self.icons_dir:
-                # Lógica para ícones baseados em "dias"
-                dias_index = self.fieldIndex("dias")
-                dias = self.index(index.row(), dias_index).data()
-
-                image_dias = None
-                if isinstance(dias, int):
-                    if 60 <= dias <= 180:
-                        image_dias = QImage(str(self.icons_dir / "message_alert.png"))
-                        print(f"[DEBUG] - Imagem para dias (60-180): {str(self.icons_dir / 'message_alert.png')}")
-                    elif 1 <= dias < 60:
-                        image_dias = QImage(str(self.icons_dir / "head_skull.png"))
-                        print(f"[DEBUG] - Imagem para dias (1-60): {str(self.icons_dir / 'head_skull.png')}")
-
-                # Lógica para ícones baseados em "status"
-                status_index = self.fieldIndex("status")
-                status = self.index(index.row(), status_index).data()
-
-                status_images = {
-                    'Minuta': 'status_secao_contratos.png',
-                    'Nota Técnica': 'status_nt.png',
-                    'Aguardando': 'status_cp_msg.png',
-                    'AGU': 'status_agu.png',
-                    'Seção de Contratos': 'status_secao_contratos.png',
-                    'CP Enviada': '.png',
-                }
-
-                image_status = QImage(str(self.icons_dir / status_images[status])) if status in status_images else None
-
-                if image_status:
-                    print(f"[DEBUG] - Imagem para status '{status}': {str(self.icons_dir / status_images[status])}")
-
-                # Defina o tamanho desejado das imagens
-                desired_image_size = QSize(64, 64)
-
-                # Redimensiona as imagens
-                if image_dias:
-                    image_dias = image_dias.scaled(desired_image_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                    print(f"[DEBUG] - Tamanho da imagem dias depois da escala: {image_dias.size()}")
-
-                if image_status:
-                    image_status = image_status.scaled(desired_image_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                    print(f"[DEBUG] - Tamanho da imagem status depois da escala: {image_status.size()}")
-
-                # Combina as imagens (se ambas existirem)
-                if image_status or image_dias:
-                    pixmap_width = 2 * desired_image_size.width()
-                    pixmap = QPixmap(pixmap_width, desired_image_size.height())  # Ajusta o pixmap para acomodar ambas as imagens
-                    pixmap.fill(Qt.GlobalColor.transparent)  # Preenche o fundo com transparência
-                    painter = QPainter(pixmap)
-
-                    if image_status:
-                        painter.drawPixmap(0, 0, QPixmap.fromImage(image_status))  # Desenha a imagem de status
-                    if image_dias:
-                        painter.drawPixmap(desired_image_size.width(), 0, QPixmap.fromImage(image_dias))  # Desenha a imagem de dias ao lado
-
-                    painter.end()
-                    return QIcon(pixmap)
-
-            return None
 
         # Lógica para cores da coluna "dias"
         if role == Qt.ItemDataRole.ForegroundRole and index.column() == self.fieldIndex("dias"):

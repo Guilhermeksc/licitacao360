@@ -30,7 +30,7 @@ class ContratosWidget(QMainWindow):
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
             'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_staus','termo_aditivo', 'atualizacao_comprasnet',
-            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet'
+            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet', 'categoria'
         ]
         self.setup_managers()
         self.load_initial_data()
@@ -59,7 +59,7 @@ class ContratosWidget(QMainWindow):
         self.setCentralWidget(self.ui_manager.main_widget)
 
     def load_initial_data(self):
-        self.image_cache = load_images(self.icons_dir, ["production.png", "production_red.png", "website_menu.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "report.png", "management.png"])
+        self.image_cache = load_images(self.icons_dir, ["data-transfer.png", "production.png", "production_red.png", "csv.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "excel.png", "calendar.png", "message_alert.png", "management.png"])
 
     def show_mensagem_dialog(self):
         selected_index = self.ui_manager.table_view.selectionModel().currentIndex()
@@ -76,21 +76,24 @@ class ContratosWidget(QMainWindow):
         df_registro_selecionado = pd.DataFrame([row_data])
         
         # Print do DataFrame completo para depuração
-        print(f"[DEBUG] - DataFrame completo:\n{df_registro_selecionado}")
+        # print(f"[DEBUG] - DataFrame completo:\n{df_registro_selecionado}")
 
         indice_linha = source_index.row()
-        print(f"[DEBUG] - Indice da linha selecionada: {indice_linha}")  # Depuração
 
         if df_registro_selecionado is not None and not df_registro_selecionado.empty:
             dialog = MensagemDialog(df_registro_selecionado, self.icons_dir, indice_linha, self)
             dialog.exec()
 
-
     def gerenciar_itens(self):
         # Encerrar conexões existentes antes de abrir o diálogo
         self.close_database_connections()
+        
+        # Adicionar print para verificar se o banco de dados foi fechado
+        print("Database connection closed:", self.database_manager.is_closed())
+        
         dialog = GerenciarInclusaoExclusaoContratos(self.icons_dir, self.database_path, self)
         dialog.exec()
+
 
     def treeview_atas(self):
         self.close_database_connections()
@@ -183,12 +186,12 @@ class UIManager:
         for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        # Ajusta a largura da coluna de ícones
-        icon_column_index = self.model.fieldIndex(self.model.icon_column_name)
-        self.table_view.setColumnWidth(icon_column_index, 24)
+        # Configurar o CustomItemDelegate para a coluna 41
+        custom_delegate = CustomItemDelegate(self.icons_dir, self.table_view)
+        self.table_view.setItemDelegateForColumn(41, custom_delegate)
 
-        # Reordenar as colunas para garantir que a coluna de ícones esteja na posição correta
         self.reorder_columns()
+
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -214,8 +217,8 @@ class UIManager:
 
     def apply_custom_column_sizes(self):
         header = self.table_view.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(41, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
@@ -226,7 +229,7 @@ class UIManager:
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(0, 70)
-        header.resizeSection(41, 50)
+        header.resizeSection(41, 110)
         header.resizeSection(1, 50)
         header.resizeSection(2, 65)
         header.resizeSection(3, 65)
@@ -264,6 +267,7 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
+            41: "Status",
             1: "Dias",
             2: "Renova?",
             3: "Custeio?",
@@ -273,14 +277,14 @@ class UIManager:
             7: "Empresa",
             8: "Objeto",
             9: "Valor",
-            41: "Status"  # Cabeçalho da coluna de ícones
+              # Cabeçalho da coluna de ícones
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
         # Inclua a coluna de ícones na nova ordem
-        new_order = [0, 41, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        new_order = [41, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
@@ -300,10 +304,10 @@ class ButtonManager:
 
     def create_buttons(self):
         button_specs = [
-            ("  Mensagem", self.parent.image_cache['report'], self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
+            ("  Mensagem", self.parent.image_cache['message_alert'], self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
             ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Abre a janela de visualização de atas"),
-            ("  Contratos", self.parent.image_cache['production'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
-            ("  Alterar Dados", self.parent.image_cache['website_menu'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
+            ("  Contratos", self.parent.image_cache['production_red'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
+            ("  Sincronizar", self.parent.image_cache['csv'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
             ("  Abrir Tabela", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
         ]
         for text, icon, callback, tooltip in button_specs:
@@ -331,15 +335,63 @@ class CenterAlignDelegate(QStyledItemDelegate):
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, icons, parent=None):
+    def __init__(self, icons_dir, parent=None):
         super().__init__(parent)
-        self.icons = icons
+        self.icons_dir = icons_dir
 
     def paint(self, painter, option, index):
-        value = index.data(Qt.ItemDataRole.DecorationRole)
-        if value:
-            icon = value
-            icon.paint(painter, option.rect, Qt.AlignmentFlag.AlignCenter)
+        rect = option.rect
+        model = index.model()
+
+        # Se for um modelo proxy, pegue o modelo subjacente
+        if isinstance(model, QSortFilterProxyModel):
+            model = model.sourceModel()
+
+        # Verifica se estamos na coluna de índice 41
+        if index.column() == 41:
+            dias_icon = None
+            status_icon = None
+
+            # Lógica para obter os ícones com base nos valores das colunas "dias" e "status"
+            dias_index = index.siblingAtColumn(model.fieldIndex("dias"))
+            dias = dias_index.data()
+            if isinstance(dias, int):
+                if dias > 180:
+                    dias_icon = QIcon(str(self.icons_dir / "confirm.png"))
+                if 60 <= dias <= 180:
+                    dias_icon = QIcon(str(self.icons_dir / "message_alert.png"))
+                elif 1 <= dias < 60:
+                    dias_icon = QIcon(str(self.icons_dir / "head_skull.png"))
+
+            status_index = index.siblingAtColumn(model.fieldIndex("status"))
+            status = status_index.data()
+            status_images = {
+                'SIGDEM': 'status_sigdem.png',
+                'Nota Técnica': 'status_nota_tecnica.png',
+                'Prorrogado': 'status_prorrogado.png',
+                'Publicado': 'status_publicado.png',
+                'Alerta Prazo': 'status_alerta_prazo.png',
+                'Ata Gerada': 'status_ata_gerada.png',
+                'Empresa': 'status_empresa.png',
+                'Assinado': 'status_assinado.png',
+                'AGU': 'status_agu.png',
+                'Seção de Contratos': 'status_secao_contratos.png',
+            }
+            if status in status_images:
+                status_icon = QIcon(str(self.icons_dir / status_images[status]))
+
+            # Desenhar ícones na célula
+            if dias_icon or status_icon:
+                if dias_icon:
+                    # Ajuste normal para dias_icon
+                    dias_icon.paint(painter, rect.adjusted(2, 2, -rect.width() * 2 // 3, -2), Qt.AlignmentFlag.AlignLeft)
+                if status_icon:
+                    # Aumenta o espaço para status_icon
+                    status_icon.paint(painter, rect.adjusted(rect.width() // 3, 2, -2, -2), Qt.AlignmentFlag.AlignRight)
+            else:
+                super().paint(painter, option, index)
         else:
+            # Para outras colunas, usa a pintura padrão
             super().paint(painter, option, index)
 
+            super().paint(painter, option, index)

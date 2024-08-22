@@ -68,12 +68,16 @@ class WidgetHelper:
         combo_box.addItems(options)
         combo_box.setStyleSheet("font-size: 14px;")
         if initial_value:
-            index = combo_box.findText(initial_value)
+            print(f"Tentando definir o valor inicial: {initial_value}")  # Adicionado para depuração
+            index = combo_box.findText(initial_value, Qt.MatchFlag.MatchExactly)
             if index != -1:
                 combo_box.setCurrentIndex(index)
+            else:
+                print(f"Valor {initial_value} não encontrado nas opções.")  # Adicionado para depuração
         layout.addWidget(label)
         layout.addWidget(combo_box)
         return layout, combo_box
+
     
     @staticmethod
     def create_button(text="", icon=None, callback=None, tooltip_text="", button_size=None, icon_size=None):

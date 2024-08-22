@@ -176,12 +176,12 @@ class StackWidgetManager:
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Criar combobox para status
         status_options = [
             "Ata Gerada", "Empresa", "SIGDEM", "Assinado", "Publicado", "Alerta Prazo",
             "Seção de Contratos", "Nota Técnica", "AGU", "Prorrogado"
         ]
         status_layout, self.status_combo_box = WidgetHelper.create_combo_box("Status:", status_options, data.get('status'))
+
         
         # Criar ícone para o botão de registro de status
         registrar_status_icon = QIcon(str(self.icons_dir / "registrar_status.png"))
@@ -522,7 +522,7 @@ class AtualizarDadosContratos(QDialog):
         data = self.df_registro_selecionado.iloc[0].to_dict()
         print("Dados extraídos do DataFrame:", data)  # Adicionado print para depuração
         return {
-            'status': data.get('Status', 'N/A'),
+            'status': data.get('status', 'N/A'),
             'dias': data.get('Dias', 'N/A'),
             'pode_renovar': data.get('Renova?', 'N/A'),
             'custeio': data.get('Custeio?', 'N/A'),
@@ -611,19 +611,29 @@ class AtualizarDadosContratos(QDialog):
 
     def save_changes(self):
         try:
-            # Certifique-se de que o widget "Status" foi criado
-            if self.stack_manager.status_combo_box is None:
-                self.stack_manager.create_widget_status()
-
-            # Verifique se status_combo_box está corretamente inicializado
-            status_value = self.stack_manager.status_combo_box.currentText() if self.stack_manager.status_combo_box.currentText() else "Aguardando"
+            # Verifique se o combo box de status foi criado e está acessível
+            if hasattr(self.stack_manager, 'status_combo_box') and self.stack_manager.status_combo_box is not None:
+                status_value = self.stack_manager.status_combo_box.currentText().strip()
+            else:
+                # Se o status_combo_box não estiver disponível, mantenha o valor atual do database
+                status_value = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'status']
+                if not status_value or status_value.strip() == "":
+                    status_value = "Seção de Contratos"  # Valor padrão
 
             # Coletar comentários reais
-            comments = [self.stack_manager.comments_view.item(i).text() for i in range(self.stack_manager.comments_view.count())]
-            comments_text = "\n".join(comments)
+            if hasattr(self.stack_manager, 'comments_view') and self.stack_manager.comments_view is not None:
+                comments = [self.stack_manager.comments_view.item(i).text() for i in range(self.stack_manager.comments_view.count())]
+                comments_text = "\n".join(comments)
+            else:
+                comments_text = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'comentarios'] or ""
 
-            registro_texto = [self.stack_manager.records_view.item(i).text() for i in range(self.stack_manager.records_view.count())]
-            registro_texto = "\n".join(registro_texto)
+            # Coletar registros reais
+            if hasattr(self.stack_manager, 'records_view') and self.stack_manager.records_view is not None:
+                registro_texto = [self.stack_manager.records_view.item(i).text() for i in range(self.stack_manager.records_view.count())]
+                registro_texto = "\n".join(registro_texto)
+            else:
+                registro_texto = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'registro_status'] or ""
+
             
             data = {
                 'status': status_value,
