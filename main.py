@@ -13,6 +13,7 @@ from modules.custom_selenium.selenium_automation import SeleniumAutomacao
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.menu_superior.menu_manager import MenuManager
 from modules.web_scraping.web_scrapping_initial import WebScrapingWidget
+from modules.etp.etp_layout import ETPWidget
 from modules.manipular_pdf.pdf import ManipularPDFsWidget, RelatoriaWidget
 
 from pathlib import Path
@@ -252,6 +253,7 @@ class MainWindow(QMainWindow):
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
             "Matriz de Riscos": self.setup_matriz_riscos,
+            "ETP": self.setup_etp,
             "Selenium": self.setup_selenium_automacao,
             "Web Scraping": self.setup_webscraping,
             "Manipular PDF's": self.setup_manipular_pdfs,
@@ -287,6 +289,11 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.matriz_riscos_widget = MatrizRiscosWidget(self)
         self.content_layout.addWidget(self.matriz_riscos_widget)
+
+    def setup_etp(self):
+        self.clear_content_area()
+        self.etp_widget = ETPWidget(self)
+        self.content_layout.addWidget(self.etp_widget)
 
     def setup_selenium_automacao(self):
         self.clear_content_area()

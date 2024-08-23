@@ -63,6 +63,7 @@ MARINHA_PATH = RESOURCES_DIR / "marinha.png"
 CEIMBRA_BG = RESOURCES_DIR / "ceimbra_bg.png"
 
 
+
 # Diretórios de templates
 TEMPLATE_DIR = RESOURCES_DIR / "template"
 CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
@@ -93,6 +94,10 @@ CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/control
 CONTROLE_ATAS_DADOS = Path(load_config("CONTROLE_ATAS", BASE_DIR / "database/controle_atas.db"))
 CONTROLE_CONTRATOS_DADOS = Path(load_config("CONTROLE_CONTRATOS", BASE_DIR / "database/controle_contrato.db"))                     
 CONTROLE_CONTRATACAO_DIRETAS = Path(load_config("CONTROLE_CONTRATACAO_DIRETAS", BASE_DIR / "database/controle_contratacao_direta.db"))
+
+
+ETP_DIR = MODULES_DIR / "etp"
+API_PATH = ETP_DIR / "config.ini"
 
 DATABASE_DIR = Path(load_config("DATABASE_DIR", BASE_DIR / "database"))
 PDF_DIR = Path(load_config("PDF_DIR", DATABASE_DIR / "pasta_homologacao"))
