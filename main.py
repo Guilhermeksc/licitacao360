@@ -5,7 +5,7 @@ from PyQt6.QtCore import *
 import qdarktheme
 from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
-from modules.atas.gerar_atas_contratos import GerarAtasWidget
+from modules.atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.novo_planejamento_button import PlanejamentoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.contratos.classe_contratos import ContratosWidget
@@ -14,7 +14,8 @@ from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.menu_superior.menu_manager import MenuManager
 from modules.web_scraping.web_scrapping_initial import WebScrapingWidget
 from modules.etp.etp_layout import ETPWidget
-from modules.manipular_pdf.pdf import ManipularPDFsWidget, RelatoriaWidget
+from modules.manipular_pdf.pdf import ManipularPDFsWidget, PNCPConsultationApp
+from modules.api_comprasnet_contratos.consulta_atas import ComprasnetContratosAPI
 
 from pathlib import Path
 
@@ -180,7 +181,8 @@ class MainWindow(QMainWindow):
             "Selenium",
             "Web Scraping",
             "Manipular PDF's",
-            "Relatoria"
+            "API PNCP",
+            "API Contratos"
         ]
 
         for button_name in menu_buttons:
@@ -257,7 +259,8 @@ class MainWindow(QMainWindow):
             "Selenium": self.setup_selenium_automacao,
             "Web Scraping": self.setup_webscraping,
             "Manipular PDF's": self.setup_manipular_pdfs,
-            "Relatoria": self.setup_relatoria
+            "API PNCP": self.setup_api_pncp,
+            "API Contratos": self.setup_api_comprasnet_contratos
         }
         action = content_actions.get(content_name)
         if action:
@@ -310,10 +313,15 @@ class MainWindow(QMainWindow):
         self.manipular_pdfs_widget = ManipularPDFsWidget(self)
         self.content_layout.addWidget(self.manipular_pdfs_widget)
 
-    def setup_relatoria(self):
+    def setup_api_pncp(self):
         self.clear_content_area()
-        self.relatoria_widget = RelatoriaWidget(self)
-        self.content_layout.addWidget(self.relatoria_widget)
+        self.pncp_widget = PNCPConsultationApp(self)
+        self.content_layout.addWidget(self.pncp_widget)
+
+    def setup_api_comprasnet_contratos(self):
+        self.clear_content_area()
+        self.comprasnet_contratos_widget = ComprasnetContratosAPI(self)
+        self.content_layout.addWidget(self.comprasnet_contratos_widget)
 
     def clear_content_area(self, keep_image_label=False):
         for i in reversed(range(self.content_layout.count())):

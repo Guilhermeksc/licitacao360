@@ -71,12 +71,12 @@ class DatabaseDialog(QDialog):
 
     def cabecalho_layout(self):
         header_layout = QHBoxLayout()
-        title_label = QLabel("<div style='font-size: 32px; font-weight: bold; color: navy;'>Gerenciamento do Database</div>")
+        title_label = QLabel("<div style='font-size: 32px; font-weight: bold;'>Gerenciamento do Database</div>")
         header_layout.addWidget(title_label)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         
-        pixmap = QPixmap(str(MARINHA_PATH))
-        pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        pixmap = QPixmap(str(IMAGE_PATH / "licitacao360_brasil"))
+        pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel()
         image_label.setPixmap(pixmap)
         header_layout.addWidget(image_label)
@@ -104,15 +104,12 @@ class DatabaseDialog(QDialog):
         self.setLayout(layout)
 
     def add_action_buttons(self, layout):
-        icon_save = QIcon(str(ICONS_DIR / "save_to_drive.png"))
         icon_load = QIcon(str(ICONS_DIR / "processing.png"))
         icon_delete = QIcon(str(ICONS_DIR / "delete.png"))
 
-        self.save_button = self.create_button("Salvar", icon_save, self.save_data, "Salvar dados atuais no banco de dados")
         self.load_button = self.create_button("Carregar", icon_load, self.load_data, "Carregar dados de uma tabela do banco de dados")
         self.delete_button = self.create_button("Excluir Database", icon_delete, self.populate_and_show_delete_options, "Excluir uma tabela selecionada do banco de dados")
 
-        layout.addWidget(self.save_button)
         layout.addWidget(self.load_button)
         layout.addWidget(self.delete_button)
 
@@ -159,17 +156,17 @@ class DatabaseDialog(QDialog):
                     self.populate_and_show_delete_options()  # Re-populate list and reset state
 
             
-    def save_data(self):
-        if isinstance(self.dataframe, pd.DataFrame) and not self.dataframe.empty:
-            print("Salvando DataFrame com as colunas:", self.dataframe.columns)
-            name, ok = QInputDialog.getText(self, "Salvar DataFrame", "Digite o nome da tabela:")
-            if ok and name:
-                with self.db_manager as conn:
-                    self.dataframe.to_sql(name, conn, if_exists='replace', index=False)
-                QMessageBox.information(self, "Sucesso", "DataFrame salvo com sucesso!")
-                self.accept()  # Fecha o diálogo após salvar com sucesso
-        else:
-            QMessageBox.critical(self, "Erro", "Nenhum DataFrame válido disponível para salvar ou o objeto não é um DataFrame.")
+    # def save_data(self):
+    #     if isinstance(self.dataframe, pd.DataFrame) and not self.dataframe.empty:
+    #         print("Salvando DataFrame com as colunas:", self.dataframe.columns)
+    #         name, ok = QInputDialog.getText(self, "Salvar DataFrame", "Digite o nome da tabela:")
+    #         if ok and name:
+    #             with self.db_manager as conn:
+    #                 self.dataframe.to_sql(name, conn, if_exists='replace', index=False)
+    #             QMessageBox.information(self, "Sucesso", "DataFrame salvo com sucesso!")
+    #             self.accept()  # Fecha o diálogo após salvar com sucesso
+    #     else:
+    #         QMessageBox.critical(self, "Erro", "Nenhum DataFrame válido disponível para salvar ou o objeto não é um DataFrame.")
 
     def load_data(self):
         with self.db_manager as conn:
