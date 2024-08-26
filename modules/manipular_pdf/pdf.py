@@ -5,7 +5,7 @@ import sys
 import requests
 
 from diretorios import ICONS_DIR
-
+import pandas as pd
 from pathlib import Path
 
 class ManipularPDFsWidget(QWidget):
@@ -57,7 +57,7 @@ class PNCPConsultationApp(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setStyleSheet("background-color: transparent;")  # Define o fundo transparente
+        self.setStyleSheet("background-color: transparent;")
 
         main_layout = QVBoxLayout(self)
 
@@ -67,27 +67,27 @@ class PNCPConsultationApp(QWidget):
         # Campos de entrada
         main_layout.addWidget(QLabel("Data Inicial (Formato: AAAAMMDD):"))
         self.data_inicial_input = QLineEdit(self)
-        self.data_inicial_input.setText("20240601")  # Define a data inicial padrão
+        self.data_inicial_input.setText("20240601")
         main_layout.addWidget(self.data_inicial_input)
 
         main_layout.addWidget(QLabel("Data Final (Formato: AAAAMMDD):"))
         self.data_final_input = QLineEdit(self)
-        self.data_final_input.setText("20240820")  # Define a data final padrão
+        self.data_final_input.setText("20240820")
         main_layout.addWidget(self.data_final_input)
 
         main_layout.addWidget(QLabel("CNPJ:"))
         self.cnpj_input = QLineEdit(self)
-        self.cnpj_input.setText("00394502000144")  # Define o CNPJ padrão
+        self.cnpj_input.setText("00394502000144")
         main_layout.addWidget(self.cnpj_input)
 
         main_layout.addWidget(QLabel("Código Unidade Administrativa:"))
         self.codigo_unidade_input = QLineEdit(self)
-        self.codigo_unidade_input.setText("787010") 
+        self.codigo_unidade_input.setText("787010")
         main_layout.addWidget(self.codigo_unidade_input)
 
         main_layout.addWidget(QLabel("Número da Página:"))
         self.pagina_input = QLineEdit(self)
-        self.pagina_input.setText("1")  # Define uma página padrão
+        self.pagina_input.setText("1")
         main_layout.addWidget(self.pagina_input)
 
         # Botão de consulta
@@ -122,14 +122,12 @@ class PNCPConsultationApp(QWidget):
         return font
 
     def make_request(self):
-        # Dados de entrada
         data_inicial = self.data_inicial_input.text().strip()
         data_final = self.data_final_input.text().strip()
         cnpj = self.cnpj_input.text().strip()
         codigo_unidade = self.codigo_unidade_input.text().strip()
         pagina = self.pagina_input.text().strip()
 
-        # Validação dos dados
         if not (data_inicial.isdigit() and data_final.isdigit() and len(data_inicial) == 8 and len(data_final) == 8):
             self._display_message("Erro: Datas devem estar no formato AAAAMMDD.")
             return
@@ -146,7 +144,6 @@ class PNCPConsultationApp(QWidget):
             self._display_message("Erro: Número da página deve ser um número inteiro.")
             return
 
-        # Construção da URL
         base_url = "https://pncp.gov.br/api/consulta"
         endpoint = f"/v1/atas?dataInicial={data_inicial}&dataFinal={data_final}&cnpj={cnpj}&codigoUnidadeAdministrativa={codigo_unidade}&pagina={pagina}"
         url = base_url + endpoint
@@ -161,14 +158,12 @@ class PNCPConsultationApp(QWidget):
             self._display_message(f"Other error occurred: {err}")
 
     def _populate_tree_view(self, data):
-        # Limpa o modelo anterior
         self.model.clear()
 
-        # Define os cabeçalhos
         headers = ['Número Controle PNCP Ata', 'Número Ata', 'Ano Ata', 'Cancelado', 'Data Assinatura', 'Vigência Início', 'Vigência Fim', 'Nome Órgão']
         self.model.setHorizontalHeaderLabels(headers)
 
-        # Adiciona os dados ao modelo
+        registros = []
         for registro in data.get('data', []):
             items = [
                 QStandardItem(registro.get('numeroControlePNCPAta', '')),
@@ -181,9 +176,31 @@ class PNCPConsultationApp(QWidget):
                 QStandardItem(registro.get('nomeOrgao', ''))
             ]
             self.model.appendRow(items)
+            registros.append({
+                'Número Controle PNCP Ata': registro.get('numeroControlePNCPAta', ''),
+                'Número Ata': registro.get('numeroAtaRegistroPreco', ''),
+                'Ano Ata': registro.get('anoAta', ''),
+                'Cancelado': 'Sim' if registro.get('cancelado') else 'Não',
+                'Data Assinatura': registro.get('dataAssinatura', ''),
+                'Vigência Início': registro.get('vigenciaInicio', ''),
+                'Vigência Fim': registro.get('vigenciaFim', ''),
+                'Nome Órgão': registro.get('nomeOrgao', '')
+            })
+
+        # Chama o método para salvar os dados em CSV
+        self._save_to_csv(registros)
+
+    def _save_to_csv(self, registros):
+        if registros:
+            df = pd.DataFrame(registros)
+            file_name = 'consulta_atas.csv'
+            df.to_csv(file_name, index=False)
+            self._display_message(f"Dados salvos em {file_name}.")
+            print(f"Dados salvos em {file_name}.")
+        else:
+            self._display_message("Nenhum dado disponível para salvar.")
 
     def _display_message(self, message):
-        # Exibe uma mensagem de erro ou informação usando uma caixa de mensagem
         msg_box = QMessageBox(self)
         msg_box.setIcon(QMessageBox.Icon.Warning)
         msg_box.setText(message)

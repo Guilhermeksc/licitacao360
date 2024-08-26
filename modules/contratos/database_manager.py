@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 import logging
 import time
+from diretorios import *
 
 class DatabaseContratosManager:
     def __init__(self, db_path):
@@ -159,6 +160,21 @@ class DatabaseContratosManager:
         finally:
             self.close_connection()
 
+    def load_contract_data_by_key(self, numero_contrato):
+        """
+        Carrega os dados do contrato a partir da chave primária numero_contrato.
+        """
+        conn = self.connect_to_database()
+        try:
+            query = "SELECT * FROM controle_contratos WHERE numero_contrato = ?"
+            df = pd.read_sql_query(query, conn, params=(numero_contrato,))
+            return df
+        except sqlite3.Error as e:
+            logging.error(f"Erro ao carregar dados do contrato '{numero_contrato}': {e}")
+            return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
+        finally:
+            self.close_connection()
+            
 class SqlModel:
     def __init__(self, icons_dir, database_manager, parent=None):
         self.icons_dir = icons_dir
@@ -285,7 +301,6 @@ class CustomSqlTableModel(QSqlTableModel):
 
     def flags(self, index):
         default_flags = super().flags(index)
-        # Desabilita a edição na coluna de ícones
         if index.column() == self.fieldIndex(self.icon_column_name) or index.column() in self.non_editable_columns:
             return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
         return default_flags
@@ -363,7 +378,33 @@ class CustomSqlTableModel(QSqlTableModel):
         if field_name == self.icon_column_name:
             return super().columnCount() - 1
         return super().fieldIndex(field_name)
-    
+
+    def update_record_by_primary_key(self, primary_key_field, primary_key_value, data):
+        """
+        Atualiza o registro existente identificado pelo campo de chave primária no banco de dados.
+
+        Args:
+            primary_key_field (str): Nome do campo de chave primária.
+            primary_key_value (Any): Valor do campo de chave primária para identificar o registro.
+            data (dict): Dados a serem atualizados, onde as chaves são nomes de campo e os valores são os novos valores de dados.
+        """
+        query = QSqlQuery(self.database())
+        set_clause = ", ".join([f"{key} = :{key}" for key in data.keys() if key != primary_key_field])
+        query_string = f"UPDATE controle_contratos SET {set_clause} WHERE {primary_key_field} = :primary_key_value"
+        query.prepare(query_string)
+
+        # Bind the data values to the query
+        for key, value in data.items():
+            if key != primary_key_field:
+                query.bindValue(f":{key}", value)
+        
+        query.bindValue(":primary_key_value", primary_key_value)
+
+        if not query.exec():
+            raise Exception(f"Erro ao atualizar registro: {query.lastError().text()}")
+        else:
+            print("Registro atualizado com sucesso.")
+                
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
         super().__init__(parent)
@@ -418,24 +459,21 @@ class TableMenu(QMenu):
         ]
         for actionText in actions:
             action = QAction(actionText, self)
-            action.triggered.connect(partial(self.trigger_action, actionText))
+            df_registro_selecionado = self.get_row_data(self.index.row())  # Obter o DataFrame necessário
+            source_index = self.index  # Assumindo que o índice da fonte é o índice atual
+            action.triggered.connect(partial(self.trigger_action, actionText, df_registro_selecionado, source_index))
             self.addAction(action)
 
-    def trigger_action(self, actionText):
-        if self.index.isValid():
-            source_index = self.model.mapToSource(self.index)
-            row_data = self.get_row_data(source_index.row())
-            df_registro_selecionado = pd.DataFrame([row_data])
-            if not df_registro_selecionado.empty:
-                print(df_registro_selecionado)
-                self.perform_action(actionText, df_registro_selecionado, source_index.row())
-            else:
-                QMessageBox.warning(self, "Atenção", "Nenhum registro selecionado ou dados não encontrados.")
+    def trigger_action(self, actionText, df_registro_selecionado, source_index):
+        try:
+            self.perform_action(actionText, df_registro_selecionado, source_index)
+        except Exception as e:
+            print(f"Erro ao executar a ação: {str(e)}")
 
     def get_row_data(self, row):
         column_count = self.model.columnCount()
         row_data = {self.model.headerData(col, Qt.Orientation.Horizontal): self.model.data(self.model.index(row, col)) for col in range(column_count)}
-        return row_data
+        return pd.DataFrame([row_data])  # Retorna um DataFrame em vez de um dicionário
 
     def perform_action(self, actionText, df_registro_selecionado, source_index):
         actions = {
@@ -443,19 +481,13 @@ class TableMenu(QMenu):
         }
         action = actions.get(actionText)
         if action:
-            action(df_registro_selecionado, source_index)
+            action(df_registro_selecionado)  # Chamando o método sem parênteses adicionais
 
-    def editar_dados(self, df_registro_selecionado, indice_linha):
-        dialog = AtualizarDadosContratos(
-            self.main_app.icons_dir,
-            df_registro_selecionado,
-            self.main_app.ui_manager.table_view,
-            self.main_app.ui_manager.table_view.model().sourceModel(),
-            indice_linha
-        )
+    def editar_dados(self, df_registro_selecionado):
+        dados = df_registro_selecionado.iloc[0].to_dict()
+        dialog = AtualizarDadosContratos(ICONS_DIR, dados=dados, parent=self)
         dialog.dadosContratosSalvos.connect(self.atualizar_interface)
         dialog.show()
-
 
     def atualizar_interface(self):
         print("Interface atualizada com os novos dados.")

@@ -12,7 +12,7 @@ from datetime import datetime
 class StackWidgetManager:
     def __init__(self, parent, data_function):
         self.parent = parent
-        self.data_function = data_function
+        self.data_function = data_function  # Agora data_function é uma função, não um dicionário
         self.icons_dir = Path(ICONS_DIR)
         self.stacked_widget = QStackedWidget(parent)
         self.stacked_widget.setStyleSheet(
@@ -60,21 +60,23 @@ class StackWidgetManager:
         # Layout esquerdo
         left_layout = QVBoxLayout(left_container)
 
-        id_processo_layout, self.line_edits['id_processo'] = WidgetHelper.create_line_edit("ID Processo:", data.get('id_processo', ''))
+        id_processo_layout, self.line_edits['id_processo'] = WidgetHelper.create_line_edit("ID Processo:", data.get('Processo', 'N/A'))
+        
         # Criar combobox para contrato_ata
         contrato_ata_options = [
             "Contrato", "Ata"
         ]
-        contrato_ata_options, self.contrato_ata_combo_box = WidgetHelper.create_combo_box("Contrato/Ata:", contrato_ata_options, data.get('tipo'))
-        numero_contrato_layout, self.line_edits['numero_contrato'] = WidgetHelper.create_line_edit("Número:", data.get('numero_contrato', ''))
-        nup_layout, self.line_edits['nup'] = WidgetHelper.create_line_edit("NUP:", data.get('nup', ''))
-        valor_global_layout, self.line_edits['valor_global'] = WidgetHelper.create_line_edit("Valor Global:", data.get('valor_global', ''))
-        cnpj_layout, self.line_edits['cnpj'] = WidgetHelper.create_line_edit("CNPJ:", data.get('cnpj', ''))
-        fornecedor_layout, self.line_edits['empresa'] = WidgetHelper.create_line_edit("Empresa:", data.get('empresa', ''))
-        objeto_layout, self.line_edits['objeto'] = WidgetHelper.create_line_edit("Objeto:", data.get('objeto', ''))
+        contrato_ata_layout, self.contrato_ata_combo_box = WidgetHelper.create_combo_box("Contrato/Ata:", contrato_ata_options, data.get('Tipo', 'Contrato'))
+        
+        numero_contrato_layout, self.line_edits['numero_contrato'] = WidgetHelper.create_line_edit("Número:", data.get('Contrato/Ata', 'N/A'))
+        nup_layout, self.line_edits['nup'] = WidgetHelper.create_line_edit("NUP:", data.get('nup', 'N/A'))
+        valor_global_layout, self.line_edits['valor_global'] = WidgetHelper.create_line_edit("Valor Global:", data.get('Valor', 'N/A'))
+        cnpj_layout, self.line_edits['cnpj'] = WidgetHelper.create_line_edit("CNPJ:", data.get('cnpj', 'N/A'))
+        fornecedor_layout, self.line_edits['empresa'] = WidgetHelper.create_line_edit("Empresa:", data.get('Empresa', 'N/A'))
+        objeto_layout, self.line_edits['objeto'] = WidgetHelper.create_line_edit("Objeto:", data.get('Objeto', 'N/A'))
 
         left_layout.addLayout(id_processo_layout)
-        left_layout.addLayout(contrato_ata_options)
+        left_layout.addLayout(contrato_ata_layout)
         left_layout.addLayout(numero_contrato_layout)
         left_layout.addLayout(nup_layout)
         left_layout.addLayout(valor_global_layout)
@@ -85,33 +87,32 @@ class StackWidgetManager:
         # Pode Renovar
         pode_renovar_layout, self.pode_renovar_buttons, self.pode_renovar_group = WidgetHelper.create_radio_buttons("Pode Renovar?", ["Sim", "Não"])
         pode_renovar_value = data.get('Renova?', 'Sim')
+        if pode_renovar_value not in self.pode_renovar_buttons:
+            pode_renovar_value = 'Não'
         self.pode_renovar_buttons[pode_renovar_value].setChecked(True)
         left_layout.addLayout(pode_renovar_layout)
 
         # Custeio
         custeio_layout, self.custeio_buttons, self.custeio_group = WidgetHelper.create_radio_buttons("Custeio?", ["Sim", "Não"])
         custeio_value = data.get('Custeio?', 'Sim')
+        if custeio_value not in self.custeio_buttons:
+            custeio_value = 'Não'
         self.custeio_buttons[custeio_value].setChecked(True)
         left_layout.addLayout(custeio_layout)
 
         # Natureza Continuada
         natureza_continuada_layout, self.natureza_continuada_buttons, self.natureza_continuada_group = WidgetHelper.create_radio_buttons("Natureza Continuada?", ["Sim", "Não"])
-
-        # Obtém o valor de 'natureza_continuada' e define um valor padrão se estiver vazio ou inválido
-        natureza_continuada_value = data.get('natureza_continuada', '').strip()
+        natureza_continuada_value = data.get('natureza_continuada', 'Não')
         if natureza_continuada_value not in self.natureza_continuada_buttons:
-            natureza_continuada_value = 'Não'  # Valor padrão
-
+            natureza_continuada_value = 'Não'
         self.natureza_continuada_buttons[natureza_continuada_value].setChecked(True)
         left_layout.addLayout(natureza_continuada_layout)
 
-
-        # Material/Serviço (Verificação adicional)
+        # Material/Serviço
         material_servico_layout, self.material_servico_buttons, self.material_servico_group = WidgetHelper.create_radio_buttons("Material/Serviço:", ["Material", "Serviço"])
         material_servico_value = data.get('material_servico', 'Material')
         if material_servico_value not in self.material_servico_buttons:
-            material_servico_value = 'Material'  # Define 'Material' como valor padrão
-
+            material_servico_value = 'Material'
         self.material_servico_buttons[material_servico_value].setChecked(True)
         left_layout.addLayout(material_servico_layout)
 
@@ -128,7 +129,6 @@ class StackWidgetManager:
         right_layout.addLayout(inicial_layout)
         right_layout.addLayout(final_layout)
 
-        # Adiciona os labels no layout direito
         right_layout.addWidget(om_label)
         right_layout.addWidget(indicativo_om_label)
         right_layout.addWidget(om_extenso_label)
@@ -137,9 +137,8 @@ class StackWidgetManager:
         line = QFrame()
         line.setFrameShape(QFrame.Shape.VLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setFixedWidth(1)  # Definir a largura da linha
+        line.setFixedWidth(1)
 
-        # Adicionar os contêineres ao QHBoxLayout com políticas de redimensionamento
         left_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         right_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
@@ -148,6 +147,7 @@ class StackWidgetManager:
         h_layout.addWidget(right_container)
 
         self.add_widget("Informações Gerais", widget)
+
         
     def create_widget_termo_aditivo(self):
         widget = QWidget()
@@ -339,19 +339,19 @@ class AddCommentDialog(QDialog):
 class AtualizarDadosContratos(QDialog):
     dadosContratosSalvos = pyqtSignal()
 
-    def __init__(self, icons_dir, df_registro_selecionado, table_view, model, indice_linha, parent=None):
+    def __init__(self, icons_dir, data_function, df_registro_selecionado, table_view=None, model=None, indice_linha=None, parent=None):
         super().__init__(parent)
-        self.df_registro_selecionado = df_registro_selecionado
         self.table_view = table_view
         self.model = model
         self.indice_linha = indice_linha
         self.icons_dir = Path(icons_dir)
+        self.data_function = data_function  # Use data_function como um atributo da classe
+        self.df_registro_selecionado = df_registro_selecionado  # Atribua o DataFrame ao atributo da classe
         self.setupUI()
 
     def setupUI(self):
         self.setWindowTitle("Atualizar Dados do Contrato")
         self.setFixedSize(1200, 600)
-
         main_layout = QVBoxLayout(self)
 
         self.header_widget = self.update_title_label()
@@ -363,7 +363,6 @@ class AtualizarDadosContratos(QDialog):
         content_layout.setSpacing(0)
 
         nav_layout = QHBoxLayout()
-
         brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
         brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label_esquerda = QLabel()
@@ -379,7 +378,8 @@ class AtualizarDadosContratos(QDialog):
         nav_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)) 
         content_layout.addLayout(nav_layout)
 
-        self.stack_manager = StackWidgetManager(self, self.extract_registro_data)
+        # Use self.data_function ao invés de self.dados
+        self.stack_manager = StackWidgetManager(self, self.data_function)
 
         content_layout.addWidget(self.stack_manager.get_widget())
 
@@ -398,19 +398,19 @@ class AtualizarDadosContratos(QDialog):
         self.setLayout(main_layout)
 
     def populate_tree_view(self):
-        data = self.extract_registro_data()
-        tipo = data.get('tipo', 'Tipo Desconhecido')
+        data = self.data_function()  # Chame a função para obter os dados
+        tipo = data.get('Tipo', 'Tipo Desconhecido')
         print(f"Tipo extraído: {tipo}")  # Adicionado para depuração
 
         root = QStandardItem(tipo)
 
         children = {
-            'Valor Global': data.get('valor_global', 'N/A'),
+            'Valor Global': data.get('Valor', 'N/A'),
             'Link PNCP': data.get('link_pncp', 'N/A'),
             'Portaria': data.get('portaria', 'N/A'),
             'Vigência Inicial': data.get('vigencia_inicial', 'N/A'),
             'Vigência Final': data.get('vigencia_final', 'N/A'),
-            'Número Contrato': data.get('numero_contrato', 'N/A')
+            'Número Contrato': data.get('Contrato/Ata', 'N/A')
         }
 
         for key, value in children.items():
@@ -467,12 +467,19 @@ class AtualizarDadosContratos(QDialog):
         self.update_button_styles(next(button for button in self.navigation_buttons if button.text() == name))
 
     def update_title_label(self):
-        data = self.extract_registro_data()
-        print("Dados extraídos para o título:", data)  # Adicionado print para depuração
+        data = self.data_function()  # Chame a função para obter os dados
+        print("Dados extraídos para o título:", data)
+
+        tipo = data.get('Tipo', 'N/A')
+        numero_contrato = data.get('Contrato/Ata', 'N/A')
+        objeto = data.get('Objeto', 'N/A')
+        uasg = data.get('uasg', 'N/A')
+
         html_text = (
-            f"{data['tipo']} {data['numero_contrato']} - {data['objeto']}<br>"
-            f"<span style='font-size: 18px; '>(UASG: {data['uasg']})</span>"
+            f"{tipo} {numero_contrato} - {objeto}<br>"
+            f"<span style='font-size: 18px; '>(UASG: {uasg})</span>"
         )
+
         if not hasattr(self, 'titleLabel'):
             self.titleLabel = QLabel()
             self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
@@ -578,7 +585,7 @@ class AtualizarDadosContratos(QDialog):
             f"<span style='font-size: 18px; color: #ADD8E6;'>(UASG: {data['uasg']})</span>"
         )
         self.titleLabel.setText(html_text)
-        print(f"Título atualizado: {html_text}")  # Adicionado print para depuração
+        print(f"Título atualizado Novo: {html_text}")  # Adicionado print para depuração
     
     def add_action_buttons(self, layout):
         icon_confirm = QIcon(str(self.icons_dir / "confirm.png"))
@@ -615,25 +622,21 @@ class AtualizarDadosContratos(QDialog):
             if hasattr(self.stack_manager, 'status_combo_box') and self.stack_manager.status_combo_box is not None:
                 status_value = self.stack_manager.status_combo_box.currentText().strip()
             else:
-                # Se o status_combo_box não estiver disponível, mantenha o valor atual do database
-                status_value = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'status']
-                if not status_value or status_value.strip() == "":
-                    status_value = "Seção de Contratos"  # Valor padrão
+                status_value = self.data_function().get('status', 'Seção de Contratos')  # Usar o valor da função
 
             # Coletar comentários reais
             if hasattr(self.stack_manager, 'comments_view') and self.stack_manager.comments_view is not None:
                 comments = [self.stack_manager.comments_view.item(i).text() for i in range(self.stack_manager.comments_view.count())]
                 comments_text = "\n".join(comments)
             else:
-                comments_text = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'comentarios'] or ""
+                comments_text = self.data_function().get('comentarios', '')
 
             # Coletar registros reais
             if hasattr(self.stack_manager, 'records_view') and self.stack_manager.records_view is not None:
                 registro_texto = [self.stack_manager.records_view.item(i).text() for i in range(self.stack_manager.records_view.count())]
                 registro_texto = "\n".join(registro_texto)
             else:
-                registro_texto = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'registro_status'] or ""
-
+                registro_texto = self.data_function().get('registro_status', '')
             
             data = {
                 'status': status_value,
@@ -677,12 +680,14 @@ class AtualizarDadosContratos(QDialog):
                 'registro_status': registro_texto
             }
 
-            # Atualizar o DataFrame com os novos valores
-            for key, value in data.items():
-                self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
+            numero_contrato = data['numero_contrato']
 
-            # Atualizar o modelo diretamente
-            self.model.update_record(self.indice_linha, data)
+            # Atualizar o registro no banco de dados em vez de inserir um novo
+            if self.model:
+                self.model.update_record_by_primary_key('numero_contrato', numero_contrato, data)
+            else:
+                QMessageBox.critical(self, "Erro", "Modelo de dados não está disponível para atualização.")
+                return
 
             self.dadosContratosSalvos.emit()
 
@@ -691,10 +696,15 @@ class AtualizarDadosContratos(QDialog):
 
     def _get_valid_value(self, key):
         """Retorna o valor válido do campo ou o valor existente no DataFrame."""
-        new_value = self.stack_manager.line_edits[key].text().strip()
-        if new_value == '':
+        if key in self.stack_manager.line_edits:
+            new_value = self.stack_manager.line_edits[key].text().strip()
+            if new_value == '':
+                return self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key]
+            return new_value
+        else:
+            # Se a chave não existe em line_edits, retorna o valor do DataFrame
             return self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key]
-        return new_value
+
 
     def save_comments(self):
         comments = [self.comments_view.item(i).text() for i in range(self.comments_view.count())]

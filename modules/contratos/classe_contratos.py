@@ -5,6 +5,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
+from modules.contratos.edit_dialog import AtualizarDadosContratos
 from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
@@ -122,7 +123,23 @@ class ContratosWidget(QMainWindow):
             subprocess.run(f'start excel.exe "{self.output_path}"', shell=True, check=True)
         else:
             Dialogs.warning(self, "Exportação de Dados", message)
-    
+
+    def editar_dados(self, df_registro_selecionado):
+        try:
+            # Verifica se o modelo está corretamente inicializado
+            if not self.model:
+                QMessageBox.warning(self, "Erro", "Modelo de dados não inicializado.")
+                return
+            
+            # Converte os dados do DataFrame em dicionário para passar ao diálogo
+            data_function = lambda: df_registro_selecionado.to_dict(orient='records')[0]
+            
+            dialog = AtualizarDadosContratos(self.icons_dir, data_function=data_function, df_registro_selecionado=df_registro_selecionado, table_view=self.ui_manager.table_view, model=self.model, indice_linha=0, parent=self)
+            dialog.dadosContratosSalvos.connect(self.refresh_model)
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao abrir o diálogo de edição: {str(e)}")
+
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
@@ -192,6 +209,31 @@ class UIManager:
 
         self.reorder_columns()
 
+        # Conectar o evento de duplo clique à função que abre o diálogo
+        self.table_view.doubleClicked.connect(self.open_editar_dados_dialog)
+
+    def open_editar_dados_dialog(self, index):
+        """
+        Método chamado quando uma linha é duplo clicada para abrir o diálogo de edição.
+        """
+        # Obter o índice da linha no modelo subjacente (source model)
+        source_index = self.parent.proxy_model.mapToSource(index)
+        row_data = self.get_row_data(source_index.row())
+
+        # Converter os dados da linha para um DataFrame para compatibilidade com o método 'editar_dados'
+        df_registro_selecionado = pd.DataFrame([row_data])
+
+        # Abrir o diálogo de edição
+        self.parent.editar_dados(df_registro_selecionado)
+
+    def get_row_data(self, row):
+        """
+        Extrai os dados de uma linha específica do modelo.
+        """
+        column_count = self.model.columnCount()
+        row_data = {self.model.headerData(col, Qt.Orientation.Horizontal): self.model.data(self.model.index(row, col)) for col in range(column_count)}
+        return row_data
+    
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
         self.parent.proxy_model.setSourceModel(self.model)
@@ -206,6 +248,7 @@ class UIManager:
         if self.table_view.selectionModel():
             self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
             self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+            self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
 
         self.update_column_headers()
         self.hide_unwanted_columns()
@@ -257,7 +300,17 @@ class UIManager:
         if selected.indexes():
             proxy_index = selected.indexes()[0]
             source_index = self.parent.proxy_model.mapToSource(proxy_index)
-            df_registro_selecionado = carregar_dados_contratos(source_index.row(), self.parent.database_path)
+            
+            # Obter o valor da chave primária 'numero_contrato'
+            selected_row = source_index.row()
+            selected_column = source_index.column()
+            id_processo = self.parent.model.data(self.parent.model.index(source_index.row(), self.parent.model.fieldIndex('numero_contrato')))
+
+            print(f"id_processo selecionado: {id_processo}")
+            print(f"Linha selecionada: {selected_row}, Coluna: {selected_column}")
+
+            df_registro_selecionado = carregar_dados_contrato(selected_row, self.parent.database_path)
+
             if not df_registro_selecionado.empty:
                 logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
             else:
@@ -394,3 +447,23 @@ class CustomItemDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
 
             super().paint(painter, option, index)
+
+def carregar_dados_contrato(linha, database_path):
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+
+    # Supondo que a chave é 'id_processo' e 'linha' representa a posição na tabela.
+    try:
+        cursor.execute("SELECT * FROM controle_contratos LIMIT 1 OFFSET ?", (linha,))
+        row = cursor.fetchone()
+        if row:
+            # Transformar em DataFrame ou outra estrutura conforme necessário
+            df_registro_selecionado = pd.DataFrame([row], columns=[desc[0] for desc in cursor.description])
+            return df_registro_selecionado
+        else:
+            return pd.DataFrame()  # Retorna DataFrame vazio se nada for encontrado
+    except sqlite3.Error as e:
+        print(f"Erro ao carregar os dados do prego: {e}")
+        return pd.DataFrame()
+    finally:
+        conn.close()
