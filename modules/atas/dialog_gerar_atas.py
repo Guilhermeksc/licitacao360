@@ -103,20 +103,20 @@ class AtasDialog(QDialog):
         self.header_editor.setHtml(initial_text)
         layout.addWidget(self.header_editor)
                 
-        # # Texto inicial com HTML para formatação
-        # initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
-        #                 "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
-        #                 "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
-        #                 "Thiago Martins Amorim, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
-        #                 "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
-        #                 "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
-        #                 "<span style='color: blue;'>{{num_pregao}}</span>/2024, processo administrativo nº <span style='color: blue;'>{{nup}}</span>, RESOLVE registrar os preços da(s) "
-        #                 "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
-        #                 "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
-        #                 "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
-        #                 "31 de março de 2023, e em conformidade com as disposições a seguir:")
-        # self.header_editor.setHtml(initial_text)
-        # layout.addWidget(self.header_editor)
+        # Texto inicial com HTML para formatação
+        initial_text = ("A União, por intermédio do CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA (CeIMBra), com sede na "
+                        "Esplanada dos Ministérios, Bloco “N”, Prédio Anexo, 2º andar, CEP: 70055-900, na cidade de Brasília – DF, "
+                        "inscrito(a) sob o CNPJ nº 00.394.502/0594-67, neste ato representado pelo Capitão de Fragata (IM) "
+                        "Thiago Martins Amorim, Ordenador de Despesa, nomeado(a) pela Portaria nº 241 de 25 de abril de 2024, "
+                        "do Com7°DN, c/c Ordem de Serviço nº 57/2024 de 25 de abril de 2024 do CeIMBra, considerando o "
+                        "julgamento da licitação na modalidade de pregão, na forma eletrônica, para REGISTRO DE PREÇOS nº "
+                        "<span style='color: yellow;'>{{num_pregao}}</span>/2024, processo administrativo nº <span style='color: yellow;'>{{nup}}</span>, RESOLVE registrar os preços da(s) "
+                        "empresa(s) indicada(s) e qualificada(s) nesta ATA, de acordo com a classificação por ela(s) alcançada(s) "
+                        "e na(s) quantidade(s) cotada(s), atendendo as condições previstas no Edital de licitação, sujeitando-se "
+                        "as partes às normas constantes na Lei nº 14.133, de 1º de abril de 2021, no Decreto n.º 11.462, de "
+                        "31 de março de 2023, e em conformidade com as disposições a seguir:")
+        self.header_editor.setHtml(initial_text)
+        layout.addWidget(self.header_editor)
         layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         # Configurar o combobox das cidades
@@ -311,7 +311,7 @@ class AtasDialog(QDialog):
         ultimo_num_ata = self.processar_ata(AtasDialog.NUMERO_ATA_GLOBAL, nup_data, dataframe)
 
         self.salvar_ultimo_contrato(ultimo_num_ata)
-        self.atualizar_rotulo_ultimo_contrato(ultimo_num_ata)
+        # self.atualizar_rotulo_ultimo_contrato(ultimo_num_ata)
 
     def processar_ata(self, NUMERO_ATA, nup_data, dataframe):
         if isinstance(nup_data, dict) and 'nup' in nup_data:
@@ -671,6 +671,7 @@ from openpyxl.styles import Font, PatternFill
 def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx'):
     # Ordenar os itens, primeiro por 'grupo' (None será considerado menor) e depois por 'item_num'
     itens_ordenados = sorted(itens, key=lambda x: (x['grupo'] if x['grupo'] is not None else '', x['item_num']))
+    
     # Print do ordenamento
     for item in itens_ordenados:
         print(f"Grupo: {item['grupo']} - Item Num: {item['item_num']}")
@@ -688,10 +689,11 @@ def gerar_excel_relacao_itens(itens, caminho_arquivo_excel='relacao_itens.xlsx')
         ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=3)
         
         # Adicionando lógica para verificar o valor de grupo
-        if item['grupo'] is not None:
+        if isinstance(item['grupo'], (int, float)):  # Verifica se 'grupo' é um número
             valor_cell_1 = f"Grupo {item['grupo']} - Item {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})"
         else:
             valor_cell_1 = f"Item {item['item_num']} - {item['descricao_tr']} ({item['catalogo']})"
+        
         
         cell_1 = ws.cell(row=linha_atual, column=1, value=valor_cell_1)
         cell_1.font = fonte_tamanho_12_cinza

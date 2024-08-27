@@ -17,9 +17,22 @@ class MatrizRiscosWidget(QWidget):
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
 
-        # Título
-        title_label = self.create_label("Matriz de Riscos", font_size=30, bold=True, color=None, alignment=Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
+        title_layout = QHBoxLayout()
+
+        # Adiciona o ícone à direita do título
+        icon_label = QLabel()
+        icon_label.setPixmap(QIcon(str(ICONS_DIR / "matrix.png")).pixmap(64, 64))
+        title_layout.addWidget(icon_label)
+
+        # Título com ícone
+
+        title_label = self.create_label("Matriz de Riscos", font_size=40, bold=True, alignment=Qt.AlignmentFlag.AlignCenter)
+        title_label.setFont(self._get_title_font(30, bold=True))
+        title_layout.addWidget(title_label)
+
+        # Centraliza o layout horizontal contendo o título e o ícone
+        title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addLayout(title_layout)
 
         # Layout horizontal para combobox e botões
         h_layout = QHBoxLayout()
@@ -28,7 +41,7 @@ class MatrizRiscosWidget(QWidget):
         label_buttons_layout = QVBoxLayout()
 
         escolha_processo_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o processo:", font_size=20, color=None)
+        combobox_label = self.create_label("Escolha o processo:", font_size=20)
         escolha_processo_layout.addWidget(combobox_label)
 
         self.combobox_processo = QComboBox()
@@ -39,7 +52,7 @@ class MatrizRiscosWidget(QWidget):
         label_buttons_layout.addLayout(escolha_processo_layout)
 
         escolha_padrao_matriz_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20, color=None)
+        combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20)
         escolha_padrao_matriz_layout.addWidget(combobox_label)
 
         self.combobox_matriz = QComboBox()
@@ -51,7 +64,7 @@ class MatrizRiscosWidget(QWidget):
 
         carregar_dados_riscos_layout = QHBoxLayout()
 
-        load_button_label = self.create_label("Escolha o arquivo para carregar os dados:", font_size=20, color=None)
+        load_button_label = self.create_label("Escolha o arquivo para carregar os dados:", font_size=20)
         carregar_dados_riscos_layout.addWidget(load_button_label)
 
         load_button = self.create_button("Carregar Dados", font_size=20, callback=self.load_data)
@@ -83,9 +96,15 @@ class MatrizRiscosWidget(QWidget):
         main_layout.addLayout(fases_layout)
         self.setLayout(main_layout)
 
-    def create_label(self, text, font_size=12, bold=False, color=None, alignment=None):
+    def _get_title_font(self, size=14, bold=False):
+        font = QFont()
+        font.setPointSize(size)
+        font.setBold(bold)
+        return font
+    
+    def create_label(self, text, font_size=12, bold=False, alignment=None):
         label = QLabel(text)
-        style = f"font-size: {font_size}px; color: {color};"
+        style = f"font-size: {font_size}px;"
         if bold:
             style += " font-weight: bold;"
         label.setStyleSheet(style)

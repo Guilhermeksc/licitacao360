@@ -91,8 +91,8 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             header_layout = QHBoxLayout()
             title_text = f"{self.tipo} nº {self.numero}/{self.ano}"
             objeto_text = f"Objeto: {self.objeto}"
-            title_label = QLabel(f"<div style='font-size: 32px; font-weight: bold; color: navy;'>{title_text}</div>"
-                                f"<div style='font-size: 22px; color: navy; font-style: italic;'>{objeto_text}</div>")
+            title_label = QLabel(f"<div style='font-size: 32px; font-weight: bold;'>{title_text}</div>"
+                                f"<div style='font-size: 22px; font-style: italic;'>{objeto_text}</div>")
             header_layout.addWidget(title_label)
             header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
             self.add_action_buttons(header_layout)
@@ -161,7 +161,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
 
     def aplicar_estilos(self):
         self.setStyleSheet("""
-            QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit {
+            QLabel, QPushButton, QLineEdit, QTextEdit {
                 font-size: 16px;
             }
             QGroupBox {
@@ -194,13 +194,24 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
     def setupGrupoAutoridade(self):
         layout = QVBoxLayout(self.grupoAutoridade)
         labelOD = QLabel("Selecionar o Ordenador de Despesa:")
+        
         self.ordenadordespesasComboBox = QComboBox()
+        self.ordenadordespesasComboBox.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.ordenadordespesasComboBox.setFixedHeight(30)  # Define a altura para o ComboBox
+        self.ordenadordespesasComboBox.setStyleSheet("QComboBox { font-size: 18px; height: 30px; }")  # Aplique o estilo diretamente
+        
         self.carregarOrdenadorDespesas()
+        
         layout.addWidget(labelOD)
         vertical_spacer = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(vertical_spacer)
         layout.addWidget(self.ordenadordespesasComboBox)
         layout.addItem(vertical_spacer)
+        
+        self.ordenadordespesasComboBox.updateGeometry()
+        self.update()
+
+
 
     def setupGrupoSelecaoPasta(self):
         layout = QVBoxLayout(self.grupoSelecaoPasta)
@@ -357,7 +368,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             # Adicionar os itens ao comboBox
             self.ordenadordespesasComboBox.clear()  # Limpar o comboBox antes de adicionar novos itens
             for index, row in self.ordenador_despesas_df.iterrows():
-                texto_display = f"{row['nome']}\n{row['funcao']}\n{row['posto']}"
+                texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
                 self.ordenadordespesasComboBox.addItem(texto_display, userData=row.to_dict())
 
         except Exception as e:

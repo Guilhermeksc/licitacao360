@@ -185,12 +185,14 @@ class GerarAtasWidget(QWidget):
         # Mensagens possíveis
         mensagens = [
             "Simplicidade é o último degrau da sabedoria\n(Khalil Gibran)",
-            "Beautiful is better than ugly. (Zen do Python)",
-            "Teste MSG"
+            "Explícito é melhor que implícito.\n\nSimples é melhor que complexo.\n\nComplexo é melhor que complicado.\n\n(Zen do Python)",
+            "Special cases aren't special enough to break the rules.\n\nAlthough practicality beats purity.\n\nErrors should never pass silently.\n\n(Zen of Python)",
+            "Diante da ambiguidade, recuse a tentação de adivinhar.\n\nDeve haver uma — e preferencialmente apenas uma — maneira óbvia de fazer algo.\n\n(Zen do Python)",
+            "Agora é melhor do que nunca.\n\nEmbora nunca frequentemente seja melhor do que agora.\n\nSe a implementação é difícil de explicar, é uma má ideia.\n\nSe a implementação é fácil de explicar, pode ser uma boa ideia.\n\n(Zen do Python)",
         ]
         
         # Probabilidades associadas a cada mensagem
-        probabilidades = [0.4, 0.4, 0.2]  # Ajuste as probabilidades conforme necessário
+        probabilidades = [0.2, 0.2, 0.2, 0.2, 0.2]  # Ajuste as probabilidades conforme necessário
 
         # Seleciona uma mensagem com base nas probabilidades
         return random.choices(mensagens, probabilidades)[0]
@@ -268,7 +270,9 @@ class GerarAtasWidget(QWidget):
             ("Ata / Contrato", 'verify_menu', self.abrir_dialog_atas, "Com o database concluíodo é possível gerar as atas ou contratos", False),
             ("Database", 'data-processing', self.update_database, "Salva ou Carrega os dados do Database", False),
             ("Salvar Tabela", 'table', self.salvar_tabela, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
-            ("Indicadores", 'dashboard', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
+            # ("Indicadores", 'dashboard', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
+            ("Indicadores", 'dashboard', self.dashboard_indicadores, "Visualize os indicadores do relatório", False),
+
         ]
 
     def tabela_vazia(self):

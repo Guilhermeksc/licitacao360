@@ -46,7 +46,7 @@ class SeleniumDriverThread(QThread):
             login_field.send_keys("07668525475")
 
             password_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#txtSenha")))
-            password_field.send_keys("sPORT.07")
+            password_field.send_keys("Bibico08")
 
             # Clique no botão de login
             submit_button_selector = "#card2 > div > div > div.br-form > div.actions.text-right.mt-4 > button"

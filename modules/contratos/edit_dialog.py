@@ -182,10 +182,9 @@ class StackWidgetManager:
         ]
         status_layout, self.status_combo_box = WidgetHelper.create_combo_box("Status:", status_options, data.get('status'))
 
-        
         # Criar ícone para o botão de registro de status
         registrar_status_icon = QIcon(str(self.icons_dir / "registrar_status.png"))
-        
+
         # Criar botão "Adicionar Registro"
         add_button_registrar_status = WidgetHelper.create_button(
             text="Adicionar Registro:",
@@ -198,7 +197,7 @@ class StackWidgetManager:
 
         # Criar ícone para o botão de comentários
         registrar_comentario_icon = QIcon(str(self.icons_dir / "registrar_comentario.png"))
-        
+
         # Criar botão "Adicionar Comentário"
         add_button_registrar_comentario = WidgetHelper.create_button(
             text="Adicionar Comentário:",
@@ -207,6 +206,15 @@ class StackWidgetManager:
             tooltip_text="Adicionar novo comentário",
             button_size=QSize(200, 35),
             icon_size=QSize(40, 40)
+        )
+
+        # **Novo botão para excluir comentário**
+        delete_button_comentario = WidgetHelper.create_button(
+            text="Excluir Comentário",
+            icon=QIcon(str(self.icons_dir / "delete.png")),
+            callback=self.on_delete_comment,  # Callback para excluir o comentário
+            tooltip_text="Excluir comentário selecionado",
+            button_size=QSize(200, 35),
         )
 
         # Criar layout horizontal para combobox e botões
@@ -225,6 +233,7 @@ class StackWidgetManager:
         layout.addWidget(self.records_view)
 
         layout.addWidget(add_button_registrar_comentario)
+        layout.addWidget(delete_button_comentario)  # Adiciona o botão de exclusão
         # Adicionar visualizador de comentários
         self.comments_view = QListWidget(widget)
         self.comments_view.itemDoubleClicked.connect(self.edit_comment)
@@ -242,13 +251,25 @@ class StackWidgetManager:
             for comentario in comentarios:
                 # Cria um item de lista com o comentário
                 comment_item = QListWidgetItem(comentario)
-                
+
                 # Define o ícone para o item
                 comment_icon = QIcon(str(self.icons_dir / "comment.png"))
                 comment_item.setIcon(comment_icon)
-                
+
                 # Adiciona o item à lista de comentários
                 self.comments_view.addItem(comment_item)
+
+    # Método para excluir comentário selecionado
+    def on_delete_comment(self):
+        selected_items = self.comments_view.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self.parent, "Excluir Comentário", "Nenhum comentário selecionado para excluir.")
+            return
+        
+        for item in selected_items:
+            self.comments_view.takeItem(self.comments_view.row(item))
+        
+        self.save_comments()  # Atualiza os comentários salvos
 
     def on_add_record(self):
         dialog = AddCommentDialog(self)

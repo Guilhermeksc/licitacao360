@@ -21,7 +21,13 @@ class RequestThread(QThread):
         print(f"Request endpoint: {url}")
 
         try:
-            response = requests.get(url, headers={'accept': 'application/json', 'X-CSRF-TOKEN': ''})
+            response = requests.get(url, headers={
+                'accept': 'application/json', 
+                'X-CSRF-TOKEN': '',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
+            })
+            print("Raw response content:", response.text)  # Adicionado para imprimir a resposta bruta
+
             response.raise_for_status()
             data = response.json()
             self.data_received.emit(data)
@@ -34,6 +40,7 @@ class RequestThread(QThread):
             error_message = f"Other error occurred: {err}"
             print(error_message)
             self.error_occurred.emit(error_message)
+
 
 class ComprasnetContratosAPI(QWidget):
     def __init__(self, parent=None):
@@ -152,7 +159,15 @@ class ComprasnetContratosAPI(QWidget):
                 modalidade = contrato.get('modalidade', '')
                 licitacao_numero = contrato.get('licitacao_numero', '')
 
-                numero, ano = licitacao_numero.split('/')
+                if licitacao_numero:  # Verificar se licitacao_numero não é None ou vazio
+                    try:
+                        numero, ano = licitacao_numero.split('/')
+                    except ValueError:
+                        print(f"Erro ao dividir 'licitacao_numero': {licitacao_numero}")
+                        continue
+                else:
+                    print("Licitação número está vazio ou None.")
+                    continue
 
                 codigo_unidade_gestora = contrato.get('contratante', {}).get('orgao', {}).get('unidade_gestora', {}).get('codigo', '')
 
@@ -169,6 +184,9 @@ class ComprasnetContratosAPI(QWidget):
                     combinacoes_existentes[combinacao_info] = main_parent_item
                 else:
                     main_parent_item = combinacoes_existentes[combinacao_info]
+
+                # Resto do código...
+
 
                 fornecedor = contrato.get('fornecedor', {})
                 fornecedor_info = f"{fornecedor.get('cnpj_cpf_idgener', '')} - {fornecedor.get('nome', '')}"

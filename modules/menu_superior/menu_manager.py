@@ -59,9 +59,9 @@ class MenuManager:
         return header_layout
 
     def create_menus(self):
-        self.message_menu = self.menu_bar.addMenu("Mensagem")
-        self.standard_communication_menu = self.menu_bar.addMenu("Comunicação Padronizada")
-        self.conselho_gestao_menu = self.menu_bar.addMenu("Conselho de Gestão")
+        # self.message_menu = self.menu_bar.addMenu("Mensagem")
+        # self.standard_communication_menu = self.menu_bar.addMenu("Comunicação Padronizada")
+        # self.conselho_gestao_menu = self.menu_bar.addMenu("Conselho de Gestão")
         self.settings_menu = self.menu_bar.addMenu("Configurações")
         self.utilities_menu = self.menu_bar.addMenu("Utilidades")
         self.about_menu = self.menu_bar.addMenu("Sobre")
@@ -74,14 +74,14 @@ class MenuManager:
         # Adicionando atalhos
         self.utilities_menu.actions()[0].setShortcut("F10")
 
-        self.add_menu_action(self.message_menu, "Nova Mensagem", self.new_message)
-        self.add_menu_action(self.message_menu, "Homologação", self.homologacao)
-        self.add_menu_action(self.message_menu, "Suspensão", self.suspensao)
-        self.add_menu_action(self.message_menu, "Equipe de Planejamento", self.equipe_planejamento)
-        self.add_menu_action(self.message_menu, "Plano de Contratação Anual (PCA)", self.plano_contratacao_anual)
+        # self.add_menu_action(self.message_menu, "Nova Mensagem", self.new_message)
+        # self.add_menu_action(self.message_menu, "Homologação", self.homologacao)
+        # self.add_menu_action(self.message_menu, "Suspensão", self.suspensao)
+        # self.add_menu_action(self.message_menu, "Equipe de Planejamento", self.equipe_planejamento)
+        # self.add_menu_action(self.message_menu, "Plano de Contratação Anual (PCA)", self.plano_contratacao_anual)
 
-        self.add_menu_action(self.standard_communication_menu, "Modelo de Comunicação", self.standard_communication)
-        self.add_menu_action(self.conselho_gestao_menu, "Conselho de Gestão", self.conges_menu)
+        # self.add_menu_action(self.standard_communication_menu, "Modelo de Comunicação", self.standard_communication)
+        # self.add_menu_action(self.conselho_gestao_menu, "Conselho de Gestão", self.conges_menu)
         self.add_menu_action(self.settings_menu, "Configurar Database", self.show_configurar_database_dialog)
         self.add_menu_action(self.settings_menu, "Agentes Responsáveis", self.show_agentes_responsaveis_dialog)
         self.add_menu_action(self.settings_menu, "Organizações", self.show_organizacoes_dialog)

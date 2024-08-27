@@ -8,7 +8,7 @@ import os
 import sys
 from diretorios import STREAMLIT_PATH
 from pathlib import Path
-
+import requests
 class StreamlitDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -31,24 +31,29 @@ class StreamlitDialog(QDialog):
 
         # Iniciar o Streamlit em segundo plano
         self.start_streamlit()
-        
+            
     def start_streamlit(self):
         streamlit_url = "http://localhost:8501"
         
-        # Resolver o caminho do script Streamlit de forma adequada
-        if hasattr(sys, '_MEIPASS'):
-            # Caminho quando empacotado com PyInstaller
-            streamlit_script = os.path.join(sys._MEIPASS, "streamlit", "streamlit_app.py")
-        else:
-            # Caminho durante o desenvolvimento
-            streamlit_script = STREAMLIT_PATH
-
-        # Verifique se o caminho do script existe
-        if not Path(streamlit_script).exists():
-            raise FileNotFoundError(f"O caminho {streamlit_script} não foi encontrado.")
+        # Verifica se o script Streamlit existe
+        if not Path(STREAMLIT_PATH).exists():
+            raise FileNotFoundError(f"O caminho {STREAMLIT_PATH} não foi encontrado.")
         
-        # Executar o Streamlit usando o caminho correto
-        subprocess.Popen([sys.executable, "-m", "streamlit", "run", streamlit_script, "--server.headless", "true"])
+        # Executa o Streamlit usando o comando correto
+        process = subprocess.Popen(["streamlit", "run", str(STREAMLIT_PATH), "--server.headless", "true"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+        
+        # Espera um curto período para garantir que o servidor Streamlit esteja rodando
+        QTimer.singleShot(5000, lambda: self.check_streamlit_connection(streamlit_url, process))
 
-        # Esperar um curto período para garantir que o servidor Streamlit esteja rodando
-        QTimer.singleShot(2000, lambda: self.web_view.setUrl(QUrl(streamlit_url)))
+    def check_streamlit_connection(self, streamlit_url, process):
+        try:
+            response = requests.get(streamlit_url)
+            if response.status_code == 200:
+                self.web_view.setUrl(QUrl(streamlit_url))
+            else:
+                raise ConnectionError("Não foi possível conectar ao servidor Streamlit.")
+        except Exception as e:
+            process.terminate()  # Encerrar o processo do Streamlit em caso de erro
+            QMessageBox.critical(self, "Erro", f"Erro ao iniciar o Streamlit: {str(e)}")
+

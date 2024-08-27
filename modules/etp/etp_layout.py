@@ -85,6 +85,11 @@ class ETPWidget(QWidget):
         self.model_selection.addItems(["gpt-3.5-turbo", "gpt-4"])
         main_layout.addWidget(self.model_selection)
 
+        # Botão para escolher o modelo GPT
+        self.question_selection = QComboBox()
+        self.question_selection.addItems(["Descrição da Necessidade", "Requisitos da Contratação", "Levantamento de Mercado", "Descrição da solução como um todo"])
+        main_layout.addWidget(self.question_selection)
+
         # Campo para o usuário digitar o objeto
         self.object_input = QTextEdit()
         self.object_input.setPlaceholderText("Digite o objeto aqui")
@@ -147,18 +152,31 @@ class ETPWidget(QWidget):
 
         model = self.model_selection.currentText()
         object_text = self.object_input.toPlainText().strip()
+        
         if not object_text:
             self.response_output.setText("Objeto não fornecido.")
             return
+
+        # Adiciona o contexto fixo e o contexto do question_selection
+        question_context = self.question_selection.currentText()
+        context = (
+            f"Atue como um especialista em licitações que está planejando uma contratação de {object_text}. "
+            f"O órgão gerenciador da licitação é o Centro de Intendência da Marinha em Brasília (CEIMBRA) que é centralizador das organizações militares da marinha na área de jurisdição do Com7ºDN. "
+            f"O interesse público deve ser preservado"
+        )
+
+        # Prepara o texto completo que será enviado para a API
+        full_text = f"{context}\n Me ajude a construir a {question_context} para contratação de {object_text}"
 
         # Inicia a animação de "Aguarde a resposta..."
         self.loading_animation_timer.start(500)
 
         # Criando a thread para enviar a requisição
-        self.api_thread = APIRequestThread(api_key, model, object_text)
+        self.api_thread = APIRequestThread(api_key, model, full_text)
         self.api_thread.response_received.connect(self._display_response)
         self.api_thread.error_occurred.connect(self._display_error)
         self.api_thread.start()
+
 
     def _update_loading_text(self):
         self.loading_dots = (self.loading_dots + 1) % 4

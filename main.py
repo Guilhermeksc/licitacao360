@@ -68,6 +68,7 @@ class InicioWidget(QWidget):
         self.add_module("Web Scraping", "Coleta automática de dados do Comprasnet.", "website_menu.png")
         self.add_module("RPA", "Automação de processos repetitivos via RPA.", "automation.png")
         self.add_module("Funcionalidades PDF", "Manipulação avançada de documentos PDF.", "pdf.png")
+        self.add_module("API PNCP e ComprasnetContratos", "Consulta de dados do PNCP e ComprasnetContratos via API.", "api.png")
 
         # Contato
         self.contact_label = QLabel(
@@ -119,7 +120,7 @@ class InicioWidget(QWidget):
     def load_initial_data(self):
         image_file_names = [
             "report.png", "signature.png", "planning.png", 
-            "website_menu.png", "automation.png", "pdf.png"
+            "website_menu.png", "automation.png", "pdf.png", "api.png"
         ]
         return self.load_images(self.icons_dir, image_file_names)
     
@@ -153,7 +154,7 @@ class MainWindow(QMainWindow):
 
     def configure_window(self):
         self.setWindowTitle("Licitação 360")  # Define o título da janela
-        self.resize(1050, 610)
+        self.resize(1050, 700)
 
     def setup_central_widget(self):
         self.central_widget = QWidget(self)
@@ -226,7 +227,7 @@ class MainWindow(QMainWindow):
 
         self.content_widget = QWidget()
         self.content_widget.setLayout(self.content_layout)
-        self.content_widget.setMinimumSize(1050, 600)
+        self.content_widget.setMinimumSize(1050, 700)
         self.content_widget.setObjectName("contentWidget")
         self.central_layout.addWidget(self.content_widget)
 
