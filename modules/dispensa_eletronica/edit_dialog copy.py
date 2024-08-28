@@ -1300,33 +1300,6 @@ class EditDataDialog(QDialog):
 
         if not hasattr(self, 'header_layout'):
             self.header_layout = QHBoxLayout()
-
-            # Botão Anterior
-            icon_anterior = QIcon(str(self.ICONS_DIR / "anterior.png"))
-            btn_anterior = self.create_button(
-                "Anterior", 
-                icon_anterior, 
-                self.pagina_anterior, 
-                "Clique para navegar para a página anterior",
-                QSize(100, 40), QSize(30, 30)
-            )
-            self.header_layout.addWidget(btn_anterior)
-
-            self.header_layout.addWidget(self.titleLabel)
-            self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-            self.add_action_buttons(self.header_layout)
-
-            # Botão Próximo
-            icon_proximo = QIcon(str(self.ICONS_DIR / "proximo.png"))
-            btn_proximo = self.create_button(
-                "Próximo", 
-                icon_proximo, 
-                self.pagina_proxima, 
-                "Clique para navegar para a página próxima",
-                QSize(100, 40), QSize(30, 30)
-            )
-            self.header_layout.addWidget(btn_proximo)
-
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)
             header_widget.setFixedHeight(80)
