@@ -339,7 +339,7 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(gerar_documentos_group_box)
         gerar_documentos_group_box.setFixedWidth(270)
         gerar_documentos_group_box.setFixedHeight(150)
-        gerar_documentos_layout = QVBoxLayout()
+        gerar_documentos_layout = QHBoxLayout()
         gerar_documentos_layout.setSpacing(0)
         gerar_documentos_layout.setContentsMargins(0, 0, 0, 0)
 

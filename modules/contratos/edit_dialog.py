@@ -232,8 +232,14 @@ class StackWidgetManager:
         self.records_view.itemDoubleClicked.connect(self.edit_record)
         layout.addWidget(self.records_view)
 
-        layout.addWidget(add_button_registrar_comentario)
-        layout.addWidget(delete_button_comentario)  # Adiciona o botão de exclusão
+        # Criar layout horizontal para os botões de comentários
+        comment_buttons_layout = QHBoxLayout()
+        comment_buttons_layout.addWidget(add_button_registrar_comentario)
+        comment_buttons_layout.addWidget(delete_button_comentario)
+
+        # Adicionar o layout horizontal de botões de comentários ao layout principal
+        layout.addLayout(comment_buttons_layout)
+        
         # Adicionar visualizador de comentários
         self.comments_view = QListWidget(widget)
         self.comments_view.itemDoubleClicked.connect(self.edit_comment)

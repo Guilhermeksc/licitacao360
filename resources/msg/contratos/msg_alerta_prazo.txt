@@ -5,8 +5,7 @@ VTD proximidade de termo final da vigência do Contrato Administrativo n° {{Con
 ALFA - INF intenção, ou não, de iniciar os procedimentos para a
 prorrogação contratual;
 
-BRAVO - Havendo interesse em prorrogar o REF contrato, PTC NEC ENC subsídios
-para referida prorrogação ao CeIMBra, até {{60 dias do vencimento}}; e
+BRAVO - Havendo interesse em prorrogar o REF contrato, PTC NEC ENC subsídios para referida prorrogação ao CeIMBra, até {{60 dias do vencimento}}; e
 
 CHARLIE - Informações Adicionais:
 
