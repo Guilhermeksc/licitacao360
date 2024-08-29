@@ -226,8 +226,10 @@ class EditDataDialog(QDialog):
         # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
         botao_documentos = self.create_gerar_documentos_group()
         sigdem_group = self.create_GrupoSIGDEM()
+        utilidade_group = self.create_utilidades_group()
         layout.addLayout(botao_documentos)
         layout.addWidget(sigdem_group)
+        layout.addLayout(utilidade_group)
 
         # Define o layout para o frame
         frame.setLayout(layout)        
@@ -618,10 +620,6 @@ class EditDataDialog(QDialog):
         self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
         self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
         self.comunicacao_padronizada = self.df_registro_selecionado['comunicacao_padronizada'].iloc[0]
-        self.do_responsavel = self.df_registro_selecionado['do_responsavel'].iloc[0]
-        self.ao_responsavel = self.df_registro_selecionado['ao_responsavel'].iloc[0]
-
-        print("ao_responsavel:", self.ao_responsavel)  # Adiciona um print para verificar o valor de ao_responsavel
 
         data = {
             'id_processo': self.id_processo,
@@ -666,8 +664,6 @@ class EditDataDialog(QDialog):
             'justificativa': self.justificativa,
             'link_pncp': self.link_pncp,
             'comunicacao_padronizada': self.comunicacao_padronizada,
-            'do_responsavel': self.do_responsavel,
-            'ao_responsavel': self.ao_responsavel
         }
 
         return data
@@ -689,7 +685,7 @@ class EditDataDialog(QDialog):
                 'criterio_julgamento': self.criterio_edit.currentText(),
                 'com_disputa': 'Sim' if self.radio_disputa_sim.isChecked() else 'Não',
                 'pesquisa_preco': 'Sim' if self.radio_pesquisa_sim.isChecked() else 'Não',
-                'setor_responsavel': self.setor_responsavel_edit.text().strip(),
+                'setor_responsavel': self.setor_responsavel_combo.currentText(),
                 'operador': self.operador_dispensa_combo.currentText(),
                 'sigla_om': self.om_combo.currentText(),
                 'uasg': self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'uasg'],
@@ -711,8 +707,6 @@ class EditDataDialog(QDialog):
                 'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
                 'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
                 'comunicacao_padronizada': self.cp_edit.text().strip(),
-                'do_responsavel': self.do_responsavel_edit.text().strip(),
-                'ao_responsavel': self.ao_responsavel_edit.text().strip()
             }
 
             # Atualizar o DataFrame com os novos valores
@@ -753,8 +747,11 @@ class EditDataDialog(QDialog):
     def apply_widget_style_11(self, widget):
         widget.setStyleSheet("font-size: 11pt;") 
 
-    def apply_widget_style_10(self, widget):
-        widget.setStyleSheet("font-size: 10pt;") 
+    def apply_widget_style_12(self, widget):
+        widget.setStyleSheet("font-size: 12pt;") 
+
+    def apply_widget_style_14(self, widget):
+        widget.setStyleSheet("font-size: 14pt;") 
 
     def create_combo_box(self, current_text, items, fixed_width, fixed_height):
         combo_box = QComboBox()
@@ -854,7 +851,7 @@ class EditDataDialog(QDialog):
             self.radio_disputa_nao.setChecked(str(self.df_registro_selecionado.at[0, 'com_disputa']) == 'Não')
             self.radio_pesquisa_sim.setChecked(str(self.df_registro_selecionado.at[0, 'pesquisa_preco']) == 'Sim')
             self.radio_pesquisa_nao.setChecked(str(self.df_registro_selecionado.at[0, 'pesquisa_preco']) == 'Não')
-            self.setor_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'setor_responsavel']))
+            self.setor_responsavel_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'setor_responsavel']))
             self.operador_dispensa_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'operador']))
             self.om_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'sigla_om']))
             self.par_edit.setText(str(self.df_registro_selecionado.at[0, 'cod_par']))
@@ -875,11 +872,60 @@ class EditDataDialog(QDialog):
             self.radio_custeio_sim.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Sim')
             self.radio_custeio_nao.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Não')
             self.cp_edit.setText(str(self.df_registro_selecionado.at[0, 'comunicacao_padronizada']))
-            self.do_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'do_responsavel']))
-            self.ao_responsavel_edit.setText(str(self.df_registro_selecionado.at[0, 'ao_responsavel']))
+
         except KeyError as e:
             print(f"Erro ao preencher campos: {str(e)}")
+    
+    """
+    
+    
+    
+    
 
+
+
+    
+    PARTE REFERENTE AS UTILIDADES
+    
+    
+
+
+
+
+
+
+    """
+
+    def create_utilidades_group(self):
+        utilidades_layout = QHBoxLayout()
+        utilidades_layout.setSpacing(0)
+        utilidades_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Botão para abrir o arquivo de registro
+        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "salvar_pasta.png"))
+        editar_registro_button = self.create_button("Local de Salvamento", icon=icon_salvar_pasta, callback=self.consolidador.alterar_diretorio_base, tooltip_text="Clique para alterar o local de salvamento dos arquivos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
+        self.apply_widget_style(editar_registro_button)
+        utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_open_folder = QIcon(str(self.ICONS_DIR / "open-folder.png"))
+        visualizar_pdf_button = self.create_button("Abrir Pasta Base", icon=icon_open_folder, callback=self.consolidador.abrir_pasta_base, tooltip_text="Clique para alterar ou escolher os dados predefinidos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Botão para abrir o arquivo de registro
+        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
+        visualizar_pdf_button = self.create_button("Editar Modelos", icon=icon_template, callback=self.consolidador.abrir_pasta_base, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
+        self.apply_widget_style(visualizar_pdf_button)
+        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        icon_info_sigdem = QIcon(str(self.ICONS_DIR / "info_sigdem.png"))
+        info_sigdem_button = self.create_button("Informações SIGDEM", icon=icon_info_sigdem, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(210, 40), icon_size=QSize(40, 40))
+        self.apply_widget_style(info_sigdem_button)
+        utilidades_layout.addWidget(info_sigdem_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        return utilidades_layout
+    
     """
     
     
@@ -1011,7 +1057,7 @@ class EditDataDialog(QDialog):
         # Função auxiliar para adicionar seções de anexos
         def add_anexo_section(section_title, *anexos):
             section_label = QLabel(section_title)
-            self.apply_widget_style_11(section_label)
+            self.apply_widget_style_14(section_label)
             anexo_layout.addWidget(section_label)
             self.anexos_dict[section_title] = []
 
@@ -1035,7 +1081,7 @@ class EditDataDialog(QDialog):
 
                 # Label do anexo
                 anexo_label = QLabel(anexo)
-                self.apply_widget_style_10(anexo_label)
+                self.apply_widget_style_12(anexo_label)
                 layout.addWidget(anexo_label)
                 layout.addSpacerItem(QSpacerItem(10, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
                 layout.addStretch()
@@ -1048,7 +1094,9 @@ class EditDataDialog(QDialog):
         add_anexo_section("Termo de Referência (TR)", "Anexo - Pesquisa de Preços")
         add_anexo_section("Declaração de Adequação Orçamentária", "Anexo - Relatório do PDM/CATSER")
 
-        anexo_layout.addWidget(QLabel("Justificativas relevantes"))
+        justificativa_label = QLabel("Justificativas relevantes")
+        justificativa_label.setStyleSheet("font-size: 14pt;")  # Ajuste do tamanho da fonte
+        anexo_layout.addWidget(justificativa_label)
 
         # Botões de Ação
         self.add_buttons_to_layout(anexo_layout)
@@ -1100,7 +1148,7 @@ class EditDataDialog(QDialog):
         icon_abrir_pasta = QIcon(str(self.ICONS_DIR / "open-folder.png"))
         btnabrirpasta = self.create_button(
             "", icon=icon_abrir_pasta, callback=lambda _, p=pasta_anexo: self.abrir_pasta(p),
-            tooltip_text=tooltip_text, button_size=QSize(25, 25), icon_size=QSize(20, 20)
+            tooltip_text=tooltip_text, button_size=QSize(25, 25), icon_size=QSize(25, 25)
         )
         btnabrirpasta.setToolTipDuration(0)
         return btnabrirpasta
@@ -1138,18 +1186,18 @@ class EditDataDialog(QDialog):
         layout.addLayout(button_layout_atualizar)
 
     def create_gerar_documentos_group(self):
-        gerar_documentos_layout = QHBoxLayout()
-        gerar_documentos_layout.setSpacing(0)
-        gerar_documentos_layout.setContentsMargins(0, 0, 0, 0)
+        gerar_documentos_layout = QVBoxLayout()
+        # gerar_documentos_layout.setSpacing(0)
+        # gerar_documentos_layout.setContentsMargins(0, 0, 0, 0)
 
         icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
 
         visualizar_pdf_button = self.create_button(
-            " Autorização para Abertura",
+            "          Autorização para Abertura      ",
             icon=icon_pdf,
             callback=lambda: self.handle_gerar_autorizacao(),
             tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(275, 40),
+            button_size=QSize(310, 40),
             icon_size=QSize(40, 40)
         )
         self.apply_widget_style(visualizar_pdf_button)
@@ -1160,18 +1208,18 @@ class EditDataDialog(QDialog):
             icon=icon_pdf,
             callback=lambda: self.handle_gerar_comunicacao_padronizada(),
             tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(305, 40),
+            button_size=QSize(310, 40),
             icon_size=QSize(40, 40)
         )
         self.apply_widget_style(visualizar_pdf_button)
         gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         visualizar_pdf_button = self.create_button(
-            "     Aviso de Dispensa      ",
+            "              Aviso de Dispensa               ",
             icon=icon_pdf,
             callback=lambda: self.handle_gerar_aviso_dispensa(),
             tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(275, 40),
+            button_size=QSize(310, 40),
             icon_size=QSize(40, 40)
         )
         self.apply_widget_style(visualizar_pdf_button)
@@ -1247,11 +1295,6 @@ class EditDataDialog(QDialog):
         btnCopySinopse = self.create_button(text="", icon=icon_copy, callback=lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
         layoutHSinopse.addWidget(btnCopySinopse)
         layout.addLayout(layoutHSinopse)
-
-        icon_info_sigdem = QIcon(str(self.ICONS_DIR / "info_sigdem.png"))
-        info_sigdem_button = self.create_button("Informações SIGDEM", icon=icon_info_sigdem, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(220, 40), icon_size=QSize(30, 30))
-        self.apply_widget_style(info_sigdem_button)
-        layout.addWidget(info_sigdem_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         grupoSIGDEM.setLayout(layout)
         self.carregarAgentesResponsaveis()
@@ -1510,26 +1553,32 @@ class EditDataDialog(QDialog):
         return None
     
     def verificar_e_criar_pastas(self, pasta_base):
-        id_processo_modificado = self.id_processo.replace("/", "-")
-        objeto_modificado = self.objeto.replace("/", "-")
-        base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
+        try:
+            id_processo_modificado = self.id_processo.replace("/", "-")
+            objeto_modificado = self.objeto.replace("/", "-")
+            base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
 
-        pastas_necessarias = [
-            pasta_base / '1. Autorizacao',
-            pasta_base / '2. CP e anexos',
-            pasta_base / '3. Aviso',
-            pasta_base / '2. CP e anexos' / 'DFD',
-            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin',
-            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
-            pasta_base / '2. CP e anexos' / 'TR',
-            pasta_base / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
-            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária',
-            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser',
-            pasta_base / '2. CP e anexos' / 'Justificativas Relevantes',
-        ]
-        for pasta in pastas_necessarias:
-            if not pasta.exists():
-                pasta.mkdir(parents=True)
+            pastas_necessarias = [
+                pasta_base / '1. Autorizacao',
+                pasta_base / '2. CP e anexos',
+                pasta_base / '3. Aviso',
+                pasta_base / '2. CP e anexos' / 'DFD',
+                pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin',
+                pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
+                pasta_base / '2. CP e anexos' / 'TR',
+                pasta_base / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
+                pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária',
+                pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser',
+                pasta_base / '2. CP e anexos' / 'Justificativas Relevantes',
+            ]
+
+            for pasta in pastas_necessarias:
+                if not pasta.exists():
+                    pasta.mkdir(parents=True)
+
+        except (FileNotFoundError, PermissionError) as e:
+            QMessageBox.critical(self, "Erro ao criar pastas", f"Não foi possível criar as pastas necessárias devido ao erro: {str(e)}. Por favor, selecione uma nova pasta base na aba 'Documentos'.")
+            
         return pastas_necessarias
 
     def abrirPasta(self):
@@ -1628,7 +1677,7 @@ class EditDataDialog(QDialog):
         if self.df_registro_selecionado is not None and 'sigla_om' in self.df_registro_selecionado.columns:
             sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0] if not self.df_registro_selecionado['sigla_om'].empty else 'CeIMBra'
 
-        self.om_combo = self.create_combo_box(sigla_om, [], 105, 35)
+        self.om_combo = self.create_combo_box(sigla_om, [], 150, 35)
         om_layout.addWidget(om_label)
         om_layout.addWidget(self.om_combo)
 
@@ -1638,16 +1687,31 @@ class EditDataDialog(QDialog):
         # Configuração da Divisão
         divisao_label = QLabel("Divisão:")
         self.apply_widget_style(divisao_label)
-        self.setor_responsavel_edit = QLineEdit(data['setor_responsavel'])
-        om_divisao_layout.addWidget(divisao_label)
-        om_divisao_layout.addWidget(self.setor_responsavel_edit)
 
-        # Configuração da CP
-        cp_label = QLabel("Número da CP:")
-        self.apply_widget_style(cp_label)
-        self.cp_edit = QLineEdit(data['comunicacao_padronizada'])
-        om_divisao_layout.addWidget(cp_label)
-        om_divisao_layout.addWidget(self.cp_edit)
+        # Criando o QComboBox editável
+        self.setor_responsavel_combo = QComboBox()
+        self.setor_responsavel_combo.setEditable(True)
+
+        # Adicionando as opções ao ComboBox
+        divisoes = [
+            "Divisão de Abastecimento",
+            "Divisão de Finanças",
+            "Divisão de Obtenção",
+            "Divisão de Pagamento",
+            "Divisão de Administração",
+            "Divisão de Subsistência"
+        ]
+        self.setor_responsavel_combo.addItems(divisoes)
+
+        # Definindo o texto atual com base nos dados fornecidos
+        self.setor_responsavel_combo.setCurrentText(data['setor_responsavel'])
+
+        # Definindo a política de tamanho para expandir e preencher o espaço disponível
+        self.setor_responsavel_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        # Adicionando o QComboBox ao layout
+        om_divisao_layout.addWidget(divisao_label)
+        om_divisao_layout.addWidget(self.setor_responsavel_combo)
 
         # Adicionando o layout OM/Divisão/CP ao layout principal
         setor_responsavel_layout.addLayout(om_divisao_layout)
@@ -1655,9 +1719,20 @@ class EditDataDialog(QDialog):
         self.load_sigla_om(sigla_om)  # Carregar os itens do combobox e definir o texto
 
         self.par_edit = QLineEdit(str(data.get('cod_par', '')))
-        self.par_edit.setFixedWidth(120)
+        self.par_edit.setFixedWidth(150)
         self.prioridade_combo = self.create_combo_box(data.get('prioridade_par', 'Necessário'), ["Necessário", "Urgente", "Desejável"], 190, 35)
+     
+        
         par_layout = QHBoxLayout()
+
+        # Configuração da CP
+        cp_label = QLabel("Número da CP:")
+        self.apply_widget_style(cp_label)
+        self.cp_edit = QLineEdit(data['comunicacao_padronizada'])
+        self.cp_edit.setFixedWidth(150)  # Ajuste do tamanho para 50
+        par_layout.addWidget(cp_label)
+        par_layout.addWidget(self.cp_edit)
+
         par_label = QLabel("Meta do PAR:")
         prioridade_label = QLabel("Prioridade:")
         self.apply_widget_style(par_label)
@@ -1669,7 +1744,7 @@ class EditDataDialog(QDialog):
         setor_responsavel_layout.addLayout(par_layout)
 
         self.endereco_edit = QLineEdit(data['endereco'])
-        self.endereco_edit.setFixedWidth(250)
+        self.endereco_edit.setFixedWidth(450)
         self.cep_edit = QLineEdit(str(data.get('cep', '')))
         endereco_cep_layout = QHBoxLayout()
         endereco_label = QLabel("Endereço:")
@@ -1683,7 +1758,7 @@ class EditDataDialog(QDialog):
         setor_responsavel_layout.addLayout(endereco_cep_layout)
 
         self.email_edit = QLineEdit(data['email'])
-        self.email_edit.setFixedWidth(260)
+        self.email_edit.setFixedWidth(400)
         self.telefone_edit = QLineEdit(data['telefone'])
         email_telefone_layout = QHBoxLayout()
         email_telefone_layout.addLayout(self.create_layout("E-mail:", self.email_edit))

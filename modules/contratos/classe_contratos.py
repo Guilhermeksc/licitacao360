@@ -269,7 +269,7 @@ class UIManager:
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
         header.resizeSection(0, 70)
         header.resizeSection(41, 110)
         header.resizeSection(1, 50)
@@ -323,6 +323,7 @@ class UIManager:
             1: "Dias",
             2: "Renova?",
             3: "Custeio?",
+            14: "Sigla OM",
             4: "Contrato/Ata",
             5: "Tipo",
             6: "Processo",
@@ -336,13 +337,13 @@ class UIManager:
 
     def reorder_columns(self):
         # Inclua a coluna de ícones na nova ordem
-        new_order = [41, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        new_order = [41, 1, 2, 3, 14, 4, 5, 6, 7, 8, 9]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
         # Inclua a coluna de ícones no conjunto de colunas visíveis
-        visible_columns = {1, 2, 3, 4, 5, 6, 7, 8, 9, 41}
+        visible_columns = {1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 41}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
