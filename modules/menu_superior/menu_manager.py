@@ -72,7 +72,7 @@ class MenuManager:
         self.add_menu_action(self.utilities_menu, "Esconder Menu Lateral", self.toggle_menu_visibility)
 
         # Adicionando atalhos
-        self.utilities_menu.actions()[0].setShortcut("F10")
+        self.utilities_menu.actions()[1].setShortcut("F10")
 
         # self.add_menu_action(self.message_menu, "Nova Mensagem", self.new_message)
         # self.add_menu_action(self.message_menu, "Homologação", self.homologacao)

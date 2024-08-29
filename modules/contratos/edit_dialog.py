@@ -5,15 +5,19 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 import sqlite3
-from diretorios import BRASIL_IMAGE_PATH, ICONS_DIR
+from diretorios import BRASIL_IMAGE_PATH, ICONS_DIR, CONTROLE_DADOS, load_config
 import pandas as pd
 from modules.contratos.utils import WidgetHelper
 from datetime import datetime
+from modules.planejamento.utilidades_planejamento import DatabaseManager
+
 class StackWidgetManager:
     def __init__(self, parent, data_function):
         self.parent = parent
-        self.data_function = data_function  # Agora data_function é uma função, não um dicionário
+        self.data_function = data_function
         self.icons_dir = Path(ICONS_DIR)
+        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        self.database_manager = DatabaseManager(self.database_path)
         self.stacked_widget = QStackedWidget(parent)
         self.stacked_widget.setStyleSheet(
             "QStackedWidget {"
@@ -27,7 +31,6 @@ class StackWidgetManager:
             "Gestão/Fiscalização": self.create_widget_gestao_fiscalizacao,
             "Status": self.create_widget_status,
         }
-
         self.line_edits = {}
 
     def add_widget(self, name, widget):
@@ -49,15 +52,15 @@ class StackWidgetManager:
     def create_widget_informacoes_gerais(self):
         data = self.data_function()
         widget = QWidget()
-        h_layout = QHBoxLayout(widget)  # Criar um QHBoxLayout
-        h_layout.setContentsMargins(0, 0, 0, 0)  # Definir margens para 0
-        h_layout.setSpacing(0)  # Definir espaçamento entre os contêineres para 0
+        h_layout = QHBoxLayout(widget)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.setSpacing(0)
 
-        # Widgets de contêiner para layouts esquerdo e direito
+        # Containers
         left_container = QWidget()
         right_container = QWidget()
 
-        # Layout esquerdo
+        # Left layout
         left_layout = QVBoxLayout(left_container)
 
         id_processo_layout, self.line_edits['id_processo'] = WidgetHelper.create_line_edit("ID Processo:", data.get('Processo', 'N/A'))
@@ -121,26 +124,64 @@ class StackWidgetManager:
         inicial_layout, self.date_edit_inicial = WidgetHelper.create_date_edit("Início da Vigência:", data.get('vigencia_inicial', None))
         final_layout, self.date_edit_final = WidgetHelper.create_date_edit("Final da Vigência:", data.get('vigencia_final', None))
 
-        # Adicionar os QLabels para om, indicativo_om e om_extenso
-        om_label = QLabel(f"OM: {data.get('om', 'N/A')}")
-        indicativo_om_label = QLabel(f"Indicativo OM: {data.get('indicativo_om', 'N/A')}")
-        om_extenso_label = QLabel(f"OM Extenso: {data.get('om_extenso', 'N/A')}")
+        # Adicionar ComboBox para "Sigla da OM" e campos para "UASG" e "Órgão"
+        self.combo_sigla_om = QComboBox()
+        self.line_edit_uasg = QLineEdit()
+        self.line_edit_orgao = QLineEdit()
+        self.line_edit_indicativo = QLineEdit()
 
+        # Definir os campos UASG e Orgao como somente leitura
+        self.line_edit_uasg.setReadOnly(True)
+        self.line_edit_orgao.setReadOnly(True)
+        self.line_edit_indicativo.setReadOnly(True)
+
+        # Conectar o sinal de mudança de índice do combo box à função de atualização
+        self.combo_sigla_om.currentIndexChanged.connect(self.on_combo_change)
+
+        # Criando layouts verticais para cada grupo de label e widget
+        sigla_layout = QVBoxLayout()
+        sigla_label = QLabel('Sigla da OM Responsável pelo Planejamento:')
+        sigla_label.setStyleSheet("font-size: 14px;")
+        sigla_layout.addWidget(sigla_label)
+        sigla_layout.addWidget(self.combo_sigla_om)
+        self.combo_sigla_om.setStyleSheet("font-size: 14px;")  # Ajuste de estilo para o combo box
+
+        uasg_layout = QVBoxLayout()
+        uasg_label = QLabel('UASG:')
+        uasg_label.setStyleSheet("font-size: 14px;")
+        uasg_layout.addWidget(uasg_label)
+        uasg_layout.addWidget(self.line_edit_uasg)
+        self.line_edit_uasg.setStyleSheet("font-size: 14px;")  # Ajuste de estilo para o QLineEdit
+
+        orgao_layout = QVBoxLayout()
+        orgao_label = QLabel('Órgão Responsável:')
+        orgao_label.setStyleSheet("font-size: 14px;")
+        orgao_layout.addWidget(orgao_label)
+        orgao_layout.addWidget(self.line_edit_orgao)
+        self.line_edit_orgao.setStyleSheet("font-size: 14px;")  # Ajuste de estilo para o QLineEdit
+
+        indicativo_layout = QVBoxLayout()
+        indicativo_label = QLabel('Indicativo:')
+        indicativo_label.setStyleSheet("font-size: 14px;")
+        indicativo_layout.addWidget(indicativo_label)
+        indicativo_layout.addWidget(self.line_edit_indicativo)
+        self.line_edit_indicativo.setStyleSheet("font-size: 14px;")  # Ajuste de estilo para o QLineEdit
+
+        # Adicionando os layouts verticais ao layout direito
         right_layout.addLayout(inicial_layout)
         right_layout.addLayout(final_layout)
+        right_layout.addLayout(sigla_layout)
+        right_layout.addLayout(uasg_layout)
+        right_layout.addLayout(orgao_layout)
+        right_layout.addLayout(indicativo_layout)
+        right_layout.addStretch()
+        
+        # Inicializar dados do ComboBox
+        self.init_combobox_data()
 
-        right_layout.addWidget(om_label)
-        right_layout.addWidget(indicativo_om_label)
-        right_layout.addWidget(om_extenso_label)
-
-        # Adicionar linha central
         line = QFrame()
         line.setFrameShape(QFrame.Shape.VLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setFixedWidth(1)
-
-        left_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        right_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         h_layout.addWidget(left_container)
         h_layout.addWidget(line)
@@ -148,7 +189,34 @@ class StackWidgetManager:
 
         self.add_widget("Informações Gerais", widget)
 
-        
+    def init_combobox_data(self):
+        # Inicialize o DatabaseManager para carregar dados no combobox
+        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        self.database_manager = DatabaseManager(self.database_path)
+        data = self.data_function()
+
+        with self.database_manager as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT sigla_om, uasg, orgao_responsavel, indicativo_om FROM controle_om")
+            rows = cursor.fetchall()
+
+        index_to_set = 0
+        for index, (sigla_om, uasg, orgao, indicativo_om) in enumerate(rows):
+            # Adiciona todos os valores necessários ao combo box como uma tupla
+            self.combo_sigla_om.addItem(sigla_om, (str(uasg), str(orgao), str(indicativo_om)))  
+            if sigla_om == data.get('Sigla OM', ''):
+                index_to_set = index
+
+        self.combo_sigla_om.setCurrentIndex(index_to_set)
+        self.on_combo_change(index_to_set)
+
+    def on_combo_change(self, index):
+        current_data = self.combo_sigla_om.itemData(index)
+        if current_data:
+            self.line_edit_uasg.setText(current_data[0] if current_data[0] is not None else "") 
+            self.line_edit_orgao.setText(current_data[1] if current_data[1] is not None else "")
+            self.line_edit_indicativo.setText(current_data[2] if current_data[2] is not None else "")
+            
     def create_widget_termo_aditivo(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -504,7 +572,6 @@ class AtualizarDadosContratos(QDialog):
 
         html_text = (
             f"{tipo} {numero_contrato} - {objeto}<br>"
-            f"<span style='font-size: 18px; '>(UASG: {uasg})</span>"
         )
 
         if not hasattr(self, 'titleLabel'):
@@ -518,35 +585,13 @@ class AtualizarDadosContratos(QDialog):
         if not hasattr(self, 'header_layout'):
             self.header_layout = QHBoxLayout()
 
-            # Botão Anterior
-            icon_anterior = QIcon(str(self.icons_dir / "anterior.png"))
-            btn_anterior = self.create_button(
-                "Anterior", 
-                icon_anterior, 
-                self.pagina_anterior, 
-                "Clique para navegar para a página anterior",
-                QSize(100, 40), QSize(30, 30)
-            )
-            self.header_layout.addWidget(btn_anterior)
-
             self.header_layout.addWidget(self.titleLabel)
             self.header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
             self.add_action_buttons(self.header_layout)
 
-            # Botão Próximo
-            icon_proximo = QIcon(str(self.icons_dir / "proximo.png"))
-            btn_proximo = self.create_button(
-                "Próximo", 
-                icon_proximo, 
-                self.pagina_proxima, 
-                "Clique para navegar para a página próxima",
-                QSize(100, 40), QSize(30, 30)
-            )
-            self.header_layout.addWidget(btn_proximo)
-
             header_widget = QWidget()
             header_widget.setLayout(self.header_layout)
-            header_widget.setFixedHeight(80)
+            header_widget.setFixedHeight(55)
             self.header_widget = header_widget
 
         return self.header_widget
@@ -618,8 +663,8 @@ class AtualizarDadosContratos(QDialog):
         icon_confirm = QIcon(str(self.icons_dir / "confirm.png"))
         icon_x = QIcon(str(self.icons_dir / "cancel.png"))
         
-        button_confirm = self.create_button(" Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(110, 50), QSize(40, 40))
-        button_x = self.create_button(" Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(110, 50), QSize(30, 30))
+        button_confirm = self.create_button(" Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(110, 40), QSize(40, 40))
+        button_x = self.create_button(" Cancelar", icon_x, self.reject, "Cancelar alterações e fechar", QSize(110, 40), QSize(35, 35))
                 
         layout.addWidget(button_confirm)
         layout.addWidget(button_x)
@@ -664,7 +709,7 @@ class AtualizarDadosContratos(QDialog):
                 registro_texto = "\n".join(registro_texto)
             else:
                 registro_texto = self.data_function().get('registro_status', '')
-            
+
             data = {
                 'status': status_value,
                 'pode_renovar': 'Sim' if self.stack_manager.pode_renovar_buttons['Sim'].isChecked() else 'Não',
@@ -675,11 +720,13 @@ class AtualizarDadosContratos(QDialog):
                 'empresa': self.stack_manager.line_edits["empresa"].text().strip(),
                 'objeto': self.stack_manager.line_edits["objeto"].text().strip(),
                 'valor_global': self.stack_manager.line_edits["valor_global"].text().strip(),
-                'uasg': self._get_valid_value('uasg'), 
+                'uasg': self.stack_manager.line_edit_uasg.text().strip(),  # Usa o valor do campo de texto UASG
                 'nup': self.stack_manager.line_edits["nup"].text().strip(),
                 'cnpj': self.stack_manager.line_edits["cnpj"].text().strip(),
                 'natureza_continuada': 'Sim' if self.stack_manager.natureza_continuada_buttons['Sim'].isChecked() else 'Não',
-                'om': self._get_valid_value('om'), 
+                'om': self.stack_manager.combo_sigla_om.currentText().strip(),  # Usa o valor selecionado do combo box Sigla OM
+                'indicativo_om': self.stack_manager.line_edit_indicativo.text().strip(),  # Corrigido
+                'om_extenso': self.stack_manager.line_edit_orgao.text().strip(),  # Corrigido
                 'material_servico': 'Material' if self.stack_manager.material_servico_buttons['Material'].isChecked() else 'Serviço',
                 'link_pncp': self._get_valid_value('link_pncp'),
                 'portaria': self._get_valid_value('portaria'),
@@ -688,9 +735,9 @@ class AtualizarDadosContratos(QDialog):
                 'posto_gestor_substituto': self._get_valid_value('posto_gestor_substituto'),
                 'gestor_substituto': self._get_valid_value('gestor_substituto'),
                 'posto_fiscal': self._get_valid_value('posto_fiscal'),
-                'fiscal': self._get_valid_value('fiscal'), 
+                'fiscal': self._get_valid_value('fiscal'),
                 'posto_fiscal_substituto': self._get_valid_value('posto_fiscal_substituto'),
-                'fiscal_substituto': self._get_valid_value('fiscal_substituto'), 
+                'fiscal_substituto': self._get_valid_value('fiscal_substituto'),
                 'posto_fiscal_administrativo': self._get_valid_value('posto_fiscal_administrativo'),
                 'fiscal_administrativo': self._get_valid_value('fiscal_administrativo'),
                 'vigencia_inicial': self.stack_manager.date_edit_inicial.date().toString('dd/MM/yyyy'),
@@ -720,6 +767,7 @@ class AtualizarDadosContratos(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
+
 
     def _get_valid_value(self, key):
         """Retorna o valor válido do campo ou o valor existente no DataFrame."""

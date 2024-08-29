@@ -410,14 +410,14 @@ class CustomTableView(QTableView):
         super().__init__(parent)
         self.main_app = main_app
         self.config_manager = config_manager
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.showContextMenu)
+    #     self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+    #     self.customContextMenuRequested.connect(self.showContextMenu)
 
-    def showContextMenu(self, pos):
-        index = self.indexAt(pos)
-        if index.isValid():
-            contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
-            contextMenu.exec(self.viewport().mapToGlobal(pos))
+    # def showContextMenu(self, pos):
+    #     index = self.indexAt(pos)
+    #     if index.isValid():
+    #         contextMenu = TableMenu(self.main_app, index, self.model(), config_manager=self.config_manager)
+    #         contextMenu.exec(self.viewport().mapToGlobal(pos))
 
 class TableMenu(QMenu):
     def __init__(self, main_app, index, model=None, config_manager=None):

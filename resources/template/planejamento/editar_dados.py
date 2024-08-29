@@ -14,6 +14,7 @@ from modules.planejamento.utilidades_planejamento import DatabaseManager, carreg
 from database.utils.treeview_utils import load_images, create_button_2
 from pathlib import Path
 import pandas as pd
+
 class TextEditDelegate(QItemDelegate):
     def createEditor(self, parent, option, index):
         editor = QTextEdit(parent)
