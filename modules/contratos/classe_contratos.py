@@ -75,9 +75,6 @@ class ContratosWidget(QMainWindow):
         
         # Converte os dados da linha selecionada em um DataFrame
         df_registro_selecionado = pd.DataFrame([row_data])
-        
-        # Print do DataFrame completo para depuração
-        # print(f"[DEBUG] - DataFrame completo:\n{df_registro_selecionado}")
 
         indice_linha = source_index.row()
 

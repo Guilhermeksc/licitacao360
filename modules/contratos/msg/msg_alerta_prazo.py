@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 
 import pandas as pd
+from pandas.tseries.offsets import BDay
+
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
@@ -203,17 +205,57 @@ class MensagemDialog(QDialog):
         )
 
     def applyTemplate(self):
+        # Renderiza o template inicial sem a substituição de 'prazo_final'
         user_template = self.modelEditor.toPlainText()
-        texto_completo = self.cabecalhoAtual + self.renderTemplate(user_template, self.df_registro_selecionado.iloc[0])
-        self.textViewer.setHtml(texto_completo)
+        texto_inicial = self.cabecalhoAtual + self.renderTemplate(user_template, self.df_registro_selecionado.iloc[0])
 
+        # Exibe o template inicial no editor
+        self.textViewer.setHtml(texto_inicial)
+
+        # Verifica se o índice está dentro dos limites antes de calcular o prazo
+        if not self.df_registro_selecionado.empty and self.indice_linha < len(self.df_registro_selecionado):
+            # Depois da edição pelo usuário, calcula o prazo_envio
+            vigencia_final = self.df_registro_selecionado.iloc[self.indice_linha]['vigencia_final']
+            print(f"Vigência final obtida: {vigencia_final}")  # Print para depuração
+            
+            prazo_envio = self.calcular_prazo_envio(vigencia_final)
+            print(f"Prazo de envio calculado: {prazo_envio}")  # Print para depuração
+
+            # Renderiza novamente o template substituindo 'prazo_final'
+            texto_completo = self.renderPrazoFinal(texto_inicial, prazo_envio)
+            self.textViewer.setHtml(texto_completo)
+        else:
+            print("DataFrame está vazio ou índice fora dos limites")
+            self.close()
+            return
+        
     def renderTemplate(self, template, data):
         # Converte o template em texto formatado substituindo as variáveis pelos valores correspondentes
         template = template.replace('\n', '<br>')
 
         rendered_text = template
         for key, value in data.items():
-            rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", f"<span style='font-weight: bold; text-decoration: underline;'>{value}</span>", rendered_text)
+            if key == "material_servico":
+                if value.strip() == "Serviço":
+                    substitution = "<span style='font-weight: bold; text-decoration: underline;'>contratação de empresa especializada em</span>"
+                elif value.strip() == "Material":
+                    substitution = "<span style='font-weight: bold; text-decoration: underline;'>a aquisição de</span>"
+                else:
+                    substitution = f"<span style='font-weight: bold; text-decoration: underline;'>{value}</span>"
+            else:
+                substitution = f"<span style='font-weight: bold; text-decoration: underline;'>{value}</span>"
+
+            rendered_text = re.sub(rf"{{{{\s*{key}\s*}}}}", substitution, rendered_text)
+
+        # Deixa a substituição de {{prazo_final}} para depois da edição pelo usuário
+        return rendered_text
+
+    def renderPrazoFinal(self, rendered_text, prazo_envio):
+        # Substitui '{{prazo_final}}' usando o valor de 'prazo_envio' fornecido como argumento
+        if "{{prazo_final}}" in rendered_text:
+            substitution = f"<span style='font-weight: bold; text-decoration: underline;'>{prazo_envio}</span>"
+            rendered_text = rendered_text.replace("{{prazo_final}}", substitution)
+
         return rendered_text
 
     def loadTemplate(self, template_name):
@@ -273,3 +315,20 @@ class MensagemDialog(QDialog):
         self.modelEditor.setTextCursor(cursor)  # Define o cursor de volta no QTextEdit
         self.modelEditor.setFocus()  # Foca no editor após inserção
 
+    def calcular_prazo_envio(self, vigencia_final):
+        try:
+            # Converte a string de data para um tipo datetime
+            data_final = pd.to_datetime(vigencia_final, format='%d/%m/%Y')
+            print(f"Data final convertida: {data_final}")  # Print para depuração
+            
+            # Subtrai 45 dias úteis, considerando apenas os dias úteis
+            data_prazo = data_final - BDay(45)
+            
+            # Formata a data calculada para o formato DD/MM/AAAA
+            prazo_envio = data_prazo.strftime('%d/%m/%Y')
+            print(f"Prazo de envio formatado: {prazo_envio}")  # Print para depuração
+            
+            return prazo_envio
+        except Exception as e:
+            print(f"Erro ao calcular prazo de envio: {e}")
+            return "Data não definida"
