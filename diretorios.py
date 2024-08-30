@@ -1,14 +1,13 @@
 #diretorios.py
 
 from pathlib import Path
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 from PyQt6.QtCore import QObject, pyqtSignal
 import json
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 CONFIG_FILE = BASE_DIR / "config.json"
-# CONTROLE_DADOS = DATABASE_DIR / "controle_dados.db"
 CONTROLE_CONTRATOS_DADOS = DATABASE_DIR / "controle_contrato.db"
 CONTROLE_ASS_CONTRATOS_DADOS = DATABASE_DIR / "controle_assinatura.db"
 HOME_PATH = BASE_DIR / "main.py"
@@ -39,6 +38,20 @@ def update_dir(title, key, default_value, parent=None):
         return Path(new_dir)
     return default_value
 
+def update_template_directory(parent=None):
+    """
+    Função para atualizar o diretório de PASTA_TEMPLATE.
+    """
+    global PASTA_TEMPLATE  # Declare global aqui, antes de qualquer uso ou modificação
+
+    new_dir = update_dir("Selecione uma nova pasta para PASTA_TEMPLATE", "PASTA_TEMPLATE", PASTA_TEMPLATE, parent)
+    if new_dir != PASTA_TEMPLATE:
+        PASTA_TEMPLATE = new_dir
+        QMessageBox.information(parent, "Sucesso", f"Diretório PASTA_TEMPLATE atualizado para: {new_dir}")
+    else:
+        QMessageBox.warning(parent, "Atenção", "Nenhum diretório foi selecionado. A configuração permanece inalterada.")
+
+
 # Função atualizada para escolher arquivos
 def update_file_path(title, key, default_value, parent=None, file_type="All Files (*)"):
     new_file, _ = QFileDialog.getOpenFileName(parent, title, str(default_value), file_type)
@@ -62,8 +75,6 @@ TUCANO_PATH = RESOURCES_DIR / "imagem_excel.png"
 MARINHA_PATH = RESOURCES_DIR / "marinha.png"
 CEIMBRA_BG = RESOURCES_DIR / "ceimbra_bg.png"
 
-
-
 # Diretórios de templates
 TEMPLATE_DIR = RESOURCES_DIR / "template"
 CP_DIR = TEMPLATE_DIR / "comunicacao_padronizada" 
@@ -85,16 +96,23 @@ STREAMLIT_PLANEJAMENTO_PATH = STREAMLIT_DIR / "streamlit_planejamento.py"
 
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
+
+PASTA_TEMPLATE = Path(load_config("PASTA_TEMPLATE", RESOURCES_DIR / "template"))
+
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
+TEMPLATE_DISPENSA_DIR = PASTA_TEMPLATE / "template_dispensa"
+
+
 DISPENSA_DIR = MODULES_DIR / "dispensa_eletronica"
 JSON_DISPENSA_DIR = DISPENSA_DIR / "json"
 FILE_PATH_DISPENSA = DISPENSA_DIR / "dispensa_eletronica.json"
-TEMPLATE_DISPENSA_DIR = DISPENSA_DIR / "template"
+
+
+
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
 CONTROLE_ATAS_DADOS = Path(load_config("CONTROLE_ATAS", BASE_DIR / "database/controle_atas.db"))
 CONTROLE_CONTRATOS_DADOS = Path(load_config("CONTROLE_CONTRATOS", BASE_DIR / "database/controle_contrato.db"))                     
 CONTROLE_CONTRATACAO_DIRETAS = Path(load_config("CONTROLE_CONTRATACAO_DIRETAS", BASE_DIR / "database/controle_contratacao_direta.db"))
-
 
 ETP_DIR = MODULES_DIR / "etp"
 API_PATH = ETP_DIR / "config.ini"
@@ -105,7 +123,7 @@ SICAF_DIR = Path(load_config("SICAF_DIR", DATABASE_DIR / "pasta_sicaf"))
 TXT_DIR = PDF_DIR / "homolog_txt"
 SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"
 
-PASTA_TEMPLATE = Path(load_config("PASTA_TEMPLATE", DATABASE_DIR / "template"))
+
 RELATORIO_PATH = Path(load_config("RELATORIO_PATH", DATABASE_DIR / "relatorio"))
 LV_DIR = Path(load_config("LV_DIR", BASE_DIR / "Lista_de_Verificacao"))
 
@@ -134,11 +152,7 @@ WEBDRIVER_FIREFOX_PATH = WEBDRIVER_DIR / "geckodriver.exe"
 
 TREEVIEW_DATA_PATH =  DATABASE_DIR / "treeview_data.csv"
 
-
-
 ESCALACAO_PREGOEIROS = DATABASE_DIR / "pregoeiros.json"
-
-
 
 
 MENSAGEM_DIR = DATABASE_DIR / "mensagem"

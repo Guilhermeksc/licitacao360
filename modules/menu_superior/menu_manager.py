@@ -2,11 +2,12 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtCore import Qt
 
-from diretorios import ACANTO_IMAGE_PATH, BRASIL_IMAGE_PATH, ICONS_DIR
+from diretorios import ACANTO_IMAGE_PATH, BRASIL_IMAGE_PATH, ICONS_DIR, ConfigManager, CONFIG_FILE
 
 from modules.menu_superior.config.config_database import ConfigurarDatabaseDialog
 from modules.menu_superior.config.config_responsaveis import AgentesResponsaveisDialog
 from modules.menu_superior.config.config_om import OrganizacoesDialog
+from modules.menu_superior.config.config_template import TemplatesDialog
 
 import qdarktheme
 
@@ -20,6 +21,7 @@ class MenuManager:
         self.parent.setMenuWidget(self.container)
         # Estado atual do tema
         self.current_theme = "light"
+        self.config_manager = ConfigManager(CONFIG_FILE)
 
     def _create_header_layout(self):
         header_layout = QHBoxLayout()
@@ -59,9 +61,6 @@ class MenuManager:
         return header_layout
 
     def create_menus(self):
-        # self.message_menu = self.menu_bar.addMenu("Mensagem")
-        # self.standard_communication_menu = self.menu_bar.addMenu("Comunicação Padronizada")
-        # self.conselho_gestao_menu = self.menu_bar.addMenu("Conselho de Gestão")
         self.settings_menu = self.menu_bar.addMenu("Configurações")
         self.utilities_menu = self.menu_bar.addMenu("Utilidades")
         self.about_menu = self.menu_bar.addMenu("Sobre")
@@ -74,16 +73,9 @@ class MenuManager:
         # Adicionando atalhos
         self.utilities_menu.actions()[1].setShortcut("F10")
 
-        # self.add_menu_action(self.message_menu, "Nova Mensagem", self.new_message)
-        # self.add_menu_action(self.message_menu, "Homologação", self.homologacao)
-        # self.add_menu_action(self.message_menu, "Suspensão", self.suspensao)
-        # self.add_menu_action(self.message_menu, "Equipe de Planejamento", self.equipe_planejamento)
-        # self.add_menu_action(self.message_menu, "Plano de Contratação Anual (PCA)", self.plano_contratacao_anual)
-
-        # self.add_menu_action(self.standard_communication_menu, "Modelo de Comunicação", self.standard_communication)
-        # self.add_menu_action(self.conselho_gestao_menu, "Conselho de Gestão", self.conges_menu)
         self.add_menu_action(self.settings_menu, "Configurar Database", self.show_configurar_database_dialog)
         self.add_menu_action(self.settings_menu, "Agentes Responsáveis", self.show_agentes_responsaveis_dialog)
+        self.add_menu_action(self.settings_menu, "Templates", self.show_templates_dialog)        
         self.add_menu_action(self.settings_menu, "Organizações", self.show_organizacoes_dialog)
 
         self.add_menu_action(self.utilities_menu, "Ferramentas", self.tools)
@@ -101,6 +93,13 @@ class MenuManager:
     def show_organizacoes_dialog(self):
         dialog = OrganizacoesDialog(self.parent)
         dialog.exec()
+
+
+    def show_templates_dialog(self):
+        # Corrigir passando o pai correto para o diálogo
+        dialog = TemplatesDialog(self.config_manager, self.parent)  # Supondo que self.parent seja o QMainWindow ou outro QWidget
+        dialog.exec()
+
 
     def add_menu_action(self, menu, action_name, method):
         action = QAction(action_name, self.parent)

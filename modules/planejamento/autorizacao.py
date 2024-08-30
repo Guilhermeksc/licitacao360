@@ -339,7 +339,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
         QToolTip.showText(QCursor.pos(), "Texto copiado para a área de transferência.", msecShowTime=1500)
 
     def editarTemplate(self):
-        template_path = TEMPLATE_PLANEJAMENTO_DIR / "template_autorizacao.docx"
+        template_path = PASTA_TEMPLATE / "template/template_autorizacao.docx"
 
         if sys.platform == "win32":
             os.startfile(template_path)  # Abrir o documento
@@ -385,7 +385,7 @@ class AutorizacaoAberturaLicitacaoDialog(QDialog):
             QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
             return None
 
-        template_path = TEMPLATE_PLANEJAMENTO_DIR / f"template_autorizacao.{tipo}"
+        template_path = PASTA_TEMPLATE / f"template/template_autorizacao.{tipo}"
         objeto = remover_caracteres_especiais(self.df_registro['objeto'].iloc[0])
         id_processo_original = self.df_registro['id_processo'].iloc[0]
         id_processo_novo = id_processo_original.replace('/', '-')

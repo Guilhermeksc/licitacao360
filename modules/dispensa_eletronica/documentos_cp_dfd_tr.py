@@ -16,7 +16,8 @@ from PyPDF2 import PdfMerger
 import re
 from num2words import num2words
 from datetime import datetime
-
+import subprocess
+from fpdf import FPDF
 class PDFAddDialog(QDialog):
 
     def __init__(self, df_registro_selecionado, icons_dir, pastas_necessarias, pasta_base, parent=None):
@@ -149,7 +150,7 @@ class PDFAddDialog(QDialog):
 
     def load_pdf(self, file_path):
         try:
-            self.document = fitz.open(file_path)  # Abre o documento e guarda em self.document
+            self.document = fitz.open(file_path)  # Corrija o uso para fitz.open(file_path)
             self.current_page = 0  # Define a primeira página como a atual
             self.show_page(self.current_page)  # Mostra a primeira página
         except Exception as e:
@@ -197,7 +198,7 @@ class PDFAddDialog(QDialog):
         
         self.titleLabel = QLabel()
         self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-        self.titleLabel.setStyleSheet("color: black; font-size: 20px; font-weight: bold;")
+        self.titleLabel.setStyleSheet("font-size: 20px; font-weight: bold;")
         self.titleLabel.setText(html_text)
 
         self.header_layout = QHBoxLayout()
@@ -303,6 +304,208 @@ class ConsolidarDocumentos:
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
         self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
         self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
+        self.ICONS_DIR = ICONS_DIR  # Atualize com o caminho real
+
+        # Exemplo de dados de índice
+        self.data = {
+            'id_processo': 'DE 15/2024',
+            'tipo': 'DE',
+            'numero': '50',
+            'ano': '2024',
+            'situacao': 'Planejamento, Sessão Pública, Concluído',
+            'nup': '62055.00055/2024-01',
+            'material_servico': 'Material ou Serviço',
+            'objeto': 'Suprimentos de informática',
+            'vigencia': '12 meses a partir da assinatura',
+            'data_sessao': '15/10/2024',
+            'operador': 'João da Silva',
+            'criterio_julgamento': 'Menor preço, Técnica e preço',
+            'com_disputa': 'Sim, Não',
+            'pesquisa_preco': 'Sim, Não',
+            'previsao_contratacao': 'Exemplo: Novembro de 2024',
+            'uasg': 'Exemplo: 110155',
+            'orgao_responsavel': 'Exemplo: Ministério da Economia',
+            'sigla_om': 'Exemplo: ME',
+            'setor_responsavel': 'Exemplo: Departamento de Compras',
+            'responsavel_pela_demanda': 'Exemplo: Maria de Souza',
+            'ordenador_despesas': 'Exemplo: Carlos Ferreira',
+            'agente_fiscal': 'Exemplo: Ana Paula',
+            'gerente_de_credito': 'Exemplo: Marcos Lima',
+            'cod_par': '123456',
+            'prioridade_par': 'Alta',
+            'cep': '70040-010',
+            'endereco': 'Esplanada dos Ministérios, Bloco P',
+            'email': 'contato@orgao.gov.br',
+            'telefone': 'Exemplo: (61) 3412-3456',
+            'dias_para_recebimento': 'Exemplo: 30 dias úteis',
+            'horario_para_recebimento': 'Exemplo: 9h às 17h',
+            'valor_total': 'Exemplo: R$ 150.000,00',
+            'acao_interna': 'Exemplo: Verificação de conformidade',
+            'fonte_recursos': 'Exemplo: Tesouro Nacional',
+            'natureza_despesa': 'Exemplo: Material de Consumo',
+            'unidade_orcamentaria': 'Exemplo: 20203',
+            'programa_trabalho_resuminho': 'Exemplo: Apoio Administrativo',
+            'atividade_custeio': 'Exemplo: Manutenção Predial',
+            'comentarios': 'Exemplo: Necessidade urgente devido ao fim do estoque',
+            'justificativa': 'Exemplo: Demanda emergencial para continuidade dos serviços',
+            'link_pncp': 'Exemplo: https://www.gov.br/compras',
+            'comunicacao_padronizada': 'Exemplo: E-mail institucional',
+            'modalidade_licitacao': 'Exemplo: Pregão Eletrônico',
+            'justificativa_dispensa': 'Exemplo: Situação de emergência',
+            'fundamento_legal': 'Exemplo: Art. 24, Inciso IV da Lei 8.666/93',
+            'numero_processo': 'Exemplo: 001/2024',
+            'data_processo': 'Exemplo: 01/01/2024',
+            'nome_empresa': 'Exemplo: Empresa XYZ Ltda.',
+            'cnpj_empresa': 'Exemplo: 12.345.678/0001-90',
+            'endereco_empresa': 'Exemplo: Rua Exemplo, 123 - Brasília, DF',
+            'email_empresa': 'Exemplo: contato@empresaxyz.com.br',
+            'telefone_empresa': 'Exemplo: (61) 9999-8888',
+            'representante_legal': 'Exemplo: Pedro Alves',
+            'cpf_representante': 'Exemplo: 123.456.789-10',
+            'cargo_representante': 'Exemplo: Diretor Comercial',
+            'valor_estimado': 'Exemplo: R$ 100.000,00',
+            'prazo_execucao': 'Exemplo: 60 dias',
+            'garantia_contratual': 'Exemplo: 5% do valor contratado',
+            'observacoes': 'Exemplo: Contrato deve ser assinado em até 5 dias úteis após homologação',
+            'data_inicio': 'Exemplo: 01/03/2024',
+            'data_fim': 'Exemplo: 28/02/2025',
+            'duracao_contrato': 'Exemplo: 12 meses',
+            'metodologia': 'Exemplo: Metodologia de aquisição por pregão eletrônico',
+            'resultados_esperados': 'Exemplo: Aquisição de 100 computadores em até 30 dias',
+            'plano_trabalho': 'Exemplo: Definido conforme Termo de Referência',
+            'cronograma': 'Exemplo: Entrega prevista para o segundo trimestre de 2024',
+            'responsavel_execucao': 'Exemplo: José Martins',
+            'medidas_mitigacao': 'Exemplo: Monitoramento contínuo do contrato',
+            'risco_identificado': 'Exemplo: Atraso na entrega dos itens',
+            'plano_contingencia': 'Exemplo: Recurso a outro fornecedor em caso de inadimplência',
+            'autoridade_licitante': 'Exemplo: Diretor de Compras',
+            'data_aprovacao': 'Exemplo: 15/02/2024',
+            'assinatura_autoridade': 'Exemplo: Assinatura digitalizada do Diretor de Compras'
+        }
+
+    def editar_modelo(self, button_font_size=18, icon_size=QSize(40, 40)):
+        dialog = QDialog()
+        dialog.setWindowTitle("Editar Template")
+        
+        # Adicionar ícone ao título
+        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm_green.png"))
+        dialog.setWindowIcon(icon_confirm)
+
+        # Ícones para os botões
+        icon_index = QIcon(str(self.ICONS_DIR / "pdf.png"))  # Ícone para "Abrir índice"
+        icon_open = QIcon(str(self.ICONS_DIR / "open_icon.png"))  # Ícone para os demais botões "Abrir"
+
+        # Layout principal do diálogo
+        main_layout = QVBoxLayout(dialog)
+        
+        # Layout horizontal para o botão "Abrir índice"
+        top_layout = QHBoxLayout()
+        button_open_index = QPushButton("Índice")
+        button_open_index.setIcon(icon_index)
+        button_open_index.setFixedSize(110, 40)  # Definir tamanho fixo para uniformidade
+        button_open_index.setIconSize(icon_size)  # Ajusta o tamanho do ícone
+        button_open_index.setStyleSheet("font-size: 18px;")  # Ajusta o tamanho da fonte
+        button_open_index.clicked.connect(self.abrir_indice)
+        
+        # Adicionar o texto ao lado do botão "Abrir índice"
+        label_info = QLabel("Relação de Variáveis e exemplos de uso")
+        label_info.setStyleSheet("font-size: 18px;")  # Definir tamanho da fonte para 14
+
+        top_layout.addWidget(button_open_index, alignment=Qt.AlignmentFlag.AlignLeft)
+        top_layout.addWidget(label_info, alignment=Qt.AlignmentFlag.AlignLeft)
+        
+        top_layout.addStretch()
+        # Layout para os templates
+        templates_layout = QVBoxLayout()
+
+        # Lista de templates e seus caminhos
+        templates = [
+            ("Template Autorização", TEMPLATE_DISPENSA_DIR / "template_autorizacao_dispensa.docx"),
+            ("Template Comunicação Padronizada", TEMPLATE_DISPENSA_DIR / "template_cp.docx"),
+            ("Template DFD", TEMPLATE_DISPENSA_DIR / "template_dfd.docx"),
+            ("Template Termo de Referência", TEMPLATE_DISPENSA_DIR / "template_tr.docx"),
+            ("Template Declaração de Adequação Orçamentária", TEMPLATE_DISPENSA_DIR / "template_dec_adeq.docx"),
+            ("Template Aviso de Dispensa", TEMPLATE_DISPENSA_DIR / "template_aviso_dispensa.docx")
+        ]
+
+        # Adicionar os templates ao layout
+        for template_name, template_path in templates:
+            template_row = QHBoxLayout()
+            
+            label = QLabel(template_name)
+            label.setStyleSheet("font-size: 18px;")  # Definir tamanho da fonte para 14
+            button_open_template = QPushButton("Abrir")
+            button_open_template.setIcon(icon_open)
+            button_open_template.setFixedSize(110, 40)  # Definir tamanho fixo para uniformidade
+            button_open_template.setIconSize(icon_size)  # Ajusta o tamanho do ícone
+            button_open_template.setStyleSheet("font-size: 18px;")  # Ajusta o tamanho da fonte
+            button_open_template.clicked.connect(lambda _, path=template_path: self.abrir_template(path))
+            
+            template_row.addWidget(button_open_template)
+            template_row.addWidget(label)
+            templates_layout.addLayout(template_row)
+
+        # Adicionar layouts ao layout principal
+        main_layout.addLayout(top_layout)
+        main_layout.addLayout(templates_layout)
+
+        dialog.setLayout(main_layout)
+        dialog.exec()
+
+    def abrir_template(self, path):
+        # Verificar se o arquivo existe
+        if path.exists() and path.is_file():
+            print(f"Arquivo encontrado: {path}")
+            try:
+                # Abre o arquivo utilizando o caminho absoluto
+                full_path = str(path.resolve())  # Resolve para o caminho absoluto
+                subprocess.run(f'start "" "{full_path}"', shell=True)  # Windows
+                # Para Linux ou macOS, use os comandos adequados
+                # subprocess.run(['xdg-open', full_path])  # Linux
+                # subprocess.run(['open', full_path])  # macOS
+            except Exception as e:
+                print(f"Erro ao abrir o template: {e}")
+        else:
+            print(f"Arquivo não encontrado: {path}")
+
+    def abrir_indice(self):
+        # Cria o PDF dos índices
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        # Adicionar título
+        pdf.cell(200, 10, txt="Índices Utilizados nos Templates", ln=True, align='C')
+
+        # Adicionar exemplos de cada índice com cores personalizadas
+        for key, example in self.data.items():
+            # Definir cor para o 'key' (azul marinho)
+            pdf.set_text_color(0, 0, 128)  # Azul marinho (RGB: 0, 0, 128)
+            pdf.write(10, f"{{{{{key}}}}}: ")
+
+            # Definir cor para o 'example' (vermelho escuro)
+            pdf.set_text_color(139, 0, 0)  # Vermelho escuro (RGB: 139, 0, 0)
+            pdf.write(10, f"Exemplo: {example}\n")  # Adiciona texto com nova linha
+
+        # Salva o PDF
+        pdf_path = self.pasta_base / "indice_templates.pdf"
+        pdf.output(str(pdf_path))
+
+        print(f"Arquivo PDF de índices criado: {pdf_path}")
+
+        # Abrir o PDF criado
+        if pdf_path.exists() and pdf_path.is_file():
+            try:
+                subprocess.run(f'start "" "{str(pdf_path)}"', shell=True)  # Windows
+                # Para Linux ou macOS, use os comandos adequados
+                # subprocess.run(['xdg-open', str(pdf_path)])  # Linux
+                # subprocess.run(['open', str(pdf_path)])  # macOS
+            except Exception as e:
+                print(f"Erro ao abrir o PDF de índices: {e}")
+        else:
+            print(f"Arquivo PDF de índices não encontrado: {pdf_path}")
+
+
 
     def alterar_diretorio_base(self):
         new_dir = QFileDialog.getExistingDirectory(None, "Selecione o Novo Diretório Base", str(Path.home()))
