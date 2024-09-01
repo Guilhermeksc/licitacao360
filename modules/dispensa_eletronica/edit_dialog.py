@@ -14,6 +14,8 @@ from openpyxl.styles import Font, Border, Side, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 import sqlite3
 from fpdf import FPDF 
+import webbrowser
+
 class RealLineEdit(QLineEdit):
     def __init__(self, text='', parent=None):
         super().__init__(text, parent)
@@ -71,7 +73,15 @@ class EditDataDialog(QDialog):
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
 
     def _init_ui(self):
+        # Define o título da janela e o ícone
         self.setWindowTitle("Editar Dados do Processo")
+        
+        # Define o ícone da janela como 'edit.png'
+        icon_path = self.ICONS_DIR / "edit.png"
+        if icon_path.is_file():
+            self.setWindowIcon(QIcon(str(icon_path)))
+        else:
+            print(f"Icon not found: {icon_path}")
         self.setFixedSize(1200, 620)
 
         # Layout principal vertical para os componentes existentes
@@ -112,10 +122,14 @@ class EditDataDialog(QDialog):
         nav_layout.setSpacing(0)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         
-        brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH)).scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        # Cria um QIcon ao invés de QPixmap
+        brasil_icon = QIcon(str(BRASIL_IMAGE_PATH))
+        
+        # Cria um QLabel e adiciona o ícone como um QIcon
         image_label_esquerda = QLabel()
-        image_label_esquerda.setPixmap(brasil_pixmap)
         image_label_esquerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        image_label_esquerda.setPixmap(brasil_icon.pixmap(30, 30))  # Define o QIcon como um QPixmap para o QLabel
+        
         nav_layout.addWidget(image_label_esquerda)
 
         # Lista de botões de navegação
@@ -316,7 +330,7 @@ class EditDataDialog(QDialog):
         situacao_layout = QHBoxLayout()
         situacao_label = QLabel("Situação:")
         self.apply_widget_style(situacao_label)
-        self.situacao_edit = self.create_combo_box(data.get('situacao', 'Planejamento'), ["Planejamento", "Aprovado", "Sessão Publica", "Homologado", "Empenhado", "Concluído"], 160, 35)
+        self.situacao_edit = self.create_combo_box(data.get('situacao', 'Planejamento'), ["Planejamento", "Aprovado", "Sessão Pública", "Homologado", "Empenhado", "Concluído", "Arquivado"], 185, 35)
         situacao_layout.addWidget(situacao_label)
         situacao_layout.addWidget(self.situacao_edit)
         contratacao_layout.addLayout(situacao_layout)
@@ -329,7 +343,7 @@ class EditDataDialog(QDialog):
         material_layout = QHBoxLayout()
         material_label = QLabel("Material/Serviço:")
         self.apply_widget_style(material_label)
-        self.material_edit = self.create_combo_box(data.get('material_servico', 'Material'), ["Material", "Serviço"], 160, 35)
+        self.material_edit = self.create_combo_box(data.get('material_servico', 'Material'), ["Material", "Serviço"], 185, 35)
         material_layout.addWidget(material_label)
         material_layout.addWidget(self.material_edit)
         contratacao_layout.addLayout(material_layout)
@@ -378,7 +392,7 @@ class EditDataDialog(QDialog):
         criterio_layout = QHBoxLayout()
         criterio_label = QLabel("Critério Julgamento:")
         self.apply_widget_style(criterio_label)
-        self.criterio_edit = self.create_combo_box(data.get('criterio_julgamento', 'Menor Preço'), ["Menor Preço", "Maior Desconto"], 160, 35)
+        self.criterio_edit = self.create_combo_box(data.get('criterio_julgamento', 'Menor Preço'), ["Menor Preço", "Maior Desconto"], 185, 35)
         criterio_layout.addWidget(criterio_label)
         criterio_layout.addWidget(self.criterio_edit)
         contratacao_layout.addLayout(criterio_layout)
@@ -449,7 +463,14 @@ class EditDataDialog(QDialog):
         link_pncp_layout.addLayout(self.create_layout("Link PNCP:", self.link_pncp_edit))
 
         icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
-        link_pncp_button = self.create_button("", icon=icon_link, callback=self.on_autorizacao_clicked, tooltip_text="Clique para acessar o Link da dispensa no Portal Nacional de Contratações Públicas (PNCP)", button_size=QSize(30, 30), icon_size=QSize(30, 30))
+        link_pncp_button = self.create_button(
+            "",
+            icon=icon_link,
+            callback=self.on_link_pncp_clicked,
+            tooltip_text="Clique para acessar o Link da dispensa no Portal Nacional de Contratações Públicas (PNCP)",
+            button_size=QSize(30, 30),
+            icon_size=QSize(30, 30)
+        )
         self.apply_widget_style(link_pncp_button)
         link_pncp_layout.addWidget(link_pncp_button)
         contratacao_layout.addLayout(link_pncp_layout)
@@ -457,6 +478,14 @@ class EditDataDialog(QDialog):
         contratacao_group_box.setLayout(contratacao_layout)
 
         return contratacao_group_box
+
+    def on_link_pncp_clicked(self):
+        url = self.link_pncp_edit.text()
+        if url:
+            webbrowser.open(url)
+        else:
+            # Exibir uma mensagem de erro caso o campo esteja vazio
+            print("URL não encontrada. Por favor, insira um link válido.")
 
     def create_classificacao_orcamentaria_group(self):
         data = self.extract_registro_data()
@@ -537,7 +566,6 @@ class EditDataDialog(QDialog):
     
     def add_action_buttons(self, layout):
         icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
-        icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
         
         button_confirm = self.create_button(" Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(110, 30), QSize(30, 30))
                 
@@ -802,8 +830,8 @@ class EditDataDialog(QDialog):
             icon=icon_excel_up, 
             callback=self.formulario_excel.criar_formulario, 
             tooltip_text="Clique para criar o formulário", 
-            button_size=QSize(220, 40), 
-            icon_size=QSize(35, 35)
+            button_size=QSize(220, 50), 
+            icon_size=QSize(45, 45)
         )
 
         carregar_formulario_button = self.create_button(
@@ -811,8 +839,8 @@ class EditDataDialog(QDialog):
             icon=icon_excel_down, 
             callback=self.formulario_excel.carregar_formulario, 
             tooltip_text="Clique para carregar o formulário", 
-            button_size=QSize(220, 40), 
-            icon_size=QSize(35, 35)
+            button_size=QSize(220, 50), 
+            icon_size=QSize(45, 45)
         )
 
         visualizar_pdf_button = self.create_button(
@@ -826,7 +854,7 @@ class EditDataDialog(QDialog):
 
         formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        formulario_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        # formulario_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box
@@ -1188,46 +1216,46 @@ class EditDataDialog(QDialog):
 
     def create_gerar_documentos_group(self):
         gerar_documentos_layout = QVBoxLayout()
-        # gerar_documentos_layout.setSpacing(0)
-        # gerar_documentos_layout.setContentsMargins(0, 0, 0, 0)
 
         icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
+        icon_copy = QIcon(str(self.ICONS_DIR / "copy.png"))
 
-        visualizar_pdf_button = self.create_button(
-            "          Autorização para Abertura      ",
-            icon=icon_pdf,
-            callback=lambda: self.handle_gerar_autorizacao(),
-            tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(310, 40),
-            icon_size=QSize(40, 40)
-        )
-        self.apply_widget_style(visualizar_pdf_button)
-        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        buttons_info = [
+            ("          Autorização para Abertura      ", self.handle_gerar_autorizacao, self.handle_gerar_autorizacao_sidgem),
+            (" Comunicação Padronizada e anexos", self.handle_gerar_comunicacao_padronizada, self.handle_gerar_comunicacao_padronizada_sidgem),
+            ("              Aviso de Dispensa               ", self.handle_gerar_aviso_dispensa, self.handle_gerar_aviso_dispensa_sidgem)
+        ]
 
-        visualizar_pdf_button = self.create_button(
-            " Comunicação Padronizada e anexos",
-            icon=icon_pdf,
-            callback=lambda: self.handle_gerar_comunicacao_padronizada(),
-            tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(310, 40),
-            icon_size=QSize(40, 40)
-        )
-        self.apply_widget_style(visualizar_pdf_button)
-        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        for text, visualizar_callback, sigdem_callback in buttons_info:
+            button_layout = QHBoxLayout()
 
-        visualizar_pdf_button = self.create_button(
-            "              Aviso de Dispensa               ",
-            icon=icon_pdf,
-            callback=lambda: self.handle_gerar_aviso_dispensa(),
-            tooltip_text="Clique para visualizar o PDF",
-            button_size=QSize(310, 40),
-            icon_size=QSize(40, 40)
-        )
-        self.apply_widget_style(visualizar_pdf_button)
-        gerar_documentos_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
+            visualizar_pdf_button = self.create_button(
+                text,
+                icon=icon_pdf,
+                callback=visualizar_callback,
+                tooltip_text="Clique para visualizar o PDF",
+                button_size=QSize(310, 40),
+                icon_size=QSize(40, 40)
+            )
+            self.apply_widget_style(visualizar_pdf_button)
+
+            sigdem_button = self.create_button(
+                "",
+                icon=icon_copy,
+                callback=sigdem_callback,
+                tooltip_text="Clique para copiar",
+                button_size=QSize(40, 40),
+                icon_size=QSize(30, 30)
+            )
+            self.apply_widget_style(sigdem_button)
+
+            button_layout.addWidget(visualizar_pdf_button)
+            button_layout.addWidget(sigdem_button)
+
+            gerar_documentos_layout.addLayout(button_layout)
 
         return gerar_documentos_layout
-
+    
     def handle_gerar_autorizacao(self):
         self.assunto_text = f"{self.id_processo} - Abertura de Dispensa Eletrônica"
         self.sinopse_text = (
@@ -1238,9 +1266,14 @@ class EditDataDialog(QDialog):
         self.update_text_fields()
         self.consolidador.gerar_autorizacao()
 
-    def update_text_fields(self):
-        self.textEditAssunto.setPlainText(self.assunto_text)
-        self.textEditSinopse.setPlainText(self.sinopse_text)
+    def handle_gerar_autorizacao_sidgem(self):
+        self.assunto_text = f"{self.id_processo} - Abertura de Dispensa Eletrônica"
+        self.sinopse_text = (
+            f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
+            f"Processo Administrativo NUP: {self.nup}\n"
+            f"Setor Demandante: {self.setor_responsavel}"
+        )
+        self.update_text_fields()
 
     def handle_gerar_comunicacao_padronizada(self):
         self.assunto_text = f"{self.id_processo} - CP e Anexos"
@@ -1252,6 +1285,15 @@ class EditDataDialog(QDialog):
         self.update_text_fields()
         self.consolidador.gerar_comunicacao_padronizada()
 
+    def handle_gerar_comunicacao_padronizada_sidgem(self):
+        self.assunto_text = f"{self.id_processo} - CP e Anexos"
+        self.sinopse_text = (
+            f"Documentos de Planejamento (DFD, TR e Declaração de Adequação Orçamentária) referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
+            f"Processo Administrativo NUP: {self.nup}\n"
+            f"Setor Demandante: {self.setor_responsavel}"
+        )
+        self.update_text_fields()
+
     def handle_gerar_aviso_dispensa(self):
         self.assunto_text = f"{self.id_processo} - Aviso de Dispensa Eletrônica"
         self.sinopse_text = (
@@ -1261,6 +1303,19 @@ class EditDataDialog(QDialog):
         )
         self.update_text_fields()
         self.consolidador.gerar_aviso_dispensa()
+
+    def handle_gerar_aviso_dispensa_sidgem(self):
+        self.assunto_text = f"{self.id_processo} - Aviso de Dispensa Eletrônica"
+        self.sinopse_text = (
+            f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
+            f"Processo Administrativo NUP: {self.nup}\n"
+            f"Setor Demandante: {self.setor_responsavel}"
+        )
+        self.update_text_fields()
+
+    def update_text_fields(self):
+        self.textEditAssunto.setPlainText(self.assunto_text)
+        self.textEditSinopse.setPlainText(self.sinopse_text)
 
     def create_GrupoSIGDEM(self):       
         grupoSIGDEM = QGroupBox("SIGDEM")
@@ -1405,7 +1460,7 @@ class EditDataDialog(QDialog):
         pass
 
     def atualizar_action(self):
-        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
+        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm_green.png"))
         icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
 
         def atualizar_anexo(section_title, anexo, label):
@@ -1427,10 +1482,10 @@ class EditDataDialog(QDialog):
                 print(f"Verificando pasta: {pasta_anexo}")
                 arquivos_pdf = self.verificar_arquivo_pdf(pasta_anexo)
                 icon = icon_confirm if arquivos_pdf else icon_x
-                label.setPixmap(icon.pixmap(QSize(20, 20)))
+                label.setPixmap(icon.pixmap(QSize(30, 30)))
             else:
                 print(f"Anexo não identificado: {anexo}")
-                label.setPixmap(icon_x.pixmap(QSize(20, 20)))
+                label.setPixmap(icon_x.pixmap(QSize(30, 30)))
 
         for section_title, anexos in self.anexos_dict.items():
             for anexo, icon_label in anexos:
@@ -1748,25 +1803,43 @@ class FormularioExcel:
             print("DataFrame antes de carregar o formulário:")
             print(self.df_registro_selecionado)
 
-            file_path, _ = QFileDialog.getOpenFileName(None, "Selecione o formulário", "", "Excel Files (*.xlsx);;All Files (*)")
+            file_path, _ = QFileDialog.getOpenFileName(None, "Selecione o formulário", "", "Excel Files (*.xlsx *.ods);;All Files (*)")
             if not file_path:
                 return
 
-            wb = load_workbook(file_path)
-            ws = wb.active
+            if file_path.endswith('.xlsx'):
+                wb = load_workbook(file_path)
+                ws = wb.active
 
-            if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
-                QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
-                return
+                if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
+                    QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
+                    return
 
-            for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
-                coluna_legivel = row[0]
-                valor = row[1]
-                coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
-                if coluna in self.normalizacao_valores:
-                    valor = self.normalizacao_valores[coluna].get(valor, valor)
-                if coluna in self.df_registro_selecionado.columns:
-                    self.df_registro_selecionado.at[0, coluna] = valor
+                for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
+                    coluna_legivel = row[0]
+                    valor = row[1]
+                    coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
+                    if coluna in self.normalizacao_valores:
+                        valor = self.normalizacao_valores[coluna].get(valor, valor)
+                    if coluna in self.df_registro_selecionado.columns:
+                        self.df_registro_selecionado.at[0, coluna] = valor
+
+            elif file_path.endswith('.ods'):
+                df = pd.read_excel(file_path, engine='odf')
+
+                if df.iloc[0, 0] != "Índice" or df.iloc[0, 1] != "Valor":
+                    QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
+                    return
+
+                for _, row in df.iloc[1:].iterrows():
+                    coluna_legivel = row[0]
+                    valor = row[1]
+                    coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
+                    if coluna in self.normalizacao_valores:
+                        valor = self.normalizacao_valores[coluna].get(valor, valor)
+                    if coluna in self.df_registro_selecionado.columns:
+                        self.df_registro_selecionado.at[0, coluna] = valor
+
 
             print("DataFrame após carregar o formulário:")
             print(self.df_registro_selecionado)

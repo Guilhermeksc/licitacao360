@@ -560,20 +560,27 @@ class ConsolidarDocumentos:
         return pdf_path
 
     def valor_por_extenso(self, valor):
-        valor = valor.replace('R$', '').replace('.', '').replace(',', '.').strip()
-        valor_float = float(valor)
-        parte_inteira = int(valor_float)
-        parte_decimal = int(round((valor_float - parte_inteira) * 100))
+        if not valor or valor.strip() == '':  # Verifica se o valor está vazio ou None
+            return None  # Retorna None se o valor não for válido
 
-        if parte_decimal > 0:
-            valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais e {num2words(parte_decimal, lang='pt_BR')} centavos"
-        else:
-            valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais"
+        try:
+            valor = valor.replace('R$', '').replace('.', '').replace(',', '.').strip()
+            valor_float = float(valor)
+            parte_inteira = int(valor_float)
+            parte_decimal = int(round((valor_float - parte_inteira) * 100))
 
-        # Corrige "um reais" para "um real"
-        valor_extenso = valor_extenso.replace("um reais", "um real")
+            if parte_decimal > 0:
+                valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais e {num2words(parte_decimal, lang='pt_BR')} centavos"
+            else:
+                valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais"
 
-        return valor_extenso
+            # Corrige "um reais" para "um real"
+            valor_extenso = valor_extenso.replace("um reais", "um real")
+
+            return valor_extenso
+
+        except ValueError:
+            return None
 
     def alterar_posto(self, posto):
         # Define um dicionário de mapeamento de postos e suas respectivas abreviações

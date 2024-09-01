@@ -153,7 +153,12 @@ class MainWindow(QMainWindow):
         self.active_button = None
 
     def configure_window(self):
-        self.setWindowTitle("Licitação 360")  # Define o título da janela
+        self.setWindowTitle("Licitação 360")
+
+        # Adicionar ícone ao título
+        icon_confirm = QIcon(str(ICONS_DIR / "brasil.png"))
+        self.setWindowIcon(icon_confirm)
+        # Define o título da janela
         self.resize(1050, 700)
 
     def setup_central_widget(self):
@@ -181,7 +186,7 @@ class MainWindow(QMainWindow):
             "Dispensa Eletrônica",
             "Selenium",
             "Web Scraping",
-            "Manipular PDF's",
+            # "Manipular PDF's",
             "API PNCP",
             "API Contratos"
         ]
@@ -208,14 +213,14 @@ class MainWindow(QMainWindow):
         button.setStyleSheet(get_menu_button_style())
         return button
 
-    def add_menu_image(self, layout):
-        caminho_imagem = IMAGE_PATH / "licitacao360_brasil.png"
-        licitacao_360_pixmap = QPixmap(str(caminho_imagem))
-        licitacao_360_pixmap = licitacao_360_pixmap.scaled(175, 175)
-        image_label = QLabel()
-        image_label.setPixmap(licitacao_360_pixmap)
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(image_label)
+    # def add_menu_image(self, layout):
+    #     caminho_imagem = IMAGE_PATH / "licitacao360_brasil.png"
+    #     licitacao_360_pixmap = QPixmap(str(caminho_imagem))
+    #     licitacao_360_pixmap = licitacao_360_pixmap.scaled(175, 175)
+    #     image_label = QLabel()
+    #     image_label.setPixmap(licitacao_360_pixmap)
+    #     image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    #     layout.addWidget(image_label)
 
     def setup_content_area(self):
         self.content_layout = QVBoxLayout()
@@ -259,7 +264,7 @@ class MainWindow(QMainWindow):
             "ETP": self.setup_etp,
             "Selenium": self.setup_selenium_automacao,
             "Web Scraping": self.setup_webscraping,
-            "Manipular PDF's": self.setup_manipular_pdfs,
+            # "Manipular PDF's": self.setup_manipular_pdfs,
             "API PNCP": self.setup_api_pncp,
             "API Contratos": self.setup_api_comprasnet_contratos
         }

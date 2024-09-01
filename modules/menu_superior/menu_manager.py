@@ -18,9 +18,11 @@ class MenuManager:
         self.menu_bar.setStyleSheet(self.get_menu_bar_style())
         self.container = QWidget()
         self.container.setLayout(self._create_header_layout())
+        self.container.setFixedHeight(32)
+
         self.parent.setMenuWidget(self.container)
         # Estado atual do tema
-        self.current_theme = "light"
+        self.current_theme = "dark"
         self.config_manager = ConfigManager(CONFIG_FILE)
 
     def _create_header_layout(self):
@@ -30,21 +32,13 @@ class MenuManager:
 
         # Configuração da imagem
         pixmap = QPixmap(str(ACANTO_IMAGE_PATH))
-        brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
+        # brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
 
         if pixmap.isNull():
             print("Failed to load image!")
         else:
             pass
         pixmap = pixmap.scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-
-        brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-
-        image_label_equerda = QLabel()
-        image_label_equerda.setPixmap(brasil_pixmap)
-        image_label_equerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(image_label_equerda)
-        header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
         # Adicionar o QMenuBar ao layout
         header_layout.addWidget(self.menu_bar)
@@ -168,10 +162,12 @@ class MenuManager:
                 text-align: left;
                 border: 0px solid transparent; 
                 border-radius: 0px;
+                padding: 0px;
+                margin: 0px;
             }
             QMenuBar::item {
                 background-color: transparent;
-                padding: 10px 20px;  
+                padding: 5px 40px;  
                 margin: 0px;
                 border: none;
             }
@@ -180,5 +176,6 @@ class MenuManager:
                 color: black;
                 border: 0px solid transparent; 
                 border-radius: 0px;
+                margin: 0px;
             }
         """

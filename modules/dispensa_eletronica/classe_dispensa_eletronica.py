@@ -8,11 +8,13 @@ from modules.planejamento.utilidades_planejamento import DatabaseManager, carreg
 from modules.dispensa_eletronica.utilidades_dispensa_eletronica import ExportThread
 from modules.dispensa_eletronica.sql_model import SqlModel, CustomTableView
 from modules.dispensa_eletronica.add_item import AddItemDialog
+from modules.dispensa_eletronica.salvar_tabela import SaveTableDialog
 import pandas as pd
 import os
 import subprocess
 import logging
 import sqlite3
+from modules.dispensa_eletronica.edit_dialog import EditDataDialog
 
 class DispensaEletronicaWidget(QMainWindow):
     dataUpdated = pyqtSignal()
@@ -23,7 +25,7 @@ class DispensaEletronicaWidget(QMainWindow):
         self.setup_managers()
         self.load_initial_data()
         self.model = self.init_model()
-        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
+        self.ui_manager = UIManager(self, self.image_cache, self.config_manager, self.model)
         self.setup_ui()
         self.export_thread = None
         self.output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica.xlsx")
@@ -44,6 +46,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def load_initial_data(self):
         # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
+            "planning.png", "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "confirm_green.png", "archive.png",
             "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", 
             "excel.png", "calendar.png", "report.png", "management.png"
         ])
@@ -92,7 +95,18 @@ class DispensaEletronicaWidget(QMainWindow):
             QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
 
     def salvar_tabela(self):
+        dialog = SaveTableDialog(self)
+        dialog.exec()
+    
+    def salvar_tabela_completa(self):
         self.export_thread = ExportThread(self.model, self.output_path)
+        self.export_thread.finished.connect(self.handle_export_finished)
+        self.export_thread.start()
+
+    def salvar_tabela_resumida(self):
+        # Lógica para salvar tabela resumida
+        resumida_output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica_resumida.xlsx")
+        self.export_thread = ExportThread(self.model, resumida_output_path)
         self.export_thread.finished.connect(self.handle_export_finished)
         self.export_thread.start()
 
@@ -116,11 +130,11 @@ class DispensaEletronicaWidget(QMainWindow):
                 Dialogs.warning(self, "Erro ao carregar", str(e))
 
     def validate_and_process_data(self, df):
-        required_columns = ['ID Processo', 'NUP', 'Objeto', 'UASG']
+        required_columns = ['ID Processo', 'NUP', 'Objeto', 'uasg']
         if not all(col in df.columns for col in required_columns):
             missing_columns = [col for col in required_columns if col not in df.columns]
             raise ValueError(f"Faltando: {', '.join(missing_columns)}")
-        df.rename(columns={'ID Processo': 'id_processo', 'NUP': 'nup', 'Objeto': 'objeto', 'UASG': 'uasg'}, inplace=True)
+        df.rename(columns={'ID Processo': 'id_processo', 'NUP': 'nup', 'Objeto': 'objeto'}, inplace=True)
         self.desmembramento_id_processo(df)
         self.salvar_detalhes_uasg_sigla_nome(df)
 
@@ -185,7 +199,7 @@ class DispensaEletronicaWidget(QMainWindow):
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
-        self.icons = icons
+        self.icons = icons  # Agora isso é o dicionário de ícones passado
         self.config_manager = config_manager
         self.model = model
         self.main_widget = QWidget(parent)
@@ -252,13 +266,42 @@ class UIManager:
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
         self.apply_custom_style()
-        
+
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
-        status_index = self.model.fieldIndex("etapa")
-        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view))
+        status_index = self.model.fieldIndex("situacao")
+        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view, self.model))
+        
+        # Conecta o duplo clique para editar dados
+        self.table_view.doubleClicked.connect(self.on_double_click)
+
+    def on_double_click(self, index):
+        # Mapeia o índice selecionado do proxy para o índice original do modelo
+        source_index = self.parent.proxy_model.mapToSource(index)
+        row = source_index.row()
+        
+        # Assumindo que a chave primária é a primeira coluna do modelo
+        id_processo = self.model.data(self.model.index(row, 0))
+        
+        if id_processo:
+            # Carrega os dados do registro selecionado usando o ID do processo
+            df_registro_selecionado = carregar_dados_dispensa(id_processo, str(self.parent.database_path))
+            
+            if not df_registro_selecionado.empty:
+                # Chama o método para editar dados
+                self.editar_dados(df_registro_selecionado)
+            else:
+                QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
+        else:
+            QMessageBox.warning(self.parent, "Erro", "Nenhum ID de processo foi encontrado para a linha selecionada.")
+
+
+    def editar_dados(self, df_registro_selecionado):
+        dialog = EditDataDialog(df_registro_selecionado, self.parent.icons_dir)
+        dialog.dados_atualizados.connect(self.parent.refresh_model)  # Conectar o sinal ao método de atualização
+        dialog.exec()
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -288,15 +331,14 @@ class UIManager:
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(15, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(17, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
+
+        header.resizeSection(4, 140)        
         header.resizeSection(0, 140)
-        header.resizeSection(5, 175)
-        header.resizeSection(15, 100)
+        header.resizeSection(5, 170)
         header.resizeSection(17, 100)
-        header.resizeSection(4, 200)
         header.resizeSection(10, 170)
 
     def apply_custom_style(self):
@@ -334,7 +376,6 @@ class UIManager:
             0: "ID Processo",
             5: "NUP",
             7: "Objeto",
-            15: "UASG",
             17: "OM",
             4: "Status",
             10: "Operador"
@@ -343,12 +384,12 @@ class UIManager:
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [4, 0, 5, 7, 15, 17, 10]
+        new_order = [4, 0, 5, 7, 17, 10]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 5, 7, 15, 17, 4, 10}
+        visible_columns = {0, 5, 7, 17, 4, 10}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
@@ -402,24 +443,45 @@ class CenterAlignDelegate(QStyledItemDelegate):
         option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, icons, parent=None):
+    def __init__(self, icons, parent=None, model=None):
         super().__init__(parent)
-        self.icons = icons
+        self.icons = icons  # Dicionário de ícones
+        self.model = model
 
     def paint(self, painter, option, index):
+        if index.column() == 4:  # Verifica se é a coluna "Status"
+            situacao = self.model.data(self.model.index(index.row(), self.model.fieldIndex('situacao')), Qt.ItemDataRole.DisplayRole)
+
+            # Usando chaves que correspondem aos nomes sem extensão
+            icon_key = {
+                'Planejamento': 'planning',
+                'Aprovado': 'aproved',
+                'Sessão Pública': 'calendar',
+                'Homologado': 'deal',
+                'Empenhado': 'emenda_parlamentar',
+                'Concluído': 'confirm_green',
+                'Arquivado': 'archive'
+            }.get(situacao)
+
+            # Desenha o ícone se a chave existir
+            if icon_key and icon_key in self.icons:
+                icon = self.icons[icon_key]
+                icon_size = 24
+                icon_x = option.rect.left() + 5
+                icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2
+                icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
+                icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
+
+                # Ajusta o retângulo para o texto para ficar ao lado do ícone
+                text_rect = QRect(icon_rect.right() + 5, option.rect.top(), option.rect.width() - icon_size - 10, option.rect.height())
+                option.rect = text_rect
+
+        # Chama o método padrão para desenhar o texto ajustado
         super().paint(painter, option, index)
-        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        icon = self.icons.get(status, None)
-        if icon:
-            icon_size = 24
-            icon_x = option.rect.left() + 5
-            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2
-            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
-            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
 
     def sizeHint(self, option, index):
         size = super().sizeHint(option, index)
-        size.setWidth(size.width() + 30)
+        size.setWidth(size.width() + 30)  # Ajusta o tamanho da célula para acomodar o ícone
         return size
 
 class Dialogs:
