@@ -12,9 +12,14 @@ class AddItemDialog(QDialog):
         super().__init__(parent)
         self.database_path = Path(CONTROLE_DADOS)
         self.setWindowTitle("Adicionar Item")
-        self.setFixedSize(900, 250)
+        icon_confirm = QIcon(str(ICONS_DIR / "plus.png"))
+        self.setWindowIcon(icon_confirm)
+
+        self.setFixedSize(550, 250)
         self.database_manager = DatabaseManager(self.database_path)
         self.layout = QVBoxLayout(self)
+        self.setStyleSheet("QWidget { font-size: 14px; }")
+
         self.setup_ui()
         self.load_sigla_om()
 

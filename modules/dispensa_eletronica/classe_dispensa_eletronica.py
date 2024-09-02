@@ -7,8 +7,9 @@ from database.utils.treeview_utils import load_images, create_button
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao, carregar_dados_dispensa
 from modules.dispensa_eletronica.utilidades_dispensa_eletronica import ExportThread
 from modules.dispensa_eletronica.sql_model import SqlModel, CustomTableView
-from modules.dispensa_eletronica.add_item import AddItemDialog
-from modules.dispensa_eletronica.salvar_tabela import SaveTableDialog
+from modules.dispensa_eletronica.menu.add_item import AddItemDialog
+from modules.dispensa_eletronica.menu.salvar_tabela import SaveTableDialog
+from modules.dispensa_eletronica.menu.graficos import GraficTableDialog
 import pandas as pd
 import os
 import subprocess
@@ -47,8 +48,8 @@ class DispensaEletronicaWidget(QMainWindow):
         # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
             "planning.png", "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "confirm_green.png", "archive.png",
-            "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", 
-            "excel.png", "calendar.png", "report.png", "management.png"
+            "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "performance.png",
+            "excel.png", "calendar.png", "report.png", "management.png", "dashboard.png"
         ])
         self.selectedIndex = None
 
@@ -94,10 +95,14 @@ class DispensaEletronicaWidget(QMainWindow):
         else:
             QMessageBox.warning(self, "Nenhuma Seleção", "Por favor, selecione uma linha para excluir.")
 
+    def salvar_graficos(self):
+        dialog = GraficTableDialog(self)
+        dialog.exec()
+
     def salvar_tabela(self):
         dialog = SaveTableDialog(self)
         dialog.exec()
-    
+
     def salvar_tabela_completa(self):
         self.export_thread = ExportThread(self.model, self.output_path)
         self.export_thread.finished.connect(self.handle_export_finished)
@@ -123,11 +128,30 @@ class DispensaEletronicaWidget(QMainWindow):
             try:
                 df = pd.read_excel(filepath)
                 self.validate_and_process_data(df)
-                df['situacao'] = 'Planejamento'
+                
+                # Verifica se a coluna 'situacao' existe
+                if 'situacao' in df.columns:
+                    pass  # Mantém a coluna 'situacao' como está
+                elif 'Status' in df.columns:
+                    # Se a coluna 'Status' existir, renomeia para 'situacao'
+                    df['situacao'] = df['Status']
+                    df.drop(columns=['Status'], inplace=True)
+                else:
+                    # Se nenhuma das colunas existir, adiciona 'situacao' com valor padrão 'Planejamento'
+                    df['situacao'] = 'Planejamento'
+
+                # Lista de valores válidos para a coluna 'situacao'
+                valid_situations = ["Planejamento", "Aprovado", "Sessão Pública", "Homologado", "Empenhado", "Concluído", "Arquivado"]
+
+                # Verifica se os valores na coluna 'situacao' são válidos, senão, define como 'Planejamento'
+                df['situacao'] = df['situacao'].apply(lambda x: x if x in valid_situations else 'Planejamento')
+
                 self.save_to_database(df)
                 Dialogs.info(self, "Carregamento concluído", "Dados carregados com sucesso.")
             except Exception as e:
                 Dialogs.warning(self, "Erro ao carregar", str(e))
+
+
 
     def validate_and_process_data(self, df):
         required_columns = ['ID Processo', 'NUP', 'Objeto', 'uasg']
@@ -156,7 +180,9 @@ class DispensaEletronicaWidget(QMainWindow):
             if delete:
                 cursor.execute("DELETE FROM controle_dispensas WHERE id_processo = ?", (data['id_processo'],))
             else:
-                situacao = 'Planejamento'
+                # Lista de valores válidos para a coluna 'situacao'
+                valid_situations = ["Planejamento", "Aprovado", "Sessão Pública", "Homologado", "Empenhado", "Concluído", "Arquivado"]
+
                 upsert_sql = '''
                 INSERT INTO controle_dispensas (
                     id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, setor_responsavel, 
@@ -175,8 +201,13 @@ class DispensaEletronicaWidget(QMainWindow):
                     orgao_responsavel=excluded.orgao_responsavel,
                     situacao=excluded.situacao;
                 '''
+
+                def get_valid_situacao(value):
+                    return value if value in valid_situations else 'Planejamento'
+
                 if isinstance(data, pd.DataFrame):
-                    data['situacao'] = situacao
+                    # Atualiza 'situacao' para cada linha, se necessário
+                    data['situacao'] = data['situacao'].apply(get_valid_situacao)
                     for _, row in data.iterrows():
                         cursor.execute(upsert_sql, (
                             row['id_processo'], row['nup'], row['objeto'], row['uasg'],
@@ -186,7 +217,8 @@ class DispensaEletronicaWidget(QMainWindow):
                             row['situacao']
                         ))
                 else:
-                    data['situacao'] = situacao
+                    # Verifica 'situacao' diretamente no dicionário
+                    data['situacao'] = get_valid_situacao(data.get('situacao', ''))
                     cursor.execute(upsert_sql, (
                         data['id_processo'], data['nup'], data['objeto'], data['uasg'],
                         data['tipo'], data['numero'], data['ano'],
@@ -195,6 +227,7 @@ class DispensaEletronicaWidget(QMainWindow):
                     ))
             conn.commit()
         self.dataUpdated.emit()
+
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -336,8 +369,8 @@ class UIManager:
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
 
         header.resizeSection(4, 140)        
-        header.resizeSection(0, 140)
-        header.resizeSection(5, 170)
+        header.resizeSection(0, 100)
+        header.resizeSection(5, 160)
         header.resizeSection(17, 100)
         header.resizeSection(10, 170)
 
@@ -403,10 +436,10 @@ class ButtonManager:
     def create_buttons(self):
         button_specs = [
             ("  Adicionar", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
-            ("  Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
-            ("  Importar", self.parent.image_cache['import_de'], self.parent.carregar_tabela, "Carrega dados de uma tabela"),
             ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
-            ("  Controle de PDM", self.parent.image_cache['calendar'], self.parent.teste, "Abre o painel de controle do processo"),
+            ("  Tabelas", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
+            ("  Gráficos", self.parent.image_cache['performance'], self.parent.salvar_graficos, "Carrega dados de uma tabela"),
+            ("  PDM", self.parent.image_cache['dashboard'], self.parent.teste, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
@@ -431,7 +464,7 @@ class ButtonManager:
             font-size: 14px; 
             min-width: 85px; 
             min-height: 20px; 
-            max-width: 120px; 
+            max-width: 140px; 
             max-height: 20px;
         """)
         
