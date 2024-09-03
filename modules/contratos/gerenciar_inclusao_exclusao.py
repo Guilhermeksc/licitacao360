@@ -10,6 +10,43 @@ import sqlite3
 import os
 import logging
 from modules.contratos.database_manager import DatabaseContratosManager, SqlModel
+import requests
+
+class RequestThread(QThread):
+    data_received = pyqtSignal(object)
+    error_occurred = pyqtSignal(str)
+    save_json = pyqtSignal(object, str)
+
+    def __init__(self, unidade_codigo):
+        super().__init__()
+        self.unidade_codigo = unidade_codigo
+
+    def run(self):
+        base_url = "https://contratos.comprasnet.gov.br"
+        endpoint = f"/api/contrato/ug/{self.unidade_codigo}"
+        url = base_url + endpoint
+        print(f"Request endpoint: {url}")
+
+        try:
+            response = requests.get(url)
+            print("Raw response content:", response.text)
+
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, list):
+                data = {"data": data}  # Certificando-se de que o dado é um dicionário conforme o formato esperado
+
+            self.data_received.emit(data)
+            self.save_json.emit(data, self.unidade_codigo)
+        except requests.exceptions.HTTPError as http_err:
+            error_message = f"HTTP error occurred: {http_err}"
+            print(error_message)
+            self.error_occurred.emit(error_message)
+        except Exception as err:
+            error_message = f"Other error occurred: {err}"
+            print(error_message)
+            self.error_occurred.emit(error_message)
 
 class GerenciarInclusaoExclusaoContratos(QDialog):
     def __init__(self, icons_dir, database_path, parent=None):
@@ -32,8 +69,98 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
     def init_ui(self):
         self.layout = QVBoxLayout(self)
-        # Adicionando os botões
+        self.unidade_codigo_input = QLineEdit(self)
+        self.unidade_codigo_input.setPlaceholderText("Digite o código da unidade (6 dígitos)")
+        self.layout.addWidget(self.unidade_codigo_input)
+
+        self.baixar_json_button = QPushButton("Baixar JSON", self)
+        self.baixar_json_button.clicked.connect(self.baixar_json)
+        self.layout.addWidget(self.baixar_json_button)
+
+        # Adicionando os botões existentes
         self.layout.addLayout(self.create_button_layout())
+
+    def create_button_layout(self):
+        button_layout = QHBoxLayout()
+        self.excluir_database_button = QPushButton("Excluir Database", self)
+        self.excluir_database_button.clicked.connect(self.excluir_database)
+        button_layout.addWidget(self.excluir_database_button)
+
+        self.carregar_tabela_button = QPushButton("Carregar Tabela", self)
+        self.carregar_tabela_button.clicked.connect(self.carregar_tabela)
+        button_layout.addWidget(self.carregar_tabela_button)
+
+        self.sincronizar_csv_button = QPushButton("Sincronizar CSV", self)
+        self.sincronizar_csv_button.clicked.connect(self.sincronizar_csv)
+        button_layout.addWidget(self.sincronizar_csv_button)
+
+        return button_layout
+
+    def baixar_json(self):
+        unidade_codigo = self.unidade_codigo_input.text()
+        if len(unidade_codigo) == 6 and unidade_codigo.isdigit():
+            self.thread = RequestThread(unidade_codigo)
+            self.thread.data_received.connect(self.on_data_received)
+            self.thread.error_occurred.connect(self.on_error_occurred)
+            self.thread.save_json.connect(self.save_json)
+            self.thread.start()
+        else:
+            QMessageBox.warning(self, "Entrada Inválida", "Por favor, insira um código de unidade válido de 6 dígitos.")
+
+    def on_data_received(self, data):
+        QMessageBox.information(self, "Sucesso", "Dados recebidos com sucesso!")
+        self.processar_dados_para_tabela(data)
+
+    def on_error_occurred(self, error_message):
+        QMessageBox.critical(self, "Erro", error_message)
+
+    def save_json(self, data, unidade_codigo):
+        """Salvar o JSON recebido no diretório base do projeto."""
+        file_path = os.path.join(BASE_DIR, f"contratos_{unidade_codigo}.json")
+        try:
+            with open(file_path, 'w', encoding='utf-8') as json_file:
+                json.dump(data, json_file, ensure_ascii=False, indent=4)
+            QMessageBox.information(self, "Sucesso", f"Arquivo JSON salvo em {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao salvar o arquivo JSON: {e}")
+
+    def processar_dados_para_tabela(self, data):
+        """Processa os dados JSON para criar uma tabela e salva em um arquivo Excel."""
+        contratos_list = []
+        for contrato in data["data"]:
+            contrato_info = {
+                "id": contrato.get("id"),
+                "numero": contrato.get("numero"),
+                "codigo": contrato["contratante"]["orgao"]["unidade_gestora"].get("codigo"),
+                "nome_resumido": contrato["contratante"]["orgao"]["unidade_gestora"].get("nome_resumido"),
+                "nome": contrato["contratante"]["orgao"]["unidade_gestora"].get("nome"),
+                "cnpj_cpf_idgener": contrato["fornecedor"].get("cnpj_cpf_idgener"),
+                "nome_fornecedor": contrato["fornecedor"].get("nome"),
+                "tipo": contrato.get("tipo"),
+                "subtipo": contrato.get("subtipo"),
+                "prorrogavel": contrato.get("prorrogavel"),
+                "situacao": contrato.get("situacao"),
+                "categoria": contrato.get("categoria"),
+                "processo": contrato.get("processo"),
+                "objeto": contrato.get("objeto"),
+                "amparo_legal": contrato.get("amparo_legal"),
+                "modalidade": contrato.get("modalidade"),
+                "unidade_compra": contrato.get("unidade_compra"),
+                "licitacao_numero": contrato.get("licitacao_numero"),
+                "data_assinatura": contrato.get("data_assinatura"),
+                "data_publicacao": contrato.get("data_publicacao"),
+                "vigencia_inicio": contrato.get("vigencia_inicio"),
+                "vigencia_fim": contrato.get("vigencia_fim"),
+                "valor_global": contrato.get("valor_global")
+            }
+            contratos_list.append(contrato_info)
+
+        df = pd.DataFrame(contratos_list)
+        excel_path = os.path.join(BASE_DIR, "contratos.xlsx")
+        df.to_excel(excel_path, index=False)
+
+        QMessageBox.information(self, "Sucesso", f"Tabela criada e salva em {excel_path}")
+        os.startfile(excel_path)  # Abre o arquivo Excel ao final
 
     def hide_unwanted_columns(self):
         # Função para ocultar colunas não desejadas
@@ -189,7 +316,6 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
                 logging.error("Erro ao carregar tabela: %s", e)
                 Dialogs.warning(self, "Erro ao carregar", str(e))
 
-
     def validate_and_process_data(self, df):
         try:
             self.validate_columns(df)
@@ -222,6 +348,115 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
     #     df['orgao_responsavel'] = df['uasg'].map(lambda x: om_details.get(x, {}).get('orgao_responsavel', ''))
 
     def processar_e_atualizar_dados(self, df_csv, df_db):
+        # Certificar-se de que todas as colunas estão presentes
+        required_columns = [
+            'comprasnet_contratos', 'uasg', 'objeto', 'pode_renovar', 'id_processo', 'cnpj', 'empresa', 
+            'numero_contrato', 'nup', 'vigencia_inicial', 'vigencia_final', 'valor_global', 'atualizacao_comprasnet'
+        ]
+        
+        for col in required_columns:
+            if col not in df_db.columns:
+                df_db[col] = None  # Adicionar a coluna se estiver ausente
+
+        # Lista para armazenar novas linhas
+        new_rows = []
+
+        # Iterar sobre cada linha do CSV para fazer a sincronização
+        for index, row in df_csv.iterrows():
+            numero_instrumento = row['Número do instrumento']
+            
+            # Ajustar o valor de 'Número Compra'
+            numero_compra = row['Número Compra']
+            parte_numerica, ano = numero_compra.split('/')
+            parte_numerica = str(int(parte_numerica))  # Remove os zeros à esquerda
+            id_processo = f"PE {parte_numerica.zfill(2)}/{ano}"  # Mantém duas casas decimais
+
+            # Verificar se existe correspondência
+            if df_db['comprasnet_contratos'].str.contains(numero_instrumento).any():
+
+                # Atualizar o DataFrame com os novos valores
+                uasg_value = row['Unidade Gestora Atual'].split(' - ')[0]
+                fornecedor_info = row['Fornecedor']
+                parts = fornecedor_info.split(' - ')
+                if len(parts) >= 2:
+                    cnpj = parts[0].strip()
+                    empresa = ' - '.join(parts[1:]).strip()
+                else:
+                    cnpj = fornecedor_info.strip()
+                    empresa = fornecedor_info.strip()
+
+                numero_contrato = self.format_numero_contrato(numero_instrumento, uasg_value)
+                nup = row['Processo']
+                vigencia_inicial = row['Vig. Início']
+                vigencia_final = row['Vig. Fim']
+                valor_global = row['Valor Global']
+                atualizacao_comprasnet = row['Atualizado em']
+                objeto = row['Objeto']
+
+                # Atualiza os valores na linha correspondente no DataFrame
+                df_db.loc[df_db['comprasnet_contratos'] == numero_instrumento, [
+                    'uasg', 'objeto', 'id_processo', 'cnpj', 'empresa', 'numero_contrato', 
+                    'nup', 'vigencia_inicial', 'vigencia_final', 'valor_global', 'atualizacao_comprasnet'
+                ]] = [
+                    uasg_value, objeto, id_processo, cnpj, empresa, numero_contrato, 
+                    nup, vigencia_inicial, vigencia_final, valor_global, atualizacao_comprasnet
+                ]
+
+            else:
+                # Preparar os valores para inserção no DataFrame
+                uasg_value = row['Unidade Gestora Atual'].split(' - ')[0]
+                fornecedor_info = row['Fornecedor']
+                parts = fornecedor_info.split(' - ')
+                if len(parts) >= 2:
+                    cnpj = parts[0].strip()
+                    empresa = ' - '.join(parts[1:]).strip()
+                else:
+                    cnpj = fornecedor_info.strip()
+                    empresa = fornecedor_info.strip()
+
+                numero_contrato = self.format_numero_contrato(numero_instrumento, uasg_value)
+                nup = row['Processo']
+                vigencia_inicial = row['Vig. Início']
+                vigencia_final = row['Vig. Fim']
+                valor_global = row['Valor Global']
+                atualizacao_comprasnet = row['Atualizado em']
+                objeto = row['Objeto']
+
+                # Criar a nova linha como um dicionário
+                new_row = {
+                    'comprasnet_contratos': numero_instrumento,
+                    'uasg': uasg_value,
+                    'objeto': objeto,
+                    'id_processo': id_processo,
+                    'cnpj': cnpj,
+                    'empresa': empresa,
+                    'numero_contrato': numero_contrato,
+                    'nup': nup,
+                    'vigencia_inicial': vigencia_inicial,
+                    'vigencia_final': vigencia_final,
+                    'valor_global': valor_global,
+                    'atualizacao_comprasnet': atualizacao_comprasnet
+                }
+
+                # Adicionar a nova linha à lista de novas linhas
+                new_rows.append(new_row)
+
+        # Concatenar o DataFrame existente com as novas linhas
+        if new_rows:
+            df_new_rows = pd.DataFrame(new_rows)
+            df_db = pd.concat([df_db, df_new_rows], ignore_index=True)
+        
+        # Gerar o arquivo Excel
+        excel_path = os.path.join(os.getcwd(), 'dados_atualizados.xlsx')
+        df_db.to_excel(excel_path, index=False)
+        print(f"Arquivo Excel gerado: {excel_path}")
+        
+        # Abrir o arquivo Excel gerado
+        os.startfile(excel_path)
+
+        return df_db
+    
+    def processar_e_atualizar_dados_json(self, df_csv, df_db):
         # Certificar-se de que todas as colunas estão presentes
         required_columns = [
             'comprasnet_contratos', 'uasg', 'objeto', 'pode_renovar', 'id_processo', 'cnpj', 'empresa', 
