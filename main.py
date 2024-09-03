@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
             "Dispensa Eletrônica",
             "Selenium",
             "Web Scraping",
-            # "Manipular PDF's",
+            "Manipular PDF's",
             "API PNCP",
             "API Contratos"
         ]
@@ -264,7 +264,7 @@ class MainWindow(QMainWindow):
             "ETP": self.setup_etp,
             "Selenium": self.setup_selenium_automacao,
             "Web Scraping": self.setup_webscraping,
-            # "Manipular PDF's": self.setup_manipular_pdfs,
+            "Manipular PDF's": self.setup_manipular_pdfs,
             "API PNCP": self.setup_api_pncp,
             "API Contratos": self.setup_api_comprasnet_contratos
         }

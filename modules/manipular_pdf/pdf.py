@@ -8,6 +8,119 @@ from diretorios import ICONS_DIR
 import pandas as pd
 from pathlib import Path
 
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
+import sys
+import requests
+
+
+class ConsultaContratoDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Consultar Contrato")
+        self.setGeometry(300, 300, 400, 400)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        self.label = QLabel("Digite o número do contrato:")
+        layout.addWidget(self.label)
+
+        # Adicionar campos para todos os parâmetros da API
+        self.data_inicial_input = QLineEdit(self)
+        self.data_inicial_input.setPlaceholderText("Data Inicial (Formato: AAAAMMDD)")
+        self.data_inicial_input.setText("20240101")  # Texto padrão definido para 20240101
+        layout.addWidget(self.data_inicial_input)
+
+        self.data_final_input = QLineEdit(self)
+        self.data_final_input.setPlaceholderText("Data Final (Formato: AAAAMMDD)")
+        self.data_final_input.setText("20240901")
+        layout.addWidget(self.data_final_input)
+
+        self.codigo_modalidade_input = QLineEdit(self)
+        self.codigo_modalidade_input.setPlaceholderText("Código Modalidade Contratação")
+        self.codigo_modalidade_input.setText("8")
+        layout.addWidget(self.codigo_modalidade_input)
+
+        self.uf_input = QLineEdit(self)
+        self.uf_input.setPlaceholderText("UF (Ex: DF)")
+        self.uf_input.setText("DF")
+        layout.addWidget(self.uf_input)
+
+        self.codigo_cidade_input = QLineEdit(self)
+        self.codigo_cidade_input.setPlaceholderText("Código Município IBGE")
+        self.codigo_cidade_input.setText("5300108")
+        layout.addWidget(self.codigo_cidade_input)
+
+        self.cnpj_input = QLineEdit(self)
+        self.cnpj_input.setPlaceholderText("CNPJ")
+        self.cnpj_input.setText("00394502000144")
+        layout.addWidget(self.cnpj_input)
+
+        self.codigo_uasg_input = QLineEdit(self)        
+        self.codigo_uasg_input.setPlaceholderText("Código Unidade Administrativa")
+        self.codigo_uasg_input.setText("787010")
+        layout.addWidget(self.codigo_uasg_input)
+
+        self.id_usuario_input = QLineEdit(self)
+        self.id_usuario_input.setPlaceholderText("ID Usuário")
+        self.id_usuario_input.setText("3")
+        layout.addWidget(self.id_usuario_input)
+
+        self.num_pagina_input = QLineEdit(self)
+        self.num_pagina_input.setPlaceholderText("Número da Página")
+        layout.addWidget(self.num_pagina_input)
+
+        self.consultar_button = QPushButton("Consultar", self)
+        self.consultar_button.clicked.connect(self._consultar_contrato)
+        layout.addWidget(self.consultar_button)
+
+        self.resultado_label = QLabel("")
+        layout.addWidget(self.resultado_label)
+
+    def _consultar_contrato(self):
+        # Coletar dados dos campos de entrada
+        data_inicial = self.data_inicial_input.text().strip()
+        data_final = self.data_final_input.text().strip()
+        codigo_modalidade = self.codigo_modalidade_input.text().strip()
+        uf = self.uf_input.text().strip()
+        codigo_cidade = self.codigo_cidade_input.text().strip()
+        cnpj = self.cnpj_input.text().strip()
+        codigo_uasg = self.codigo_uasg_input.text().strip()
+        id_usuario = self.id_usuario_input.text().strip()
+        num_pagina = self.num_pagina_input.text().strip()
+
+        # Validar entradas (opcionalmente você pode adicionar mais validações)
+        if not all([data_inicial, data_final, codigo_modalidade, uf, codigo_cidade, cnpj, codigo_uasg, id_usuario, num_pagina]):
+            self.resultado_label.setText("Por favor, preencha todos os campos.")
+            return
+
+        # Montar URL de consulta
+        base_url = "https://pncp.gov.br/api/consulta"
+        endpoint = f"/v1/contratacoes/publicacao?dataInicial={data_inicial}&dataFinal={data_final}&codigoModalidadeContratacao={codigo_modalidade}&uf={uf}&codigoMunicipioIbge={codigo_cidade}&cnpj={cnpj}&codigoUnidadeAdministrativa={codigo_uasg}&idUsuario={id_usuario}&pagina={num_pagina}"
+        url = base_url + endpoint
+
+        try:
+            response = requests.get(url, headers={'accept': '*/*'})
+            response.raise_for_status()
+            data = response.json()
+            self._display_result(data)
+        except requests.exceptions.HTTPError as http_err:
+            print(f"Erro HTTP: {http_err}")  # Print do erro no console
+            self.resultado_label.setText(f"Erro HTTP: {http_err}")
+        except Exception as err:
+            print(f"Erro: {err}")  # Print do erro no console
+            self.resultado_label.setText(f"Erro: {err}")
+
+    def _display_result(self, data):
+        # Exibir resultado na interface
+        if data:
+            self.resultado_label.setText(f"Resultado da consulta: {data}")
+        else:
+            self.resultado_label.setText("Nenhum dado encontrado.")
+
 class ManipularPDFsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -16,10 +129,19 @@ class ManipularPDFsWidget(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setStyleSheet("background-color: transparent;")  # Define o fundo branco
+        self.setStyleSheet("background-color: transparent;")  # Define o fundo transparente
 
         main_layout = QVBoxLayout(self)
         main_layout.addLayout(self._create_title_layout())
+
+        # Adiciona o botão de "Consultar Contrato"
+        consultar_button = QPushButton("Consultar Contrato", self)
+        consultar_button.clicked.connect(self._open_consulta_contrato_dialog)
+        main_layout.addWidget(consultar_button)
+
+    def _open_consulta_contrato_dialog(self):
+        dialog = ConsultaContratoDialog(self)
+        dialog.exec()
 
     def _create_title_layout(self):
         layout = QHBoxLayout()
@@ -46,7 +168,6 @@ class ManipularPDFsWidget(QWidget):
             'pdf': QPixmap(str(self.icons_dir / "pdf.png"))
         }
         return images
-
 class PNCPConsultationApp(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

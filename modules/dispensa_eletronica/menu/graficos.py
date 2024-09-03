@@ -1,3 +1,4 @@
+import os
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QFileDialog
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
@@ -34,10 +35,11 @@ class GraficTableDialog(QDialog):
         main_layout.addLayout(buttons_layout)
 
         # Área para gráficos (lado direito)
-        self.canvas = FigureCanvas(plt.Figure())
+        self.figure = plt.Figure()
+        self.canvas = FigureCanvas(self.figure)
         main_layout.addWidget(self.canvas)
 
-        self.ax = self.canvas.figure.subplots()  # Subplot para os gráficos
+        self.ax = self.figure.add_subplot(111)  # Subplot inicial para os gráficos
 
         # Chama a função para gerar o gráfico automaticamente
         self.infografico_dispensa_eletronica()
@@ -72,6 +74,10 @@ class GraficTableDialog(QDialog):
         layout.addWidget(btn_copiar)
 
     def infografico_dispensa_eletronica(self):
+        # Limpa a figura e cria um novo eixo
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(111)
+
         # Obtém os dados do modelo para gerar o gráfico
         model = self.parent().model
         df = self.model_to_dataframe(model)
@@ -83,12 +89,17 @@ class GraficTableDialog(QDialog):
         ordem_desejada = ['Planejamento', 'Aprovado', 'Sessão Pública', 'Homologado', 'Empenhado', 'Concluído', 'Arquivado']
         status_counts = status_counts.reindex(ordem_desejada).fillna(0)
 
-        total_processos = status_counts.sum()
-        self.ax.clear()
+        total_processos = int(status_counts.sum())
 
         # Paleta de cores personalizada
-        colors = plt.cm.Pastel1(range(len(status_counts)))
-
+        colors = plt.cm.Set1(range(len(status_counts)))
+        # colors = plt.cm.Pastel1(range(len(status_counts)))
+        # Set1: Uma paleta de cores brilhantes e distintas.
+        # Set2: Uma paleta de cores suaves.
+        # Set3: Uma paleta de cores suaves e variadas.
+        # Accent: Uma paleta com cores vibrantes e contrastantes.
+        # Dark2: Uma paleta com cores escuras e bem definidas.
+        # Paired: Uma paleta com pares de cores relacionadas.
         # Gera os rótulos no formato desejado: "{Status} - {número} ({percentual})"
         labels = [f"{status} - {int(count)}" for status, count in zip(status_counts.index, status_counts)]
 
@@ -118,11 +129,14 @@ class GraficTableDialog(QDialog):
             )
             for i in range(len(status_counts))
         ]
-        self.ax.legend(handles=patches, loc='lower right', bbox_to_anchor=(1.65, 0.80), fontsize=10)
+        self.ax.legend(handles=patches, loc='lower right', bbox_to_anchor=(1.60, 0.80), fontsize=10)
 
         self.canvas.draw()
             
     def grafico_combinacoes(self):
+        # Limpa a figura e cria um novo eixo
+        self.figure.clear()
+
         # Obtém os dados do modelo para gerar o gráfico
         model = self.parent().model
         df = self.model_to_dataframe(model)
@@ -150,22 +164,6 @@ class GraficTableDialog(QDialog):
                 }
                 combinacoes[status].append(combinacao)
 
-        # Limpa o gráfico existente
-        self.ax.clear()
-
-        # Configurar o número de colunas e gráficos
-        num_colunas = len(status_interessantes)
-        max_items_por_coluna = 10  # Limite de itens por coluna antes de quebrar
-
-        # Criar uma nova figura com tamanho ajustado
-        fig = plt.figure(figsize=(num_colunas * 3, 6))  # Reduzindo o multiplicador horizontal para 3
-
-        # Criar subplots dinamicamente
-        axs = []
-        for i in range(num_colunas):
-            ax = fig.add_subplot(1, num_colunas, i + 1)
-            axs.append(ax)
-
         # Definir caminhos de ícones para cada status
         icons_paths = {
             'Aprovado': str(ICONS_DIR / "aproved.png"),
@@ -173,7 +171,14 @@ class GraficTableDialog(QDialog):
             'Homologado': str(ICONS_DIR / "deal.png")
         }
 
-        for col_idx, (status, ax) in enumerate(zip(status_interessantes, axs)):
+        # Configurar o número de colunas e gráficos
+        num_colunas = len(status_interessantes)
+        max_items_por_coluna = 12  # Limite de itens por coluna antes de quebrar
+
+        # Criar subplots dinamicamente
+        for i, status in enumerate(status_interessantes):
+            ax = self.figure.add_subplot(1, num_colunas, i + 1)
+
             data = combinacoes[status]
 
             # Se houver mais de 8 itens, dividimos a coluna em subcolunas
@@ -185,8 +190,13 @@ class GraficTableDialog(QDialog):
             # Configurar o gráfico para cada subcoluna
             for sub_idx, sub_data in enumerate(subcol_data):
                 # Aumentar o deslocamento entre subcolunas
-                x_base = sub_idx * 2.5  # Ajustar a posição x base para cada subcoluna com espaçamento maior
-                y_positions = range(len(sub_data))  # Posições y para os itens da subcoluna
+                x_base = sub_idx * 2.65  # Ajustar a posição x base para cada subcoluna com espaçamento maior
+
+                # Definir um fator de espaçamento para os itens
+                spacing_factor = 1.5  # Fator de espaçamento para aumentar a distância entre itens
+
+                # Posições y ajustadas para incluir espaçamento extra
+                y_positions = [y * spacing_factor for y in range(len(sub_data))]
 
                 # Adicionar cada item no gráfico
                 for y, combinacao in zip(y_positions, sub_data):
@@ -197,13 +207,13 @@ class GraficTableDialog(QDialog):
                         combinacao['ID Processo'],
                         ha='center',
                         va='center',
-                        fontsize=12,
+                        fontsize=10,
                         fontweight='bold',
                         color='black'
                     )
                     ax.text(
                         x_base,
-                        y - 0.3,
+                        y - 0.5,
                         combinacao['Objeto'],
                         ha='center',
                         va='center',
@@ -213,15 +223,26 @@ class GraficTableDialog(QDialog):
                     )
                     ax.text(
                         x_base,
-                        y - 0.6,
+                        y - 0.9,
                         combinacao['valor_total'],
                         ha='center',
                         va='center',
-                        fontsize=10,
+                        fontsize=8,
                         color='darkred',
                         fontweight='bold'
                     )
 
+                    # Adicionar uma linha discreta abaixo de cada combinação
+                    ax.hlines(
+                        y - 1.1,  # Posição da linha logo abaixo da última linha de texto
+                        x_base - 0.4,  # Início da linha (ajustar conforme necessário)
+                        x_base + 0.4,  # Fim da linha (ajustar conforme necessário)
+                        color='gray',  # Cor da linha
+                        linestyle='--',  # Estilo da linha (tracejada)
+                        linewidth=0.8,  # Espessura da linha
+                        alpha=0.7  # Transparência da linha para ser discreta
+                    )
+                    
             # Calcular a posição x central para a linha vertical
             num_subcolunas = len(subcol_data)
             central_x = (num_subcolunas - 1) * 2.5 / 2  # Centralizando com base na posição das subcolunas
@@ -237,7 +258,7 @@ class GraficTableDialog(QDialog):
             imagebox = OffsetImage(icon_image, zoom=0.5)  # Ajuste o zoom conforme necessário para o tamanho do ícone
             # Calcular a posição para colocar o ícone ao lado do título
             title_x_pos = 0.5  # Posição x do título centralizado
-            icon_x_pos = title_x_pos - 0.45  # Posição x do ícone, ajustada para ficar ao lado do título
+            icon_x_pos = title_x_pos - 0.50  # Posição x do ícone, ajustada para ficar ao lado do título
             icon_y_pos = 1.0  # Posição y do título no topo do gráfico
             ab = AnnotationBbox(imagebox, (icon_x_pos, icon_y_pos), frameon=False, xycoords='axes fraction')
             ax.add_artist(ab)
@@ -245,39 +266,53 @@ class GraficTableDialog(QDialog):
             # Ajustar a estética do gráfico
             ax.set_title(status, fontsize=14, fontweight='bold', loc='center')
             ax.set_xlim(-1, (num_subcolunas - 1) * 2.5 + 1)  # Definir limites x para cada status
-            ax.set_ylim(-1, max(len(data), max_items_por_coluna))  # Ajustar o limite y
-            ax.axis('off')  # Remover eixos
+            ax.set_ylim(-1, max(len(data), max_items_por_coluna) * spacing_factor)  # Ajustar o limite y com o fator de espaçamento
 
-        # Ajustar o espaçamento entre colunas (wspace)
-        plt.subplots_adjust(wspace=0.1)  # Diminuindo ainda mais o espaço entre colunas
+            # Remover eixos e bordas completamente
+            ax.axis('off')
+            ax.set_frame_on(False)  # Remove o quadro em volta dos subplots
 
-        plt.tight_layout()
+        # Ajustar o espaçamento entre subplots para remover margens e espaços extras
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.2)
 
-        # Definir o canvas do Matplotlib e desenhar o gráfico
-        self.canvas.figure = fig
         self.canvas.draw()
 
     def salvar_imagem(self):
         """Salva a imagem gerada em um local selecionado pelo usuário."""
-        # Remove a linha que causa o erro
         file_path, _ = QFileDialog.getSaveFileName(self, "Salvar Imagem", "", "PNG Files (*.png);;All Files (*)")
         if file_path:
-            self.canvas.figure.savefig(file_path)
+            self.figure.savefig(file_path)
             print(f"Imagem salva em: {file_path}")
 
+    def salvar_imagem_automatica(self, file_path):
+        """Salva a imagem gerada no caminho especificado."""
+        if file_path:
+            self.figure.savefig(file_path)
+            print(f"Imagem salva em: {file_path}")
 
     def copiar_para_clipboard(self):
-        """Copia a imagem gerada para a área de transferência."""
-        # Salva o gráfico como uma imagem QPixmap
-        buf = QImage(self.canvas.width(), self.canvas.height(), QImage.Format.Format_ARGB32)
-        painter = QPainter(buf)
-        self.canvas.render(painter)
-        painter.end()
+        """Salva a imagem no desktop e copia para a área de transferência."""
+        # Obtém o caminho do desktop do usuário
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+        save_dir = os.path.join(desktop_path, "licitação360", "graficos_dispensa_eletronica")
 
-        # Copia para a área de transferência
-        clipboard = QGuiApplication.clipboard()
-        clipboard.setImage(buf)
-        print("Imagem copiada para a área de transferência")
+        # Cria o diretório se não existir
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Define o caminho completo para salvar a imagem
+        file_path = os.path.join(save_dir, "grafico_dispensa_eletronica.png")
+
+        # Salva a imagem no diretório especificado
+        self.salvar_imagem_automatica(file_path)
+
+        # Copia a imagem para a área de transferência
+        image = QImage(file_path)
+        if not image.isNull():
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setImage(image)
+            print("Imagem copiada para a área de transferência.")
+        else:
+            print("Erro ao copiar a imagem para a área de transferência.")
 
     def model_to_dataframe(self, model):
         """Converte os dados do modelo para um DataFrame pandas."""

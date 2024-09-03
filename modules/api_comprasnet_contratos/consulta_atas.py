@@ -4,11 +4,13 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 import sys
 import requests
 import pandas as pd
+import json
 
 class RequestThread(QThread):
     data_received = pyqtSignal(list)
     error_occurred = pyqtSignal(str)
     save_csv = pyqtSignal(list, str)
+    save_json = pyqtSignal(list, str)  # Novo sinal para salvar o arquivo JSON
 
     def __init__(self, unidade_codigo):
         super().__init__()
@@ -21,17 +23,14 @@ class RequestThread(QThread):
         print(f"Request endpoint: {url}")
 
         try:
-            response = requests.get(url, headers={
-                'accept': 'application/json', 
-                'X-CSRF-TOKEN': '',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
-            })
-            print("Raw response content:", response.text)  # Adicionado para imprimir a resposta bruta
+            response = requests.get(url)
+            print("Raw response content:", response.text)
 
             response.raise_for_status()
             data = response.json()
             self.data_received.emit(data)
             self.save_csv.emit(data, self.unidade_codigo)
+            self.save_json.emit(data, self.unidade_codigo)  # Emitir sinal para salvar o JSON
         except requests.exceptions.HTTPError as http_err:
             error_message = f"HTTP error occurred: {http_err}"
             print(error_message)
@@ -40,7 +39,6 @@ class RequestThread(QThread):
             error_message = f"Other error occurred: {err}"
             print(error_message)
             self.error_occurred.emit(error_message)
-
 
 class ComprasnetContratosAPI(QWidget):
     def __init__(self, parent=None):
@@ -77,6 +75,7 @@ class ComprasnetContratosAPI(QWidget):
         self.tree_view.setModel(self.model)
         self.tree_view.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
+
     def _create_title_layout(self):
         layout = QHBoxLayout()
         title_label = QLabel("Consulta Contratos por Unidade")
@@ -101,6 +100,7 @@ class ComprasnetContratosAPI(QWidget):
         self.thread.data_received.connect(self._populate_tree_view)
         self.thread.error_occurred.connect(self._display_message)
         self.thread.save_csv.connect(self._save_to_csv)
+        self.thread.save_json.connect(self._save_to_json)  # Conectar ao método de salvamento JSON
         self.thread.start()
 
     def _populate_tree_view(self, data):
@@ -268,6 +268,17 @@ class ComprasnetContratosAPI(QWidget):
             df = pd.DataFrame(data)
             file_name = f"consulta{unidade_codigo}.csv"
             df.to_csv(file_name, index=False)
+            self._display_message(f"Dados salvos em {file_name}.")
+            print(f"Dados salvos em {file_name}.")
+        else:
+            self._display_message("Erro ao salvar: A resposta da API não está no formato esperado para exportação.")
+
+    def _save_to_json(self, data, unidade_codigo):
+        """Método para salvar os dados em um arquivo JSON."""
+        if isinstance(data, list):
+            file_name = f"consulta{unidade_codigo}.json"
+            with open(file_name, 'w', encoding='utf-8') as json_file:
+                json.dump(data, json_file, ensure_ascii=False, indent=4)
             self._display_message(f"Dados salvos em {file_name}.")
             print(f"Dados salvos em {file_name}.")
         else:
