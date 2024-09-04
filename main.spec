@@ -6,7 +6,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 # Defina o caminho do diretório base diretamente
-BASE_DIR = Path("C:/Users/guilh/OneDrive/Área de Trabalho/projeto_licitacao360/licitacao360")
+BASE_DIR = Path("C:/Users/guilh/OneDrive/Documentos/Backup/360/licitacao360")
 DATABASE_DIR = BASE_DIR / "database"
 RESOURCES_DIR = BASE_DIR / "resources"
 ICON_PATH = RESOURCES_DIR / "brasil.ico"
@@ -23,7 +23,7 @@ a = Analysis(
     binaries=[],
     datas=[],  # Removido datas individuais
     hiddenimports=['psutil', 'fitz'],
-    hookspath=['.'],  # Adicione o caminho atual para procurar hooks personalizados
+    hookspath=['.'], 
     runtime_hooks=[],
     excludes=['PyQt5'],
     win_no_prefer_redirects=False,

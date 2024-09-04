@@ -270,8 +270,8 @@ class GerarAtasWidget(QWidget):
             ("Ata / Contrato", 'verify_menu', self.abrir_dialog_atas, "Com o database concluíodo é possível gerar as atas ou contratos", False),
             ("Database", 'data-processing', self.update_database, "Salva ou Carrega os dados do Database", False),
             ("Salvar Tabela", 'table', self.salvar_tabela, "Importe um arquivo .xlsx com 4 colunas com índice 'item_num', 'catalogo', 'descricao_tr' e 'descricao_detalada'.", True),
-            # ("Indicadores", 'dashboard', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
-            ("Indicadores", 'dashboard', self.dashboard_indicadores, "Visualize os indicadores do relatório", False),
+            ("Indicadores", 'dashboard', self.indicadores_normceim, "Visualize os indicadores do relatório", False),
+            # ("Indicadores", 'dashboard', self.dashboard_indicadores, "Visualize os indicadores do relatório", False),
 
         ]
 
