@@ -126,25 +126,25 @@ class SqlModel:
             self.create_table_if_not_exists()
         else:
             print("Tabela 'controle_dispensas' existe. Verificando estrutura da coluna...")
-            self.ensure_id_processo_primary_key()
+    #         self.ensure_id_processo_primary_key()
 
-    def ensure_id_processo_primary_key(self):
-        query = QSqlQuery(self.db)
-        query.exec("PRAGMA table_info(controle_dispensas)")
-        id_processo_is_primary = False
-        while query.next():
-            if query.value(1) == 'id_processo' and query.value(5) == 1:
-                id_processo_is_primary = True
-                # print("Coluna 'id_processo' já é PRIMARY KEY.")
-                break
-        if not id_processo_is_primary:
-            print("Atualizando 'id_processo' para ser PRIMARY KEY.")
-            query.exec("ALTER TABLE controle_dispensas ADD COLUMN new_id_processo VARCHAR(100) PRIMARY KEY")
-            query.exec("UPDATE controle_dispensas SET new_id_processo = id_processo")
-            query.exec("ALTER TABLE controle_dispensas DROP COLUMN id_processo")
-            query.exec("ALTER TABLE controle_dispensas RENAME COLUMN new_id_processo TO id_processo")
-            if not query.isActive():
-                print("Erro ao atualizar chave primária:", query.lastError().text())
+    # def ensure_id_processo_primary_key(self):
+    #     query = QSqlQuery(self.db)
+    #     query.exec("PRAGMA table_info(controle_dispensas)")
+    #     id_processo_is_primary = False
+    #     while query.next():
+    #         if query.value(1) == 'id_processo' and query.value(5) == 1:
+    #             id_processo_is_primary = True
+    #             # print("Coluna 'id_processo' já é PRIMARY KEY.")
+    #             break
+    #     if not id_processo_is_primary:
+    #         print("Atualizando 'id_processo' para ser PRIMARY KEY.")
+    #         query.exec("ALTER TABLE controle_dispensas ADD COLUMN new_id_processo VARCHAR(100) PRIMARY KEY")
+    #         query.exec("UPDATE controle_dispensas SET new_id_processo = id_processo")
+    #         query.exec("ALTER TABLE controle_dispensas DROP COLUMN id_processo")
+    #         query.exec("ALTER TABLE controle_dispensas RENAME COLUMN new_id_processo TO id_processo")
+    #         if not query.isActive():
+    #             print("Erro ao atualizar chave primária:", query.lastError().text())
 
     def create_table_if_not_exists(self):
         query = QSqlQuery(self.db)

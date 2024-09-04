@@ -11,3 +11,4 @@ root - ERROR - Error executing query: DROP TABLE IF EXISTS controle_contratos, E
 root - ERROR - Error executing query: DROP TABLE IF EXISTS controle_contratos, Error: database is locked
 root - ERROR - Erro ao carregar tabela: 'GerenciarInclusaoExclusaoContratos' object has no attribute 'validate_and_process_data'
 root - ERROR - Erro ao carregar tabela: 'GerenciarInclusaoExclusaoContratos' object has no attribute 'validate_and_process_data'
+root - ERROR - Erro inesperado: Table 'controle_contratos' already exists.

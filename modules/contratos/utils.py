@@ -225,16 +225,16 @@ def carregar_dados_contratos(index, caminho_banco_dados):
         
         # Recupere o número do contrato com base no índice da linha
         cursor = connection.cursor()
-        cursor.execute("SELECT numero_contrato FROM controle_contratos LIMIT 1 OFFSET ?", (index,))
+        cursor.execute("SELECT id FROM controle_contratos LIMIT 1 OFFSET ?", (index,))
         resultado = cursor.fetchone()
         
         if resultado is None:
             raise Exception("Nenhum contrato encontrado para o índice fornecido.")
         
-        numero_contrato = resultado[0]
+        id = resultado[0]
         
         # Carrega os dados do contrato específico
-        query = f"SELECT * FROM controle_contratos WHERE numero_contrato='{numero_contrato}'"
+        query = f"SELECT * FROM controle_contratos WHERE id='{id}'"
         df_registro_selecionado = pd.read_sql_query(query, connection)
         connection.close()
 

@@ -26,12 +26,13 @@ class ContratosWidget(QMainWindow):
         super().__init__(parent)
         self.icons_dir = Path(icons_dir) if icons_dir else Path()
         self.required_columns = [
-            'status', 'dias', 'pode_renovar', 'custeio', 'numero_contrato', 'tipo', 'id_processo', 'empresa', 'objeto',
-            'valor_global', 'uasg', 'nup', 'cnpj', 'natureza_continuada', 'om', 'indicativo_om', 'om_extenso', 'material_servico', 'link_pncp',
+            'status', 'dias', 'prorrogavel', 'custeio', 'numero', 'tipo', 'id_processo', 'nome_fornecedor', 'objeto',
+            'valor_global', 'codigo', 'processo', 'cnpj_cpf_idgener', 'natureza_continuada', 'nome_resumido', 'indicativo_om', 'nome', 'material_servico', 'link_pncp',
             'portaria', 'posto_gestor', 'gestor', 'posto_gestor_substituto', 'gestor_substituto', 'posto_fiscal',
             'fiscal', 'posto_fiscal_substituto', 'fiscal_substituto', 'posto_fiscal_administrativo', 'fiscal_administrativo',
             'vigencia_inicial', 'vigencia_final', 'setor', 'cp', 'msg', 'comentarios', 'registro_status','termo_aditivo', 'atualizacao_comprasnet',
-            'instancia_governanca', 'comprasnet_contratos', 'assinatura_contrato', 'atualizacao_comprasnet', 'categoria'
+            'instancia_governanca', 'comprasnet_contratos', 'licitacao_numero', 'data_assinatura', 'data_publicacao', 'categoria',
+            'subtipo', 'situacao', 'id', 'amparo_legal', 'modalidade', 'assinatura_contrato'
         ]
         self.setup_managers()
         self.load_initial_data()
@@ -88,8 +89,9 @@ class ContratosWidget(QMainWindow):
         
         # Adicionar print para verificar se o banco de dados foi fechado
         print("Database connection closed:", self.database_manager.is_closed())
-        
-        dialog = GerenciarInclusaoExclusaoContratos(self.icons_dir, self.database_path, self)
+
+        # Supondo que self.required_columns esteja definido no contexto da classe chamadora
+        dialog = GerenciarInclusaoExclusaoContratos(self.icons_dir, self.database_path, self.required_columns, self)
         dialog.exec()
 
 
@@ -202,7 +204,7 @@ class UIManager:
 
         # Configurar o CustomItemDelegate para a coluna 41
         custom_delegate = CustomItemDelegate(self.icons_dir, self.table_view)
-        self.table_view.setItemDelegateForColumn(41, custom_delegate)
+        self.table_view.setItemDelegateForColumn(0, custom_delegate)
 
         self.reorder_columns()
 
@@ -236,7 +238,10 @@ class UIManager:
         self.parent.proxy_model.setSourceModel(self.model)
         self.parent.proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.parent.proxy_model.setFilterKeyColumn(-1)
-        self.parent.proxy_model.setSortRole(Qt.ItemDataRole.UserRole)
+
+        # Configura a ordenação inicial pelo proxy model de forma decrescente
+        self.parent.proxy_model.sort(self.model.fieldIndex("vigencia_final"), Qt.SortOrder.DescendingOrder)
+
         self.table_view.setModel(self.parent.proxy_model)
         print("Table view configured with proxy model")
 
@@ -256,7 +261,6 @@ class UIManager:
 
     def apply_custom_column_sizes(self):
         header = self.table_view.horizontalHeader()
-        header.setSectionResizeMode(41, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
@@ -267,8 +271,7 @@ class UIManager:
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
-        header.resizeSection(0, 70)
-        header.resizeSection(41, 110)
+        header.resizeSection(0, 120)
         header.resizeSection(1, 50)
         header.resizeSection(2, 65)
         header.resizeSection(3, 65)
@@ -316,7 +319,7 @@ class UIManager:
 
     def update_column_headers(self):
         titles = {
-            41: "Status",
+            0: "Status",
             1: "Dias",
             2: "Renova?",
             3: "Custeio?",
@@ -334,13 +337,13 @@ class UIManager:
 
     def reorder_columns(self):
         # Inclua a coluna de ícones na nova ordem
-        new_order = [41, 1, 2, 3, 14, 4, 5, 6, 7, 8, 9]
+        new_order = [0, 1, 2, 3, 14, 4, 5, 6, 7, 8, 9]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
         # Inclua a coluna de ícones no conjunto de colunas visíveis
-        visible_columns = {1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 41}
+        visible_columns = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
@@ -398,7 +401,7 @@ class CustomItemDelegate(QStyledItemDelegate):
             model = model.sourceModel()
 
         # Verifica se estamos na coluna de índice 41
-        if index.column() == 41:
+        if index.column() == 0:
             dias_icon = None
             status_icon = None
 

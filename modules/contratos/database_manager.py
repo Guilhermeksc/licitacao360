@@ -48,7 +48,7 @@ class DatabaseContratosManager:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS controle_assinaturas (
-                    numero_contrato TEXT PRIMARY KEY,
+                    id TEXT PRIMARY KEY,
                     assinatura_contrato TEXT
                 )
             """)
@@ -66,21 +66,21 @@ class DatabaseContratosManager:
             CREATE TABLE IF NOT EXISTS controle_contratos (
                 status TEXT,
                 dias TEXT,     
-                pode_renovar TEXT,                          
+                prorrogavel TEXT,                          
                 custeio TEXT,
-                numero_contrato TEXT PRIMARY KEY,
+                numero TEXT,
                 tipo TEXT,  
                 id_processo TEXT,
-                empresa TEXT,                                          
+                nome_fornecedor TEXT,                                          
                 objeto TEXT,
                 valor_global TEXT, 
-                uasg TEXT,
-                nup TEXT,
-                cnpj TEXT,                        
+                codigo TEXT,
+                processo TEXT,
+                cnpj_cpf_idgener TEXT,                        
                 natureza_continuada TEXT,
-                om TEXT,
+                nome_resumido TEXT,
                 indicativo_om TEXT,
-                om_extenso TEXT,
+                nome TEXT,
                 material_servico TEXT,
                 link_pncp TEXT,
                 portaria TEXT,
@@ -105,8 +105,16 @@ class DatabaseContratosManager:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT,
-                categoria TEXT
+                licitacao_numero TEXT,
+                data_assinatura TEXT,
+                data_publicacao TEXT,
+                categoria TEXT,
+                subtipo TEXT,
+                situacao TEXT,
+                id TEXT PRIMARY KEY,
+                amparo_legal TEXT,
+                modalidade TEXT,
+                assinatura_contrato TEXT                      
             )
         """)
         conn.commit()
@@ -114,22 +122,14 @@ class DatabaseContratosManager:
     def save_dataframe(self, df, table_name):
         conn = self.connect_to_database()
         try:
-            # Exibir o DataFrame antes de salvar
-            print(f"Salvando DataFrame na tabela '{table_name}':")
-
-            # Tentar salvar linha por linha para identificar o problema
-            for index, row in df.iterrows():
-                try:
-                    row.to_frame().T.to_sql(table_name, conn, if_exists='append', index=False)
-                except sqlite3.IntegrityError as e:
-                    # Identificar o valor duplicado
-                    valor_duplicado = row['numero_contrato']
-                    mensagem_erro = f"Erro ao salvar o DataFrame: O valor '{valor_duplicado}' na coluna 'numero_contrato' já existe no banco de dados."
-                    print(mensagem_erro)
-                    QMessageBox.warning(None, "Erro de Duplicação", mensagem_erro)
-                    break
+            df.to_sql(table_name, conn, if_exists='append', index=False)
+        except sqlite3.IntegrityError as e:
+            valor_duplicado = df.loc[df.duplicated(subset=['id'], keep=False), 'id']
+            mensagem_erro = f"Erro ao salvar o DataFrame: Valor duplicado(s) encontrado(s) na coluna 'id': {valor_duplicado.to_list()}."
+            logging.error(mensagem_erro)
+            QMessageBox.warning(None, "Erro de Duplicação", mensagem_erro)
         except sqlite3.Error as e:
-            logging.error(f"Error saving dataframe: {e}")
+            logging.error(f"Erro ao salvar DataFrame: {e}")
         finally:
             self.close_connection()
             
@@ -160,17 +160,17 @@ class DatabaseContratosManager:
         finally:
             self.close_connection()
 
-    def load_contract_data_by_key(self, numero_contrato):
+    def load_contract_data_by_key(self, id):
         """
-        Carrega os dados do contrato a partir da chave primária numero_contrato.
+        Carrega os dados do contrato a partir da chave primária id.
         """
         conn = self.connect_to_database()
         try:
-            query = "SELECT * FROM controle_contratos WHERE numero_contrato = ?"
-            df = pd.read_sql_query(query, conn, params=(numero_contrato,))
+            query = "SELECT * FROM controle_contratos WHERE id = ?"
+            df = pd.read_sql_query(query, conn, params=(id,))
             return df
         except sqlite3.Error as e:
-            logging.error(f"Erro ao carregar dados do contrato '{numero_contrato}': {e}")
+            logging.error(f"Erro ao carregar dados do contrato '{id}': {e}")
             return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
         finally:
             self.close_connection()
@@ -202,46 +202,27 @@ class SqlModel:
             self.create_table_if_not_exists()
         else:
             print("Tabela 'controle_contratos' existe. Verificando estrutura da coluna...")
-            self.ensure_numero_contrato_primary_key()
-
-    def ensure_numero_contrato_primary_key(self):
-        query = QSqlQuery(self.db)
-        query.exec("PRAGMA table_info(controle_contratos)")
-        numero_contrato_is_primary = False
-        while query.next():
-            if query.value(1) == 'numero_contrato' and query.value(5) == 1:
-                numero_contrato_is_primary = True
-                break
-        if not numero_contrato_is_primary:
-            print("Atualizando 'numero_contrato' para ser PRIMARY KEY.")
-            query.exec("ALTER TABLE controle_contratos ADD COLUMN new_numero_contrato TEXT PRIMARY KEY")
-            query.exec("UPDATE controle_contratos SET new_numero_contrato = numero_contrato")
-            query.exec("ALTER TABLE controle_contratos DROP COLUMN numero_contrato")
-            query.exec("ALTER TABLE controle_contratos RENAME COLUMN new_numero_contrato TO numero_contrato")
-            if not query.isActive():
-                print("Erro ao atualizar chave primária:", query.lastError().text())
-
     def create_table_if_not_exists(self):
         query = QSqlQuery(self.db)
         if not query.exec("""
             CREATE TABLE IF NOT EXISTS controle_contratos (
                 status TEXT,
                 dias TEXT,     
-                pode_renovar TEXT,                          
+                prorrogavel TEXT,                          
                 custeio TEXT,
-                numero_contrato TEXT PRIMARY KEY,
+                numero TEXT,
                 tipo TEXT,  
                 id_processo TEXT,
-                empresa TEXT,                                          
+                nome_fornecedor TEXT,                                          
                 objeto TEXT,
                 valor_global TEXT, 
-                uasg TEXT,
-                nup TEXT,
-                cnpj TEXT,                        
+                codigo TEXT,
+                processo TEXT,
+                cnpj_cpf_idgener TEXT,                        
                 natureza_continuada TEXT,
-                om TEXT,
+                nome_resumido TEXT,
                 indicativo_om TEXT,
-                om_extenso TEXT,
+                nome TEXT,
                 material_servico TEXT,
                 link_pncp TEXT,
                 portaria TEXT,
@@ -266,8 +247,16 @@ class SqlModel:
                 atualizacao_comprasnet TEXT,
                 instancia_governanca TEXT,
                 comprasnet_contratos TEXT,
-                assinatura_contrato TEXT,
-                categoria TEXT
+                licitacao_numero TEXT,
+                data_assinatura TEXT,
+                data_publicacao TEXT,
+                categoria TEXT,
+                subtipo TEXT,
+                situacao TEXT,
+                id TEXT PRIMARY KEY,
+                amparo_legal TEXT,
+                modalidade TEXT,
+                assinatura_contrato TEXT                           
             )
         """):
             print("Falha ao criar a tabela 'controle_contratos':", query.lastError().text())
@@ -299,6 +288,21 @@ class CustomSqlTableModel(QSqlTableModel):
         self.icons_dir = icons_dir
         self.icon_column_name = "icon_column"  # Nome da coluna fictícia para ícones
 
+        # # Carregar a tabela e definir a ordenação
+        # self.setTable('controle_contratos')
+        # self.order_by_vigencia_final()
+        # self.select()
+
+    def order_by_vigencia_final(self):
+        """Ordena a tabela pela coluna 'vigencia_final' em ordem decrescente."""
+        vigencia_final_index = self.fieldIndex("vigencia_final")
+        
+        # Verifique se o índice da coluna é válido
+        if vigencia_final_index != -1:
+            self.setSort(vigencia_final_index, Qt.SortOrder.DescendingOrder)
+        else:
+            print("Coluna 'vigencia_final' não encontrada para ordenação.")
+
     def flags(self, index):
         default_flags = super().flags(index)
         if index.column() == self.fieldIndex(self.icon_column_name) or index.column() in self.non_editable_columns:
@@ -326,11 +330,11 @@ class CustomSqlTableModel(QSqlTableModel):
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
 
         if self.icons_dir and role == Qt.ItemDataRole.DecorationRole:
-            if index.column() == self.fieldIndex("pode_renovar"):
-                pode_renovar = self.index(index.row(), self.fieldIndex("pode_renovar")).data()
-                if pode_renovar == 'Sim':
+            if index.column() == self.fieldIndex("prorrogavel"):
+                prorrogavel = self.index(index.row(), self.fieldIndex("prorrogavel")).data()
+                if prorrogavel == 'Sim':
                     return QIcon(str(self.icons_dir / 'thumb-up.png'))
-                elif pode_renovar == 'Não':
+                elif prorrogavel == 'Não':
                     return QIcon(str(self.icons_dir / 'unchecked.png'))
             elif index.column() == self.fieldIndex("custeio"):
                 custeio = self.index(index.row(), self.fieldIndex("custeio")).data()
@@ -339,19 +343,27 @@ class CustomSqlTableModel(QSqlTableModel):
                 elif custeio == 'Não':
                     return QIcon(str(self.icons_dir / 'unchecked.png'))
 
-
         # Lógica para a coluna "dias"
         if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("dias"):
             vigencia_final_index = self.fieldIndex("vigencia_final")
             vigencia_final = self.index(index.row(), vigencia_final_index).data()
+            
             if vigencia_final:
                 try:
+                    # Tentativa de conversão da data no formato 'DD/MM/YYYY'
                     vigencia_final_date = datetime.strptime(vigencia_final, '%d/%m/%Y')
-                    hoje = datetime.today()
-                    dias = (vigencia_final_date - hoje).days
-                    return dias
                 except ValueError:
-                    return "Data Inválida"
+                    try:
+                        # Tentativa de conversão da data no formato 'YYYY-MM-DD'
+                        vigencia_final_date = datetime.strptime(vigencia_final, '%Y-%m-%d')
+                    except ValueError:
+                        return "Data Inválida"
+
+                hoje = datetime.today()
+                dias = (vigencia_final_date - hoje).days
+                
+
+                return dias
 
         # Lógica para cores da coluna "dias"
         if role == Qt.ItemDataRole.ForegroundRole and index.column() == self.fieldIndex("dias"):
@@ -378,32 +390,6 @@ class CustomSqlTableModel(QSqlTableModel):
         if field_name == self.icon_column_name:
             return super().columnCount() - 1
         return super().fieldIndex(field_name)
-
-    def update_record_by_primary_key(self, primary_key_field, primary_key_value, data):
-        """
-        Atualiza o registro existente identificado pelo campo de chave primária no banco de dados.
-
-        Args:
-            primary_key_field (str): Nome do campo de chave primária.
-            primary_key_value (Any): Valor do campo de chave primária para identificar o registro.
-            data (dict): Dados a serem atualizados, onde as chaves são nomes de campo e os valores são os novos valores de dados.
-        """
-        query = QSqlQuery(self.database())
-        set_clause = ", ".join([f"{key} = :{key}" for key in data.keys() if key != primary_key_field])
-        query_string = f"UPDATE controle_contratos SET {set_clause} WHERE {primary_key_field} = :primary_key_value"
-        query.prepare(query_string)
-
-        # Bind the data values to the query
-        for key, value in data.items():
-            if key != primary_key_field:
-                query.bindValue(f":{key}", value)
-        
-        query.bindValue(":primary_key_value", primary_key_value)
-
-        if not query.exec():
-            raise Exception(f"Erro ao atualizar registro: {query.lastError().text()}")
-        else:
-            print("Registro atualizado com sucesso.")
                 
 class CustomTableView(QTableView):
     def __init__(self, main_app, config_manager, parent=None):
