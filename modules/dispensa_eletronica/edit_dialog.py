@@ -980,7 +980,6 @@ class EditDataDialog(QDialog):
         frame_agentes = QFrame()
         # Criação do layout principal para os agentes responsáveis
         agente_responsavel_layout = QVBoxLayout(frame_agentes)
-        agente_responsavel_layout.setSpacing(1)  # Ajusta o espaçamento entre os elementos
         agente_responsavel_layout.setContentsMargins(10, 1, 10, 1)  # Define margens ao redor do layout
 
         # Criação dos ComboBox com ajuste de altura
@@ -1000,18 +999,28 @@ class EditDataDialog(QDialog):
         ]
 
         for label_text, combo_box in labels_combos:
+            # Cria um layout horizontal para a label e o ComboBox
+            h_layout = QVBoxLayout()
+            h_layout.setSpacing(0)  # Ajusta o espaçamento entre label e ComboBox
+            h_layout.setContentsMargins(0, 0, 0, 0)  # Margens para o layout
+
             # Cria e estiliza a label
             label = QLabel(label_text)
-            self.apply_widget_style(label)
+            label.setStyleSheet("color: #8AB4F7; font-size: 16px")
+            label.setContentsMargins(0, 0, 0, 0)  # Define margens para a label
 
-            # Adiciona a label e o ComboBox ao layout
-            agente_responsavel_layout.addWidget(label)
-            agente_responsavel_layout.addWidget(combo_box)
+            # Adiciona a label e o ComboBox ao layout horizontal
+            h_layout.addWidget(label)
+            h_layout.addWidget(combo_box)
+
+            # Adiciona o layout horizontal ao layout principal
+            agente_responsavel_layout.addLayout(h_layout)
 
         # Carrega os agentes responsáveis para popular os ComboBoxes
         self.carregarAgentesResponsaveis()
 
         return frame_agentes
+
 
     def carregarAgentesResponsaveis(self):
         try:
@@ -1029,11 +1038,11 @@ class EditDataDialog(QDialog):
                 self.carregarDadosCombo(conn, cursor, "Operador%", self.operador_dispensa_combo)
                 self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
 
-                print("Valores carregados no ComboBox:", self.ordenador_combo.count(), "itens")
-                print("Valores carregados no ComboBox:", self.agente_fiscal_combo.count(), "itens")
-                print("Valores carregados no ComboBox:", self.gerente_credito_combo.count(), "itens")
-                print("Valores carregados no ComboBox:", self.operador_dispensa_combo.count(), "itens")
-                print("Valores carregados no ComboBox:", self.responsavel_demanda_combo.count(), "itens")
+                # print("Valores carregados no ComboBox:", self.ordenador_combo.count(), "itens")
+                # print("Valores carregados no ComboBox:", self.agente_fiscal_combo.count(), "itens")
+                # print("Valores carregados no ComboBox:", self.gerente_credito_combo.count(), "itens")
+                # print("Valores carregados no ComboBox:", self.operador_dispensa_combo.count(), "itens")
+                # print("Valores carregados no ComboBox:", self.responsavel_demanda_combo.count(), "itens")
 
                 # Preencher comboboxes com os valores de df_registro_selecionado se disponíveis
                 self.preencher_campos()

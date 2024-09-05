@@ -54,19 +54,60 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
         super().__init__(parent)
         self.icons_dir = icons_dir
         self.database_path = database_path
-        self.required_columns = required_columns  # Adiciona o parâmetro required_columns ao construtor
-        self.setWindowTitle("Gerenciar Inclusão/Exclusão de Contratos")
-        self.resize(800, 600)
+        self.required_columns = required_columns
+        self.setWindowTitle("Sincronizar Contratos")
+        self.setFixedSize(400, 300)  # Define o tamanho fixo da janela
         self.database_manager = DatabaseContratosManager(self.database_path)
         self.init_ui()
 
     def init_ui(self):
         self.layout = QVBoxLayout(self)
+
+        # Adicionando o ícone e o label "Sincronizar"
+        icon_confirm = QIcon(str(self.icons_dir / "synchronize.png"))
+        sync_layout = QHBoxLayout()
+
+        sync_icon_label = QLabel()
+        sync_icon_label.setPixmap(icon_confirm.pixmap(80, 80))  # Adiciona o ícone ao QLabel
+
+        sync_label = QLabel("Sincronizar")
+        sync_label.setStyleSheet("font-size: 40px; font-weight: bold;")  # Define o tamanho da fonte para 40 e negrito
+
+        sync_layout.addWidget(sync_icon_label)  # Adiciona o QLabel com o ícone ao layout
+        sync_layout.addWidget(sync_label)  # Adiciona o QLabel "Sincronizar" ao layout
+        sync_layout.addStretch()
+        self.layout.addLayout(sync_layout)
+
+        # Adicionando link para documentação da API
+        link_label = QLabel('<a href="https://contratos.comprasnet.gov.br/api/docs">Documentação da API</a>')
+        link_label.setStyleSheet("font-size: 16px")
+        link_label.setOpenExternalLinks(True)
+        self.layout.addWidget(link_label)
+
+        # Adicionando labels de informações da API
+        get_label = QLabel('GET "/api/contrato/ug/{unidade_codigo}"')
+        get_label.setStyleSheet("font-size: 16px")
+        self.layout.addWidget(get_label)
+
+        unidade_codigo_info_label = QLabel('"{unidade_codigo} = uasg"')
+        unidade_codigo_info_label.setStyleSheet("font-size: 16px")
+        self.layout.addWidget(unidade_codigo_info_label)
+
+        # Layout horizontal para o label e o QLineEdit
+        unidade_layout = QHBoxLayout()
+
+        unidade_label = QLabel("Digite o número da UASG:")
+        unidade_label.setStyleSheet("font-size: 16px")
+        unidade_layout.addWidget(unidade_label)
+
         self.unidade_codigo_input = QLineEdit(self)
         self.unidade_codigo_input.setPlaceholderText("Digite o código da unidade (6 dígitos)")
-        self.layout.addWidget(self.unidade_codigo_input)
+        unidade_layout.addWidget(self.unidade_codigo_input)
 
-        self.baixar_json_button = QPushButton("Baixar JSON", self)
+        self.layout.addLayout(unidade_layout)  # Adiciona o layout horizontal ao layout principal
+
+        # Botão para baixar JSON
+        self.baixar_json_button = QPushButton("Sincronizar", self)
         self.baixar_json_button.clicked.connect(self.baixar_json)
         self.layout.addWidget(self.baixar_json_button)
 

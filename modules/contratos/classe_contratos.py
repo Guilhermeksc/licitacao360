@@ -358,8 +358,8 @@ class ButtonManager:
     def create_buttons(self):
         button_specs = [
             ("  Mensagem", self.parent.image_cache['message_alert'], self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
-            ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Abre a janela de visualização de atas"),
-            ("  Contratos", self.parent.image_cache['production_red'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
+            # ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Abre a janela de visualização de atas"),
+            # ("  Contratos", self.parent.image_cache['production_red'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
             ("  Sincronizar", self.parent.image_cache['csv'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
             ("  Abrir Tabela", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
         ]

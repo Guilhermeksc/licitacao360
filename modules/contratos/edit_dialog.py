@@ -71,11 +71,11 @@ class StackWidgetManager:
         ]
         contrato_ata_layout, self.contrato_ata_combo_box = WidgetHelper.create_combo_box("Contrato/Ata:", contrato_ata_options, data.get('Tipo', 'Contrato'))
         
-        numero_contrato_layout, self.line_edits['numero_contrato'] = WidgetHelper.create_line_edit("Número:", data.get('Contrato/Ata', 'N/A'))
-        nup_layout, self.line_edits['nup'] = WidgetHelper.create_line_edit("NUP:", data.get('nup', 'N/A'))
+        numero_contrato_layout, self.line_edits['numero'] = WidgetHelper.create_line_edit("Número:", data.get('Contrato/Ata', 'N/A'))
+        nup_layout, self.line_edits['processo'] = WidgetHelper.create_line_edit("NUP:", data.get('processo', 'N/A'))
         valor_global_layout, self.line_edits['valor_global'] = WidgetHelper.create_line_edit("Valor Global:", data.get('Valor', 'N/A'))
-        cnpj_layout, self.line_edits['cnpj'] = WidgetHelper.create_line_edit("CNPJ:", data.get('cnpj', 'N/A'))
-        fornecedor_layout, self.line_edits['empresa'] = WidgetHelper.create_line_edit("Empresa:", data.get('Empresa', 'N/A'))
+        cnpj_layout, self.line_edits['cnpj_cpf_idgener'] = WidgetHelper.create_line_edit("CNPJ:", data.get('cnpj_cpf_idgener', 'N/A'))
+        fornecedor_layout, self.line_edits['nome_fornecedor'] = WidgetHelper.create_line_edit("Empresa:", data.get('Empresa', 'N/A'))
         objeto_layout, self.line_edits['objeto'] = WidgetHelper.create_line_edit("Objeto:", data.get('Objeto', 'N/A'))
 
         left_layout.addLayout(id_processo_layout)
@@ -603,21 +603,21 @@ class AtualizarDadosContratos(QDialog):
         return {
             'status': data.get('status', 'N/A'),
             'dias': data.get('Dias', 'N/A'),
-            'pode_renovar': data.get('Renova?', 'N/A'),
+            'prorrogavel': data.get('Renova?', 'N/A'),
             'custeio': data.get('Custeio?', 'N/A'),
-            'numero_contrato': data.get('Contrato/Ata', 'N/A'),
+            'numero': data.get('Contrato/Ata', 'N/A'),
             'tipo': data.get('Tipo', 'N/A'),
             'id_processo': data.get('Processo', 'N/A'),
-            'empresa': data.get('Empresa', 'N/A'),            
+            'nome_fornecedor': data.get('Empresa', 'N/A'),            
             'objeto': data.get('Objeto', 'N/A'),
             'valor_global': data.get('Valor', 'N/A'),
-            'uasg': data.get('uasg', 'N/A'),
-            'nup': data.get('nup', 'N/A'),
-            'cnpj': data.get('cnpj', 'N/A'),
+            'codigo': data.get('codigo', 'N/A'),
+            'processo': data.get('processo', 'N/A'),
+            'cnpj_cpf_idgener': data.get('cnpj_cpf_idgener', 'N/A'),
             'natureza_continuada': data.get('natureza_continuada', 'N/A'),
-            'om': data.get('om', 'N/A'),
+            'nome_resumido': data.get('nome_resumido', 'N/A'),
             'indicativo_om': data.get('indicativo_om', 'N/A'),
-            'om_extenso': data.get('om_extenso', 'N/A'),
+            'nome': data.get('nome', 'N/A'),
             'material_servico': data.get('material_servico', 'N/A'),
             'link_pncp': data.get('link_pncp', 'N/A'),
             'portaria': data.get('portaria', 'N/A'),
@@ -653,7 +653,7 @@ class AtualizarDadosContratos(QDialog):
     def update_title_label_text(self, new_title):
         data = self.extract_registro_data()
         html_text = (
-            f"{data['tipo']} {data['numero_contrato']} - {data['objeto']}<br>"
+            f"{data['tipo']} {data['numero']} - {data['objeto']}<br>"
             f"<span style='font-size: 18px; color: #ADD8E6;'>(UASG: {data['uasg']})</span>"
         )
         self.titleLabel.setText(html_text)
@@ -712,21 +712,21 @@ class AtualizarDadosContratos(QDialog):
 
             data = {
                 'status': status_value,
-                'pode_renovar': 'Sim' if self.stack_manager.pode_renovar_buttons['Sim'].isChecked() else 'Não',
+                'prorrogavel': 'Sim' if self.stack_manager.pode_renovar_buttons['Sim'].isChecked() else 'Não',
                 'custeio': 'Sim' if self.stack_manager.custeio_buttons['Sim'].isChecked() else 'Não',
-                'numero_contrato': self.stack_manager.line_edits['numero_contrato'].text(),
+                'numero': self.stack_manager.line_edits['numero'].text(),
                 'tipo': self.stack_manager.contrato_ata_combo_box.currentText(),
                 'id_processo': self.stack_manager.line_edits["id_processo"].text().strip(),
-                'empresa': self.stack_manager.line_edits["empresa"].text().strip(),
+                'nome_fornecedor': self.stack_manager.line_edits["nome_fornecedor"].text().strip(),
                 'objeto': self.stack_manager.line_edits["objeto"].text().strip(),
                 'valor_global': self.stack_manager.line_edits["valor_global"].text().strip(),
-                'uasg': self.stack_manager.line_edit_uasg.text().strip(),  # Usa o valor do campo de texto UASG
-                'nup': self.stack_manager.line_edits["nup"].text().strip(),
-                'cnpj': self.stack_manager.line_edits["cnpj"].text().strip(),
+                'codigo': self.stack_manager.line_edit_uasg.text().strip(),  # Usa o valor do campo de texto UASG
+                'processo': self.stack_manager.line_edits["processo"].text().strip(),
+                'cnpj_cpf_idgener': self.stack_manager.line_edits["cnpj_cpf_idgener"].text().strip(),
                 'natureza_continuada': 'Sim' if self.stack_manager.natureza_continuada_buttons['Sim'].isChecked() else 'Não',
-                'om': self.stack_manager.combo_sigla_om.currentText().strip(),  # Usa o valor selecionado do combo box Sigla OM
+                'nome_resumido': self.stack_manager.combo_sigla_om.currentText().strip(),  # Usa o valor selecionado do combo box Sigla OM
                 'indicativo_om': self.stack_manager.line_edit_indicativo.text().strip(),  # Corrigido
-                'om_extenso': self.stack_manager.line_edit_orgao.text().strip(),  # Corrigido
+                'nome': self.stack_manager.line_edit_orgao.text().strip(),  # Corrigido
                 'material_servico': 'Material' if self.stack_manager.material_servico_buttons['Material'].isChecked() else 'Serviço',
                 'link_pncp': self._get_valid_value('link_pncp'),
                 'portaria': self._get_valid_value('portaria'),
@@ -753,12 +753,13 @@ class AtualizarDadosContratos(QDialog):
                 'assinatura_contrato': None,
                 'registro_status': registro_texto
             }
+            # Obtém o valor da chave primária 'id' do registro que está sendo editado
+            record_id = self.df_registro_selecionado.iloc[0]['id']
 
-            numero_contrato = data['numero_contrato']
-
-            # Atualizar o registro no banco de dados em vez de inserir um novo
             if self.model:
-                self.model.update_record_by_primary_key('numero_contrato', numero_contrato, data)
+                # Atualize o registro no banco de dados com base na chave primária 'id'
+                if not self.model.update_record_by_primary_key('id', record_id, data):
+                    QMessageBox.critical(self, "Erro", "Falha ao atualizar o registro no banco de dados.")
             else:
                 QMessageBox.critical(self, "Erro", "Modelo de dados não está disponível para atualização.")
                 return
@@ -767,7 +768,6 @@ class AtualizarDadosContratos(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
-
 
     def _get_valid_value(self, key):
         """Retorna o valor válido do campo ou o valor existente no DataFrame."""

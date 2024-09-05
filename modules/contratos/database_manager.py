@@ -292,7 +292,38 @@ class CustomSqlTableModel(QSqlTableModel):
         # self.setTable('controle_contratos')
         # self.order_by_vigencia_final()
         # self.select()
+        
+    def update_record_by_primary_key(self, primary_key_column, primary_key_value, data):
+        """
+        Atualiza um registro na tabela com base na chave primária.
 
+        :param primary_key_column: Nome da coluna da chave primária.
+        :param primary_key_value: Valor da chave primária para identificar o registro a ser atualizado.
+        :param data: Dicionário contendo os novos valores para o registro.
+        """
+        # Construir a cláusula SET para o SQL
+        set_clause = ", ".join([f"{col} = :{col}" for col in data.keys()])
+        sql_query = f"UPDATE {self.tableName()} SET {set_clause} WHERE {primary_key_column} = :primary_key_value"
+
+        # Preparar a query
+        query = QSqlQuery(self.database())
+        query.prepare(sql_query)
+
+        # Vincular os valores dos dados
+        for col, value in data.items():
+            query.bindValue(f":{col}", value)
+
+        # Vincular o valor da chave primária
+        query.bindValue(":primary_key_value", primary_key_value)
+
+        # Executar a query e verificar por erros
+        if not query.exec():
+            print(f"Erro ao atualizar registro: {query.lastError().text()}")
+            return False
+
+        self.select()  # Recarregar os dados da tabela para refletir as mudanças
+        return True
+    
     def order_by_vigencia_final(self):
         """Ordena a tabela pela coluna 'vigencia_final' em ordem decrescente."""
         vigencia_final_index = self.fieldIndex("vigencia_final")

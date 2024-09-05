@@ -53,8 +53,20 @@ class WidgetHelper:
         date_edit = QDateEdit()
         date_edit.setCalendarPopup(True)
         date_edit.setStyleSheet("font-size: 14px;")
+
         if initial_value:
-            date_edit.setDate(QDate.fromString(initial_value, 'dd/MM/yyyy'))
+            # Tente primeiro no formato 'yyyy-MM-dd'
+            date = QDate.fromString(initial_value, 'yyyy-MM-dd')
+            if not date.isValid():
+                # Se não for válido, tenta no formato 'dd/MM/yyyy'
+                date = QDate.fromString(initial_value, 'dd/MM/yyyy')
+
+            # Verifique se a data é válida após as tentativas de conversão
+            if date.isValid():
+                date_edit.setDate(date)
+            else:
+                print(f"Data inválida fornecida: {initial_value}")  # Depuração opcional
+
         layout.addWidget(label)
         layout.addWidget(date_edit)
         return layout, date_edit
