@@ -138,6 +138,7 @@ class EditDataDialog(QDialog):
             ("Setor Responsável", "Setor Responsável"),
             ("Documentos", "Documentos"),
             ("Anexos", "Anexos"),
+            ("PNCP", "PNCP"),
         ]
 
         for text, name in buttons:
@@ -169,7 +170,7 @@ class EditDataDialog(QDialog):
     def add_navigation_button(self, layout, text, callback):
         button = QPushButton(text)
         button.setCheckable(True)
-        button.setMinimumWidth(172)
+        button.setMinimumWidth(150)
         button.setStyleSheet(self.get_button_style())
         button.clicked.connect(callback)
         layout.addWidget(button)
@@ -214,6 +215,7 @@ class EditDataDialog(QDialog):
             "Setor Responsável": self.stacked_widget_responsaveis(data),
             "Documentos": self.stacked_widget_documentos(data),
             "Anexos": self.stacked_widget_anexos(data),
+            "PNCP": self.stacked_widget_anexos(data),
         }
 
         for name, widget in widgets.items():

@@ -18,340 +18,6 @@ from num2words import num2words
 from datetime import datetime
 import subprocess
 from fpdf import FPDF
-from modules.dispensa_eletronica.merge_pdf.merge_anexos import MergePDFDialog
-import time
-
-class Worker(QThread):
-    update_status = pyqtSignal(str, str, int) 
-    task_complete = pyqtSignal()
-    
-    def __init__(self, documentos, df_registro_selecionado, parent=None):
-        super().__init__(parent)
-        self.documentos = documentos
-
-        self.config = load_config_path_id()
-
-        self.df_registro_selecionado = df_registro_selecionado  # Adiciona df_registro_selecionado aqui
-        self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
-        self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
-        self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        self.ICONS_DIR = ICONS_DIR  # Atualize com o caminho real
-        
-        self.pdf_paths = []
-
-    def run(self):
-        pdf_paths = []
-
-        for doc in self.documentos:
-            doc_desc = doc.get('desc', doc.get('subfolder', 'Documento desconhecido'))
-
-            # Atualiza o status para "sendo gerado" e emite o sinal para atualização do ícone
-            self.update_status.emit(doc_desc, "sendo gerado", 50)
-
-            if "template" in doc:
-                docx_path = self.gerarDocumento(doc["template"], doc["subfolder"], doc["desc"])
-                if docx_path:
-                    pdf_path = self.salvarPDF(docx_path)
-                    if pdf_path:
-                        pdf_info = {"pdf_path": pdf_path}
-                        if "cover" in doc:
-                            pdf_info["cover_path"] = TEMPLATE_DISPENSA_DIR / doc["cover"]
-                        pdf_paths.append(pdf_info)
-            else:
-                pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / doc["subfolder"])
-                if pdf_path:
-                    pdf_paths.append({"pdf_path": pdf_path, "cover_path": TEMPLATE_DISPENSA_DIR / doc["cover"]})
-                else:
-                    QMessageBox.warning(None, "Erro", f"Arquivo PDF não encontrado: {doc['subfolder']}")
-
-            # Atualiza o status para "concluído" e emite o sinal para mudar o ícone
-            self.update_status.emit(doc_desc, "concluído", 100)
-
-        self.concatenar_e_abrir_pdfs(pdf_paths)
-        self.task_complete.emit()
-
-    def concatenar_e_abrir_pdfs(self, pdf_paths):
-        if not pdf_paths:
-            QMessageBox.warning(None, "Erro", "Nenhum PDF foi gerado para concatenar.")
-            return
-
-        output_pdf_path = self.pasta_base / self.nome_pasta / "2. CP e anexos" / "CP_e_anexos.pdf"
-        merger = PdfMerger()
-
-        try:
-            for pdf in pdf_paths:
-                if "cover_path" in pdf:
-                    merger.append(str(pdf["cover_path"]))
-                merger.append(str(pdf["pdf_path"]))
-
-            merger.write(str(output_pdf_path))
-            merger.close()
-
-            os.startfile(output_pdf_path)
-            print(f"PDF concatenado salvo e aberto: {output_pdf_path}")
-        except Exception as e:
-            print(f"Erro ao concatenar os PDFs: {e}")
-            QMessageBox.warning(None, "Erro", f"Erro ao concatenar os PDFs: {e}")
-
-    def get_latest_pdf(self, directory):
-        pdf_files = list(directory.glob("*.pdf"))
-        if not pdf_files:
-            return None
-        latest_pdf = max(pdf_files, key=os.path.getmtime)
-        return latest_pdf
-    
-    def gerarDocumento(self, template, subfolder, desc):
-        """
-        Gera um documento baseado em um template .docx.
-        """
-        if self.df_registro_selecionado.empty:
-            QMessageBox.warning(None, "Seleção Necessária", "Por favor, selecione um registro na tabela antes de gerar um documento.")
-            return
-
-        # Caminhos dos templates e do arquivo a ser salvo
-        template_filename = f"template_{template}.docx"
-        template_path, save_path = self.setup_document_paths(template_filename, subfolder, desc)
-
-        # Verificar e criar as pastas necessárias
-        self.verificar_e_criar_pastas(self.pasta_base / self.nome_pasta)
-
-        # Verifica se o template existe
-        if not template_path.exists():
-            QMessageBox.warning(None, "Erro de Template", f"O arquivo de template não foi encontrado: {template_path}")
-            return
-
-        # Carregar e renderizar o template
-        with open(str(template_path), 'rb') as template_file:
-            doc = DocxTemplate(template_file)
-            context = self.df_registro_selecionado.to_dict('records')[0]
-            context = self.prepare_context(context)
-            doc.render(context)
-            doc.save(str(save_path))
-
-        return save_path  # Retorna o caminho do documento gerado
-
-    def setup_document_paths(self, template_filename, subfolder_name, file_description):
-        """
-        Configura os caminhos para os templates e os documentos gerados.
-        """
-        template_path = TEMPLATE_DISPENSA_DIR / template_filename
-        id_processo = self.df_registro_selecionado['id_processo'].iloc[0].replace('/', '-')
-        objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        self.nome_pasta = f"{id_processo} - {objeto}"
-
-        # Verifica ou altera o diretório base
-        if 'pasta_base' not in self.config:
-            self.alterar_diretorio_base()
-
-        # Define o caminho para salvar o arquivo gerado
-        pasta_base = Path(self.config['pasta_base']) / self.nome_pasta / subfolder_name
-        pasta_base.mkdir(parents=True, exist_ok=True)
-        save_path = pasta_base / f"{id_processo} - {file_description}.docx"
-
-        return template_path, save_path
-
-    def verificar_e_criar_pastas(self, pasta_base):
-        id_processo_modificado = self.id_processo.replace("/", "-")
-        objeto_modificado = self.objeto.replace("/", "-")
-        base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
-
-        pastas_necessarias = [
-            pasta_base / '1. Autorizacao',
-            pasta_base / '2. CP e anexos',
-            pasta_base / '3. Aviso',
-            pasta_base / '2. CP e anexos' / 'DFD',
-            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin',
-            pasta_base / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
-            pasta_base / '2. CP e anexos' / 'TR',
-            pasta_base / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
-            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária',
-            pasta_base / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser',
-            pasta_base / '2. CP e anexos' / 'Justificativas Relevantes',
-        ]
-        for pasta in pastas_necessarias:
-            if not pasta.exists():
-                pasta.mkdir(parents=True)
-        return pastas_necessarias
-
-    def salvarPDF(self, docx_path):
-        """
-        Converte um arquivo .docx em PDF.
-        """
-        try:
-            # Converte o caminho do arquivo para Path, caso não seja.
-            docx_path = Path(docx_path) if not isinstance(docx_path, Path) else docx_path
-            pdf_path = docx_path.with_suffix('.pdf')
-
-            # Abre o Word e converte o arquivo .docx em .pdf
-            word = win32com.client.Dispatch("Word.Application")
-            doc = None
-            try:
-                doc = word.Documents.Open(str(docx_path))
-                doc.SaveAs(str(pdf_path), FileFormat=17)  # 17 é o código para salvar como PDF
-            except Exception as e:
-                raise e
-            finally:
-                if doc is not None:
-                    doc.Close()
-                word.Quit()
-
-            # Verifica se o PDF foi criado corretamente
-            if not pdf_path.exists():
-                raise FileNotFoundError(f"O arquivo PDF não foi criado: {pdf_path}")
-
-            return pdf_path  # Retorna o caminho do arquivo PDF gerado
-        except Exception as e:
-            print(f"Erro ao converter o documento: {e}")
-            QMessageBox.warning(None, "Erro", f"Erro ao converter o documento: {e}")
-            return None
-
-
-
-    def formatar_responsavel(self, chave, data, context):
-        responsavel = data.get(chave)
-        if responsavel and isinstance(responsavel, str):
-            try:
-                nome, posto, funcao = responsavel.split('\n')
-                posto_alterado = self.alterar_posto(posto)
-                responsavel_dict = {
-                    'nome': nome,
-                    'posto': posto_alterado,
-                }
-                responsavel_extenso = f"{responsavel_dict.get('posto', '')} {responsavel_dict.get('nome', '')}"
-                context.update({f'{chave}_formatado': responsavel_extenso})
-            except ValueError:
-                context.update({f'{chave}_formatado': 'Não especificado\nNão especificado'})
-        else:
-            context.update({f'{chave}_formatado': 'Não especificado\nNão especificado'})
-
-    def prepare_context(self, data):
-        context = {key: (str(value) if value is not None else 'Não especificado') for key, value in data.items()}
-        descricao_servico = "aquisição de" if data['material_servico'] == "Material" else "contratação de empresa especializada em"
-        descricao_servico_primeira_letra_maiuscula = descricao_servico[0].upper() + descricao_servico[1:]
-        context.update({'descricao_servico': descricao_servico})
-        context.update({'descricao_servico_primeira_letra_maiuscula': descricao_servico_primeira_letra_maiuscula})
-
-        # Processar responsável pela demanda e operador
-        self.formatar_responsavel('responsavel_pela_demanda', data, context)
-        self.formatar_responsavel('operador', data, context)
-
-        valor_total = data.get('valor_total')
-        if valor_total and isinstance(valor_total, str):
-            valor_extenso = self.valor_por_extenso(valor_total)
-            valor_total_e_extenso = f"{valor_total} ({valor_extenso})"
-            context.update({'valor_total_e_extenso': valor_total_e_extenso})
-        else:
-            context.update({'valor_total_e_extenso': 'Não especificado'})
-
-        # Lógica para atividade_custeio
-        if data.get('atividade_custeio') == 'Sim':
-            texto_custeio = (
-                "A presente contratação por dispensa de licitação está enquadrada como atividade de custeio, "
-                "conforme mencionado no artigo 2º da Portaria ME nº 7.828, de 30 de agosto de 2022. "
-                "Conforme previsão do art. 3º do Decreto nº 10.193, de 27 de dezembro de 2019, e as normas "
-                "infralegais de delegação de competência no âmbito da Marinha, que estabelecem limites e instâncias "
-                "de governança, essa responsabilidade é delegada ao ordenador de despesas, respeitando os valores "
-                "estipulados no decreto."
-            )
-        else:
-            texto_custeio = (
-                "A presente contratação por dispensa de licitação não se enquadra nas hipóteses de atividades de "
-                "custeio previstas no Decreto nº 10.193, de 27 de dezembro de 2019, pois o objeto contratado não se "
-                "relaciona diretamente às atividades comuns de suporte administrativo mencionadas no artigo 2º da "
-                "Portaria ME nº 7.828, de 30 de agosto de 2022."
-            )
-        context.update({'texto_custeio': texto_custeio})
-
-        # Alterar formato de data_sessao
-        data_sessao = data.get('data_sessao')
-        if data_sessao:
-            try:
-                data_obj = datetime.strptime(data_sessao, '%Y-%m-%d')
-                dia_semana = data_obj.strftime('%A')
-                data_formatada = data_obj.strftime('%d/%m/%Y') + f" ({dia_semana})"
-                context.update({'data_sessao_formatada': data_formatada})
-            except ValueError as e:
-                context.update({'data_sessao_formatada': 'Data inválida'})
-                print("Erro ao processar data da sessão:", e)
-        else:
-            context.update({'data_sessao_formatada': 'Não especificado'})
-            print("Data da sessão não especificada")
-
-        return context
-    
-class ProgressDialog(QDialog):
-    def __init__(self, documentos, df_registro_selecionado):
-        super().__init__()
-        self.setWindowTitle("Progresso")
-        self.setFixedSize(500, 300)
-        self.layout = QVBoxLayout(self)
-
-        # Inicializa os labels e ícones para cada documento
-        self.labels = {}
-        self.icons = {}
-        self.icon_x = QIcon(str(ICONS_DIR / "loading_table.png"))  # Ícone 'X' para processo em andamento
-        self.icon_check = QIcon(str(ICONS_DIR / "aproved.png"))  # Ícone 'V' para processo concluído
-
-        # Adiciona os labels e ícones para cada documento com 'template'
-        for doc in documentos:
-            if "template" in doc:  # Somente para documentos que têm a chave 'template'
-                doc_desc = doc.get('desc', doc.get('subfolder', 'Documento desconhecido'))
-
-                layout_h = QHBoxLayout()
-
-                # Cria o QLabel para o texto do documento e ajusta o estilo
-                label = QLabel(f"{doc_desc} sendo gerado.")
-                label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)  # Alinha o texto verticalmente ao centro e à esquerda
-                label.setStyleSheet("font-size: 14px;")  # Define o tamanho da fonte para 14px
-
-                # Cria o QLabel para o ícone e alinha ao centro verticalmente
-                icon_label = QLabel()
-                icon_label.setPixmap(self.icon_x.pixmap(24, 24))  # Tamanho do ícone: 24x24
-                icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Alinha o ícone verticalmente ao centro
-                
-                layout_h.addWidget(icon_label)
-                layout_h.addWidget(label)
-                layout_h.addStretch()  # Adiciona um espaçador para garantir que o texto e ícone fiquem à esquerda
-                self.layout.addLayout(layout_h)
-
-                # Armazena os labels e ícones para atualizá-los mais tarde
-                self.labels[doc_desc] = label
-                self.icons[doc_desc] = icon_label
-
-
-        self.close_button = QPushButton("Fechar")
-        self.close_button.setEnabled(False)
-        self.close_button.clicked.connect(self.close)
-        self.layout.addWidget(self.close_button)
-
-        # Passe o df_registro_selecionado para o Worker
-        self.worker = Worker(documentos, df_registro_selecionado)
-        self.worker.update_status.connect(self.update_label)
-        self.worker.task_complete.connect(self.enable_close_button)
-
-        self.worker.start()
-
-    @pyqtSlot(str, str, int)
-    def update_label(self, doc_desc, status_text, progress):
-        """
-        Atualiza o texto do label e o ícone correspondente.
-        """
-        # Atualiza o label de progresso
-        label = self.labels.get(doc_desc)
-        if label:
-            label.setText(f"{doc_desc} {status_text}")
-        
-        # Atualiza o ícone após a conclusão do documento
-        if progress == 100:
-            icon_label = self.icons.get(doc_desc)
-            if icon_label:
-                icon_label.setPixmap(self.icon_check.pixmap(24, 24))  # Altera para o ícone de 'check'
-    
-    @pyqtSlot()
-    def enable_close_button(self):
-        self.close_button.setEnabled(True)
-
-
 class PDFAddDialog(QDialog):
 
     def __init__(self, df_registro_selecionado, icons_dir, pastas_necessarias, pasta_base, parent=None):
@@ -465,37 +131,26 @@ class PDFAddDialog(QDialog):
         arquivos_pdf = []
         if not pasta.exists():
             print(f"Pasta não encontrada: {pasta}")
-            return 'no_pdf', None  # Retorna uma tupla quando a pasta não é encontrada
+            return None
         for arquivo in pasta.iterdir():
             if arquivo.suffix.lower() == ".pdf":
                 arquivos_pdf.append(arquivo)
                 print(f"Arquivo PDF encontrado: {arquivo.name}")
-        
-        # Verifica se há mais de um PDF na pasta
-        if len(arquivos_pdf) > 1:
-            print(f"Mais de um arquivo PDF encontrado na pasta: {pasta}")
-            return 'multiple_pdfs', arquivos_pdf
-        elif arquivos_pdf:
+        if arquivos_pdf:
             pdf_mais_recente = max(arquivos_pdf, key=lambda p: p.stat().st_mtime)
             print(f"PDF mais recente: {pdf_mais_recente}")
-            return 'single_pdf', pdf_mais_recente
-        return 'no_pdf', None  # Garante que retorne uma tupla quando não há PDFs
+            return pdf_mais_recente
+        return None
    
     def display_pdf(self, item, column):
         file_path = item.data(0, Qt.ItemDataRole.UserRole)
-
-        # Verifica se o caminho do arquivo é uma lista (múltiplos PDFs)
-        if isinstance(file_path, list):
-            # Ordena os arquivos pela data de modificação e pega o mais recente
-            file_path = max(file_path, key=lambda p: os.path.getmtime(p))
-
         if file_path:
-            print(f"Tentando abrir o arquivo PDF mais recente: {file_path}")
+            print(f"Tentando abrir o arquivo PDF: {file_path}")
             self.load_pdf(file_path)
 
     def load_pdf(self, file_path):
         try:
-            self.document = fitz.open(file_path) 
+            self.document = fitz.open(file_path)  # Corrija o uso para fitz.open(file_path)
             self.current_page = 0  # Define a primeira página como a atual
             self.show_page(self.current_page)  # Mostra a primeira página
         except Exception as e:
@@ -581,44 +236,16 @@ class PDFAddDialog(QDialog):
                 child_item.setFont(0, QFont('SansSerif', 14))
 
                 print(f"Verificando pasta: {pasta}")
-                result, pdf_files = self.verificar_arquivo_pdf(pasta) or ('no_pdf', None)
-                
-                # Criação do layout do widget e botão de merge
-                item_widget = QWidget()
-                item_layout = QHBoxLayout(item_widget)
-                label = QLabel(child_text)
-                item_layout.addWidget(label)
-
-                if result == 'multiple_pdfs':
-                    merge_button = QPushButton("Merge PDFs")
-                    merge_button.clicked.connect(lambda _, p=pdf_files: self.open_merge_dialog(p))  # Conectar ao diálogo de merge
-                    item_layout.addWidget(merge_button)
-
-                item_layout.addStretch()
-                item_widget.setLayout(item_layout)
-                self.data_view.setItemWidget(child_item, 0, item_widget)
-
-                # Definir ícones
-                if result == 'multiple_pdfs':
-                    child_item.setIcon(0, QIcon(str(self.ICONS_DIR / "multiple_pdfs.png")))
-                    child_item.setData(0, Qt.ItemDataRole.UserRole, pdf_files)
-                elif result == 'single_pdf':
+                pdf_file = self.verificar_arquivo_pdf(pasta)
+                if pdf_file:
+                    print(f"PDF encontrado: {pdf_file}")
                     child_item.setIcon(0, self.icon_existe)
-                    child_item.setData(0, Qt.ItemDataRole.UserRole, str(pdf_files))
+                    child_item.setData(0, Qt.ItemDataRole.UserRole, str(pdf_file))  # Armazena o caminho do PDF
                 else:
+                    print("Nenhum PDF encontrado")
                     child_item.setIcon(0, self.icon_nao_existe)
 
             parent_item.setExpanded(True)
-
-
-    def open_merge_dialog(self, pdf_files):
-        if isinstance(pdf_files, list) and len(pdf_files) > 1:
-            # Abrir QDialog para realizar o merge dos arquivos PDF
-            merge_dialog = MergePDFDialog(pdf_files, self)
-            merge_dialog.exec()
-        else:
-            QMessageBox.information(self, "Merge PDFs", "Não há múltiplos arquivos PDF para mesclar.")
-
 
 class DraggableGraphicsView(QGraphicsView):
     def __init__(self, parent=None):
@@ -1084,7 +711,7 @@ class ConsolidarDocumentos:
         pasta_base.mkdir(parents=True, exist_ok=True)
         save_path = pasta_base / f"{id_processo} - {file_description}.docx"
         return template_path, save_path
-
+    
     def verificar_e_criar_pastas(self, pasta_base):
         id_processo_modificado = self.id_processo.replace("/", "-")
         objeto_modificado = self.objeto.replace("/", "-")
@@ -1107,7 +734,7 @@ class ConsolidarDocumentos:
             if not pasta.exists():
                 pasta.mkdir(parents=True)
         return pastas_necessarias
-        
+
     def gerar_e_abrir_documento(self, template_type, subfolder_name, file_description):
         docx_path = self.gerarDocumento(template_type, subfolder_name, file_description)
         if docx_path:
@@ -1128,10 +755,58 @@ class ConsolidarDocumentos:
             {"subfolder": "2. CP e anexos/Declaracao de Adequação Orçamentária/Relatório do PDM-Catser", "cover": "anexo-dec-adeq.pdf"},
             {"template": "justificativas", "subfolder": "2. CP e anexos/Justificativas Relevantes", "desc": "Justificativas Relevantes", "cover": "justificativas.pdf"},
         ]
-        
-        # Certifique-se de passar o df_registro_selecionado aqui
-        dialog = ProgressDialog(documentos, self.df_registro_selecionado)
-        dialog.exec()  
+
+        pdf_paths = []
+
+        for doc in documentos:
+            if "template" in doc:
+                docx_path = self.gerarDocumento(doc["template"], doc["subfolder"], doc["desc"])
+                if docx_path:
+                    pdf_path = self.salvarPDF(docx_path)
+                    if pdf_path:
+                        pdf_info = {"pdf_path": pdf_path}
+                        if "cover" in doc:
+                            pdf_info["cover_path"] = TEMPLATE_DISPENSA_DIR / doc["cover"]
+                        pdf_paths.append(pdf_info)
+            else:
+                pdf_path = self.get_latest_pdf(self.pasta_base / self.nome_pasta / doc["subfolder"])
+                if pdf_path:
+                    pdf_paths.append({"pdf_path": pdf_path, "cover_path": TEMPLATE_DISPENSA_DIR / doc["cover"]})
+                else:
+                    QMessageBox.warning(None, "Erro", f"Arquivo PDF não encontrado: {doc['subfolder']}")
+
+        self.concatenar_e_abrir_pdfs(pdf_paths)
+           
+    def concatenar_e_abrir_pdfs(self, pdf_paths):
+        if not pdf_paths:
+            QMessageBox.warning(None, "Erro", "Nenhum PDF foi gerado para concatenar.")
+            return
+
+        output_pdf_path = self.pasta_base / self.nome_pasta / "2. CP e anexos" / "CP_e_anexos.pdf"
+        merger = PdfMerger()
+
+        try:
+            for pdf in pdf_paths:
+                if "cover_path" in pdf:
+                    merger.append(str(pdf["cover_path"]))
+                merger.append(str(pdf["pdf_path"]))
+
+            merger.write(str(output_pdf_path))
+            merger.close()
+
+            os.startfile(output_pdf_path)
+            print(f"PDF concatenado salvo e aberto: {output_pdf_path}")
+        except Exception as e:
+            print(f"Erro ao concatenar os PDFs: {e}")
+            QMessageBox.warning(None, "Erro", f"Erro ao concatenar os PDFs: {e}")
+
+    def get_latest_pdf(self, directory):
+        pdf_files = list(directory.glob("*.pdf"))
+        if not pdf_files:
+            return None
+        latest_pdf = max(pdf_files, key=os.path.getmtime)
+        return latest_pdf
+
 
     def gerar_documento_de_formalizacao_de_demanda(self):
         self.gerarDocumento("dfd", "2. CP e anexos/DFD", "Documento de Formalizacao de Demanda")
