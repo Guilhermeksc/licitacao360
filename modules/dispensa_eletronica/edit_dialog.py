@@ -82,7 +82,7 @@ class EditDataDialog(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1200, 620)
+        self.setFixedSize(1280, 620)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
@@ -215,7 +215,7 @@ class EditDataDialog(QDialog):
             "Setor Responsável": self.stacked_widget_responsaveis(data),
             "Documentos": self.stacked_widget_documentos(data),
             "Anexos": self.stacked_widget_anexos(data),
-            "PNCP": self.stacked_widget_anexos(data),
+            "PNCP": self.stacked_widget_pncp(data),
         }
 
         for name, widget in widgets.items():
@@ -264,6 +264,18 @@ class EditDataDialog(QDialog):
         frame.setLayout(layout)        
         return frame
 
+    def stacked_widget_pncp(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+
+        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
+        pncp_group = self.create_pncp_group()
+        layout.addWidget(pncp_group)
+
+        # Define o layout para o frame
+        frame.setLayout(layout)        
+        return frame
+    
     def stacked_widget_info(self, data):
         # Cria um widget básico para o stack
         frame = QFrame()
@@ -1078,6 +1090,29 @@ class EditDataDialog(QDialog):
             combo_widget.addItem(texto_display, userData=row.to_dict())
             print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
 
+    def create_pncp_group(self):
+        data = self.extract_registro_data()
+
+        # LineEdit para o ID de Dispensa Eletrônica
+        self.id_dispensa_eletronica = data.get('id_processo', '')
+        id_display = self.id_dispensa_eletronica if self.id_dispensa_eletronica else 'ID não disponível'
+
+        # GroupBox para Anexos
+        anexos_group_box = QGroupBox(f"Dados integrados ao PNCP da {id_display}")
+        self.apply_widget_style(anexos_group_box)
+
+        # Layout para o GroupBox
+        layout = QVBoxLayout()
+
+        # Adicionando uma QLabel de teste
+        label_teste = QLabel("Teste")
+        layout.addWidget(label_teste)
+
+        # Definir layout no GroupBox
+        anexos_group_box.setLayout(layout)
+
+        return anexos_group_box
+    
     def create_anexos_group(self):
         data = self.extract_registro_data()
 
@@ -1111,7 +1146,7 @@ class EditDataDialog(QDialog):
                 # Verificação de arquivo PDF
                 icon_label = QLabel()
                 icon = self.get_icon_for_anexo(pasta_anexo)
-                icon_label.setPixmap(icon.pixmap(QSize(30, 30)))
+                icon_label.setPixmap(icon.pixmap(QSize(25, 25)))
                 layout.addWidget(icon_label)
                 layout.addSpacerItem(QSpacerItem(10, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
 
@@ -1177,7 +1212,7 @@ class EditDataDialog(QDialog):
 
     def get_icon_for_anexo(self, pasta_anexo):
         """Retorna o ícone correto baseado na existência de arquivos PDF."""
-        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm_green.png"))
+        icon_confirm = QIcon(str(self.ICONS_DIR / "concluido.png"))
         icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
         if pasta_anexo and self.verificar_arquivo_pdf(pasta_anexo):
             return icon_confirm
@@ -1471,7 +1506,7 @@ class EditDataDialog(QDialog):
         pass
 
     def atualizar_action(self):
-        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm_green.png"))
+        icon_confirm = QIcon(str(self.ICONS_DIR / "concluido.png"))
         icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
 
         def atualizar_anexo(section_title, anexo, label):
@@ -1493,10 +1528,10 @@ class EditDataDialog(QDialog):
                 print(f"Verificando pasta: {pasta_anexo}")
                 arquivos_pdf = self.verificar_arquivo_pdf(pasta_anexo)
                 icon = icon_confirm if arquivos_pdf else icon_x
-                label.setPixmap(icon.pixmap(QSize(30, 30)))
+                label.setPixmap(icon.pixmap(QSize(25, 25)))
             else:
                 print(f"Anexo não identificado: {anexo}")
-                label.setPixmap(icon_x.pixmap(QSize(30, 30)))
+                label.setPixmap(icon_x.pixmap(QSize(25, 25)))
 
         for section_title, anexos in self.anexos_dict.items():
             for anexo, icon_label in anexos:

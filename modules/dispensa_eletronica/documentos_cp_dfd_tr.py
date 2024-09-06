@@ -99,7 +99,54 @@ class Worker(QThread):
             return None
         latest_pdf = max(pdf_files, key=os.path.getmtime)
         return latest_pdf
-    
+
+    def alterar_posto(self, posto):
+        # Define um dicionário de mapeamento de postos e suas respectivas abreviações
+        mapeamento_postos = {
+            r'Capitão[\s\-]de[\s\-]Corveta': 'CC',
+            r'Capitão[\s\-]de[\s\-]Fragata': 'CF',
+            r'Capitão[\s\-]de[\s\-]Mar[\s\-]e[\s\-]Guerra': 'CMG',
+            r'Capitão[\s\-]Tenente': 'CT',
+            r'Primeiro[\s\-]Tenente': '1ºTen',
+            r'Segundo[\s\-]Tenente': '2ºTen',
+            r'Primeiro[\s\-]Sargento': '1ºSG',
+            r'Segundo[\s\-]Sargento': '2ºSG',
+            r'Terceiro[\s\-]Sargento': '3ºSG',
+            r'Cabo': 'CB',
+            r'Sub[\s\-]oficial': 'SO',
+        }
+
+        # Itera sobre o dicionário de mapeamento e aplica a substituição
+        for padrao, substituicao in mapeamento_postos.items():
+            if re.search(padrao, posto, re.IGNORECASE):
+                return re.sub(padrao, substituicao, posto, flags=re.IGNORECASE)
+
+        # Retorna o posto original se nenhuma substituição for aplicada
+        return posto
+
+    def valor_por_extenso(self, valor):
+        if not valor or valor.strip() == '':  # Verifica se o valor está vazio ou None
+            return None  # Retorna None se o valor não for válido
+
+        try:
+            valor = valor.replace('R$', '').replace('.', '').replace(',', '.').strip()
+            valor_float = float(valor)
+            parte_inteira = int(valor_float)
+            parte_decimal = int(round((valor_float - parte_inteira) * 100))
+
+            if parte_decimal > 0:
+                valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais e {num2words(parte_decimal, lang='pt_BR')} centavos"
+            else:
+                valor_extenso = f"{num2words(parte_inteira, lang='pt_BR')} reais"
+
+            # Corrige "um reais" para "um real"
+            valor_extenso = valor_extenso.replace("um reais", "um real")
+
+            return valor_extenso
+
+        except ValueError:
+            return None
+                
     def gerarDocumento(self, template, subfolder, desc):
         """
         Gera um documento baseado em um template .docx.
