@@ -212,7 +212,7 @@ def inserir_relacao_itens(paragrafo, itens):
     # Calcular e adicionar o valor total homologado
     valor_total = sum(float(item["valor_homologado_total_item"] or 0) for item in itens)
     valor_extenso = valor_por_extenso(valor_total)
-    texto_soma_valor_homologado = f'R$ {formatar_brl(valor_total)} ({valor_extenso})'
+    texto_soma_valor_homologado = f'{formatar_brl(valor_total)} ({valor_extenso})'
     adicione_texto_formatado(paragrafo, 'Valor total homologado para a empresa:\n', False)
     adicione_texto_formatado(paragrafo, texto_soma_valor_homologado + '\n', True)
 

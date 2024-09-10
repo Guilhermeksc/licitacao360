@@ -40,27 +40,27 @@ class MatrizRiscosWidget(QWidget):
         # Layout para Label e Botões
         label_buttons_layout = QVBoxLayout()
 
-        escolha_processo_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o processo:", font_size=20)
-        escolha_processo_layout.addWidget(combobox_label)
+        # escolha_processo_layout = QHBoxLayout()
+        # combobox_label = self.create_label("Escolha o processo:", font_size=20)
+        # escolha_processo_layout.addWidget(combobox_label)
 
-        self.combobox_processo = QComboBox()
-        self.combobox_processo.addItems(["PE 01/2024", "PE 02/2024", "PE 03/2024", "PE 04/2024"])
-        self.combobox_processo.setStyleSheet("font-size: 20px;")
-        escolha_processo_layout.addWidget(self.combobox_processo)
+        # self.combobox_processo = QComboBox()
+        # self.combobox_processo.addItems(["PE 01/2024", "PE 02/2024", "PE 03/2024", "PE 04/2024"])
+        # self.combobox_processo.setStyleSheet("font-size: 20px;")
+        # escolha_processo_layout.addWidget(self.combobox_processo)
 
-        label_buttons_layout.addLayout(escolha_processo_layout)
+        # label_buttons_layout.addLayout(escolha_processo_layout)
 
-        escolha_padrao_matriz_layout = QHBoxLayout()
-        combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20)
-        escolha_padrao_matriz_layout.addWidget(combobox_label)
+        # escolha_padrao_matriz_layout = QHBoxLayout()
+        # combobox_label = self.create_label("Escolha o tipo de Matriz:", font_size=20)
+        # escolha_padrao_matriz_layout.addWidget(combobox_label)
 
-        self.combobox_matriz = QComboBox()
-        self.combobox_matriz.addItems(["Material de Consumo", "Material Permanente", "Serviços Comuns", "Serviços de Engenharia", "Serviços de Mão de Obra", "Obras"])
-        self.combobox_matriz.setStyleSheet("font-size: 20px;")
-        escolha_padrao_matriz_layout.addWidget(self.combobox_matriz)
+        # self.combobox_matriz = QComboBox()
+        # self.combobox_matriz.addItems(["Material de Consumo", "Material Permanente", "Serviços Comuns", "Serviços de Engenharia", "Serviços de Mão de Obra", "Obras"])
+        # self.combobox_matriz.setStyleSheet("font-size: 20px;")
+        # escolha_padrao_matriz_layout.addWidget(self.combobox_matriz)
 
-        label_buttons_layout.addLayout(escolha_padrao_matriz_layout)
+        # label_buttons_layout.addLayout(escolha_padrao_matriz_layout)
 
         carregar_dados_riscos_layout = QHBoxLayout()
 
@@ -165,21 +165,6 @@ class TreeViewManager:
         self.model = QStandardItemModel()
         self.tree_view.setModel(self.model)
         self.tree_view.setHeaderHidden(True)
-        self.tree_view.setStyleSheet("""
-            QTreeView {
-                background: transparent;
-                border-top: 2px solid white;
-                color: white;
-            }
-            QTreeView::item {
-                color: black;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            QTreeView::item:hover {
-                background-color: white;
-            }
-        """)
         self.tree_view.expanded.connect(self.expand_all_children)
         self.tree_view.clicked.connect(self.toggle_expand_collapse)
 

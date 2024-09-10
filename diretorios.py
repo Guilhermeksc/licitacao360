@@ -71,9 +71,9 @@ ICONE = ICONS_DIR / "icone.ico"
 IMAGE_PATH = RESOURCES_DIR / "image"
 ACANTO_IMAGE_PATH = IMAGE_PATH / "acanto.png"
 BRASIL_IMAGE_PATH = ICONS_DIR / "brasil_2.png"
-TUCANO_PATH = RESOURCES_DIR / "imagem_excel.png"
-MARINHA_PATH = RESOURCES_DIR / "marinha.png"
-CEIMBRA_BG = RESOURCES_DIR / "ceimbra_bg.png"
+TUCANO_PATH = IMAGE_PATH / "imagem_excel.png"
+MARINHA_PATH = IMAGE_PATH / "marinha.png"
+CEIMBRA_BG = IMAGE_PATH / "ceimbra_bg.png"
 
 # Diretórios de templates
 TEMPLATE_DIR = RESOURCES_DIR / "template"

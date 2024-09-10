@@ -268,7 +268,7 @@ class UIManager:
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
         header.resizeSection(0, 120)
@@ -343,7 +343,7 @@ class UIManager:
 
     def hide_unwanted_columns(self):
         # Inclua a coluna de ícones no conjunto de colunas visíveis
-        visible_columns = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14}
+        visible_columns = {0, 1, 2, 4, 6, 7, 8, 9, 14}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)

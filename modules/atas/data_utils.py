@@ -173,13 +173,15 @@ class DatabaseDialog(QDialog):
             cur = conn.cursor()
             cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
             tables = [row[0] for row in cur.fetchall()]
-        
+
         if not tables:
             QMessageBox.warning(self, "Aviso", "Nenhuma tabela foi encontrada.")
             return
 
-        # Filtrar por nomes que possivelmente contenham o padrão desejado
-        pattern = re.compile(r"\d{5}")
+        # Padrão para capturar 1 a 5 dígitos seguidos de um ano (4 dígitos) entre hífens
+        pattern = re.compile(r"(\d{1,5})-(\d{4})-")
+        
+        # Filtrar as tabelas que seguem o padrão
         pe_tables = [table for table in tables if pattern.search(table)]
 
         item, ok = QInputDialog.getItem(self, "Carregar DataFrame", "Selecione a tabela:", pe_tables, 0, False)
@@ -188,8 +190,9 @@ class DatabaseDialog(QDialog):
             with self.db_manager as conn:
                 df = pd.read_sql(f"SELECT * FROM {safe_table_name}", conn)
             if self.callback:
-                extracted_pe = pattern.search(item).group(0) if pattern.search(item) else "Desconhecido"
-                self.callback(df, extracted_pe)  # Passa o DataFrame e o padrão PE extraído
+                match = pattern.search(item)
+                extracted_pe = match.group(1) if match else "Desconhecido"  # Captura apenas a primeira parte (os dígitos)
+                self.callback(df, extracted_pe)  # Passa o DataFrame e o valor extraído do padrão
             QMessageBox.information(self, "Sucesso", f"DataFrame '{item}' carregado com sucesso!")
             self.close()  # Fecha o diálogo após carregar com sucesso
 

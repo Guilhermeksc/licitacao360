@@ -33,7 +33,7 @@ class FluxoProcessoDialog(QDialog):
         self.icons_dir = Path(icons_dir)
         self.image_cache = load_images(self.icons_dir, ["excel.png", "pdf64.png"])
         self.setWindowTitle("Painel de Fluxo dos Processos")
-        # self.setStyleSheet("QDialog { background-color: #050f41; }")
+        self.setStyleSheet("QDialog { background-color: #050f41; }")
         self._setup_ui()
         # self.showMaximized()
         # self.showFullScreen()
@@ -46,12 +46,12 @@ class FluxoProcessoDialog(QDialog):
         if self.last_selected_item and self.last_selected_list_widget:
             last_widget = self.last_selected_list_widget.itemWidget(self.last_selected_item)
             if last_widget:
-                last_widget.setStyleSheet("background-color: white;")
+                last_widget.setStyleSheet("background-color: white; color: black;")
 
         # Aplica o efeito ao item atual
         widget = current_list_widget.itemWidget(current_item)
         if widget:
-            widget.setStyleSheet("background-color: #8AB4F7; border: 1px solid #000080;")
+            widget.setStyleSheet("background-color: #8AB4F7; color: black; border: 1px solid #000080;")
 
         # Atualiza as referências ao item e QListWidget atuais
         self.last_selected_item = current_item
@@ -89,7 +89,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_header_layout(self):
         header_layout = QHBoxLayout()
         titleLabel = QLabel("Controle do Fluxo dos Processos")
-        titleLabel.setStyleSheet("font-size: 32px; font-weight: bold;")
+        titleLabel.setStyleSheet("background-color: #050f41; color: white; font-size: 32px; font-weight: bold;")
 
         header_layout.addWidget(titleLabel)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
@@ -98,6 +98,7 @@ class FluxoProcessoDialog(QDialog):
         pixmap = QPixmap(str(MARINHA_PATH))
         pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel()
+        image_label.setStyleSheet("background-color: #050f41;")
         image_label.setPixmap(pixmap)
         header_layout.addWidget(image_label)
         
@@ -147,7 +148,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_group_box(self, etapa):
         group_box = QGroupBox(etapa)
         group_box.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        group_box.setStyleSheet("QGroupBox { color: #8AB4F7; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px}")
+        group_box.setStyleSheet("QGroupBox {background-color: #050f41; color: #8AB4F7; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px}")
         layout = QVBoxLayout(group_box)
         layout.setContentsMargins(1, 25, 1, 4)
         list_widget = CustomListWidget(parent=self, database_path=self.database_path)
@@ -186,18 +187,18 @@ class CustomListWidget(QListWidget):
         self.setStyleSheet("""
             QListWidget {
                 background-color: white;
-                color: #4A4A4A;  
+                color: black;  
                 border: 2px solid transparent;
                 border-radius: 4px;
                            
             }
             QListWidget::item {
                 background-color: white;
-                color: #4A4A4A;  
+                color: black;  
             }
             QListWidget::item:selected {
                 background-color: white;
-                color: #4A4A4A;
+                color: black;
             }
         """)
 
@@ -259,7 +260,7 @@ class CustomListWidget(QListWidget):
         label = QLabel(formattedText)
         label.setStyleSheet("""
             background-color: white;
-            color: #4A4A4A;
+            color: black;
         """)
         # label.setStyleSheet("background-color: #F8F9FA;")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -285,14 +286,14 @@ class CustomListWidget(QListWidget):
     def applyRightClickEffect(self, item):
         widget = self.itemWidget(item)
         if widget:
-            widget.setStyleSheet("background-color: white")
+            widget.setStyleSheet("background-color: yellow, color: navy;")
 
     def clearClickEffect(self):
         item = self.currentItem()
         if item:
             widget = self.itemWidget(item)
             if widget:
-                widget.setStyleSheet("background-color: white;")
+                widget.setStyleSheet("background-color: white; color: black;")
 
     def applyClickEffect(self, item):
         # Remova o efeito do último item selecionado, se houver

@@ -157,6 +157,8 @@ class AtasDialog(QDialog):
             "Centro de Intendência da Marinha em São Pedro da Aldeia (CeIMSPA)",
             "Hospital Naval de Brasília (HNBra)",
             "Hospital Naval Marcílio Dias (HNMD)",
+            "Banco Central do Brasil (BACEN-BSB)",
+            "Banco Central do Brasil (BACEN-RJ)",
         ]
         self.org_combobox.addItems(organizations)
         self.org_combobox.setFont(QFont('Arial', 14))
@@ -277,9 +279,11 @@ class AtasDialog(QDialog):
                 QMessageBox.warning(self, "Erro", "Padrão de pregão não encontrado. Por favor, carregue um database antes de continuar.")
                 print("Padrão de pregão não encontrado. Necessário carregar um database.")
                 return
-            
+            print(f"Obtido PE: {self.pe_pattern}")  # Depuração
             pe_formatted = self.convert_pe_format(self.pe_pattern)
+            print(f"Obtido PE formatado: {pe_formatted}")  # Depuração
             nup = self.obter_nup(pe_formatted)
+            print(f"Obtido NUP: {nup}")  # Depuração
 
             if nup:
                 self.nup_data = nup

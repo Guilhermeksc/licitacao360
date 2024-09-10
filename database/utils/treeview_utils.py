@@ -51,17 +51,27 @@ def create_button_2(text, icon, callback, tooltip_text, parent, icon_size=QSize(
     if tooltip_text:
         btn.setToolTip(tooltip_text)
 
-    # Aplica folhas de estilo para personalizar a aparência do botão
+    # Aplica folhas de estilo para personalizar a aparência do botão, incluindo efeito de hover
     btn.setStyleSheet("""
     QPushButton {
+        background-color: #050f41;
+        color: white;
         font-size: 14pt;
         min-height: 30px;
-        padding: 5px;      
+        padding: 5px;
+        border: 2px solid #050f41;
+    }
+    QPushButton:hover {
+        background-color: white;
+        color: #050f41;
+        border: 2px solid #050f41;
+    }
+    QPushButton:pressed {
+        background-color: #1c3664;
     }
     """)
 
     return btn
-
 def save_dataframe_to_excel(data_frame, file_path):
     try:
         data_frame.to_excel(file_path, index=False)

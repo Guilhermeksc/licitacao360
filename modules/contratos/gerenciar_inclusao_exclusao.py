@@ -169,7 +169,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
             # Definir "2040-01-01" como padrão se 'vigencia_fim' for None ou não existir
             vigencia_final = contrato.get("vigencia_fim")
             if not vigencia_final or pd.isna(vigencia_final):
-                vigencia_final = "2040-01-01"
+                vigencia_final = "2016-01-01"
 
             contrato_info = {
                 'status': status,  # Campos conforme necessário
