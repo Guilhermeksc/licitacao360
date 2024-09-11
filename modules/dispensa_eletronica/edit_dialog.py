@@ -17,6 +17,8 @@ from openpyxl.utils import get_column_letter
 import sqlite3
 from fpdf import FPDF 
 import webbrowser
+import requests
+from datetime import datetime, timedelta
 
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -1061,6 +1063,7 @@ class EditDataDialog(QDialog):
             combo_widget.addItem(texto_display, userData=row.to_dict())
             print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
 
+    # Função para criar o layout e realizar as operações do grupo PNCP
     def create_pncp_group(self):
         data = self.extract_registro_data()
 
@@ -1071,10 +1074,12 @@ class EditDataDialog(QDialog):
         # Layout para o GroupBox
         layout = QVBoxLayout()
 
-        # LineEdit para o usuário inserir o sequencial
-        self.sequencial_input = QLineEdit()
-        self.sequencial_input.setPlaceholderText("Informe o sequencial")
-        layout.addWidget(self.sequencial_input)
+        # Combobox para selecionar a unidade administrativa
+        self.combo_unidade = QComboBox()
+        self.combo_unidade.addItem("787010 - DF")
+        self.combo_unidade.addItem("732100 - PE")
+        self.combo_unidade.addItem("787000 - RJ")
+        layout.addWidget(self.combo_unidade)
 
         # Botão para realizar a consulta
         self.consulta_button = QPushButton("Consultar PNCP")
@@ -1093,22 +1098,136 @@ class EditDataDialog(QDialog):
         return anexos_group_box
 
     def on_consultar_pncp(self):
-        sequencial = self.sequencial_input.text()
-        if not sequencial:
-            QMessageBox.warning(self, "Erro", "Por favor, insira um sequencial.")
-            return
+        # Define as variáveis de acordo com a escolha do usuário
+        unidade_selecionada = self.combo_unidade.currentText()
+        if unidade_selecionada.startswith("787010"):
+            codigoUnidadeAdministrativa = 787010
+            uf = "DF"
+            codigoMunicipioIbge = 5300108
+        elif unidade_selecionada.startswith("732100"):
+            codigoUnidadeAdministrativa = 732100
+            uf = "PE"
+            codigoMunicipioIbge = 5120500
+        elif unidade_selecionada.startswith("787000"):
+            codigoUnidadeAdministrativa = 787000
+            uf = "RJ"
+            codigoMunicipioIbge = 5300200
 
-        # Instanciar a classe externa PNCPConsulta
-        consulta_pncp = PNCPConsulta(sequencial, self)
+        # Exibe uma mensagem com o número que está sendo procurado
+        QMessageBox.information(self, "Procurando", f"Procurando '{self.numero}'/{self.ano} no PNCP")
+
+        # Formatar as datas (dataFinal e dataInicial)
+        sessao_publica_formatado = self.data_sessao  # Valor já no formato AAAA-MM-DD
+        dataFinal = datetime.strptime(sessao_publica_formatado, '%Y-%m-%d').strftime('%Y%m%d')
+        dataInicial = (datetime.strptime(sessao_publica_formatado, '%Y-%m-%d') - timedelta(days=60)).strftime('%Y%m%d')
+
+        # Exibir prints das variáveis
+        print(f"dataFinal: {dataFinal}")
+        print(f"dataInicial: {dataInicial}")
+        print(f"codigoUnidadeAdministrativa: {codigoUnidadeAdministrativa}")
+        print(f"codigoMunicipioIbge: {codigoMunicipioIbge}")
+
+        # Fazer a requisição do sequencial
+        url_sequencial = (f"https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?"
+                        f"dataInicial={dataInicial}&dataFinal={dataFinal}"
+                        f"&codigoModalidadeContratacao=8&codigoModoDisputa=4"
+                        f"&uf={uf}&codigoMunicipioIbge={codigoMunicipioIbge}"
+                        f"&cnpj=00394502000144&codigoUnidadeAdministrativa={codigoUnidadeAdministrativa}"
+                        f"&idUsuario=3&pagina=1")
+
+        # Exibir a URL completa
+        print(f"url_sequencial: {url_sequencial}")
+
+        try:
+            response_sequencial = requests.get(url_sequencial)
+            response_sequencial.raise_for_status()
+            data_sequencial = response_sequencial.json()
+
+            # Verifica se há algum match entre self.numero e os dados da resposta
+            sequencial_encontrado = None
+            for contratacao in data_sequencial.get('contratacoes', []):
+                if self.numero in contratacao['numero']:
+                    sequencial_encontrado = contratacao['sequencial']
+                    break
+
+            # Mesmo se não houver match, salvar o JSON na área de trabalho
+            if not sequencial_encontrado:
+                QMessageBox.information(self, "Informação", "Nenhum match encontrado. Salvando dados da requisição.")
+                self.salvar_json_na_area_de_trabalho(data_sequencial, 'sem_match')
+                return
+
+            # Instanciar a classe externa PNCPConsulta
+            consulta_pncp = PNCPConsulta(sequencial_encontrado, self.ano, self)
+
+            # Realizar a consulta e obter os resultados
+            json_data = consulta_pncp.consultar()
+            if json_data:
+                # Exibir os resultados na interface
+                resultados = []
+                for item_data in json_data:
+                    resultados.extend(self.formatar_resultados(item_data))
+                self.result_model.setStringList(resultados)
+
+                # Salvar o JSON na área de trabalho
+                self.salvar_json_na_area_de_trabalho(json_data, sequencial_encontrado)
+            else:
+                QMessageBox.warning(self, "Erro", "Nenhum resultado encontrado.")
+
+        except requests.exceptions.RequestException as e:
+            QMessageBox.critical(self, "Erro", f"Falha na consulta: {str(e)}")
+
+    def formatar_resultados(self, data):
+        """
+        Formata os dados da resposta JSON exibindo apenas os campos especificados no mapeamento.
+        """
+        mapeamento_chaves = {
+            'numeroItem': 'Item:',
+            'descricao': 'Descrição:',
+            'materialOuServicoNome': 'Material/Serviço:',
+            'valorUnitarioEstimado': 'Valor unitário estimado:',
+            'valorTotal': 'Valor total estimado:',
+            'unidadeMedida': 'Unidade de medida:',
+            'situacaoCompraItemNome': 'Situação:',
+            'dataAtualizacao': 'Atualizado em:',
+            'niFornecedor': 'CNPJ/CPF:',
+            'nomeRazaoSocialFornecedor': 'Nome:',
+            'quantidadeHomologada': 'Quantidade:',
+            'valorUnitarioHomologado': 'Valor unitário:',
+            'valorTotalHomologado': 'Valor total homologado:',
+            'dataResultado': 'Resultado:',
+            'numeroControlePNCPCompra': 'ID PNCP:',
+        }
+
+        resultados_formatados = []
         
-        # Realizar a consulta e obter os resultados
-        resultados = consulta_pncp.consultar()
-        if resultados:
-            self.result_model.setStringList(resultados)
-        else:
-            QMessageBox.warning(self, "Erro", "Nenhum resultado encontrado.")
+        # Iterar pelos itens da resposta (que pode ser uma lista de dicionários)
+        if isinstance(data, list):
+            for item in data:
+                for chave, valor in item.items():
+                    if chave in mapeamento_chaves:  # Exibe apenas os valores mapeados
+                        resultados_formatados.append(f"{mapeamento_chaves[chave]} {valor}")
+        elif isinstance(data, dict):
+            for chave, valor in data.items():
+                if chave in mapeamento_chaves:  # Exibe apenas os valores mapeados
+                    resultados_formatados.append(f"{mapeamento_chaves[chave]} {valor}")
 
-    
+        return resultados_formatados
+
+    def salvar_json_na_area_de_trabalho(self, json_data, sequencial):
+        try:
+            # Obter o caminho para a área de trabalho do usuário
+            desktop_path = Path.home() / 'Desktop'
+            file_path = desktop_path / f"pncp_resultado_{sequencial}.json"
+            
+            # Salvar o conteúdo do JSON no arquivo
+            with open(file_path, 'w', encoding='utf-8') as json_file:
+                json.dump(json_data, json_file, ensure_ascii=False, indent=4)
+            
+            QMessageBox.information(self, "Sucesso", f"Arquivo JSON salvo na área de trabalho: {file_path}")
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao salvar o arquivo: {str(e)}")
+
     def create_anexos_group(self):
         data = self.extract_registro_data()
 
