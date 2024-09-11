@@ -3,6 +3,8 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 from modules.dispensa_eletronica.documentos_cp_dfd_tr import PDFAddDialog, ConsolidarDocumentos, load_config_path_id
+from modules.dispensa_eletronica.utils_dispensa_eletronica import RealLineEdit
+from modules.dispensa_eletronica.dados_api.api_consulta import PNCPConsulta
 from diretorios import *
 from pathlib import Path
 import pandas as pd
@@ -15,37 +17,6 @@ from openpyxl.utils import get_column_letter
 import sqlite3
 from fpdf import FPDF 
 import webbrowser
-
-class RealLineEdit(QLineEdit):
-    def __init__(self, text='', parent=None):
-        super().__init__(text, parent)
-        self.setText(self.format_to_real(self.text()))
-
-    def focusInEvent(self, event):
-        # Remove the currency formatting when the user focuses on the widget
-        self.setText(self.format_to_plain_number(self.text()))
-        super().focusInEvent(event)
-    
-    def focusOutEvent(self, event):
-        # Add the currency formatting when the user leaves the widget
-        self.setText(self.format_to_real(self.text()))
-        super().focusOutEvent(event)
-    
-    def format_to_real(self, value):
-        try:
-            # Convert the plain number to real currency format
-            value = float(value.replace('.', '').replace(',', '.').strip())
-            return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        except ValueError:
-            return value
-    
-    def format_to_plain_number(self, value):
-        try:
-            # Convert the real currency format to plain number
-            value = float(value.replace('R$', '').replace('.', '').replace(',', '.').strip())
-            return f"{value:.2f}".replace('.', ',')
-        except ValueError:
-            return value
 
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -1093,25 +1064,50 @@ class EditDataDialog(QDialog):
     def create_pncp_group(self):
         data = self.extract_registro_data()
 
-        # LineEdit para o ID de Dispensa Eletrônica
-        self.id_dispensa_eletronica = data.get('id_processo', '')
-        id_display = self.id_dispensa_eletronica if self.id_dispensa_eletronica else 'ID não disponível'
-
         # GroupBox para Anexos
-        anexos_group_box = QGroupBox(f"Dados integrados ao PNCP da {id_display}")
+        anexos_group_box = QGroupBox("Dados integrados ao PNCP")
         self.apply_widget_style(anexos_group_box)
 
         # Layout para o GroupBox
         layout = QVBoxLayout()
 
-        # Adicionando uma QLabel de teste
-        label_teste = QLabel("Teste")
-        layout.addWidget(label_teste)
+        # LineEdit para o usuário inserir o sequencial
+        self.sequencial_input = QLineEdit()
+        self.sequencial_input.setPlaceholderText("Informe o sequencial")
+        layout.addWidget(self.sequencial_input)
+
+        # Botão para realizar a consulta
+        self.consulta_button = QPushButton("Consultar PNCP")
+        self.consulta_button.clicked.connect(self.on_consultar_pncp)
+        layout.addWidget(self.consulta_button)
+
+        # ListView para exibir os resultados
+        self.result_list = QListView()
+        self.result_model = QStringListModel()
+        self.result_list.setModel(self.result_model)
+        layout.addWidget(self.result_list)
 
         # Definir layout no GroupBox
         anexos_group_box.setLayout(layout)
 
         return anexos_group_box
+
+    def on_consultar_pncp(self):
+        sequencial = self.sequencial_input.text()
+        if not sequencial:
+            QMessageBox.warning(self, "Erro", "Por favor, insira um sequencial.")
+            return
+
+        # Instanciar a classe externa PNCPConsulta
+        consulta_pncp = PNCPConsulta(sequencial, self)
+        
+        # Realizar a consulta e obter os resultados
+        resultados = consulta_pncp.consultar()
+        if resultados:
+            self.result_model.setStringList(resultados)
+        else:
+            QMessageBox.warning(self, "Erro", "Nenhum resultado encontrado.")
+
     
     def create_anexos_group(self):
         data = self.extract_registro_data()
