@@ -1,6 +1,7 @@
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/011176/itens/1/resultados 
 
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010045/itens/1/resultados
+https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010949/itens/1/resultados
 
 
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010045/itens/1
@@ -23,5 +24,6 @@ https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/2900/historic
 
  
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/011176
+https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010949
 
 https://contratos.comprasnet.gov.br/api/contrato/ug/787010

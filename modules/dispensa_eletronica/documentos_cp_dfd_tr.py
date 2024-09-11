@@ -19,7 +19,7 @@ from datetime import datetime
 import subprocess
 from fpdf import FPDF
 from modules.dispensa_eletronica.merge_pdf.merge_anexos import MergePDFDialog
-import time
+
 
 class Worker(QThread):
     update_status = pyqtSignal(str, str, int) 
@@ -252,8 +252,6 @@ class Worker(QThread):
             QMessageBox.warning(None, "Erro", f"Erro ao converter o documento: {e}")
             return None
 
-
-
     def formatar_responsavel(self, chave, data, context):
         responsavel = data.get(chave)
         if responsavel and isinstance(responsavel, str):
@@ -326,6 +324,7 @@ class Worker(QThread):
 
         return context
     
+
 class ProgressDialog(QDialog):
     def __init__(self, documentos, df_registro_selecionado):
         super().__init__()
@@ -336,8 +335,8 @@ class ProgressDialog(QDialog):
         # Inicializa os labels e ícones para cada documento
         self.labels = {}
         self.icons = {}
-        self.icon_x = QIcon(str(ICONS_DIR / "loading_table.png"))  # Ícone 'X' para processo em andamento
-        self.icon_check = QIcon(str(ICONS_DIR / "aproved.png"))  # Ícone 'V' para processo concluído
+        self.icon_loading = QIcon(str(ICONS_DIR / "loading_table.png"))  # Ícone para carregamento
+        self.icon_done = QIcon(str(ICONS_DIR / "aproved.png"))  # Ícone para conclusão
 
         # Adiciona os labels e ícones para cada documento com 'template'
         for doc in documentos:
@@ -347,15 +346,15 @@ class ProgressDialog(QDialog):
                 layout_h = QHBoxLayout()
 
                 # Cria o QLabel para o texto do documento e ajusta o estilo
-                label = QLabel(f"{doc_desc} sendo gerado.")
+                label = QLabel(f"{doc_desc}")
                 label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)  # Alinha o texto verticalmente ao centro e à esquerda
                 label.setStyleSheet("font-size: 14px;")  # Define o tamanho da fonte para 14px
 
                 # Cria o QLabel para o ícone e alinha ao centro verticalmente
                 icon_label = QLabel()
-                icon_label.setPixmap(self.icon_x.pixmap(24, 24))  # Tamanho do ícone: 24x24
+                icon_label.setPixmap(self.icon_loading.pixmap(24, 24))  # Tamanho do ícone: 24x24
                 icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)  # Alinha o ícone verticalmente ao centro
-                
+
                 layout_h.addWidget(icon_label)
                 layout_h.addWidget(label)
                 layout_h.addStretch()  # Adiciona um espaçador para garantir que o texto e ícone fiquem à esquerda
@@ -365,7 +364,30 @@ class ProgressDialog(QDialog):
                 self.labels[doc_desc] = label
                 self.icons[doc_desc] = icon_label
 
+        # Layout para "Consolidar Documentos PDFs"
+        layout_h_consolidar = QHBoxLayout()
 
+        # Cria o QLabel para o texto "Consolidar Documentos PDFs"
+        self.label_consolidar = QLabel("Consolidar Documentos PDFs.")
+        self.label_consolidar.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.label_consolidar.setStyleSheet("font-size: 14px;")
+
+        # Cria o QLabel para o ícone de carregamento
+        self.icon_label_consolidar = QLabel()
+        self.icon_label_consolidar.setPixmap(self.icon_loading.pixmap(24, 24))  # Exibe o ícone de carregamento inicialmente
+        self.icon_label_consolidar.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+        layout_h_consolidar.addWidget(self.icon_label_consolidar)
+        layout_h_consolidar.addWidget(self.label_consolidar)
+        layout_h_consolidar.addStretch()
+        self.layout.addLayout(layout_h_consolidar)
+
+        # Adiciona a barra de progresso indeterminada
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 0)  # Define a barra como indeterminada
+        self.layout.addWidget(self.progress_bar)
+
+        # Botão de fechar
         self.close_button = QPushButton("Fechar")
         self.close_button.setEnabled(False)
         self.close_button.clicked.connect(self.close)
@@ -374,6 +396,7 @@ class ProgressDialog(QDialog):
         # Passe o df_registro_selecionado para o Worker
         self.worker = Worker(documentos, df_registro_selecionado)
         self.worker.update_status.connect(self.update_label)
+        self.worker.task_complete.connect(self.on_task_complete)  # Conectar ao novo método
         self.worker.task_complete.connect(self.enable_close_button)
 
         self.worker.start()
@@ -392,11 +415,23 @@ class ProgressDialog(QDialog):
         if progress == 100:
             icon_label = self.icons.get(doc_desc)
             if icon_label:
-                icon_label.setPixmap(self.icon_check.pixmap(24, 24))  # Altera para o ícone de 'check'
-    
+                icon_label.setPixmap(self.icon_done.pixmap(24, 24))  # Altera para o ícone de 'concluído'
+
     @pyqtSlot()
     def enable_close_button(self):
         self.close_button.setEnabled(True)
+
+    @pyqtSlot()
+    def on_task_complete(self):
+        """
+        Atualiza o ícone de "Consolidar Documentos PDFs" quando o processo de consolidação for concluído.
+        """
+        self.label_consolidar.setText("Consolidar Documentos PDFs concluído.")
+        self.icon_label_consolidar.setPixmap(self.icon_done.pixmap(24, 24))  # Altera para o ícone de 'concluído'
+
+        # Oculta a barra de progresso quando o processo for concluído
+        self.progress_bar.hide()
+
 
 
 class PDFAddDialog(QDialog):
