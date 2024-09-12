@@ -369,7 +369,7 @@ class UIManager:
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
 
         header.resizeSection(4, 140)        
-        header.resizeSection(0, 100)
+        header.resizeSection(0, 130)
         header.resizeSection(5, 160)
         header.resizeSection(17, 100)
         header.resizeSection(10, 170)

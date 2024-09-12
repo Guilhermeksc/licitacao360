@@ -4,7 +4,8 @@ from PyQt6.QtCore import *
 from modules.planejamento.utilidades_planejamento import DatabaseManager
 from modules.dispensa_eletronica.documentos_cp_dfd_tr import PDFAddDialog, ConsolidarDocumentos, load_config_path_id
 from modules.dispensa_eletronica.utils_dispensa_eletronica import RealLineEdit
-from modules.dispensa_eletronica.dados_api.api_consulta import PNCPConsulta
+from modules.dispensa_eletronica.dados_api.api_consulta import PNCPConsultaThread, PNCPConsulta
+from modules.dispensa_eletronica.formulario_excel import FormularioExcel
 from diretorios import *
 from pathlib import Path
 import pandas as pd
@@ -612,6 +613,18 @@ class EditDataDialog(QDialog):
         self.uasg = self.df_registro_selecionado['uasg'].iloc[0]
         self.orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
         self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
+        # Verifica se a coluna 'uf' existe antes de acessá-la
+        if 'uf' in self.df_registro_selecionado.columns:
+            self.uf = self.df_registro_selecionado['uf'].iloc[0]
+        else:
+            self.uf = None  # Define como None se a coluna não existir
+        
+        # Verifica se a coluna 'codigoMunicipioIbge' existe antes de acessá-la
+        if 'codigoMunicipioIbge' in self.df_registro_selecionado.columns:
+            self.codigoMunicipioIbge = self.df_registro_selecionado['codigoMunicipioIbge'].iloc[0]
+        else:
+            self.codigoMunicipioIbge = None  # Define como None se a coluna não existir
+
         self.setor_responsavel = self.df_registro_selecionado['setor_responsavel'].iloc[0]
         self.responsavel_pela_demanda = self.df_registro_selecionado['responsavel_pela_demanda'].iloc[0]
         self.ordenador_despesas = self.df_registro_selecionado['ordenador_despesas'].iloc[0]
@@ -656,6 +669,8 @@ class EditDataDialog(QDialog):
             'uasg': self.uasg,
             'orgao_responsavel': self.orgao_responsavel,
             'sigla_om': self.sigla_om,
+            'uf': self.uf,
+            'codigoMunicipioIbge': self.codigoMunicipioIbge,
             'setor_responsavel': self.setor_responsavel,
             'responsavel_pela_demanda': self.responsavel_pela_demanda,
             'ordenador_despesas': self.ordenador_despesas,
@@ -725,6 +740,13 @@ class EditDataDialog(QDialog):
                 'comunicacao_padronizada': self.cp_edit.text().strip(),
             }
 
+            # Verificar se as colunas 'uf' e 'codigoMunicipioIbge' estão presentes
+            if 'uf' in self.df_registro_selecionado.columns:
+                data['uf'] = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'uf']
+            
+            if 'codigoMunicipioIbge' in self.df_registro_selecionado.columns:
+                data['codigoMunicipioIbge'] = self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], 'codigoMunicipioIbge']
+
             # Atualizar o DataFrame com os novos valores
             for key, value in data.items():
                 self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
@@ -737,15 +759,34 @@ class EditDataDialog(QDialog):
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao salvar as alterações: {str(e)}")
 
     def update_database(self, data):
-        with self.database_manager as connection:
-            cursor = connection.cursor()
-            set_part = ', '.join([f"{key} = ?" for key in data.keys()])
-            valores = list(data.values())
-            valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
-            query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
-            cursor.execute(query, valores)
-            connection.commit()
-            QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+        try:
+            with self.database_manager as connection:
+                cursor = connection.cursor()
+
+                # Apenas incluir colunas que realmente existem no banco de dados
+                available_columns = self.get_available_columns(cursor)  # Função que retorna as colunas disponíveis no banco
+
+                # Filtrar os dados com base nas colunas disponíveis
+                filtered_data = {key: value for key, value in data.items() if key in available_columns}
+
+                set_part = ', '.join([f"{key} = ?" for key in filtered_data.keys()])
+                valores = list(filtered_data.values())
+                valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
+
+                query = f"UPDATE controle_dispensas SET {set_part} WHERE id_processo = ?"
+                cursor.execute(query, valores)
+                connection.commit()
+
+                QMessageBox.information(self, "Atualização", "As alterações foram salvas com sucesso.")
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao atualizar o banco de dados: {str(e)}")
+
+    def get_available_columns(self, cursor):
+        # Função que obtém as colunas existentes na tabela 'controle_dispensas'
+        cursor.execute("PRAGMA table_info(controle_dispensas)")
+        columns_info = cursor.fetchall()
+        return [col[1] for col in columns_info]  # O segundo elemento em cada tupla é o nome da coluna
 
     def fill_frame_dados_do_setor_resposavel_contratacao(self):
         frame = QFrame(self)
@@ -1074,13 +1115,6 @@ class EditDataDialog(QDialog):
         # Layout para o GroupBox
         layout = QVBoxLayout()
 
-        # Combobox para selecionar a unidade administrativa
-        self.combo_unidade = QComboBox()
-        self.combo_unidade.addItem("787010 - DF")
-        self.combo_unidade.addItem("732100 - PE")
-        self.combo_unidade.addItem("787000 - RJ")
-        layout.addWidget(self.combo_unidade)
-
         # Botão para realizar a consulta
         self.consulta_button = QPushButton("Consultar PNCP")
         self.consulta_button.clicked.connect(self.on_consultar_pncp)
@@ -1098,136 +1132,60 @@ class EditDataDialog(QDialog):
         return anexos_group_box
 
     def on_consultar_pncp(self):
-        # Define as variáveis de acordo com a escolha do usuário
-        unidade_selecionada = self.combo_unidade.currentText()
-        if unidade_selecionada.startswith("787010"):
-            codigoUnidadeAdministrativa = 787010
-            uf = "DF"
-            codigoMunicipioIbge = 5300108
-        elif unidade_selecionada.startswith("732100"):
-            codigoUnidadeAdministrativa = 732100
-            uf = "PE"
-            codigoMunicipioIbge = 5120500
-        elif unidade_selecionada.startswith("787000"):
-            codigoUnidadeAdministrativa = 787000
-            uf = "RJ"
-            codigoMunicipioIbge = 5300200
+        # Desabilitar o botão enquanto a consulta está sendo feita
+        self.consulta_button.setEnabled(False)
 
-        # Exibe uma mensagem com o número que está sendo procurado
-        QMessageBox.information(self, "Procurando", f"Procurando '{self.numero}'/{self.ano} no PNCP")
+        # Criar uma instância de QProgressDialog para mostrar o progresso
+        self.progress_dialog = QProgressDialog("Consultando dados no PNCP...", "Cancelar", 0, 0, self)
+        self.progress_dialog.setWindowTitle("Progresso da Consulta")
+        self.progress_dialog.setCancelButton(None)  # Remove o botão de cancelamento
+        self.progress_dialog.setMinimumDuration(0)  # Mostra imediatamente
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)  # Bloqueia a janela até finalizar
+        self.progress_dialog.show()
 
-        # Formatar as datas (dataFinal e dataInicial)
-        sessao_publica_formatado = self.data_sessao  # Valor já no formato AAAA-MM-DD
-        dataFinal = datetime.strptime(sessao_publica_formatado, '%Y-%m-%d').strftime('%Y%m%d')
-        dataInicial = (datetime.strptime(sessao_publica_formatado, '%Y-%m-%d') - timedelta(days=60)).strftime('%Y%m%d')
+        # Cria a instância da thread de consulta
+        self.thread = PNCPConsultaThread(self.numero, self.ano, self.data_sessao, self.uasg, self.uf, self.codigoMunicipioIbge, self)
 
-        # Exibir prints das variáveis
-        print(f"dataFinal: {dataFinal}")
-        print(f"dataInicial: {dataInicial}")
-        print(f"codigoUnidadeAdministrativa: {codigoUnidadeAdministrativa}")
-        print(f"codigoMunicipioIbge: {codigoMunicipioIbge}")
-
-        # Fazer a requisição do sequencial
-        url_sequencial = (f"https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?"
-                        f"dataInicial={dataInicial}&dataFinal={dataFinal}"
-                        f"&codigoModalidadeContratacao=8&codigoModoDisputa=4"
-                        f"&uf={uf}&codigoMunicipioIbge={codigoMunicipioIbge}"
-                        f"&cnpj=00394502000144&codigoUnidadeAdministrativa={codigoUnidadeAdministrativa}"
-                        f"&idUsuario=3&pagina=1")
-
-        # Exibir a URL completa
-        print(f"url_sequencial: {url_sequencial}")
-
-        try:
-            response_sequencial = requests.get(url_sequencial)
-            response_sequencial.raise_for_status()
-            data_sequencial = response_sequencial.json()
-
-            # Verifica se há algum match entre self.numero e os dados da resposta
-            sequencial_encontrado = None
-            for contratacao in data_sequencial.get('contratacoes', []):
-                if self.numero in contratacao['numero']:
-                    sequencial_encontrado = contratacao['sequencial']
-                    break
-
-            # Mesmo se não houver match, salvar o JSON na área de trabalho
-            if not sequencial_encontrado:
-                QMessageBox.information(self, "Informação", "Nenhum match encontrado. Salvando dados da requisição.")
-                self.salvar_json_na_area_de_trabalho(data_sequencial, 'sem_match')
-                return
-
-            # Instanciar a classe externa PNCPConsulta
-            consulta_pncp = PNCPConsulta(sequencial_encontrado, self.ano, self)
-
-            # Realizar a consulta e obter os resultados
-            json_data = consulta_pncp.consultar()
-            if json_data:
-                # Exibir os resultados na interface
-                resultados = []
-                for item_data in json_data:
-                    resultados.extend(self.formatar_resultados(item_data))
-                self.result_model.setStringList(resultados)
-
-                # Salvar o JSON na área de trabalho
-                self.salvar_json_na_area_de_trabalho(json_data, sequencial_encontrado)
-            else:
-                QMessageBox.warning(self, "Erro", "Nenhum resultado encontrado.")
-
-        except requests.exceptions.RequestException as e:
-            QMessageBox.critical(self, "Erro", f"Falha na consulta: {str(e)}")
-
-    def formatar_resultados(self, data):
-        """
-        Formata os dados da resposta JSON exibindo apenas os campos especificados no mapeamento.
-        """
-        mapeamento_chaves = {
-            'numeroItem': 'Item:',
-            'descricao': 'Descrição:',
-            'materialOuServicoNome': 'Material/Serviço:',
-            'valorUnitarioEstimado': 'Valor unitário estimado:',
-            'valorTotal': 'Valor total estimado:',
-            'unidadeMedida': 'Unidade de medida:',
-            'situacaoCompraItemNome': 'Situação:',
-            'dataAtualizacao': 'Atualizado em:',
-            'niFornecedor': 'CNPJ/CPF:',
-            'nomeRazaoSocialFornecedor': 'Nome:',
-            'quantidadeHomologada': 'Quantidade:',
-            'valorUnitarioHomologado': 'Valor unitário:',
-            'valorTotalHomologado': 'Valor total homologado:',
-            'dataResultado': 'Resultado:',
-            'numeroControlePNCPCompra': 'ID PNCP:',
-        }
-
-        resultados_formatados = []
+        # Conectar os sinais da thread para manipular o resultado
+        self.thread.consulta_concluida.connect(self.on_consulta_concluida)
+        self.thread.erro_consulta.connect(self.on_erro_consulta)
         
-        # Iterar pelos itens da resposta (que pode ser uma lista de dicionários)
-        if isinstance(data, list):
-            for item in data:
-                for chave, valor in item.items():
-                    if chave in mapeamento_chaves:  # Exibe apenas os valores mapeados
-                        resultados_formatados.append(f"{mapeamento_chaves[chave]} {valor}")
-        elif isinstance(data, dict):
-            for chave, valor in data.items():
-                if chave in mapeamento_chaves:  # Exibe apenas os valores mapeados
-                    resultados_formatados.append(f"{mapeamento_chaves[chave]} {valor}")
+        # Conectar o sinal de progresso para exibir a mensagem na thread principal
+        self.thread.progresso_consulta.connect(self.exibir_mensagem_progresso)
 
-        return resultados_formatados
+        # Iniciar a thread
+        self.thread.start()
 
-    def salvar_json_na_area_de_trabalho(self, json_data, sequencial):
-        try:
-            # Obter o caminho para a área de trabalho do usuário
-            desktop_path = Path.home() / 'Desktop'
-            file_path = desktop_path / f"pncp_resultado_{sequencial}.json"
+    def exibir_mensagem_progresso(self, mensagem):
+        """Exibe as mensagens de progresso no diálogo de progresso."""
+        self.progress_dialog.setLabelText(mensagem)
+
+    def on_consulta_concluida(self, json_data):
+        # Fechar a barra de progresso
+        self.progress_dialog.close()
+
+        # Atualizar a interface com os resultados da consulta
+        resultados = []
+        consulta_pncp = PNCPConsulta(self.numero, self.ano, self.data_sessao, self.uasg, self.uf, self.codigoMunicipioIbge, self.parent)
+        for item_data in json_data:
+            resultados.extend(consulta_pncp.formatar_resultados(item_data))
+
+        self.result_model.setStringList(resultados)
+
+        # Salvar o JSON na área de trabalho
+        consulta_pncp.salvar_json_na_area_de_trabalho(json_data, 'resultados_consulta')
+
+        # Reabilitar o botão
+        self.consulta_button.setEnabled(True)
+
+    def on_erro_consulta(self, mensagem):
+        # Fechar a barra de progresso em caso de erro
+        self.progress_dialog.close()
+
+        QMessageBox.warning(self, "Erro", mensagem)
+        self.consulta_button.setEnabled(True)
+
             
-            # Salvar o conteúdo do JSON no arquivo
-            with open(file_path, 'w', encoding='utf-8') as json_file:
-                json.dump(json_data, json_file, ensure_ascii=False, indent=4)
-            
-            QMessageBox.information(self, "Sucesso", f"Arquivo JSON salvo na área de trabalho: {file_path}")
-        
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao salvar o arquivo: {str(e)}")
-
     def create_anexos_group(self):
         data = self.extract_registro_data()
 
@@ -1836,243 +1794,17 @@ class EditDataDialog(QDialog):
         print(f"OM changed to: {selected_om}")
         with sqlite3.connect(self.database_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT uasg, orgao_responsavel FROM controle_om WHERE sigla_om = ?", (selected_om,))
+            cursor.execute("SELECT uasg, orgao_responsavel, uf, codigoMunicipioIbge FROM controle_om WHERE sigla_om = ?", (selected_om,))
             result = cursor.fetchone()
             if result:
-                uasg, orgao_responsavel = result
+                uasg, orgao_responsavel, uf, codigoMunicipioIbge = result
                 index = self.df_registro_selecionado.index[0]
                 self.df_registro_selecionado.loc[index, 'uasg'] = uasg
                 self.df_registro_selecionado.loc[index, 'orgao_responsavel'] = orgao_responsavel
+                self.df_registro_selecionado.loc[index, 'uf'] = uf
+                self.df_registro_selecionado.loc[index, 'codigoMunicipioIbge'] = codigoMunicipioIbge
                 print(f"Updated DataFrame: uasg={uasg}, orgao_responsavel={orgao_responsavel}")
                 self.title_updated.emit(f"{orgao_responsavel} (UASG: {uasg})")
-
-class FormularioExcel:
-    def __init__(self, df_registro_selecionado, pasta_base, parent_dialog):
-        self.df_registro_selecionado = df_registro_selecionado
-        self.pasta_base = Path(pasta_base)
-        self.parent_dialog = parent_dialog
-
-        self.colunas_legiveis = {
-            'nup': 'NUP',
-            'material_servico': 'Material (M) ou Serviço (S)',
-            'objeto': 'Objeto Resumido',
-            'vigencia': 'Vigência',
-            'criterio_julgamento': 'Critério de Julgamento (Menor Preço ou Maior Desconto)',
-            'com_disputa': 'Com disputa? Sim (S) ou Não (N)',
-            'pesquisa_preco': 'Pesquisa Concomitante? Sim (S) ou Não (N)',
-            'previsao_contratacao': 'Previsão de Contratação',
-            'uasg': 'UASG',
-            'setor_responsavel': 'Setor Responsável',
-            'cod_par': 'Código PAR',
-            'prioridade_par': 'Prioridade PAR (Necessário, Urgente ou Desejável)',
-            'cep': 'CEP',
-            'endereco': 'Endereço',
-            'email': 'Email',
-            'telefone': 'Telefone',
-            'dias_para_recebimento': 'Dias para Recebimento',
-            'horario_para_recebimento': 'Horário para Recebimento',
-            'valor_total': 'Valor Total',
-            'acao_interna': 'Ação Interna',
-            'fonte_recursos': 'Fonte de Recursos',
-            'natureza_despesa': 'Natureza da Despesa',
-            'unidade_orcamentaria': 'Unidade Orçamentária',
-            'programa_trabalho_resuminho': 'PTRES',
-            'atividade_custeio': 'Atividade de Custeio',
-            'justificativa': 'Justificativa',
-            'comunicacao_padronizada': 'Comunicação Padronizada (CP), Ex: 60-25',
-            'do_responsavel': 'Campo Do(a) da CP',
-            'ao_responsavel': 'Campo Ao da CP'
-        }
-
-        self.normalizacao_valores = {
-            'material_servico': {
-                'M': 'Material',
-                'm': 'Material',
-                'Material': 'Material',
-                'material': 'Material',
-                'S': 'Serviço',
-                's': 'Serviço',
-                'Serviço': 'Serviço',
-                'serviço': 'Serviço',
-                'Servico': 'Serviço',
-                'servico': 'Serviço'
-            },
-            'com_disputa': {
-                'S': 'Sim',
-                's': 'Sim',
-                'Sim': 'Sim',
-                'sim': 'Sim',
-                'N': 'Não',
-                'n': 'Não',
-                'Não': 'Não',
-                'não': 'Não',
-                'Nao': 'Não',
-                'nao': 'Não'
-            },
-            'pesquisa_preco': {
-                'S': 'Sim',
-                's': 'Sim',
-                'Sim': 'Sim',
-                'sim': 'Sim',
-                'N': 'Não',
-                'n': 'Não',
-                'Não': 'Não',
-                'não': 'Não',
-                'Nao': 'Não',
-                'nao': 'Não'
-            },
-            'atividade_custeio': {
-                'S': 'Sim',
-                's': 'Sim',
-                'Sim': 'Sim',
-                'sim': 'Sim',
-                'N': 'Não',
-                'n': 'Não',
-                'Não': 'Não',
-                'não': 'Não',
-                'Nao': 'Não',
-                'nao': 'Não'
-            }
-        }
-
-
-        self.colunas_legiveis_inverso = {v: k for k, v in self.colunas_legiveis.items()}
-
-
-    def criar_formulario(self):
-        try:
-            wb = Workbook()
-            ws = wb.active
-            ws.title = "Formulário"
-
-            df_filtrado = self._filtrar_dataframe()
-            self._adicionar_titulo(ws)
-            self._definir_cabecalhos(ws)
-            self._preencher_dados(ws, df_filtrado)
-            self._aplicar_bordas(ws)
-            
-            file_path = self._salvar_arquivo(wb)
-            self._abrir_arquivo(file_path)
-
-            QMessageBox.information(None, "Sucesso", "Formulário criado e aberto com sucesso.")
-        except Exception as e:
-            print(f"Erro ao criar formulário: {str(e)}")
-            QMessageBox.critical(None, "Erro", f"Falha ao criar formulário: {str(e)}")
-
-    def carregar_formulario(self):
-        try:
-            print("DataFrame antes de carregar o formulário:")
-            print(self.df_registro_selecionado)
-
-            file_path, _ = QFileDialog.getOpenFileName(None, "Selecione o formulário", "", "Excel Files (*.xlsx *.ods);;All Files (*)")
-            if not file_path:
-                return
-
-            if file_path.endswith('.xlsx'):
-                wb = load_workbook(file_path)
-                ws = wb.active
-
-                if ws['A2'].value != "Índice" or ws['B2'].value != "Valor":
-                    QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
-                    return
-
-                for row in ws.iter_rows(min_row=3, max_col=2, values_only=True):
-                    coluna_legivel = row[0]
-                    valor = row[1]
-                    coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
-                    if coluna in self.normalizacao_valores:
-                        valor = self.normalizacao_valores[coluna].get(valor, valor)
-                    if coluna in self.df_registro_selecionado.columns:
-                        self.df_registro_selecionado.at[0, coluna] = valor
-
-            elif file_path.endswith('.ods'):
-                df = pd.read_excel(file_path, engine='odf')
-
-                if df.iloc[0, 0] != "Índice" or df.iloc[0, 1] != "Valor":
-                    QMessageBox.critical(None, "Erro", "O formulário selecionado está incorreto.")
-                    return
-
-                for _, row in df.iloc[1:].iterrows():
-                    coluna_legivel = row[0]
-                    valor = row[1]
-                    coluna = self.colunas_legiveis_inverso.get(coluna_legivel, coluna_legivel)
-                    if coluna in self.normalizacao_valores:
-                        valor = self.normalizacao_valores[coluna].get(valor, valor)
-                    if coluna in self.df_registro_selecionado.columns:
-                        self.df_registro_selecionado.at[0, coluna] = valor
-
-
-            print("DataFrame após carregar o formulário:")
-            print(self.df_registro_selecionado)
-
-            self.parent_dialog.preencher_campos()
-            self.parent_dialog.dados_atualizados.emit()
-
-            QMessageBox.information(None, "Sucesso", "Formulário carregado com sucesso.")
-        except Exception as e:
-            print(f"Erro ao carregar formulário: {str(e)}")
-            QMessageBox.critical(None, "Erro", f"Falha ao carregar formulário: {str(e)}")
-
-
-    def _filtrar_dataframe(self):
-        colunas_incluir = list(self.colunas_legiveis.keys())
-        df_filtrado = self.df_registro_selecionado[colunas_incluir].rename(columns=self.colunas_legiveis)
-        return df_filtrado
-
-    def _adicionar_titulo(self, ws):
-        tipo = self.df_registro_selecionado['tipo'].iloc[0]
-        numero = self.df_registro_selecionado['numero'].iloc[0]
-        ano = self.df_registro_selecionado['ano'].iloc[0]
-        titulo = f"{tipo} nº {numero}/{ano}"
-        ws.merge_cells('A1:B1')
-        ws['A1'] = titulo
-        ws['A1'].font = Font(size=20, bold=True)
-        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[1].height = 40
-
-    def _definir_cabecalhos(self, ws):
-        ws['A2'] = "Índice"
-        ws['B2'] = "Valor"
-        ws['A2'].font = Font(size=14, bold=True)
-        ws['B2'].font = Font(size=14, bold=True)
-        ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['B2'].alignment = Alignment(horizontal='center', vertical='center')
-        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-        ws['A2'].border = thin_border
-        ws['B2'].border = thin_border
-        ws.column_dimensions[get_column_letter(1)].width = 50
-        ws.column_dimensions[get_column_letter(2)].width = 80
-
-    def _preencher_dados(self, ws, df_filtrado):
-        for i, (col_name, value) in enumerate(df_filtrado.iloc[0].items(), start=3):
-            ws[f'A{i}'] = col_name
-            ws[f'B{i}'] = str(value)
-            ws[f'B{i}'].alignment = Alignment(wrap_text=True)
-            fill_color = "F2F2F2" if i % 2 == 0 else "FFFFFF"
-            fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
-            ws[f'A{i}'].fill = fill
-            ws[f'B{i}'].fill = fill
-            ws[f'A{i}'].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            ws.row_dimensions[i].height = 60 if i == 28 else 15
-
-    def _aplicar_bordas(self, ws):
-        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=2):
-            for cell in row:
-                cell.border = thin_border
-
-    def _salvar_arquivo(self, wb):
-        file_path = self.pasta_base / "formulario.xlsx"
-        wb.save(file_path)
-        return file_path
-
-    def _abrir_arquivo(self, file_path):
-        if os.name == 'nt':
-            os.startfile(file_path)
-        elif os.name == 'posix':
-            subprocess.call(['open', file_path])
-        else:
-            subprocess.call(['xdg-open', file_path])
 
 class StackWidgetDispensaManager:
     def __init__(self, parent, default_widget=None):

@@ -24,19 +24,16 @@ from modules.dispensa_eletronica.merge_pdf.merge_anexos import MergePDFDialog
 class Worker(QThread):
     update_status = pyqtSignal(str, str, int) 
     task_complete = pyqtSignal()
-    
+
     def __init__(self, documentos, df_registro_selecionado, parent=None):
         super().__init__(parent)
         self.documentos = documentos
-
         self.config = load_config_path_id()
-
-        self.df_registro_selecionado = df_registro_selecionado  # Adiciona df_registro_selecionado aqui
+        self.df_registro_selecionado = df_registro_selecionado
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
         self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
         self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
         self.ICONS_DIR = ICONS_DIR  # Atualize com o caminho real
-        
         self.pdf_paths = []
 
     def run(self):
@@ -45,8 +42,10 @@ class Worker(QThread):
         for doc in self.documentos:
             doc_desc = doc.get('desc', doc.get('subfolder', 'Documento desconhecido'))
 
-            # Atualiza o status para "sendo gerado" e emite o sinal para atualização do ícone
-            self.update_status.emit(doc_desc, "sendo gerado", 50)
+            # Loop para atualizar os pontos dinamicamente
+            for i in range(3):
+                status = "sendo gerado" + "." * i
+                self.update_status.emit(doc_desc, status, 50)
 
             if "template" in doc:
                 docx_path = self.gerarDocumento(doc["template"], doc["subfolder"], doc["desc"])
@@ -62,7 +61,8 @@ class Worker(QThread):
                 if pdf_path:
                     pdf_paths.append({"pdf_path": pdf_path, "cover_path": TEMPLATE_DISPENSA_DIR / doc["cover"]})
                 else:
-                    QMessageBox.warning(None, "Erro", f"Arquivo PDF não encontrado: {doc['subfolder']}")
+                    error_msg = f"Arquivo PDF não encontrado: {doc['subfolder']}"
+                    print(error_msg) 
 
             # Atualiza o status para "concluído" e emite o sinal para mudar o ícone
             self.update_status.emit(doc_desc, "concluído", 100)
@@ -368,7 +368,7 @@ class ProgressDialog(QDialog):
         layout_h_consolidar = QHBoxLayout()
 
         # Cria o QLabel para o texto "Consolidar Documentos PDFs"
-        self.label_consolidar = QLabel("Consolidar Documentos PDFs.")
+        self.label_consolidar = QLabel("Consolidação de Documentos.")
         self.label_consolidar.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         self.label_consolidar.setStyleSheet("font-size: 14px;")
 
@@ -426,7 +426,7 @@ class ProgressDialog(QDialog):
         """
         Atualiza o ícone de "Consolidar Documentos PDFs" quando o processo de consolidação for concluído.
         """
-        self.label_consolidar.setText("Consolidar Documentos PDFs concluído.")
+        self.label_consolidar.setText("Consolidação de Documentos (concluído)")
         self.icon_label_consolidar.setPixmap(self.icon_done.pixmap(24, 24))  # Altera para o ícone de 'concluído'
 
         # Oculta a barra de progresso quando o processo for concluído

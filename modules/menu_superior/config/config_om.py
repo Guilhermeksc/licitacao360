@@ -55,7 +55,6 @@ class OrganizacoesDialog(QDialog):
         self.editar_dados_btn = QPushButton("Editar Dados")
         self.gerar_tabela_btn.clicked.connect(self.generate_table)
         self.importar_tabela_btn.clicked.connect(self.update_om)
-        self.editar_dados_btn.clicked.connect(self.edit_data)
         buttons_layout.addWidget(self.gerar_tabela_btn)
         buttons_layout.addWidget(self.importar_tabela_btn)
         buttons_layout.addWidget(self.editar_dados_btn)
@@ -79,7 +78,9 @@ class OrganizacoesDialog(QDialog):
                     'uasg': record.value('uasg'),
                     'orgao_responsavel': record.value('orgao_responsavel'),
                     'sigla_om': record.value('sigla_om'),
-                    'indicativo_om': record.value('indicativo_om')
+                    'indicativo_om': record.value('indicativo_om'),
+                    'uf': record.value('uf'),
+                    'codigoMunicipioIbge': record.value('codigoMunicipioIbge')
                 })
 
             df = pd.DataFrame(data)
@@ -89,7 +90,9 @@ class OrganizacoesDialog(QDialog):
                 'uasg': ['Ex: 787010'],  
                 'orgao_responsavel': ['Ex: CENTRO DE INTENDÊNCIA DA MARINHA EM BRASÍLIA'],
                 'sigla_om': ['Ex: CeIMBra'],
-                'indicativo_om': ['Ex: CITBRA']
+                'indicativo_om': ['Ex: CITBRA'],
+                'uf': ['DF'],
+                'codigoMunicipioIbge': ['5300108']
             }
             df = pd.DataFrame(data)
 
@@ -103,6 +106,8 @@ class OrganizacoesDialog(QDialog):
         ws.column_dimensions['A'].width = 15
         ws.column_dimensions['B'].width = 60
         ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 15
+        ws.column_dimensions['E'].width = 30
         wb.save(file_path)
 
         # Abrindo o arquivo Excel após ser criado
@@ -125,7 +130,7 @@ class OrganizacoesDialog(QDialog):
             df = pd.read_excel(filepath)
             
             # Garante que todas as colunas necessárias estejam presentes no DataFrame
-            required_columns = ['uasg', 'orgao_responsavel', 'sigla_om', 'indicativo_om']
+            required_columns = ['uasg', 'orgao_responsavel', 'sigla_om', 'indicativo_om', 'uf', 'codigoMunicipioIbge']
             for col in required_columns:
                 if col not in df.columns:
                     df[col] = None  # Adiciona a coluna com valores None se estiver faltando
@@ -139,6 +144,3 @@ class OrganizacoesDialog(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao importar dados: {str(e)}")
-
-    def edit_data(self):
-        pass

@@ -193,7 +193,9 @@ class SqlModel:
                 link_pncp TEXT,
                 comunicacao_padronizada TEXT,
                 do_responsavel TEXT,
-                ao_responsavel TEXT
+                ao_responsavel TEXT,
+                uf TEXT,
+                codigoMunicipioIbge TEXT                   
             )
         """):
             print("Falha ao criar a tabela 'controle_dispensas':", query.lastError().text())
