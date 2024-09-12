@@ -57,9 +57,6 @@ class DispensaEletronicaWidget(QMainWindow):
         # Inicializa e retorna o modelo SQL utilizando o DatabaseManager
         sql_model = SqlModel(self.database_manager, self)
         return sql_model.setup_model("controle_dispensas", editable=True)
-    
-    def teste(self):
-        print("Teste de botão")
 
     def on_add_item(self):
         dialog = AddItemDialog(self)
@@ -151,8 +148,6 @@ class DispensaEletronicaWidget(QMainWindow):
             except Exception as e:
                 Dialogs.warning(self, "Erro ao carregar", str(e))
 
-
-
     def validate_and_process_data(self, df):
         required_columns = ['ID Processo', 'NUP', 'Objeto', 'uasg']
         if not all(col in df.columns for col in required_columns):
@@ -227,7 +222,6 @@ class DispensaEletronicaWidget(QMainWindow):
                     ))
             conn.commit()
         self.dataUpdated.emit()
-
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -329,7 +323,6 @@ class UIManager:
                 QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
         else:
             QMessageBox.warning(self.parent, "Erro", "Nenhum ID de processo foi encontrado para a linha selecionada.")
-
 
     def editar_dados(self, df_registro_selecionado):
         dialog = EditDataDialog(df_registro_selecionado, self.parent.icons_dir)
@@ -439,7 +432,7 @@ class ButtonManager:
             ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
             ("  Tabelas", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
             ("  Gráficos", self.parent.image_cache['performance'], self.parent.salvar_graficos, "Carrega dados de uma tabela"),
-            ("  PDM", self.parent.image_cache['dashboard'], self.parent.teste, "Abre o painel de controle do processo"),
+            # ("  PDM", self.parent.image_cache['dashboard'], self.parent.teste, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)

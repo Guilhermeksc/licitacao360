@@ -9,17 +9,9 @@ from modules.dispensa_eletronica.formulario_excel import FormularioExcel
 from diretorios import *
 from pathlib import Path
 import pandas as pd
-import os
-import subprocess
 from pathlib import Path
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, Border, Side, PatternFill, Alignment
-from openpyxl.utils import get_column_letter
 import sqlite3
-from fpdf import FPDF 
 import webbrowser
-import requests
-from datetime import datetime, timedelta
 
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()

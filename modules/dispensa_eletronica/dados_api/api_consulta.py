@@ -97,8 +97,7 @@ class PNCPConsulta:
         except requests.exceptions.RequestException as e:
             QMessageBox.critical(self.parent, "Erro", f"Falha na consulta: {str(e)}")
             return None
-
-
+        
     def consultar_por_sequencial(self, sequencial_encontrado):
         # Etapa 1: Consultar a quantidade de itens usando o sequencial encontrado
         url_quantidade = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{sequencial_encontrado}/itens/quantidade"
