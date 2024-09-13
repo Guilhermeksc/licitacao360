@@ -87,7 +87,8 @@ pip install -r requirements.txt
 ### Módulo RPA - Selenium
 ![Contratos](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme6.png)
 
-
+### Módulo Dispensa Eletrônica
+![Contratos](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme7.png)
 
 ## Contribuição
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e enviar pull requests.
