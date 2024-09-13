@@ -27,7 +27,7 @@ Baixe aqui a versão Executável mais recente do Licitação 360 (Em breve)
 Este projeto foi desenvolvido e testado em máquinas Windows. Para garantir o funcionamento correto do **Licitação 360**, certifique-se de que o ambiente atenda aos seguintes requisitos:
 
 - **Sistema Operacional**: Windows 10 ou superior
-- **Python**: Versão 3.12.4
+- **Python**: Versão 3.12.5
 - **Pacote Office**: Microsoft Office instalado
 - **Adobe Acrobat Reader**: Versão mais recente instalada
 
@@ -69,6 +69,8 @@ Para instalar os pacotes necessários, você pode utilizar o seguinte comando:
 ```sh
 pip install -r requirements.txt
 ```
+![Acantucano](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/Acantucano.png)
+
 ## Screenshots dos Módulos do Projeto
 ![Menu Inicial](https://github.com/Guilhermeksc/licitacao360/blob/master/resources/image/readme1.png)
 
