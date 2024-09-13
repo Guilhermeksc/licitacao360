@@ -503,9 +503,7 @@ class EditDataDialog(QDialog):
         classificacao_orcamentaria_layout.addLayout(self.create_layout("Natureza de Despesa (ND):", self.natureza_despesa_edit))
         classificacao_orcamentaria_layout.addLayout(self.create_layout("Unidade Orçamentária (UO):", self.unidade_orcamentaria_edit))
         classificacao_orcamentaria_layout.addLayout(self.create_layout("PTRES:", self.ptres_edit))
-        
-        # classificacao_orcamentaria_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
+    
         classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
 
         return classificacao_orcamentaria_group_box
@@ -843,7 +841,6 @@ class EditDataDialog(QDialog):
         # Adicionando os botões ao layout
         icon_excel_up = QIcon(str(self.ICONS_DIR / "excel_up.png"))
         icon_excel_down = QIcon(str(self.ICONS_DIR / "excel_down.png"))
-        icon_standard = QIcon(str(self.ICONS_DIR / "standard.png"))
 
         criar_formulario_button = self.create_button(
             "   Criar Formulário   ", 
@@ -863,24 +860,11 @@ class EditDataDialog(QDialog):
             icon_size=QSize(45, 45)
         )
 
-        visualizar_pdf_button = self.create_button(
-            "      Pré-Definições     ",
-            icon=icon_standard,
-            callback=self.selecionar_predefinicoes, 
-            tooltip_text="Clique para alterar ou escolher os dados predefinidos", 
-            button_size=QSize(220, 40), 
-            icon_size=QSize(30, 30)
-        )       
-
         formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-        # formulario_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box
-    
-    def selecionar_predefinicoes(self):
-        pass
 
     def preencher_campos(self):
         try:
@@ -1057,13 +1041,6 @@ class EditDataDialog(QDialog):
                 self.carregarDadosCombo(conn, cursor, "Gerente de Crédito%", self.gerente_credito_combo)
                 self.carregarDadosCombo(conn, cursor, "Operador%", self.operador_dispensa_combo)
                 self.carregarDadosCombo(conn, cursor, "NOT LIKE", self.responsavel_demanda_combo)
-
-                # print("Valores carregados no ComboBox:", self.ordenador_combo.count(), "itens")
-                # print("Valores carregados no ComboBox:", self.agente_fiscal_combo.count(), "itens")
-                # print("Valores carregados no ComboBox:", self.gerente_credito_combo.count(), "itens")
-                # print("Valores carregados no ComboBox:", self.operador_dispensa_combo.count(), "itens")
-                # print("Valores carregados no ComboBox:", self.responsavel_demanda_combo.count(), "itens")
-
                 # Preencher comboboxes com os valores de df_registro_selecionado se disponíveis
                 self.preencher_campos()
 
@@ -1094,7 +1071,7 @@ class EditDataDialog(QDialog):
         for index, row in agentes_df.iterrows():
             texto_display = f"{row['nome']}\n{row['posto']}\n{row['funcao']}"
             combo_widget.addItem(texto_display, userData=row.to_dict())
-            print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
+            # print(f"Valores carregados no ComboBox: {combo_widget.count()} itens")
 
     # Função para criar o layout e realizar as operações do grupo PNCP
     def create_pncp_group(self):
@@ -1492,9 +1469,6 @@ class EditDataDialog(QDialog):
     def on_autorizacao_clicked(self):
         print("Botão Autorização clicado")  # Substitua esta função pela funcionalidade desejada
 
-    def importar_tabela(self):
-        pass
-
     def abrir_pasta(self, pasta):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(pasta)))
 
@@ -1550,10 +1524,6 @@ class EditDataDialog(QDialog):
             
         return pastas_necessarias
 
-    def abrirPasta(self):
-        print("Abrir pasta")
-        pass    
-
     def add_pdf_to_merger(self):
         cp_number = self.cp_edit.text()
         if cp_number:
@@ -1565,10 +1535,6 @@ class EditDataDialog(QDialog):
                 print("Ação de adicionar PDF cancelada.")
         else:
             QMessageBox.warning(self, "Erro", "Por favor, insira um número de CP válido.")
-
-    def on_cp_clicked(self):
-        # Implementação do callback para o botão CP
-        pass
 
     def atualizar_action(self):
         icon_confirm = QIcon(str(self.ICONS_DIR / "concluido.png"))
@@ -1603,9 +1569,6 @@ class EditDataDialog(QDialog):
                 atualizar_anexo(section_title, anexo, icon_label)
 
         self.dados_atualizados.emit()
-
-    def legenda_action(self):
-        pass
 
     """
     
@@ -1797,153 +1760,3 @@ class EditDataDialog(QDialog):
                 self.df_registro_selecionado.loc[index, 'codigoMunicipioIbge'] = codigoMunicipioIbge
                 print(f"Updated DataFrame: uasg={uasg}, orgao_responsavel={orgao_responsavel}")
                 self.title_updated.emit(f"{orgao_responsavel} (UASG: {uasg})")
-
-class StackWidgetDispensaManager:
-    def __init__(self, parent, default_widget=None):
-        self.stack = QStackedWidget(parent)
-        self.widgets = {}
-        if default_widget:
-            self.add_widget("default", default_widget)
-
-    def add_widget(self, name, widget):
-        self.widgets[name] = widget
-        self.stack.addWidget(widget)
-
-    def show_widget(self, name):
-        widget = self.widgets.get(name)
-        if widget:
-            self.stack.setCurrentWidget(widget)
-        else:
-            print(f"Widget '{name}' não encontrado.")
-
-    def get_widget(self):
-        return self.stack   
-
-    def fill_frame_dados_secundarios(self):
-        data = self.extract_registro_data()
-        detalhes_layout = QVBoxLayout()
-
-        hbox_top_layout = QHBoxLayout()  # Layout horizontal para os três QGroupBox
-
-        # Preenche os QGroupBox e os adiciona ao layout horizontalhttps://academico.movelms.com/ExamReference/GetExam/17179682#
-        contratacao_group_box = self.create_contratacao_group(data)        
-        dados_do_setor_responsavel_contratacao_group_box = self.fill_frame_dados_do_setor_resposavel_contratacao()
-        sigdem_group = self.setupGrupoSIGDEM()
-        agentes_responsaveis_group = self.fill_frame_agentes_responsaveis()
-
-        hbox_top_layout.addWidget(contratacao_group_box)
-        hbox_top_layout.addWidget(dados_do_setor_responsavel_contratacao_group_box)
-        hbox_top_layout.addWidget(sigdem_group)
-        hbox_top_layout.addWidget(agentes_responsaveis_group)
-
-        # Adiciona o layout horizontal ao layout principal
-        detalhes_layout.addLayout(hbox_top_layout)
-
-        hbox_down_layout = QHBoxLayout()  # Layout horizontal para os QGroupBox
-        # Preenche os QGroupBox e os adiciona ao layout horizontal
-        classificacao_orcamentaria_group_box = self.fill_frame_classificacao_orcamentaria()
-        comunicacao_padronizada_group = self.fill_frame_comunicacao_padronizada()
-        # lista_verificacao_group = self.fill_frame_criar_documentos()
-        formulario_group = self.fill_frame_formulario()
-        
-        # Adiciona o gerar_documentos_group_box e utilidades_group em um layout vertical
-        vertical_widget = QWidget()
-        vertical_layout = QVBoxLayout()
-        vertical_layout.setContentsMargins(0, 0, 0, 0) 
-        vertical_layout.setSpacing(0)
-        vertical_widget.setLayout(vertical_layout)
-        
-        gerar_documentos_group_box = self.create_gerar_documentos_group()
-        utilidades_group = self.fill_frame_utilidades()
-
-        vertical_layout.addWidget(gerar_documentos_group_box)
-        vertical_layout.addWidget(utilidades_group)
-
-        # Criação e configuração da label de imagem fora do grupo de formulário
-        caminho_imagem = IMAGE_PATH / "licitacao_360.png" 
-        licitacao_360_pixmap = QPixmap(str(caminho_imagem))
-        licitacao_360_pixmap = licitacao_360_pixmap.scaled(240, 240, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-
-        image_label = QLabel()
-        image_label.setPixmap(licitacao_360_pixmap)
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Criação de um widget vertical para agrupar elementos
-        vertical_widget_formulario_image = QWidget()
-        vertical_layout_formulario_image = QVBoxLayout()
-        vertical_layout_formulario_image.setContentsMargins(0, 0, 0, 0) 
-        vertical_widget_formulario_image.setLayout(vertical_layout_formulario_image)
-
-        vertical_layout_formulario_image.addWidget(self.fill_frame_formulario())
-        vertical_layout_formulario_image.addWidget(image_label)
-
-        hbox_down_layout.addWidget(classificacao_orcamentaria_group_box)
-        hbox_down_layout.addWidget(comunicacao_padronizada_group)
-        
-        # hbox_down_layout.addWidget(lista_verificacao_group)
-        hbox_down_layout.addWidget(vertical_widget)  # Adiciona o QWidget ao layout horizontal
-        hbox_down_layout.addWidget(vertical_widget_formulario_image)
-
-        # Adiciona o layout horizontal ao layout principal
-        detalhes_layout.addLayout(hbox_down_layout)
-        detalhes_layout.setContentsMargins(0, 0, 0, 0) 
-        detalhes_layout.setSpacing(0)
-
-        self.frame_secundario_layout.addLayout(detalhes_layout)
-    
-class StackWidgetManager:
-    def __init__(self, parent, data_function):
-        """
-        Inicializa o gerenciador de StackWidget.
-        
-        Args:
-            parent: O widget pai onde o QStackedWidget será inserido.
-            data_function: Função que retorna os dados para criação dos widgets.
-        """
-        self.parent = parent
-        self.data_function = data_function
-        self.stacked_widget = QStackedWidget(parent)
-        self.stacked_widget.setStyleSheet(
-            "QStackedWidget {"
-            "border: 1px solid #414242; border-radius: 5px; "
-            "border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; }"
-        )
-        self.widgets = {}  # Armazena os widgets adicionados com seus nomes
-        self.widget_creators = {}  # Funções para criar os widgets
-
-    def add_widget(self, name, widget):
-        """
-        Adiciona um widget ao QStackedWidget e mapeia pelo nome.
-        
-        Args:
-            name (str): Nome do widget para referência futura.
-            widget (QWidget): Instância do widget a ser adicionado.
-        """
-        self.stacked_widget.addWidget(widget)
-        self.widgets[name] = widget
-
-    def show_widget(self, name):
-        """
-        Mostra o widget especificado pelo nome.
-        
-        Args:
-            name (str): Nome do widget a ser mostrado.
-        """
-        if name in self.widgets:
-            self.stacked_widget.setCurrentWidget(self.widgets[name])
-        else:
-            create_widget_function = self.widget_creators.get(name)
-            if create_widget_function:
-                # Cria e mostra o widget, caso ainda não tenha sido criado
-                self.add_widget(name, create_widget_function())
-                self.stacked_widget.setCurrentWidget(self.widgets[name])
-
-    def register_widget_creator(self, name, creator_function):
-        """
-        Registra uma função que cria um widget, associada a um nome.
-        
-        Args:
-            name (str): Nome do widget.
-            creator_function (function): Função que retorna uma instância do widget.
-        """
-        self.widget_creators[name] = creator_function

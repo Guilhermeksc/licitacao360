@@ -10,13 +10,13 @@ from modules.dispensa_eletronica.sql_model import SqlModel, CustomTableView
 from modules.dispensa_eletronica.menu.add_item import AddItemDialog
 from modules.dispensa_eletronica.menu.salvar_tabela import SaveTableDialog
 from modules.dispensa_eletronica.menu.graficos import GraficTableDialog
+from modules.dispensa_eletronica.menu.gerar_tabela import TabelaResumidaManager
 import pandas as pd
 import os
 import subprocess
 import logging
 import sqlite3
 from modules.dispensa_eletronica.edit_dialog import EditDataDialog
-
 class DispensaEletronicaWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
@@ -49,7 +49,7 @@ class DispensaEletronicaWidget(QMainWindow):
         self.image_cache = load_images(self.icons_dir, [
             "business.png", "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "confirm_green.png", "archive.png",
             "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "performance.png",
-            "excel.png", "calendar.png", "report.png", "management.png", "dashboard.png"
+            "excel.png", "calendar.png", "report.png", "management.png", "image-processing.png"
         ])
         self.selectedIndex = None
 
@@ -106,12 +106,32 @@ class DispensaEletronicaWidget(QMainWindow):
         self.export_thread.start()
 
     def salvar_tabela_resumida(self):
-        # Lógica para salvar tabela resumida
-        resumida_output_path = os.path.join(os.getcwd(), "controle_dispensa_eletronica_resumida.xlsx")
-        self.export_thread = ExportThread(self.model, resumida_output_path)
-        self.export_thread.finished.connect(self.handle_export_finished)
-        self.export_thread.start()
+        # Criar instância do TabelaResumidaManager
+        tabela_manager = TabelaResumidaManager(self.model)
+        
+        # Carregar dados do modelo
+        tabela_manager.carregar_dados()
 
+        # Exportar para Excel
+        output_path = os.path.join(os.getcwd(), "tabela_resumida.xlsx")
+        tabela_manager.exportar_para_excel(output_path)
+
+        # Abrir o arquivo Excel gerado
+        tabela_manager.abrir_arquivo_excel(output_path)
+
+    def salvar_print(self):
+
+        tabela_manager = TabelaResumidaManager(self.model)
+        
+        # Carregar dados do modelo
+        tabela_manager.carregar_dados()
+        
+        # Caminho para salvar a imagem da tabela
+        output_image_path = os.path.join(os.getcwd(), "tabela_resumida.png")
+        
+        # Tirar o print da tabela e abrir a imagem
+        tabela_manager.tirar_print_da_tabela(output_image_path)
+                    
     def handle_export_finished(self, message):
         if 'successfully' in message:
             Dialogs.info(self, "Exportação de Dados", "Dados exportados com sucesso!")
@@ -432,7 +452,7 @@ class ButtonManager:
             ("  Excluir", self.parent.image_cache['delete'], self.parent.excluir_linha, "Exclui um item selecionado"),
             ("  Tabelas", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
             ("  Gráficos", self.parent.image_cache['performance'], self.parent.salvar_graficos, "Carrega dados de uma tabela"),
-            # ("  PDM", self.parent.image_cache['dashboard'], self.parent.teste, "Abre o painel de controle do processo"),
+            ("  ConGes", self.parent.image_cache['image-processing'], self.parent.salvar_print, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)

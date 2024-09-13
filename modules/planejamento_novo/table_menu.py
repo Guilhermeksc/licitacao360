@@ -16,7 +16,6 @@ from modules.planejamento.escalar_pregoeiro import EscalarPregoeiroDialog
 from modules.planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
 from modules.planejamento.edital import EditalDialog
 from modules.planejamento_novo.utilidades import carregar_dados_pregao
-df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
 

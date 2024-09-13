@@ -18,8 +18,6 @@ from modules.planejamento_novo.utilidades import DatabaseManager, carregar_dados
 from modules.planejamento_novo.custom import CustomItemDelegate, CenterAlignDelegate, load_and_map_icons
 from modules.planejamento_novo.table_menu import TableMenu
 from modules.planejamento_novo.carregar_tabela import CarregarTabelaDialog
-
-df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None
 
