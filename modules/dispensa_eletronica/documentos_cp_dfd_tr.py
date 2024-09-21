@@ -1167,6 +1167,29 @@ class ConsolidarDocumentos:
         save_path = pasta_base / f"{id_processo} - {file_description}.docx"
         return template_path, save_path
 
+    def verificar_pastas(self, pasta_base):
+        id_processo_modificado = self.id_processo.replace("/", "-")
+        objeto_modificado = self.objeto.replace("/", "-")
+        base_path = pasta_base / f'{id_processo_modificado} - {objeto_modificado}'
+
+        pastas_necessarias = [
+            base_path / '1. Autorizacao',
+            base_path / '2. CP e anexos',
+            base_path / '3. Aviso',
+            base_path / '2. CP e anexos' / 'DFD',
+            base_path / '2. CP e anexos' / 'DFD' / 'Anexo A - Relatorio Safin',
+            base_path / '2. CP e anexos' / 'DFD' / 'Anexo B - Especificações e Quantidade',
+            base_path / '2. CP e anexos' / 'TR',
+            base_path / '2. CP e anexos' / 'TR' / 'Pesquisa de Preços',
+            base_path / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária',
+            base_path / '2. CP e anexos' / 'Declaracao de Adequação Orçamentária' / 'Relatório do PDM-Catser',
+            base_path / '2. CP e anexos' / 'Justificativas Relevantes',
+        ]
+
+        # Verifica se todas as pastas necessárias existem
+        pastas_existentes = all(pasta.exists() for pasta in pastas_necessarias)
+        return pastas_existentes
+    
     def verificar_e_criar_pastas(self, pasta_base):
         id_processo_modificado = self.id_processo.replace("/", "-")
         objeto_modificado = self.objeto.replace("/", "-")

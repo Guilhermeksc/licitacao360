@@ -16,6 +16,7 @@ import webbrowser
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
     title_updated = pyqtSignal(str)
+    status_atualizado = pyqtSignal(str, str)
 
     def __init__(self, df_registro_selecionado, icons_dir, parent=None):
         super().__init__(parent)
@@ -31,6 +32,9 @@ class EditDataDialog(QDialog):
 
         self._init_ui()
         self._init_connections()
+
+        # Conectar o sinal ao método que atualiza o status_label
+        self.status_atualizado.connect(self.atualizar_status_label)
 
     def _init_paths(self):
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
@@ -48,7 +52,7 @@ class EditDataDialog(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1280, 620)
+        self.setFixedSize(1280, 720)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
@@ -293,11 +297,12 @@ class EditDataDialog(QDialog):
         # Criando o ícone
         icon_label = QLabel()
         icon = QIcon(str(self.ICONS_DIR / "prioridade.png"))
-        icon_pixmap = icon.pixmap(30, 30)  # Definindo o tamanho do ícone
+        icon_pixmap = icon.pixmap(27, 27)  # Definindo o tamanho do ícone
         icon_label.setPixmap(icon_pixmap)
+        icon_label.setFixedSize(30, 30)
 
         # Adicionando o ícone ao layout
-        objeto_layout.addWidget(icon_label)
+        objeto_layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Aplicando estilo diretamente aos widgets dentro do layout
         self.apply_widget_style(self.objeto_edit)
@@ -434,13 +439,20 @@ class EditDataDialog(QDialog):
         atividade_custeio_layout.addWidget(self.radio_custeio_nao)
         contratacao_layout.addLayout(atividade_custeio_layout)
 
-        # contratacao_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        cnpj_layout = QHBoxLayout()
+
+        # Criação do campo de texto com o valor '00394502000144'
+        self.cnpj_matriz_edit = QLineEdit('00394502000144')
+        cnpj_layout.addLayout(self.create_layout("CNPJ Matriz:", self.cnpj_matriz_edit))
+
+        # Adicionando o campo CNPJ ao layout principal antes do campo "Sequencial PNCP"
+        contratacao_layout.addLayout(cnpj_layout)
 
         # Layout Link PNCP
         link_pncp_layout = QHBoxLayout()
 
         self.link_pncp_edit = QLineEdit(data.get('link_pncp', ''))
-        link_pncp_layout.addLayout(self.create_layout("Link PNCP:", self.link_pncp_edit))
+        link_pncp_layout.addLayout(self.create_layout("Sequencial PNCP:", self.link_pncp_edit))
 
         icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
         link_pncp_button = self.create_button(
@@ -453,6 +465,8 @@ class EditDataDialog(QDialog):
         )
         self.apply_widget_style(link_pncp_button)
         link_pncp_layout.addWidget(link_pncp_button)
+
+        # Adicionando o layout do campo Sequencial PNCP
         contratacao_layout.addLayout(link_pncp_layout)
 
         contratacao_group_box.setLayout(contratacao_layout)
@@ -460,12 +474,15 @@ class EditDataDialog(QDialog):
         return contratacao_group_box
 
     def on_link_pncp_clicked(self):
-        url = self.link_pncp_edit.text()
-        if url:
-            webbrowser.open(url)
-        else:
-            # Exibir uma mensagem de erro caso o campo esteja vazio
-            print("URL não encontrada. Por favor, insira um link válido.")
+        cnpj = self.cnpj_matriz_edit.text()  # Valor do CNPJ Matriz
+        ano = self.ano  # Valor do Ano
+        sequencial_pncp = self.link_pncp_edit.text()  # Valor do Sequencial PNCP
+
+        # Montando a URL
+        url = f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{sequencial_pncp}"
+
+        # Abrindo o link no navegador padrão
+        QDesktopServices.openUrl(QUrl(url))
 
     def create_classificacao_orcamentaria_group(self):
         data = self.extract_registro_data()
@@ -484,11 +501,12 @@ class EditDataDialog(QDialog):
         # Criando o ícone
         icon_label_layout = QLabel()
         icon_valor = QIcon(str(self.ICONS_DIR / "emenda_parlamentar.png"))
-        icon_pixmap_valor = icon_valor.pixmap(30, 30)  # Definindo o tamanho do ícone
+        icon_pixmap_valor = icon_valor.pixmap(27, 27)  # Definindo o tamanho do ícone
         icon_label_layout.setPixmap(icon_pixmap_valor)
+        icon_label_layout.setFixedSize(30, 30)
 
         # Adicionando o ícone ao layout
-        valor_layout.addWidget(icon_label_layout)
+        valor_layout.addWidget(icon_label_layout, alignment=Qt.AlignmentFlag.AlignRight)
 
         classificacao_orcamentaria_layout.addLayout(valor_layout)
 
@@ -728,6 +746,7 @@ class EditDataDialog(QDialog):
                 'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
                 'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
                 'comunicacao_padronizada': self.cp_edit.text().strip(),
+                'link_pncp': self.link_pncp_edit.text().strip(),
             }
 
             # Verificar se as colunas 'uf' e 'codigoMunicipioIbge' estão presentes
@@ -837,7 +856,6 @@ class EditDataDialog(QDialog):
         formulario_group_box.setFixedWidth(400)   
         formulario_layout = QVBoxLayout()
 
-
         # Adicionando os botões ao layout
         icon_excel_up = QIcon(str(self.ICONS_DIR / "excel_up.png"))
         icon_excel_down = QIcon(str(self.ICONS_DIR / "excel_down.png"))
@@ -905,6 +923,7 @@ class EditDataDialog(QDialog):
             self.radio_custeio_sim.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Sim')
             self.radio_custeio_nao.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Não')
             self.cp_edit.setText(str(self.df_registro_selecionado.at[0, 'comunicacao_padronizada']))
+            self.link_pncp_edit.setText(str(self.df_registro_selecionado.at[0, 'link_pncp']))
 
         except KeyError as e:
             print(f"Erro ao preencher campos: {str(e)}")
@@ -952,10 +971,6 @@ class EditDataDialog(QDialog):
         self.apply_widget_style(visualizar_pdf_button)
         utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        icon_info_sigdem = QIcon(str(self.ICONS_DIR / "info_sigdem.png"))
-        info_sigdem_button = self.create_button("Informações SIGDEM", icon=icon_info_sigdem, callback=self.on_autorizacao_clicked, tooltip_text="Clique para gerar a Declaração de Adequação Orçamentária", button_size=QSize(210, 40), icon_size=QSize(40, 40))
-        self.apply_widget_style(info_sigdem_button)
-        utilidades_layout.addWidget(info_sigdem_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         return utilidades_layout
     
@@ -1113,7 +1128,7 @@ class EditDataDialog(QDialog):
         self.progress_dialog.show()
 
         # Cria a instância da thread de consulta
-        self.thread = PNCPConsultaThread(self.numero, self.ano, self.data_sessao, self.uasg, self.uf, self.codigoMunicipioIbge, self)
+        self.thread = PNCPConsultaThread(self.ano, self.link_pncp, self.uasg, self)
 
         # Conectar os sinais da thread para manipular o resultado
         self.thread.consulta_concluida.connect(self.on_consulta_concluida)
@@ -1133,19 +1148,49 @@ class EditDataDialog(QDialog):
         # Fechar a barra de progresso
         self.progress_dialog.close()
 
-        # Atualizar a interface com os resultados da consulta
-        resultados = []
-        consulta_pncp = PNCPConsulta(self.numero, self.ano, self.data_sessao, self.uasg, self.uf, self.codigoMunicipioIbge, self.parent)
-        for item_data in json_data:
-            resultados.extend(consulta_pncp.formatar_resultados(item_data))
+        if json_data:
+            # Exibir os dados obtidos no QDialog chamando o método da classe PNCPConsulta
+            consulta_pncp = PNCPConsulta(self.ano, self.link_pncp, self.uasg, self)
+            consulta_pncp.exibir_dados_em_dialog(json_data)
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum dado foi retornado.")
 
-        self.result_model.setStringList(resultados)
-
-        # Salvar o JSON na área de trabalho
-        consulta_pncp.salvar_json_na_area_de_trabalho(json_data, 'resultados_consulta')
-
-        # Reabilitar o botão
+        # Reabilitar o botão de consulta
         self.consulta_button.setEnabled(True)
+
+    def exibir_dados_em_dialog(self, json_data):
+        # Cria o QDialog para exibir os dados
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Dados do PNCP")
+
+        # Cria um layout vertical
+        layout = QVBoxLayout()
+
+        # Campo de texto para exibir o JSON formatado
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+
+        # Exibir os dados de forma legível no QTextEdit
+        texto_exibicao = ""
+        for item in json_data:
+            for key, value in item.items():
+                texto_exibicao += f"{key}: {value}\n"
+            texto_exibicao += "\n"  # Separar itens com uma linha em branco
+        text_edit.setText(texto_exibicao)
+
+        # Botão de fechar o diálogo
+        button_close = QPushButton("Fechar")
+        button_close.clicked.connect(dialog.accept)
+
+        # Adiciona os widgets ao layout
+        layout.addWidget(text_edit)
+        layout.addWidget(button_close)
+
+        # Define o layout no diálogo
+        dialog.setLayout(layout)
+
+        # Exibe o diálogo
+        dialog.exec()
 
     def on_erro_consulta(self, mensagem):
         # Fechar a barra de progresso em caso de erro
@@ -1305,6 +1350,40 @@ class EditDataDialog(QDialog):
     def create_gerar_documentos_group(self):
         gerar_documentos_layout = QVBoxLayout()
 
+        # Verifica se a estrutura de pastas existe
+        pastas_existentes = self.consolidador.verificar_pastas(self.consolidador.pasta_base)
+
+        # Criando layout horizontal para exibir o ícone e o status juntos
+        status_layout = QHBoxLayout()
+
+        # Define o ícone com base no status da verificação
+        if pastas_existentes:
+            self.status_label = QLabel("Pastas encontradas")  # Define status_label como atributo da classe
+            self.status_label.setStyleSheet("font-size: 14px;")
+            self.icon_label = QLabel()
+            icon_folder = QIcon(str(self.ICONS_DIR / "folder_v.png"))  # Ícone de sucesso
+        else:
+            self.status_label = QLabel("Pastas não encontradas")  # Define status_label como atributo da classe
+            self.status_label.setStyleSheet("font-size: 14px;")
+            self.icon_label = QLabel()
+            icon_folder = QIcon(str(self.ICONS_DIR / "folder_x.png"))  # Ícone de erro
+
+        # Define o tamanho do ícone e adiciona ao QLabel
+        icon_pixmap = icon_folder.pixmap(30, 30)
+        self.icon_label.setPixmap(icon_pixmap)
+
+        # Adiciona o ícone e a mensagem ao layout
+        status_layout.addWidget(self.icon_label)
+        status_layout.addWidget(self.status_label)
+
+        # Adiciona o ícone e a mensagem ao layout com alinhamento à direita
+        status_layout.addStretch()  # Isso empurra todo o conteúdo para a direita
+
+
+        # Adiciona o layout de status ao layout principal
+        gerar_documentos_layout.addLayout(status_layout)
+
+        
         icon_pdf = QIcon(str(self.ICONS_DIR / "pdf.png"))
         icon_copy = QIcon(str(self.ICONS_DIR / "copy.png"))
 
@@ -1343,9 +1422,21 @@ class EditDataDialog(QDialog):
             gerar_documentos_layout.addLayout(button_layout)
 
         return gerar_documentos_layout
-    
+
+    def atualizar_status_label(self, status_message, icon_path):
+        # Atualiza o texto do status_label com a mensagem passada
+        self.status_label.setText(status_message)
+
+        # Atualiza o ícone
+        icon_folder = QIcon(icon_path)
+        icon_pixmap = icon_folder.pixmap(30, 30)  # Define o tamanho do ícone
+        self.icon_label.setPixmap(icon_pixmap)
+
+        # Opcional: Mude a cor do texto de status (se necessário)
+        self.status_label.setStyleSheet("font-size: 14px;")
+
     def handle_gerar_autorizacao(self):
-        self.assunto_text = f"{self.id_processo} - Abertura de Dispensa Eletrônica"
+        self.assunto_text = f"{self.id_processo} - Abertura de Processo ({self.objeto})"
         self.sinopse_text = (
             f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1354,8 +1445,11 @@ class EditDataDialog(QDialog):
         self.update_text_fields()
         self.consolidador.gerar_autorizacao()
 
+        # Emite o sinal passando a mensagem de status e o ícone de sucesso (folder_v.png)
+        self.status_atualizado.emit("Pastas encontradas", str(self.ICONS_DIR / "folder_v.png"))
+
     def handle_gerar_autorizacao_sidgem(self):
-        self.assunto_text = f"{self.id_processo} - Abertura de Dispensa Eletrônica"
+        self.assunto_text = f"{self.id_processo} - Abertura de Processo ({self.objeto})"
         self.sinopse_text = (
             f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1364,7 +1458,7 @@ class EditDataDialog(QDialog):
         self.update_text_fields()
 
     def handle_gerar_comunicacao_padronizada(self):
-        self.assunto_text = f"{self.id_processo} - CP e Anexos"
+        self.assunto_text = f"{self.id_processo} - Documentos de Planejamento ({self.objeto})"
         self.sinopse_text = (
             f"Documentos de Planejamento (DFD, TR e Declaração de Adequação Orçamentária) referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1374,7 +1468,7 @@ class EditDataDialog(QDialog):
         self.consolidador.gerar_comunicacao_padronizada()
 
     def handle_gerar_comunicacao_padronizada_sidgem(self):
-        self.assunto_text = f"{self.id_processo} - CP e Anexos"
+        self.assunto_text = f"{self.id_processo} - Documentos de Planejamento ({self.objeto})"
         self.sinopse_text = (
             f"Documentos de Planejamento (DFD, TR e Declaração de Adequação Orçamentária) referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1383,7 +1477,7 @@ class EditDataDialog(QDialog):
         self.update_text_fields()
 
     def handle_gerar_aviso_dispensa(self):
-        self.assunto_text = f"{self.id_processo} - Aviso de Dispensa Eletrônica"
+        self.assunto_text = f"{self.id_processo} - Aviso ({self.objeto})"
         self.sinopse_text = (
             f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1393,7 +1487,7 @@ class EditDataDialog(QDialog):
         self.consolidador.gerar_aviso_dispensa()
 
     def handle_gerar_aviso_dispensa_sidgem(self):
-        self.assunto_text = f"{self.id_processo} - Aviso de Dispensa Eletrônica"
+        self.assunto_text = f"{self.id_processo} - Aviso ({self.objeto})"
         self.sinopse_text = (
             f"Aviso referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1414,7 +1508,7 @@ class EditDataDialog(QDialog):
         labelAssunto = QLabel("No campo “Assunto”:")
         labelAssunto.setStyleSheet("font-size: 12pt;")
         layout.addWidget(labelAssunto)
-        self.textEditAssunto = QTextEdit(f"{self.id_processo} - Abertura de Dispensa Eletrônica")
+        self.textEditAssunto = QTextEdit(f"{self.id_processo} - Abertura de Processo ({self.objeto})")
         self.textEditAssunto.setStyleSheet("font-size: 12pt;")
         self.textEditAssunto.setMaximumHeight(60)
         layoutHAssunto = QHBoxLayout()
