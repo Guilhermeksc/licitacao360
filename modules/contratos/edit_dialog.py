@@ -26,7 +26,7 @@ class StackWidgetManager:
         )
         self.widgets = {}
         self.widget_creators = {
-            "Informações Gerais": self.create_widget_informacoes_gerais,
+            "Informações": self.create_widget_informacoes_gerais,
             "Termo Aditivo": self.create_widget_termo_aditivo,
             "Gestão/Fiscalização": self.create_widget_gestao_fiscalizacao,
             "Status": self.create_widget_status,
@@ -187,7 +187,7 @@ class StackWidgetManager:
         h_layout.addWidget(line)
         h_layout.addWidget(right_container)
 
-        self.add_widget("Informações Gerais", widget)
+        self.add_widget("Informações", widget)
 
     def init_combobox_data(self):
         # Inicialize o DatabaseManager para carregar dados no combobox
@@ -466,7 +466,7 @@ class AtualizarDadosContratos(QDialog):
         nav_layout.addWidget(image_label_esquerda)
 
         self.navigation_buttons = []
-        self.add_navigation_button(nav_layout, "Informações Gerais", lambda: self.show_widget("Informações Gerais"))
+        self.add_navigation_button(nav_layout, "Informações", lambda: self.show_widget("Informações"))
         self.add_navigation_button(nav_layout, "Termo Aditivo", lambda: self.show_widget("Termo Aditivo"))
         self.add_navigation_button(nav_layout, "Gestão/Fiscalização", lambda: self.show_widget("Gestão/Fiscalização"))
         self.add_navigation_button(nav_layout, "Status", lambda: self.show_widget("Status"))
@@ -478,7 +478,7 @@ class AtualizarDadosContratos(QDialog):
 
         content_layout.addWidget(self.stack_manager.get_widget())
 
-        self.show_widget("Informações Gerais")
+        self.show_widget("Informações ")
 
         h_layout.addLayout(content_layout)
 

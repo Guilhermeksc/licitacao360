@@ -52,7 +52,7 @@ class EditDataDialog(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1280, 720)
+        self.setFixedSize(1250, 720)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
@@ -81,7 +81,7 @@ class EditDataDialog(QDialog):
         self.setLayout(hlayout_main)
 
         # Mostra o widget inicial
-        self.show_widget("Informações Gerais")
+        self.show_widget("Informações")
     
     def _init_connections(self):
         self.title_updated.connect(self.update_title_label_text)
@@ -104,7 +104,7 @@ class EditDataDialog(QDialog):
 
         # Lista de botões de navegação
         buttons = [
-            ("Informações Gerais", "Informações Gerais"),
+            ("Informações", "Informações"),
             ("Setor Responsável", "Setor Responsável"),
             ("Documentos", "Documentos"),
             ("Anexos", "Anexos"),
@@ -181,7 +181,7 @@ class EditDataDialog(QDialog):
 
         # Método para configurar os widgets no StackWidgetManager
         widgets = {
-            "Informações Gerais": self.stacked_widget_info(data),
+            "Informações": self.stacked_widget_info(data),
             "Setor Responsável": self.stacked_widget_responsaveis(data),
             "Documentos": self.stacked_widget_documentos(data),
             "Anexos": self.stacked_widget_anexos(data),
@@ -947,24 +947,51 @@ class EditDataDialog(QDialog):
 
 
     """
+    def criar_e_abrir_pasta(self):
+        # Cria a estrutura de pastas
+        self.consolidador.verificar_e_criar_pastas(self.pasta_base / self.nome_pasta)
+        
+        # Após criar, tenta abrir a pasta
+        self.abrir_pasta(self.pasta_base / self.nome_pasta)
+        self.status_atualizado.emit("Pastas encontradas", str(self.ICONS_DIR / "folder_v.png"))
+
+    def abrir_pasta(self, pasta_path):
+        if pasta_path.exists() and pasta_path.is_dir():
+            # Abre a pasta no explorador de arquivos usando QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(pasta_path)))
+        else:
+            QMessageBox.warning(self, "Erro", "A pasta selecionada não existe ou não é um diretório.")
 
     def create_utilidades_group(self):
         utilidades_layout = QHBoxLayout()
         utilidades_layout.setSpacing(0)
         utilidades_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Verifique se pasta_base está corretamente inicializada
+        if not hasattr(self, 'pasta_base') or not isinstance(self.pasta_base, Path):
+            self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Documentos')))  # Exemplo de inicialização
+
+        # Define um nome padrão para a pasta (ou modifique conforme necessário)
+        self.nome_pasta = f'{self.id_processo.replace("/", "-")} - {self.objeto.replace("/", "-")}'
+
+        # Botão para criar a estrutura de pastas e abrir a pasta
+        icon_criar_pasta = QIcon(str(self.ICONS_DIR / "create-folder.png"))
+        criar_pasta_button = self.create_button(
+            "Criar e Abrir Pasta", 
+            icon=icon_criar_pasta, 
+            callback=self.criar_e_abrir_pasta,  # Chama a função que cria e abre a pasta
+            tooltip_text="Clique para criar a estrutura de pastas e abrir", 
+            button_size=QSize(210, 40), 
+            icon_size=QSize(40, 40)
+        )
+        self.apply_widget_style(criar_pasta_button)
+        utilidades_layout.addWidget(criar_pasta_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
         # Botão para abrir o arquivo de registro
-        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "salvar_pasta.png"))
+        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "zip-folder.png"))
         editar_registro_button = self.create_button("Local de Salvamento", icon=icon_salvar_pasta, callback=self.consolidador.alterar_diretorio_base, tooltip_text="Clique para alterar o local de salvamento dos arquivos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
         self.apply_widget_style(editar_registro_button)
         utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Botão para abrir o arquivo de registro
-        icon_open_folder = QIcon(str(self.ICONS_DIR / "open-folder.png"))
-        visualizar_pdf_button = self.create_button("Abrir Pasta Base", icon=icon_open_folder, callback=self.consolidador.abrir_pasta_base, tooltip_text="Clique para alterar ou escolher os dados predefinidos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
-        self.apply_widget_style(visualizar_pdf_button)
-        utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
         # Botão para abrir o arquivo de registro
         icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
         visualizar_pdf_button = self.create_button("Editar Modelos", icon=icon_template, callback=self.consolidador.editar_modelo, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
@@ -1090,30 +1117,96 @@ class EditDataDialog(QDialog):
 
     # Função para criar o layout e realizar as operações do grupo PNCP
     def create_pncp_group(self):
-        data = self.extract_registro_data()
-
-        # GroupBox para Anexos
+        # GroupBox para os dados integrados ao PNCP
         anexos_group_box = QGroupBox("Dados integrados ao PNCP")
         self.apply_widget_style(anexos_group_box)
 
         # Layout para o GroupBox
         layout = QVBoxLayout()
+        icon_api = QIcon(str(self.ICONS_DIR / "api.png"))
 
         # Botão para realizar a consulta
         self.consulta_button = QPushButton("Consultar PNCP")
+        self.consulta_button.setIcon(icon_api)  # Define o ícone no botão
+        self.consulta_button.setIconSize(QSize(40, 40))  # Define o tamanho do ícone para 40x40
         self.consulta_button.clicked.connect(self.on_consultar_pncp)
+
         layout.addWidget(self.consulta_button)
 
-        # ListView para exibir os resultados
-        self.result_list = QListView()
-        self.result_model = QStringListModel()
-        self.result_list.setModel(self.result_model)
-        layout.addWidget(self.result_list)
+        # Substituir QListView por QTreeView
+        self.result_tree = QTreeView()
+        self.result_model = QStandardItemModel()
+        self.result_tree.setModel(self.result_model)
+        self.result_model.setHorizontalHeaderLabels(['Informações', 'Dados', 'Unidade de Fornecimento', 'Valor Unitário', 'Quantidade', 'Situação'])
+        layout.addWidget(self.result_tree)
 
         # Definir layout no GroupBox
         anexos_group_box.setLayout(layout)
 
+        # Carregar dados do banco de dados CONTROLE_DADOS_PNCP
+        self.load_tree_data()
+
         return anexos_group_box
+
+    def load_tree_data(self):
+        # Definir o nome da tabela com base em self.numero, self.ano, self.sequencial e self.uasg
+        table_name = f"DE{self.numero}{self.ano}{self.link_pncp}{self.uasg}"
+
+        # Conectar ao banco de dados CONTROLE_DADOS_PNCP
+        conn = sqlite3.connect(CONTROLE_DADOS_PNCP)
+        cursor = conn.cursor()
+
+        try:
+            # Verificar se a tabela existe no banco de dados
+            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+            table_exists = cursor.fetchone()
+
+            if table_exists:
+                # Raiz será o self.numero
+                root_item = QStandardItem(str(self.numero))
+                self.result_model.appendRow(root_item)
+
+                # Consultar os dados da tabela
+                cursor.execute(f"SELECT * FROM {table_name}")
+                rows = cursor.fetchall()
+
+                # Adicionar os dados ao QTreeView
+                for row in rows:
+                    # Informações principais
+                    numero_item = QStandardItem(str(row[0]))  # Supondo que a primeira coluna seja o número do item
+                    dados_item = QStandardItem(str(row[5]))  # Supondo que a segunda coluna seja os dados
+                    unidade_fornecimento = QStandardItem(str(row[18])) 
+                    valor_homologado = QStandardItem(str(row[22])) 
+                    quantidade = QStandardItem(str(row[13])) 
+                    situacao = QStandardItem(str(row[14])) 
+                    
+                    # Adicionar o item e seus dados à raiz
+                    root_item.appendRow([numero_item, dados_item, unidade_fornecimento, valor_homologado, quantidade, situacao])
+
+                    # Criar filhos para cada item com os dados adicionais
+                    child_data = {
+                        'Data Resultado': row[2],
+                        'Fornecedor': row[7],
+                        'Nome Razão Social': row[8],
+                        'Número Controle PNCP': row[9],
+                        'Benefício Nome': row[16],
+                        'Valor Unitário Estimado': row[21]
+                    }
+
+                    for key, value in child_data.items():
+                        child_item = QStandardItem(f"{key}: {value}")
+                        numero_item.appendRow([child_item])
+
+                # Expande todas as linhas
+                self.result_tree.expandAll()
+
+            else:
+                print(f"Tabela '{table_name}' não encontrada.")
+
+        except sqlite3.Error as e:
+            print(f"Erro ao carregar os dados: {e}")
+        finally:
+            conn.close()
 
     def on_consultar_pncp(self):
         # Desabilitar o botão enquanto a consulta está sendo feita
@@ -1128,7 +1221,7 @@ class EditDataDialog(QDialog):
         self.progress_dialog.show()
 
         # Cria a instância da thread de consulta
-        self.thread = PNCPConsultaThread(self.ano, self.link_pncp, self.uasg, self)
+        self.thread = PNCPConsultaThread(self.numero, self.ano, self.link_pncp, self.uasg, self)
 
         # Conectar os sinais da thread para manipular o resultado
         self.thread.consulta_concluida.connect(self.on_consulta_concluida)
@@ -1144,13 +1237,24 @@ class EditDataDialog(QDialog):
         """Exibe as mensagens de progresso no diálogo de progresso."""
         self.progress_dialog.setLabelText(mensagem)
 
+    def on_erro_consulta(self, mensagem):
+        """Manuseia o erro da consulta exibindo uma mensagem."""
+        # Fechar a barra de progresso
+        self.progress_dialog.close()
+
+        # Exibir mensagem de erro
+        QMessageBox.critical(self, "Erro na Consulta", mensagem)
+
+        # Reabilitar o botão de consulta
+        self.consulta_button.setEnabled(True)
+
     def on_consulta_concluida(self, json_data):
         # Fechar a barra de progresso
         self.progress_dialog.close()
 
         if json_data:
             # Exibir os dados obtidos no QDialog chamando o método da classe PNCPConsulta
-            consulta_pncp = PNCPConsulta(self.ano, self.link_pncp, self.uasg, self)
+            consulta_pncp = PNCPConsulta(self.numero, self.ano, self.link_pncp, self.uasg, self)
             consulta_pncp.exibir_dados_em_dialog(json_data)
         else:
             QMessageBox.warning(self, "Aviso", "Nenhum dado foi retornado.")
