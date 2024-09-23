@@ -1137,7 +1137,7 @@ class EditDataDialog(QDialog):
         self.result_tree = QTreeView()
         self.result_model = QStandardItemModel()
         self.result_tree.setModel(self.result_model)
-        self.result_model.setHorizontalHeaderLabels(['Informações', 'Dados', 'Unidade de Fornecimento', 'Valor Unitário', 'Quantidade', 'Situação'])
+        self.result_model.setHorizontalHeaderLabels(['Informações'])
         layout.addWidget(self.result_tree)
 
         # Definir layout no GroupBox
@@ -1152,6 +1152,10 @@ class EditDataDialog(QDialog):
         # Definir o nome da tabela com base em self.numero, self.ano, self.sequencial e self.uasg
         table_name = f"DE{self.numero}{self.ano}{self.link_pncp}{self.uasg}"
 
+        # Definir os ícones
+        icon_homologado = QIcon(str(self.ICONS_DIR / "checked.png"))
+        icon_nao_homologado = QIcon(str(self.ICONS_DIR / "alert.png"))
+
         # Conectar ao banco de dados CONTROLE_DADOS_PNCP
         conn = sqlite3.connect(CONTROLE_DADOS_PNCP)
         cursor = conn.cursor()
@@ -1162,8 +1166,9 @@ class EditDataDialog(QDialog):
             table_exists = cursor.fetchone()
 
             if table_exists:
-                # Raiz será o self.numero
-                root_item = QStandardItem(str(self.numero))
+                # Criar a raiz com o formato "{self.numero}/{self.ano} - {self.objeto}"
+                root_text = f"{self.numero}/{self.ano} - {self.objeto}"
+                root_item = QStandardItem(root_text)
                 self.result_model.appendRow(root_item)
 
                 # Consultar os dados da tabela
@@ -1172,25 +1177,36 @@ class EditDataDialog(QDialog):
 
                 # Adicionar os dados ao QTreeView
                 for row in rows:
-                    # Informações principais
-                    numero_item = QStandardItem(str(row[0]))  # Supondo que a primeira coluna seja o número do item
-                    dados_item = QStandardItem(str(row[5]))  # Supondo que a segunda coluna seja os dados
-                    unidade_fornecimento = QStandardItem(str(row[18])) 
-                    valor_homologado = QStandardItem(str(row[22])) 
-                    quantidade = QStandardItem(str(row[13])) 
-                    situacao = QStandardItem(str(row[14])) 
-                    
-                    # Adicionar o item e seus dados à raiz
-                    root_item.appendRow([numero_item, dados_item, unidade_fornecimento, valor_homologado, quantidade, situacao])
+                    # Criar uma string concatenada com todas as informações em uma única coluna
+                    item_text = (
+                        f"Item {row[0]} - "
+                        f"{row[5]} - "
+                        f"{row[18]} "
+                        f"({row[14]})"
+                    )
 
-                    # Criar filhos para cada item com os dados adicionais
+                    # Adicionar o item concatenado como uma única coluna
+                    numero_item = QStandardItem(item_text)
+
+                    # Definir o ícone com base no valor de row[14]
+                    if row[14] == "Homologado":
+                        numero_item.setIcon(icon_homologado)
+                    else:
+                        numero_item.setIcon(icon_nao_homologado)
+
+                    # Adicionar o item à raiz
+                    root_item.appendRow([numero_item])
+
+                    # Criar filhos para cada item com os dados adicionais, também em uma única coluna
                     child_data = {
                         'Data Resultado': row[2],
-                        'Fornecedor': row[7],
-                        'Nome Razão Social': row[8],
-                        'Número Controle PNCP': row[9],
-                        'Benefício Nome': row[16],
-                        'Valor Unitário Estimado': row[21]
+                        'CNPJ/CPF': row[8],
+                        'Nome Razão Social': row[9],
+                        'Número Controle PNCP': row[10],
+                        'Benefício ME/EPP': row[17],
+                        'Valor Unitário Estimado': row[21],
+                        'Valor Unitário Homologado': row[22],
+                        'Quantidade': row[13],
                     }
 
                     for key, value in child_data.items():
@@ -1248,53 +1264,20 @@ class EditDataDialog(QDialog):
         # Reabilitar o botão de consulta
         self.consulta_button.setEnabled(True)
 
-    def on_consulta_concluida(self, json_data):
+    def on_consulta_concluida(self, data_informacoes_lista, resultados_completos):
         # Fechar a barra de progresso
         self.progress_dialog.close()
 
-        if json_data:
+        if data_informacoes_lista and resultados_completos:
             # Exibir os dados obtidos no QDialog chamando o método da classe PNCPConsulta
             consulta_pncp = PNCPConsulta(self.numero, self.ano, self.link_pncp, self.uasg, self)
-            consulta_pncp.exibir_dados_em_dialog(json_data)
+            consulta_pncp.exibir_dados_em_dialog(data_informacoes_lista, resultados_completos)
         else:
             QMessageBox.warning(self, "Aviso", "Nenhum dado foi retornado.")
 
         # Reabilitar o botão de consulta
         self.consulta_button.setEnabled(True)
 
-    def exibir_dados_em_dialog(self, json_data):
-        # Cria o QDialog para exibir os dados
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Dados do PNCP")
-
-        # Cria um layout vertical
-        layout = QVBoxLayout()
-
-        # Campo de texto para exibir o JSON formatado
-        text_edit = QTextEdit()
-        text_edit.setReadOnly(True)
-
-        # Exibir os dados de forma legível no QTextEdit
-        texto_exibicao = ""
-        for item in json_data:
-            for key, value in item.items():
-                texto_exibicao += f"{key}: {value}\n"
-            texto_exibicao += "\n"  # Separar itens com uma linha em branco
-        text_edit.setText(texto_exibicao)
-
-        # Botão de fechar o diálogo
-        button_close = QPushButton("Fechar")
-        button_close.clicked.connect(dialog.accept)
-
-        # Adiciona os widgets ao layout
-        layout.addWidget(text_edit)
-        layout.addWidget(button_close)
-
-        # Define o layout no diálogo
-        dialog.setLayout(layout)
-
-        # Exibe o diálogo
-        dialog.exec()
 
     def on_erro_consulta(self, mensagem):
         # Fechar a barra de progresso em caso de erro
