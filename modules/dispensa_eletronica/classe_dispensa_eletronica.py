@@ -424,18 +424,17 @@ class UIManager:
             7: "Objeto",
             17: "OM",
             4: "Status",
-            10: "Operador"
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [4, 0, 5, 7, 17, 10]
+        new_order = [4, 0, 5, 7, 17]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 5, 7, 17, 4, 10}
+        visible_columns = {0, 5, 7, 17, 4}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)

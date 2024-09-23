@@ -1179,8 +1179,8 @@ class EditDataDialog(QDialog):
                 for row in rows:
                     # Criar uma string concatenada com todas as informações em uma única coluna
                     item_text = (
-                        f"Item {row[0]} - "
-                        f"{row[5]} - "
+                        f"Item {row[10]} - "
+                        f"{row[4]} - "
                         f"{row[18]} "
                         f"({row[14]})"
                     )
@@ -1200,9 +1200,9 @@ class EditDataDialog(QDialog):
                     # Criar filhos para cada item com os dados adicionais, também em uma única coluna
                     child_data = {
                         'Data Resultado': row[2],
-                        'CNPJ/CPF': row[8],
-                        'Nome Razão Social': row[9],
-                        'Número Controle PNCP': row[10],
+                        'CNPJ/CPF': row[7],
+                        'Nome Razão Social': row[8],
+                        'Número Controle PNCP': row[9],
                         'Benefício ME/EPP': row[17],
                         'Valor Unitário Estimado': row[21],
                         'Valor Unitário Homologado': row[22],
