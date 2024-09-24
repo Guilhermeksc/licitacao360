@@ -155,14 +155,25 @@ class TabelaResumidaManager:
         
         :param output_image_path: Caminho base para salvar as imagens geradas.
         """
+
         # Filtrar os dados apenas para os status desejados
-        status_permitidos = ['Homologado', 'Sessão Pública', 'Aprovado', 'Planejamento']
-        df_filtrado = self.df_resumido[self.df_resumido['Status'].isin(status_permitidos)].copy()
+        status_permitidos = ['sessão pública', 'planejamento', 'aprovado', 'homologado']
+        df_filtrado = self.df_resumido[self.df_resumido['Status'].str.strip().str.lower().isin(status_permitidos)].copy()
 
         # Resetar a coluna de ordenação
         if 'Nº' in df_filtrado.columns:
             df_filtrado.drop(columns=['Nº'], inplace=True)
         df_filtrado.insert(0, 'Nº', range(1, len(df_filtrado) + 1))
+
+        # Criar uma coluna temporária que mapeia os status para a ordem desejada
+        status_ordenacao = {status: index for index, status in enumerate(status_permitidos)}
+        df_filtrado['Ordenacao'] = df_filtrado['Status'].map(status_ordenacao)
+
+        # Ordenar pelo valor da coluna de ordenação
+        df_filtrado.sort_values(by='Ordenacao', inplace=True)
+
+        # Remover a coluna de ordenação, se não for mais necessária
+        df_filtrado.drop(columns=['Ordenacao'], inplace=True)
 
         # Definir o número máximo de itens por imagem
         max_itens_por_imagem = 25
@@ -172,7 +183,7 @@ class TabelaResumidaManager:
         pedacos_df = [df_filtrado[i:i + max_itens_por_imagem] for i in range(0, len(df_filtrado), max_itens_por_imagem)]
 
         # Definir as larguras das colunas (proporcional à escala)
-        col_widths = [3, 8, 9, 12, 30, 8]
+        col_widths = [3, 8, 9, 12, 25, 8]
 
         # Gerar uma imagem para cada pedaço
         for idx, df_pedaco in enumerate(pedacos_df):
@@ -193,15 +204,15 @@ class TabelaResumidaManager:
             # Estilizar a tabela
             tabela.auto_set_font_size(False)
             tabela.set_fontsize(10)
-            tabela.scale(1.2, 1.2)
+            tabela.scale(1.5, 1.5)
 
             # Aplicar um efeito especial à linha de título
             for key, cell in tabela.get_celld().items():
                 if key[0] == 0:  # Linha de cabeçalho
                     cell.set_fontsize(12)
                     cell.set_text_props(weight='bold')
-                    cell.set_facecolor('#081534')  # Cor de fundo verde
-                    cell.set_text_props(color='white')  # Texto branco
+                    cell.set_facecolor('#C5D9F1')  # Cor de fundo verde
+                    cell.set_text_props(color='Black')  # Texto branco
 
             # Ajustar a largura das colunas conforme o array col_widths
             for i, width in enumerate(col_widths):
@@ -216,11 +227,14 @@ class TabelaResumidaManager:
                         else:
                             cell.set_facecolor('#FFFFFF')  # Cor branca
 
+                    # Remover as bordas das células
+                    cell.set_edgecolor('none')  
+
             # Definir o nome da imagem com base no índice do pedaço
             output_image_fragment_path = f"{output_image_path}_parte_{idx + 1}.png"
 
             # Salvar a imagem
-            plt.savefig(output_image_fragment_path, bbox_inches='tight')
+            plt.savefig(output_image_fragment_path, bbox_inches='tight', dpi=600)
 
             # Fechar a figura
             plt.close(fig)

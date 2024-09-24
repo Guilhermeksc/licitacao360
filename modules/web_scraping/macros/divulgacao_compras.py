@@ -364,6 +364,10 @@ def salvar_dataframes_em_excel(df_itens, df_uasg, caminho_arquivo="resultado_lic
         df_uasg['numero_item'] = df_uasg['numero_item'].astype(int)
         df_uasg['quantidade'] = df_uasg['quantidade'].astype(int)
 
+        # Remover a coluna 'tipo_item' do df_itens
+        if 'tipo_item' in df_itens.columns:
+            df_itens.drop(columns=['tipo_item'], inplace=True)
+
         # Reorganizar o DataFrame df_uasg
         df_uasg_pivot = df_uasg.pivot(index='numero_item', columns='uasg', values='quantidade').fillna(0)
 
@@ -391,6 +395,7 @@ def salvar_dataframes_em_excel(df_itens, df_uasg, caminho_arquivo="resultado_lic
 
     except Exception as e:
         QMessageBox.critical(None, "Erro", f"Erro ao salvar o arquivo Excel: {e}")
+
 
 
 def abrir_arquivo_excel(caminho_arquivo):

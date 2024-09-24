@@ -75,7 +75,7 @@ class DatabaseDialog(QDialog):
         header_layout.addWidget(title_label)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         
-        pixmap = QPixmap(str(IMAGE_PATH / "licitacao360_brasil"))
+        pixmap = QPixmap(str(IMAGE_PATH / "acanto"))
         pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel()
         image_label.setPixmap(pixmap)

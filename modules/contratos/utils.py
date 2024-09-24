@@ -167,7 +167,7 @@ class ColorDelegate(QStyledItemDelegate):
                 # Definir cor com base no valor dos dias
                 if days < 30:
                     color = QColor(255, 0, 0)  # Vermelho
-                elif 31 <= days <= 90:
+                elif 30 <= days <= 90:
                     color = QColor(255, 165, 0)  # Laranja
                 elif 91 <= days <= 159:
                     color = QColor(255, 255, 0)  # Amarelo

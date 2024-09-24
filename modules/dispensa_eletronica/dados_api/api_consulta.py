@@ -9,6 +9,18 @@ from diretorios import *
 import sqlite3
 import re
 from pathlib import Path
+import time
+
+COLUNAS_OBRIGATORIAS = [
+    "criterioJulgamentoNome", "dataAtualizacao", "dataInclusao", "dataResultado", 
+    "descricao", "materialOuServico", "materialOuServicoNome", "niFornecedor", 
+    "nomeRazaoSocialFornecedor", "numeroControlePNCPCompra", "numeroItem", 
+    "percentualDesconto", "quantidade", "quantidadeHomologada", 
+    "situacaoCompraItemNome", "situacaoCompraItemResultadoNome", 
+    "temResultado", "tipoBeneficioNome", "unidadeMedida", 
+    "valorTotal", "valorTotalHomologado", "valorUnitarioEstimado", "valorUnitarioHomologado"
+]
+
 class ProgressoDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,9 +63,9 @@ class ProgressoDialog(QDialog):
         self.progress_bar.setValue(valor_atual)
 
 class PNCPConsultaThread(QThread):
-    consulta_concluida = pyqtSignal(list, list)  # Certifique-se de que dois argumentos estão sendo passados
-    erro_consulta = pyqtSignal(str)
-    progresso_consulta = pyqtSignal(str, int, int)
+    consulta_concluida = pyqtSignal(list, list)  # Sinal para retornar dados de consulta
+    erro_consulta = pyqtSignal(str)  # Sinal para erros
+    progresso_consulta = pyqtSignal(str, int, int)  # Atualizamos para incluir progresso com barra
 
     def __init__(self, numero, ano, link_pncp, uasg, parent=None):
         super().__init__(parent)
@@ -63,15 +75,144 @@ class PNCPConsultaThread(QThread):
         self.uasg = uasg
 
     def run(self):
-        consulta_pncp = PNCPConsulta(self.numero, self.ano, self.link_pncp, self.uasg, self)
         try:
-            data_informacoes_lista, resultados_completos = consulta_pncp.consultar_por_sequencial(self.progresso_consulta)
-            self.consulta_concluida.emit(data_informacoes_lista, resultados_completos)  # Emitir ambos os conjuntos de dados
+            # Fazemos a consulta diretamente na thread
+            data_informacoes_lista, resultados_completos = self.consultar_por_sequencial()
+            # Após a consulta, emitimos o sinal para passar os dados de volta à thread principal
+            self.consulta_concluida.emit(data_informacoes_lista, resultados_completos)
         except Exception as e:
-            self.erro_consulta.emit(f"Erro ao realizar a consulta: {str(e)}")
+            # Emitir o erro para ser tratado na thread principal
+            self.erro_consulta.emit(str(e))
 
-class PNCPConsulta:
+    def consultar_por_sequencial(self):
+        """Método que realiza a consulta à API do PNCP."""
+        url_informacoes = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}"
+        tentativas_maximas = 10
+
+        for tentativa in range(1, tentativas_maximas + 1):
+            try:
+                # Emitir o progresso para a thread principal
+                self.progresso_consulta.emit(f"Tentativa {tentativa}/{tentativas_maximas} - Procurando '{self.link_pncp}' no PNCP\nUASG: {self.uasg}", 0, 0)
+
+                response_informacoes = requests.get(url_informacoes, timeout=20)
+                response_informacoes.raise_for_status()
+                data_informacoes = response_informacoes.json()
+
+                existe_resultado = data_informacoes.get("existeResultado", False)
+                ano_compra = int(data_informacoes.get("anoCompra"))
+                numero_compra = str(data_informacoes.get("numeroCompra")).strip()
+
+                if ano_compra != int(self.ano):
+                    raise Exception(f"Ano da compra não corresponde: {ano_compra} (esperado: {self.ano})")
+
+                if numero_compra != str(self.numero).strip():
+                    raise Exception(f"Número da compra não corresponde: {numero_compra} (esperado: {self.numero})")
+
+                # Convertendo para uma lista utilizável
+                def dicionario_para_lista(d):
+                    lista = []
+                    for chave, valor in d.items():
+                        if isinstance(valor, dict):
+                            sub_lista = dicionario_para_lista(valor)
+                            for sub_chave, sub_valor in sub_lista:
+                                lista.append((f"{chave}_{sub_chave}", sub_valor))
+                        else:
+                            lista.append((chave, valor))
+                    return lista
+
+                # Converter os dados
+                data_informacoes_lista = dicionario_para_lista(data_informacoes)
+
+                # Consultar a quantidade de itens
+                qnt_itens = self.consultar_quantidade_de_itens()
+
+                # Consultar os detalhes dos itens
+                resultados_completos = self.consultar_detalhes_dos_itens(qnt_itens, self.progresso_consulta)  # Passar o sinal de progresso
+
+                return data_informacoes_lista, resultados_completos
+
+            except requests.exceptions.RequestException as e:
+                self.progresso_consulta.emit(f"Erro na tentativa {tentativa}/{tentativas_maximas}: {str(e)}", 0, 0)
+                if tentativa < tentativas_maximas:
+                    time.sleep(2)  # Aguardar 2 segundos antes de tentar novamente
+                else:
+                    raise Exception(f"Falha após {tentativas_maximas} tentativas: {str(e)}")
+
+
+    def consultar_quantidade_de_itens(self):
+        url_quantidade = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/quantidade"
+        response_quantidade = requests.get(url_quantidade)
+        response_quantidade.raise_for_status()
+        data_quantidade = response_quantidade.json()
+
+        if isinstance(data_quantidade, int):
+            return data_quantidade
+        else:
+            raise Exception("Resposta inesperada da API para quantidade.")
+        
+    def consultar_detalhes_dos_itens(self, qnt_itens, progresso_callback):
+        resultados_completos = []
+        
+        for i in range(1, qnt_itens + 1):
+            url_item_info = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/{i}"
+            response_item_info = requests.get(url_item_info)
+            response_item_info.raise_for_status()
+            data_item_info = response_item_info.json()
+
+            progresso_callback.emit(f"Verificando item {i}/{qnt_itens}", i, qnt_itens)  # Atualização de progresso
+
+            if data_item_info.get('temResultado', False):
+                # Se tem resultado, faz a consulta adicional
+                url_item_resultados = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/{i}/resultados"
+                response_item_resultados = requests.get(url_item_resultados)
+                response_item_resultados.raise_for_status()
+                data_item_resultados = response_item_resultados.json()
+
+                if isinstance(data_item_resultados, list):
+                    for resultado in data_item_resultados:
+                        for key, value in resultado.items():
+                            data_item_info[key] = value
+            else:
+                # Se não há resultado, adicionar 'None' para as chaves esperadas
+                expected_keys = ['dataResultado', 'niFornecedor', 'nomeRazaoSocialFornecedor', 'numeroControlePNCPCompra', 'tipoBeneficioNome']
+                for key in expected_keys:
+                    data_item_info[key] = None
+
+            # Adiciona o item, seja com resultado ou com valores 'None'
+            resultados_completos.append(data_item_info)
+
+        return resultados_completos
+
+    def converter_para_lista(self, dados):
+        """
+        Converte um dicionário aninhado em uma lista de pares chave: valor.
+        Substitui os subdicionários por pares chave: valor com a chave concatenada.
+        """
+        lista_resultado = []
+
+        def _achatar(sub_dados, chave_pai=""):
+            if isinstance(sub_dados, dict):
+                for chave, valor in sub_dados.items():
+                    nova_chave = f"{chave_pai}.{chave}" if chave_pai else chave
+                    if isinstance(valor, (dict, list)):
+                        _achatar(valor, nova_chave)
+                    else:
+                        lista_resultado.append((nova_chave, valor))
+            elif isinstance(sub_dados, list):
+                for index, item in enumerate(sub_dados):
+                    nova_chave = f"{chave_pai}[{index}]" if chave_pai else f"[{index}]"
+                    _achatar(item, nova_chave)
+
+        _achatar(dados)
+        return lista_resultado
+
+
+
+class PNCPConsulta(QObject):  # Herdando de QObject
+    dados_integrados = pyqtSignal()  # Sinal emitido ao finalizar a integração de dados
+
     def __init__(self, numero, ano, link_pncp, uasg, parent=None):
+        super().__init__(parent)  # Inicializa o QObject corretamente
         self.numero = numero
         self.ano = ano
         self.link_pncp = link_pncp
@@ -117,40 +258,45 @@ class PNCPConsulta:
         QMessageBox.information(self.parent, "Integrar Dados", 
                                 f"Os dados foram integrados com sucesso nas tabelas '{table_name_info}' e '{table_name_resultados}'.")
 
+        # Emitir o sinal após integrar os dados
+        self.dados_integrados.emit()
+
     def salvar_dados_no_banco_lista(self, dados, nome_tabela):
-        """
-        Função para salvar uma lista de dicionários no banco de dados.
-        Cada dicionário da lista representa uma linha na tabela.
-        """
         try:
-            # Conectar ao banco de dados
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
             if not dados or len(dados) == 0:
                 raise ValueError("Lista de dados está vazia ou inválida.")
 
-            # Identificar todas as colunas únicas presentes nos dados
-            colunas_set = set()
-            for item in dados:
-                colunas_set.update(item.keys())
-
-            # Ordenar as colunas
-            colunas = sorted(colunas_set)
+            colunas = COLUNAS_OBRIGATORIAS
             colunas_str = ", ".join(colunas)
             valores_placeholder = ", ".join("?" for _ in colunas)
 
-            # Criar a tabela se não existir
             colunas_definicao = ", ".join([f"{coluna} TEXT" for coluna in colunas])
             cursor.execute(f"CREATE TABLE IF NOT EXISTS {nome_tabela} ({colunas_definicao})")
 
-            # Inserir dados no banco de dados
             for item in dados:
-                # Garantir que cada item tenha um valor (ou None) para cada coluna
-                valores = [item.get(coluna, None) for coluna in colunas]
-                cursor.execute(f"INSERT INTO {nome_tabela} ({colunas_str}) VALUES ({valores_placeholder})", valores)
+                numero_item = item.get("numeroItem")
+                if not numero_item:
+                    raise ValueError("O número do item não foi encontrado em alguns dados.")
 
-            # Confirmar as mudanças e fechar a conexão
+                valores = [item.get(coluna, None) for coluna in colunas]
+
+                # Verifica se o `numeroItem` já existe
+                cursor.execute(f"SELECT 1 FROM {nome_tabela} WHERE numeroItem = ?", (numero_item,))
+                exists = cursor.fetchone()
+
+                if exists:
+                    # Atualiza o registro existente
+                    print(f"numeroItem {numero_item} já existe. Sobrescrevendo informações.")
+                    update_query = f"UPDATE {nome_tabela} SET {', '.join([f'{coluna} = ?' for coluna in colunas])} WHERE numeroItem = ?"
+                    cursor.execute(update_query, valores + [numero_item])
+                else:
+                    # Insere um novo registro
+                    print(f"numeroItem {numero_item} não existe. Criando novo registro.")
+                    cursor.execute(f"INSERT INTO {nome_tabela} ({colunas_str}) VALUES ({valores_placeholder})", valores)
+
             conn.commit()
             conn.close()
 
@@ -160,42 +306,38 @@ class PNCPConsulta:
             print(f"Erro ao salvar os dados (lista): {str(e)}")
             QMessageBox.critical(self.parent, "Erro", f"Erro ao salvar os dados (lista): {str(e)}")
 
+
     def salvar_dados_no_banco_lista_tupla(self, dados, nome_tabela):
-        """
-        Função para salvar uma lista de tuplas (chave, valor) no banco de dados.
-        Cada tupla representa uma coluna e valor correspondente.
-        """
         try:
-            # Conectar ao banco de dados
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
             if not dados or len(dados) == 0:
                 raise ValueError("Lista de dados está vazia ou inválida.")
 
-            # Obter colunas e valores da lista de tuplas
-            colunas = ", ".join([chave for chave, _ in dados])
-            valores_placeholder = ", ".join("?" for _ in dados)
-            valores = tuple([valor for _, valor in dados])
+            colunas = COLUNAS_OBRIGATORIAS
+            colunas_str = ", ".join(colunas)
+            valores_placeholder = ", ".join("?" for _ in colunas)
 
-            # Criar a tabela se não existir
-            colunas_definicao = ", ".join([f"{chave} TEXT" for chave, _ in dados])
+            colunas_definicao = ", ".join([f"{coluna} TEXT" for coluna in colunas])
             cursor.execute(f"CREATE TABLE IF NOT EXISTS {nome_tabela} ({colunas_definicao})")
 
-            # Inserir os dados no banco de dados
-            insert_query = f"INSERT INTO {nome_tabela} ({colunas}) VALUES ({valores_placeholder})"
+            # Remove todos os registros antigos antes de inserir os novos (sobrescrever)
+            cursor.execute(f"DELETE FROM {nome_tabela}")
+
+            # Organizar os valores como tupla para corresponder às colunas obrigatórias
+            valores = [dict(dados).get(coluna, None) for coluna in colunas]
+            insert_query = f"INSERT INTO {nome_tabela} ({colunas_str}) VALUES ({valores_placeholder})"
             cursor.execute(insert_query, valores)
 
-            # Confirmar as mudanças e fechar a conexão
             conn.commit()
             conn.close()
 
             print(f"Dados salvos com sucesso na tabela: {nome_tabela}")
 
         except Exception as e:
-            print(f"Erro ao salvar os dados (lista): {str(e)}")
-            QMessageBox.critical(self.parent, "Erro", f"Erro ao salvar os dados (lista): {str(e)}")
-
+            print(f"Erro ao salvar os dados (tupla): {str(e)}")
+            QMessageBox.critical(self.parent, "Erro", f"Erro ao salvar os dados (tupla): {str(e)}")
 
     # Método para exibir os dados obtidos no QDialog
     def exibir_dados_em_dialog(self, data_informacoes_lista, resultados_completos):
@@ -276,7 +418,6 @@ class PNCPConsulta:
         # Exibe o diálogo
         dialog.exec()
 
-
     def limpar_dados(self, json_data):
         campos_para_remover = [
             "orcamentoSigiloso",
@@ -325,128 +466,3 @@ class PNCPConsulta:
                 item.pop(campo, None)
 
         return json_data
-        
-    def consultar_por_sequencial(self, progresso_callback):
-        url_informacoes = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}"
-        try:
-            progresso_callback.emit(f"Procurando '{self.link_pncp}' no PNCP\nUASG: {self.uasg}", 0, 0)
-
-            # Primeira requisição
-            response_informacoes = requests.get(url_informacoes)
-            response_informacoes.raise_for_status()
-            data_informacoes = response_informacoes.json()
-
-            existe_resultado = data_informacoes.get("existeResultado", False)
-            ano_compra = int(data_informacoes.get("anoCompra"))
-            numero_compra = str(data_informacoes.get("numeroCompra")).strip()
-
-            if not existe_resultado:
-                raise Exception("Nenhum resultado encontrado para o sequencial.")
-
-            if ano_compra != int(self.ano):
-                raise Exception(f"Ano da compra não corresponde: {ano_compra} (esperado: {self.ano})")
-
-            if numero_compra != str(self.numero).strip():
-                raise Exception(f"Número da compra não corresponde: {numero_compra} (esperado: {self.numero})")
-
-            progresso_callback.emit("Sequencial compatível", 0, 0)
-
-            # Função auxiliar para converter o dicionário em uma lista de pares (chave, valor)
-            def dicionario_para_lista(d):
-                lista = []
-                for chave, valor in d.items():
-                    if isinstance(valor, dict):
-                        # Se o valor é um dicionário, achatar também o subdicionário
-                        sub_lista = dicionario_para_lista(valor)
-                        for sub_chave, sub_valor in sub_lista:
-                            lista.append((f"{chave}_{sub_chave}", sub_valor))
-                    else:
-                        lista.append((chave, valor))
-                return lista
-
-            # Converter data_informacoes para lista
-            data_informacoes_lista = dicionario_para_lista(data_informacoes)
-
-            # Consultar quantidade de itens
-            qnt_itens = self.consultar_quantidade_de_itens()
-
-            # Consultar os detalhes dos itens
-            resultados_completos = self.consultar_detalhes_dos_itens(qnt_itens, progresso_callback)
-
-            # Depuração: Verificar os dados recebidos
-            print(f"Conteúdo de data_informacoes: {json.dumps(data_informacoes_lista, indent=2)}")
-            print(f"Tipo de data_informacoes: {type(data_informacoes_lista)}")
-
-            # Limpar os dados e retornar os dois conjuntos de dados
-            return data_informacoes_lista, self.limpar_dados(resultados_completos)
-
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Falha na consulta: {str(e)}")
-
-    def consultar_quantidade_de_itens(self):
-        url_quantidade = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/quantidade"
-        response_quantidade = requests.get(url_quantidade)
-        response_quantidade.raise_for_status()
-        data_quantidade = response_quantidade.json()
-
-        if isinstance(data_quantidade, int):
-            return data_quantidade
-        else:
-            raise Exception("Resposta inesperada da API para quantidade.")
-        
-    def consultar_detalhes_dos_itens(self, qnt_itens, progresso_callback):
-        resultados_completos = []
-        
-        for i in range(1, qnt_itens + 1):
-            url_item_info = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/{i}"
-            response_item_info = requests.get(url_item_info)
-            response_item_info.raise_for_status()
-            data_item_info = response_item_info.json()
-
-            progresso_callback.emit(f"Verificando item {i}/{qnt_itens}", i, qnt_itens)
-
-            if data_item_info.get('temResultado', False):
-                # Se tem resultado, faz a consulta adicional
-                url_item_resultados = f"https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/{self.ano}/{self.link_pncp}/itens/{i}/resultados"
-                response_item_resultados = requests.get(url_item_resultados)
-                response_item_resultados.raise_for_status()
-                data_item_resultados = response_item_resultados.json()
-
-                if isinstance(data_item_resultados, list):
-                    for resultado in data_item_resultados:
-                        for key, value in resultado.items():
-                            data_item_info[key] = value
-            else:
-                # Se não há resultado, adicionar 'None' para as chaves esperadas
-                expected_keys = ['dataResultado', 'niFornecedor', 'nomeRazaoSocialFornecedor', 'numeroControlePNCPCompra', 'tipoBeneficioNome', 'valorUnitarioEstimado']
-                for key in expected_keys:
-                    data_item_info[key] = None
-
-            # Adiciona o item, seja com resultado ou com valores 'None'
-            resultados_completos.append(data_item_info)
-
-        return resultados_completos
-
-    def converter_para_lista(self, dados):
-        """
-        Converte um dicionário aninhado em uma lista de pares chave: valor.
-        Substitui os subdicionários por pares chave: valor com a chave concatenada.
-        """
-        lista_resultado = []
-
-        def _achatar(sub_dados, chave_pai=""):
-            if isinstance(sub_dados, dict):
-                for chave, valor in sub_dados.items():
-                    nova_chave = f"{chave_pai}.{chave}" if chave_pai else chave
-                    if isinstance(valor, (dict, list)):
-                        _achatar(valor, nova_chave)
-                    else:
-                        lista_resultado.append((nova_chave, valor))
-            elif isinstance(sub_dados, list):
-                for index, item in enumerate(sub_dados):
-                    nova_chave = f"{chave_pai}[{index}]" if chave_pai else f"[{index}]"
-                    _achatar(item, nova_chave)
-
-        _achatar(dados)
-        return lista_resultado
-

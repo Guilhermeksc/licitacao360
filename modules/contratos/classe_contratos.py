@@ -55,7 +55,12 @@ class ContratosWidget(QMainWindow):
         self.database_manager = DatabaseContratosManager(self.database_path)
 
     def refresh_model(self):
-        self.model.select()
+        self.model.select()  # Recarregar os dados
+        # self.model.order_by_vigencia_final()  # Aplicar a ordenação por vigência final
+
+    def sort_by_vigencia_final(self):
+        # Ordenar o modelo proxy pela coluna 'vigencia_final' em ordem decrescente
+        self.parent.proxy_model.sort(self.model.fieldIndex("Dias"), Qt.SortOrder.DescendingOrder)
 
     def setup_ui(self):
         self.setCentralWidget(self.ui_manager.main_widget)
@@ -129,15 +134,37 @@ class ContratosWidget(QMainWindow):
             if not self.model:
                 QMessageBox.warning(self, "Erro", "Modelo de dados não inicializado.")
                 return
-            
+
+            # Remover colunas com valores None
+            df_registro_selecionado = df_registro_selecionado.dropna(axis=1, how='all')
+
+            # Verifique se o DataFrame contém os dados necessários
+            if 'Contrato/Ata' not in df_registro_selecionado.columns:
+                raise ValueError("Coluna 'Contrato/Ata' não encontrada no DataFrame.")
+
+            # Extraindo id_processo corretamente da coluna 'Contrato/Ata'
+            id_processo = df_registro_selecionado['Contrato/Ata'].values[0]
+            print(f"id_processo selecionado: {id_processo}")
+
             # Converte os dados do DataFrame em dicionário para passar ao diálogo
             data_function = lambda: df_registro_selecionado.to_dict(orient='records')[0]
-            
-            dialog = AtualizarDadosContratos(self.icons_dir, data_function=data_function, df_registro_selecionado=df_registro_selecionado, table_view=self.ui_manager.table_view, model=self.model, indice_linha=0, parent=self)
+
+            # Inicializar o diálogo de edição
+            dialog = AtualizarDadosContratos(self.icons_dir, data_function=data_function, df_registro_selecionado=df_registro_selecionado, 
+                                            table_view=self.ui_manager.table_view, model=self.model, indice_linha=0, parent=self)
+
+            # Conectar o sinal de dados salvos ao refresh_model
             dialog.dadosContratosSalvos.connect(self.refresh_model)
+
+            # Executar o diálogo
+            print("Tentando abrir o diálogo...")
             dialog.exec()
+
         except Exception as e:
+            print(f"Erro ao abrir o diálogo: {str(e)}")
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao abrir o diálogo de edição: {str(e)}")
+
+
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -239,8 +266,8 @@ class UIManager:
         self.parent.proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.parent.proxy_model.setFilterKeyColumn(-1)
 
-        # Configura a ordenação inicial pelo proxy model de forma decrescente
-        self.parent.proxy_model.sort(self.model.fieldIndex("vigencia_final"), Qt.SortOrder.DescendingOrder)
+        # Configura a ordenação inicial pelo proxy model de forma decrescente pela coluna 'vigencia_final'
+        self.sort_by_vigencia_final()
 
         self.table_view.setModel(self.parent.proxy_model)
         print("Table view configured with proxy model")
@@ -254,6 +281,10 @@ class UIManager:
 
         self.update_column_headers()
         self.hide_unwanted_columns()
+
+    def sort_by_vigencia_final(self):
+        # Ordenar o modelo proxy pela coluna 'vigencia_final' em ordem decrescente
+        self.parent.proxy_model.sort(self.model.fieldIndex("Dias"), Qt.SortOrder.DescendingOrder)
 
     def adjust_columns(self):
         self.table_view.resizeColumnsToContents()
@@ -304,7 +335,7 @@ class UIManager:
             # Obter o valor da chave primária 'numero_contrato'
             selected_row = source_index.row()
             selected_column = source_index.column()
-            id_processo = self.parent.model.data(self.parent.model.index(source_index.row(), self.parent.model.fieldIndex('numero_contrato')))
+            id_processo = self.parent.model.data(self.parent.model.index(source_index.row(), self.parent.model.fieldIndex('Contrato/Ata')))
 
             print(f"id_processo selecionado: {id_processo}")
             print(f"Linha selecionada: {selected_row}, Coluna: {selected_column}")

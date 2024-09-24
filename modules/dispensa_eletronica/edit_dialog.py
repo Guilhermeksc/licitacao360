@@ -23,13 +23,13 @@ class EditDataDialog(QDialog):
         self.df_registro_selecionado = df_registro_selecionado
         self.ICONS_DIR = Path(icons_dir)
 
+        # Inicializações
         self.navigation_buttons = []
         self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
         self._init_paths()
-
-        # Inicializar self.formulario_excel antes de _init_ui
         self.formulario_excel = FormularioExcel(self.df_registro_selecionado, self.pasta_base, self)
 
+        # Criar layout
         self._init_ui()
         self._init_connections()
 
@@ -1149,80 +1149,65 @@ class EditDataDialog(QDialog):
         return anexos_group_box
 
     def load_tree_data(self):
-        # Definir o nome da tabela com base em self.numero, self.ano, self.sequencial e self.uasg
-        table_name = f"DE{self.numero}{self.ano}{self.link_pncp}{self.uasg}"
+        # Limpar o modelo antes de adicionar novos dados
+        self.result_model.clear()
+        self.result_model.setHorizontalHeaderLabels(['Informações'])
 
-        # Definir os ícones
+        table_name = f"DE{self.numero}{self.ano}{self.link_pncp}{self.uasg}"
         icon_homologado = QIcon(str(self.ICONS_DIR / "checked.png"))
         icon_nao_homologado = QIcon(str(self.ICONS_DIR / "alert.png"))
 
-        # Conectar ao banco de dados CONTROLE_DADOS_PNCP
         conn = sqlite3.connect(CONTROLE_DADOS_PNCP)
         cursor = conn.cursor()
 
         try:
-            # Verificar se a tabela existe no banco de dados
             cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
             table_exists = cursor.fetchone()
 
             if table_exists:
-                # Criar a raiz com o formato "{self.numero}/{self.ano} - {self.objeto}"
                 root_text = f"{self.numero}/{self.ano} - {self.objeto}"
                 root_item = QStandardItem(root_text)
                 self.result_model.appendRow(root_item)
 
-                # Consultar os dados da tabela
                 cursor.execute(f"SELECT * FROM {table_name}")
                 rows = cursor.fetchall()
 
-                # Adicionar os dados ao QTreeView
                 for row in rows:
-                    # Criar uma string concatenada com todas as informações em uma única coluna
-                    item_text = (
-                        f"Item {row[10]} - "
-                        f"{row[4]} - "
-                        f"{row[18]} "
-                        f"({row[14]})"
-                    )
-
-                    # Adicionar o item concatenado como uma única coluna
+                    item_text = f"Item {row[10]} - {row[4]} - {row[18]} ({row[14]})"
                     numero_item = QStandardItem(item_text)
 
-                    # Definir o ícone com base no valor de row[14]
                     if row[14] == "Homologado":
                         numero_item.setIcon(icon_homologado)
                     else:
                         numero_item.setIcon(icon_nao_homologado)
 
-                    # Adicionar o item à raiz
                     root_item.appendRow([numero_item])
 
-                    # Criar filhos para cada item com os dados adicionais, também em uma única coluna
                     child_data = {
-                        'Data Resultado': row[2],
+                        'Última verificação': row[2],
                         'CNPJ/CPF': row[7],
                         'Nome Razão Social': row[8],
                         'Número Controle PNCP': row[9],
                         'Benefício ME/EPP': row[17],
                         'Valor Unitário Estimado': row[21],
+                        'Quantidade': row[12],
                         'Valor Unitário Homologado': row[22],
-                        'Quantidade': row[13],
+                        'Quantidade Homologada': row[13],
                     }
 
                     for key, value in child_data.items():
                         child_item = QStandardItem(f"{key}: {value}")
                         numero_item.appendRow([child_item])
 
-                # Expande todas as linhas
                 self.result_tree.expandAll()
 
             else:
                 print(f"Tabela '{table_name}' não encontrada.")
-
         except sqlite3.Error as e:
             print(f"Erro ao carregar os dados: {e}")
         finally:
             conn.close()
+
 
     def on_consultar_pncp(self):
         # Desabilitar o botão enquanto a consulta está sendo feita
@@ -1265,19 +1250,21 @@ class EditDataDialog(QDialog):
         self.consulta_button.setEnabled(True)
 
     def on_consulta_concluida(self, data_informacoes_lista, resultados_completos):
+        """Ação a ser realizada quando a consulta for concluída com sucesso."""
         # Fechar a barra de progresso
         self.progress_dialog.close()
 
         if data_informacoes_lista and resultados_completos:
-            # Exibir os dados obtidos no QDialog chamando o método da classe PNCPConsulta
-            consulta_pncp = PNCPConsulta(self.numero, self.ano, self.link_pncp, self.uasg, self)
-            consulta_pncp.exibir_dados_em_dialog(data_informacoes_lista, resultados_completos)
+            # Criamos a instância de PNCPConsulta na thread principal
+            self.consulta_pncp = PNCPConsulta(self.numero, self.ano, self.link_pncp, self.uasg, self)
+            # Conectar o sinal 'dados_integrados' ao método 'load_tree_data'
+            self.consulta_pncp.dados_integrados.connect(self.load_tree_data)
+            self.consulta_pncp.exibir_dados_em_dialog(data_informacoes_lista, resultados_completos)
         else:
             QMessageBox.warning(self, "Aviso", "Nenhum dado foi retornado.")
 
         # Reabilitar o botão de consulta
         self.consulta_button.setEnabled(True)
-
 
     def on_erro_consulta(self, mensagem):
         # Fechar a barra de progresso em caso de erro

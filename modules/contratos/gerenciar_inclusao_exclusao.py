@@ -142,7 +142,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
             QMessageBox.warning(self, "Entrada Inválida", "Por favor, insira um código de unidade válido de 6 dígitos.")
 
     def on_data_received(self, data):
-        QMessageBox.information(self, "Sucesso", "Dados recebidos com sucesso!")
+        # QMessageBox.information(self, "Sucesso", "Dados recebidos com sucesso!")
         self.processar_dados_para_tabela(data)
 
     def on_error_occurred(self, error_message):
@@ -281,7 +281,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
                         cursor.execute(insert_query, row_data)
                 
                 conn.commit()
-                QMessageBox.information(self, "Sucesso", "Dados salvos no banco de dados com sucesso!")
+                # QMessageBox.information(self, "Sucesso", "Dados salvos no banco de dados com sucesso!")
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar no banco de dados: {e}")
 

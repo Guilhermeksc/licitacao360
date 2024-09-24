@@ -326,13 +326,14 @@ class CustomSqlTableModel(QSqlTableModel):
     
     def order_by_vigencia_final(self):
         """Ordena a tabela pela coluna 'vigencia_final' em ordem decrescente."""
-        vigencia_final_index = self.fieldIndex("vigencia_final")
-        
-        # Verifique se o índice da coluna é válido
+        vigencia_final_index = self.fieldIndex("Dias")
+
         if vigencia_final_index != -1:
+            # Aplique a ordenação diretamente na coluna 'vigencia_final' que está no formato YYYY-MM-DD
             self.setSort(vigencia_final_index, Qt.SortOrder.DescendingOrder)
+            self.select()  # Recarregar os dados para refletir a ordenação
         else:
-            print("Coluna 'vigencia_final' não encontrada para ordenação.")
+            print("Coluna 'Dias' não encontrada para ordenação.")
 
     def flags(self, index):
         default_flags = super().flags(index)
@@ -400,7 +401,7 @@ class CustomSqlTableModel(QSqlTableModel):
         if role == Qt.ItemDataRole.ForegroundRole and index.column() == self.fieldIndex("dias"):
             dias = self.data(index, Qt.ItemDataRole.DisplayRole)
             if isinstance(dias, int):
-                if dias < 30:
+                if dias < 31:
                     return QColor(255, 0, 0)  # Vermelho
                 elif 31 <= dias <= 90:
                     return QColor(255, 165, 0)  # Laranja

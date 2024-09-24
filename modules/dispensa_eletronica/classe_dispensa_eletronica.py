@@ -47,7 +47,7 @@ class DispensaEletronicaWidget(QMainWindow):
     def load_initial_data(self):
         # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
-            "business.png", "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "confirm_green.png", "archive.png",
+            "business.png", "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "verify_menu.png", "archive.png",
             "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "performance.png",
             "excel.png", "calendar.png", "report.png", "management.png", "image-processing.png"
         ])
@@ -500,11 +500,11 @@ class CustomItemDelegate(QStyledItemDelegate):
             # Usando chaves que correspondem aos nomes sem extensão
             icon_key = {
                 'Planejamento': 'business',
-                'Aprovado': 'aproved',
+                'Aprovado': 'verify_menu',
                 'Sessão Pública': 'session',
                 'Homologado': 'deal',
                 'Empenhado': 'emenda_parlamentar',
-                'Concluído': 'confirm_green',
+                'Concluído': 'aproved',
                 'Arquivado': 'archive'
             }.get(situacao)
 

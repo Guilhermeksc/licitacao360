@@ -11,6 +11,7 @@ from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
 from modules.web_scraping.macros.divulgacao_compras import DivulgacaoComprasMacro
+
 class SeleniumDriverThread(QThread):
     login_detected = pyqtSignal()  # Sinal para indicar que o login foi detectado
 

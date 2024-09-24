@@ -210,10 +210,10 @@ class AtasDialog(QDialog):
         
     def criar_botao_gerar_ata(self, layout):
         # Caminhos para os ícones
-        icon_confirm = QIcon(str(ICONS_DIR / "production_red.png"))  # Caminho para o ícone de confirmação
+        icon_confirm = QIcon(str(ICONS_DIR / "priority.png"))  # Caminho para o ícone de confirmação
         
         # Criação do botão
-        button_confirm = self.create_button("  Gerar Atas de Registro de Preços", icon_confirm, self.gerar_ata_de_registro_de_precos, "Após inserir as informações, clique para gerar as Atas", QSize(380, 50), QSize(50, 50))
+        button_confirm = self.create_button("  Gerar Atas", icon_confirm, self.gerar_ata_de_registro_de_precos, "Após inserir as informações, clique para gerar as Atas", QSize(380, 50), QSize(50, 50))
         
         # Criação de um layout horizontal para centralizar o botão
         hbox = QHBoxLayout()

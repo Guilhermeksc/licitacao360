@@ -445,52 +445,63 @@ class AtualizarDadosContratos(QDialog):
         self.setupUI()
 
     def setupUI(self):
-        self.setWindowTitle("Atualizar Dados do Contrato")
-        self.setFixedSize(1200, 600)
-        main_layout = QVBoxLayout(self)
+        try:
+            print("Iniciando setupUI...")
+            self.setWindowTitle("Atualizar Dados do Contrato")
+            self.setFixedSize(1200, 600)
+            main_layout = QVBoxLayout(self)
 
-        self.header_widget = self.update_title_label()
-        main_layout.addWidget(self.header_widget)
+            # Verificar se os dados estão sendo extraídos corretamente
+            data = self.data_function()
+            print("Dados para o contrato:", data)
 
-        h_layout = QHBoxLayout()
+            self.header_widget = self.update_title_label()
+            main_layout.addWidget(self.header_widget)
 
-        content_layout = QVBoxLayout()
-        content_layout.setSpacing(0)
+            h_layout = QHBoxLayout()
 
-        nav_layout = QHBoxLayout()
-        brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
-        brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        image_label_esquerda = QLabel()
-        image_label_esquerda.setPixmap(brasil_pixmap)
-        image_label_esquerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        nav_layout.addWidget(image_label_esquerda)
+            content_layout = QVBoxLayout()
+            content_layout.setSpacing(0)
 
-        self.navigation_buttons = []
-        self.add_navigation_button(nav_layout, "Informações", lambda: self.show_widget("Informações"))
-        self.add_navigation_button(nav_layout, "Termo Aditivo", lambda: self.show_widget("Termo Aditivo"))
-        self.add_navigation_button(nav_layout, "Gestão/Fiscalização", lambda: self.show_widget("Gestão/Fiscalização"))
-        self.add_navigation_button(nav_layout, "Status", lambda: self.show_widget("Status"))
-        nav_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)) 
-        content_layout.addLayout(nav_layout)
+            nav_layout = QHBoxLayout()
+            brasil_pixmap = QPixmap(str(BRASIL_IMAGE_PATH))
+            brasil_pixmap = brasil_pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            image_label_esquerda = QLabel()
+            image_label_esquerda.setPixmap(brasil_pixmap)
+            image_label_esquerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            nav_layout.addWidget(image_label_esquerda)
 
-        # Use self.data_function ao invés de self.dados
-        self.stack_manager = StackWidgetManager(self, self.data_function)
+            self.navigation_buttons = []
+            self.add_navigation_button(nav_layout, "Informações", lambda: self.show_widget("Informações"))
+            self.add_navigation_button(nav_layout, "Termo Aditivo", lambda: self.show_widget("Termo Aditivo"))
+            self.add_navigation_button(nav_layout, "Gestão/Fiscalização", lambda: self.show_widget("Gestão/Fiscalização"))
+            self.add_navigation_button(nav_layout, "Status", lambda: self.show_widget("Status"))
+            nav_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)) 
+            content_layout.addLayout(nav_layout)
 
-        content_layout.addWidget(self.stack_manager.get_widget())
+            self.stack_manager = StackWidgetManager(self, self.data_function)
 
-        self.show_widget("Informações ")
+            # Exibir o widget "Informações" logo após o carregamento da interface
+            self.show_widget("Informações")
 
-        h_layout.addLayout(content_layout)
+            content_layout.addWidget(self.stack_manager.get_widget())
 
-        # Criar o QTreeView personalizado
-        self.tree_view = QTreeView()
-        self.tree_model = QStandardItemModel()
-        self.tree_view.setModel(self.tree_model)
-        self.populate_tree_view()
-        h_layout.addWidget(self.tree_view)
+            h_layout.addLayout(content_layout)
 
-        main_layout.addLayout(h_layout)
-        self.setLayout(main_layout)
+            self.tree_view = QTreeView()
+            self.tree_model = QStandardItemModel()
+            self.tree_view.setModel(self.tree_model)
+            self.populate_tree_view()
+            h_layout.addWidget(self.tree_view)
+
+            main_layout.addLayout(h_layout)
+            self.setLayout(main_layout)
+
+            print("setupUI concluído com sucesso.")
+        except Exception as e:
+            print(f"Erro no setupUI: {str(e)}")
+            raise
+
 
     def populate_tree_view(self):
         data = self.data_function()  # Chame a função para obter os dados

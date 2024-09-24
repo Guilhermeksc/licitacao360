@@ -245,8 +245,8 @@ class RelatorioIndicadores(QDialog):
         self.grafico_dispersao()
         grafico_dispersao_path = str(INDICADORES_NORMCEIM / "grafico_dispersao.png")
 
-        self.grafico_barras_empilhadas()
-        grafico_barra_path = str(INDICADORES_NORMCEIM / "grafico_barras_empilhadas.png")
+        # self.grafico_barras_empilhadas()
+        # grafico_barra_path = str(INDICADORES_NORMCEIM / "grafico_barras_empilhadas.png")
 
         # Formatar os valores totais
         percentual_desconto_total, total_estimado, total_homologado = self.calcular_percentual_desconto_total()
@@ -283,7 +283,7 @@ class RelatorioIndicadores(QDialog):
                 'total_homologado': total_homologado_fmt,
                 'grafico_01': InlineImage(doc, grafico_path, width=Mm(150)) if os.path.exists(grafico_path) else 'Gráfico não disponível',
                 'grafico_dispersao': InlineImage(doc, grafico_dispersao_path, width=Mm(150)) if os.path.exists(grafico_dispersao_path) else 'Gráfico não disponível',
-                'grafico_barras_empilhadas': InlineImage(doc, grafico_barra_path, width=Mm(150)) if os.path.exists(grafico_barra_path) else 'Gráfico não disponível',
+                # 'grafico_barras_empilhadas': InlineImage(doc, grafico_barra_path, width=Mm(150)) if os.path.exists(grafico_barra_path) else 'Gráfico não disponível',
                 'controle_dias_processo': controle_dias_processo,
                 'relacao_itens_top10_desconto': '\n'.join(relacao_itens_top10_desconto),
                 'pregoeiro': pregao_data['pregoeiro'],
