@@ -10,14 +10,7 @@ from modules.planejamento_novo.novo_planejamento_button import PlanejamentoWidge
 from modules.planejamento_novo.planejamento_novo_button import PlanejamentoNovoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.contratos.classe_contratos import ContratosWidget
-from modules.custom_selenium.selenium_automation import SeleniumAutomacao
-from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
-from modules.menu_superior.menu_manager import MenuManager
-from modules.web_scraping.web_scrapping_initial import WebScrapingWidget
-from modules.etp.etp_layout import ETPWidget
-from modules.manipular_pdf.pdf import ManipularPDFsWidget, PNCPConsultationApp
-from modules.api_comprasnet_contratos.consulta_atas import ComprasnetContratosAPI
-
+from config.menu_superior.menu_manager import MenuManager
 from pathlib import Path
 
 class InicioWidget(QWidget):
@@ -177,21 +170,6 @@ class MainWindow(QMainWindow):
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # menu_buttons = [
-        #     "Início",
-        #     "Planejamento",
-        #     "Atas",
-        #     "Contratos",
-        #     "ETP",
-        #     "Matriz de Riscos",
-        #     "Dispensa Eletrônica",
-        #     "Selenium",
-        #     "Web Scraping",
-        #     "Manipular PDF's",
-        #     "API PNCP",
-        #     "API Contratos"
-        # ]
-
         menu_buttons = [
             "Início",
             "Planejamento",
@@ -222,15 +200,6 @@ class MainWindow(QMainWindow):
         button = QPushButton(f" {name}")
         button.setStyleSheet(get_menu_button_style())
         return button
-
-    # def add_menu_image(self, layout):
-    #     caminho_imagem = IMAGE_PATH / "licitacao360_brasil.png"
-    #     licitacao_360_pixmap = QPixmap(str(caminho_imagem))
-    #     licitacao_360_pixmap = licitacao_360_pixmap.scaled(175, 175)
-    #     image_label = QLabel()
-    #     image_label.setPixmap(licitacao_360_pixmap)
-    #     image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    #     layout.addWidget(image_label)
 
     def setup_content_area(self):
         self.content_layout = QVBoxLayout()
@@ -271,13 +240,6 @@ class MainWindow(QMainWindow):
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
-            "Matriz de Riscos": self.setup_matriz_riscos,
-            "ETP": self.setup_etp,
-            "Selenium": self.setup_selenium_automacao,
-            "Web Scraping": self.setup_webscraping,
-            "Manipular PDF's": self.setup_manipular_pdfs,
-            "API PNCP": self.setup_api_pncp,
-            "API Contratos": self.setup_api_comprasnet_contratos
         }
         action = content_actions.get(content_name)
         if action:
@@ -309,41 +271,6 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.dispensa_eletronica_widget = DispensaEletronicaWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.dispensa_eletronica_widget)
-
-    def setup_matriz_riscos(self):
-        self.clear_content_area()
-        self.matriz_riscos_widget = MatrizRiscosWidget(self)
-        self.content_layout.addWidget(self.matriz_riscos_widget)
-
-    def setup_etp(self):
-        self.clear_content_area()
-        self.etp_widget = ETPWidget(self)
-        self.content_layout.addWidget(self.etp_widget)
-
-    def setup_selenium_automacao(self):
-        self.clear_content_area()
-        self.selenium_widget = SeleniumAutomacao(self)
-        self.content_layout.addWidget(self.selenium_widget)
-
-    def setup_webscraping(self):
-        self.clear_content_area()
-        self.webscraping_widget = WebScrapingWidget(self)
-        self.content_layout.addWidget(self.webscraping_widget)
-
-    def setup_manipular_pdfs(self):
-        self.clear_content_area()
-        self.manipular_pdfs_widget = ManipularPDFsWidget(self)
-        self.content_layout.addWidget(self.manipular_pdfs_widget)
-
-    def setup_api_pncp(self):
-        self.clear_content_area()
-        self.pncp_widget = PNCPConsultationApp(self)
-        self.content_layout.addWidget(self.pncp_widget)
-
-    def setup_api_comprasnet_contratos(self):
-        self.clear_content_area()
-        self.comprasnet_contratos_widget = ComprasnetContratosAPI(self)
-        self.content_layout.addWidget(self.comprasnet_contratos_widget)
 
     def clear_content_area(self, keep_image_label=False):
         for i in reversed(range(self.content_layout.count())):

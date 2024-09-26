@@ -10,7 +10,6 @@ from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
 from modules.contratos.gerenciar_inclusao_exclusao import GerenciarInclusaoExclusaoContratos
-from modules.contratos.treeview_atas import TreeViewAtasDialog
 from modules.contratos.treeview_contratos import TreeViewContratosDialog
 from modules.contratos.msg.msg_alerta_prazo import MensagemDialog
 import pandas as pd
@@ -97,12 +96,6 @@ class ContratosWidget(QMainWindow):
 
         # Supondo que self.required_columns esteja definido no contexto da classe chamadora
         dialog = GerenciarInclusaoExclusaoContratos(self.icons_dir, self.database_path, self.required_columns, self)
-        dialog.exec()
-
-
-    def treeview_atas(self):
-        self.close_database_connections()
-        dialog = TreeViewAtasDialog(self.database_path, self)
         dialog.exec()
 
     def treeview_contratos(self):
