@@ -108,7 +108,7 @@ JSON_DISPENSA_DIR = DISPENSA_DIR / "json"
 FILE_PATH_DISPENSA = DISPENSA_DIR / "dispensa_eletronica.json"
 
 CONTROLE_DADOS = Path(load_config("CONTROLE_DADOS", BASE_DIR / "database/controle_dados.db"))
-CONTROLE_DADOS_PNCP = Path(load_config("CONTROLE_PNCP", BASE_DIR / "database/controle_pncp.db"))
+CONTROLE_DADOS_PNCP = Path(load_config("CONTROLE_DADOS_PNCP", BASE_DIR / "database/controle_pncp.db"))
 CONTROLE_ATAS_DADOS = Path(load_config("CONTROLE_ATAS", BASE_DIR / "database/controle_atas.db"))
 CONTROLE_CONTRATOS_DADOS = Path(load_config("CONTROLE_CONTRATOS", BASE_DIR / "database/controle_contrato.db"))                     
 CONTROLE_CONTRATACAO_DIRETAS = Path(load_config("CONTROLE_CONTRATACAO_DIRETAS", BASE_DIR / "database/controle_contratacao_direta.db"))
@@ -248,6 +248,14 @@ class EventManager(QObject):
             save_config("CONTROLE_DADOS", str(new_file))
             self.controle_dados_dir_updated.emit(new_file)
             print(f"CONTROLE_DADOS atualizado para {new_file}")
+
+    def update_controle_dados_pncp_dir(self, new_file):
+        global CONTROLE_DADOS_PNCP
+        if new_file != CONTROLE_DADOS_PNCP:
+            CONTROLE_DADOS_PNCP = new_file
+            save_config("CONTROLE_DADOS_PNCP", str(new_file))
+            self.controle_dados_dir_updated.emit(new_file)
+            print(f"CONTROLE_DADOS_PNCP atualizado para {new_file}")
 
     def update_contratacoes_diretas_database_dir(self, new_file):
         global CONTROLE_CONTRATACAO_DIRETAS

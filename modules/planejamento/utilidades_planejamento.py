@@ -545,16 +545,6 @@ def extrair_chave_processo(itemText):
 import traceback
 
 def carregar_dados_pregao(index, caminho_banco_dados):
-    """
-    Carrega os dados de pregão do banco de dados SQLite especificado pelo caminho_banco_dados.
-
-    Parâmetros:
-    - index: O índice da linha selecionada na QTableView.
-    - caminho_banco_dados: O caminho para o arquivo do banco de dados SQLite.
-    
-    Retorna:
-    - Um DataFrame do Pandas contendo os dados do registro selecionado.
-    """
     try:
         logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
         connection = sqlite3.connect(caminho_banco_dados)
@@ -568,7 +558,20 @@ def carregar_dados_pregao(index, caminho_banco_dados):
         logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
         return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
 
-
+def carregar_dados_licitacao(id_processo, caminho_banco_dados):
+    try:
+        logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
+        connection = sqlite3.connect(caminho_banco_dados)
+        query = f"SELECT * FROM controle_processos WHERE id_processo='{id_processo}'"
+        logging.debug(f"Executando consulta SQL: {query}")
+        df_registro_selecionado = pd.read_sql_query(query, connection)
+        connection.close()
+        logging.debug(f"Dados carregados com sucesso para id_processo {id_processo}: {df_registro_selecionado}")
+        return df_registro_selecionado
+    except Exception as e:
+        logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
+        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+    
 def carregar_dados_dispensa(id_processo, caminho_banco_dados):
     try:
         logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")

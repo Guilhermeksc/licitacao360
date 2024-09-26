@@ -37,7 +37,7 @@ class ConfigurarDatabaseDialog(QDialog):
 
         modules = [
             ("Planejamento de Licitações", self.update_controle_processos_dir),
-            ("Atas", self.update_controle_atas_dir),
+            ("Dados PNCP", self.update_controle_atas_dir),
             ("Contratos", self.update_controle_contratos_dir),
             ("Dispensa Eletrônica", self.update_controle_contratacoes_diretas_dir),
         ]
@@ -51,7 +51,7 @@ class ConfigurarDatabaseDialog(QDialog):
     def _create_global_to_module_map(self):
         return {
             "CONTROLE_DADOS": "Planejamento de Licitações",
-            "CONTROLE_ATAS": "Atas",
+            "CONTROLE_DADOS_PNCP": "Dados PNCP",
             "CONTROLE_CONTRATOS": "Contratos",
             "CONTROLE_CONTRATACAO_DIRETAS": "Dispensa Eletrônica",
         }
@@ -146,7 +146,7 @@ class ConfigurarDatabaseDialog(QDialog):
     def get_directory_for_module(self, module_name):
         directories = {
             "Planejamento de Licitações": CONTROLE_DADOS,
-            "Atas": CONTROLE_ATAS_DADOS,
+            "Dados PNCP": CONTROLE_DADOS_PNCP,
             "Contratos": CONTROLE_CONTRATOS_DADOS,
             "Dispensa Eletrônica": CONTROLE_CONTRATACAO_DIRETAS,
         }
@@ -190,7 +190,7 @@ class ConfigurarDatabaseDialog(QDialog):
         self._update_directory("CONTROLE_DADOS", "Selecione o novo arquivo para CONTROLE_DADOS")
 
     def update_controle_atas_dir(self):
-        self._update_directory("CONTROLE_ATAS", "Selecione o novo arquivo para CONTROLE_ATAS")
+        self._update_directory_pncp("CONTROLE_DADOS_PNCP", "Selecione o novo arquivo para CONTROLE_DADOS_PNCP")
 
     def update_controle_contratos_dir(self):
         self._update_directory("CONTROLE_CONTRATOS", "Selecione o novo arquivo para CONTROLE_CONTRATOS")
@@ -204,6 +204,18 @@ class ConfigurarDatabaseDialog(QDialog):
             if self._confirm_update(global_var_name, new_file):
                 globals()[global_var_name] = new_file
                 global_event_manager.update_controle_dados_dir(new_file)
+                self._show_success_dialog(new_file)
+
+                module_name = self.global_to_module_map.get(global_var_name)
+                if module_name:
+                    self.directory_labels[module_name].setText(str(new_file))
+
+    def _update_directory_pncp(self, global_var_name, dialog_title):
+        new_file = update_file_path(dialog_title, global_var_name, globals()[global_var_name], self, "Database files (*.db)")
+        if new_file != globals()[global_var_name]:
+            if self._confirm_update(global_var_name, new_file):
+                globals()[global_var_name] = new_file
+                global_event_manager.update_controle_dados_pncp_dir(new_file)
                 self._show_success_dialog(new_file)
 
                 module_name = self.global_to_module_map.get(global_var_name)

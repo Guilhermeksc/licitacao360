@@ -20,7 +20,6 @@ class FormularioExcel:
         self.colunas_legiveis = {
             'nup': 'NUP',
             'material_servico': 'Material (M) ou Serviço (S)',
-            'objeto': 'Objeto Resumido',
             'vigencia': 'Vigência',
             'criterio_julgamento': 'Critério de Julgamento (Menor Preço ou Maior Desconto)',
             'com_disputa': 'Com disputa? Sim (S) ou Não (N)',
@@ -45,8 +44,6 @@ class FormularioExcel:
             'atividade_custeio': 'Atividade de Custeio',
             'justificativa': 'Justificativa',
             'comunicacao_padronizada': 'Comunicação Padronizada (CP), Ex: 60-25',
-            'do_responsavel': 'Campo Do(a) da CP',
-            'ao_responsavel': 'Campo Ao da CP'
         }
 
         self.normalizacao_valores = {
@@ -188,7 +185,8 @@ class FormularioExcel:
         tipo = self.df_registro_selecionado['tipo'].iloc[0]
         numero = self.df_registro_selecionado['numero'].iloc[0]
         ano = self.df_registro_selecionado['ano'].iloc[0]
-        titulo = f"{tipo} nº {numero}/{ano}"
+        objeto = self.df_registro_selecionado['objeto'].iloc[0]
+        titulo = f"{tipo} nº {numero}/{ano} ({objeto})"
         ws.merge_cells('A1:B1')
         ws['A1'] = titulo
         ws['A1'].font = Font(size=20, bold=True)

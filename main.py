@@ -7,6 +7,7 @@ from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.novo_planejamento_button import PlanejamentoWidget
+from modules.planejamento_novo.planejamento_novo_button import PlanejamentoNovoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.contratos.classe_contratos import ContratosWidget
 from modules.custom_selenium.selenium_automation import SeleniumAutomacao
@@ -176,21 +177,30 @@ class MainWindow(QMainWindow):
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # menu_buttons = [
+        #     "Início",
+        #     "Planejamento",
+        #     "Atas",
+        #     "Contratos",
+        #     "ETP",
+        #     "Matriz de Riscos",
+        #     "Dispensa Eletrônica",
+        #     "Selenium",
+        #     "Web Scraping",
+        #     "Manipular PDF's",
+        #     "API PNCP",
+        #     "API Contratos"
+        # ]
+
         menu_buttons = [
             "Início",
             "Planejamento",
+            "Planejamento Novo",
             "Atas",
             "Contratos",
-            "ETP",
-            "Matriz de Riscos",
             "Dispensa Eletrônica",
-            "Selenium",
-            "Web Scraping",
-            "Manipular PDF's",
-            "API PNCP",
-            "API Contratos"
         ]
-
+        
         for button_name in menu_buttons:
             button = self.create_menu_button(button_name)
             if button_name == "Início":
@@ -257,6 +267,7 @@ class MainWindow(QMainWindow):
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
+            "Planejamento Novo": self.setup_planejamento_novo,
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
@@ -277,6 +288,11 @@ class MainWindow(QMainWindow):
         self.application_ui = PlanejamentoWidget(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
+    def setup_planejamento_novo(self):
+        self.clear_content_area()
+        self.application_ui = PlanejamentoNovoWidget(str(ICONS_DIR), self)
+        self.content_layout.addWidget(self.application_ui)
+    
     def setup_atas(self):
         self.clear_content_area()
         self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)
