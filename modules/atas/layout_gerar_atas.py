@@ -10,7 +10,6 @@ from modules.atas.relatorio_indicadores import RelatorioIndicadores
 from modules.atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
 from modules.atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
 from modules.atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
-from modules.atas.streamlit_dialog import StreamlitDialog
 from modules.atas.dialog_gerar_atas import AtasDialog
 from diretorios import *
 import pandas as pd
@@ -681,24 +680,6 @@ class GerarAtasWidget(QWidget):
                 QMessageBox.critical(self, "Erro", "A combinação de 'num_pregao', 'ano_pregao', e 'uasg' não é única. Por favor, verifique os dados.")
         else:
             QMessageBox.critical(self, "Erro", "Dados necessários para criar o nome da tabela não estão presentes.")
-
-    def dashboard_indicadores(self):
-        if self.current_dataframe is not None:
-            # Salva o DataFrame em um arquivo CSV temporário
-            self.current_dataframe.to_csv(STREAMLIT_CSV, index=False)
-            
-            if STREAMLIT_CSV.exists():
-                # Configura a variável de ambiente para não solicitar email
-                os.environ["EMAIL_OPT_OUT"] = "true"
-                
-                # Abrir o diálogo do Streamlit
-                dialog = StreamlitDialog(self)
-                dialog.exec()
-            else:
-                QMessageBox.warning(self, "Aviso", "Erro ao salvar o arquivo CSV.")
-        else:
-            QMessageBox.warning(self, "Aviso", "Não há dados para salvar.")
-
 
     def salvar_tabela(self):
         if self.current_dataframe is not None:

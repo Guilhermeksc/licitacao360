@@ -8,7 +8,6 @@ from database.utils.treeview_utils import load_images, create_button, save_dataf
 import pandas as pd
 import os
 from modules.planejamento.settings import SettingsDialog
-from modules.planejamento_novo.streamlit_dashboard import StreamlitPlanejamentoDialog
 from modules.planejamento.adicionar_itens import AddItemDialog
 from modules.planejamento.editar_dados import EditarDadosDialog
 from modules.planejamento.popup_relatorio import ReportDialog
@@ -223,27 +222,6 @@ class PlanejamentoWidget(QMainWindow):
         # Converte a lista de dados em um DataFrame
         df = pd.DataFrame(data, columns=headers)
         return df
-
-    def dashboard_planejamento(self):
-        # Converte o modelo para um DataFrame
-        dataframe = self.model_to_dataframe()
-        
-        if not dataframe.empty:
-            # Salva o DataFrame em um arquivo CSV
-            dataframe.to_csv(STREAMLIT_PLANEJAMENTO_CSV, index=False)
-            
-            if STREAMLIT_PLANEJAMENTO_CSV.exists():
-                # Configura a variável de ambiente para não solicitar email
-                os.environ["EMAIL_OPT_OUT"] = "true"
-                
-                # Abrir o diálogo do Streamlit
-                dialog = StreamlitPlanejamentoDialog(self)
-                dialog.exec()
-            else:
-                QMessageBox.warning(self, "Aviso", "Erro ao salvar o arquivo CSV.")
-        else:
-            QMessageBox.warning(self, "Aviso", "Não há dados para salvar.")
-
 
     def save_to_control_prazos(self, id_processo):
         with self.database_manager as conn:
@@ -782,7 +760,6 @@ class ButtonManager:
             ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
             ("Controle", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
             ("Database", self.parent.image_cache['data-processing'], self.parent.open_carregar_tabela_dialog, "Abre o painel de controle do processo"),
-            ("Dashboard", self.parent.image_cache['performance'], self.parent.dashboard_planejamento, "Abre o painel de gráficos"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)

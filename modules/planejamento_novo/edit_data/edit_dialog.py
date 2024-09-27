@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 import sqlite3
 import webbrowser
+from datetime import datetime
 
 class EditDataDialog(QDialog):
     dados_atualizados = pyqtSignal()
@@ -52,7 +53,7 @@ class EditDataDialog(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1250, 720)
+        self.setFixedSize(1400, 720)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
@@ -105,10 +106,13 @@ class EditDataDialog(QDialog):
         # Lista de botões de navegação
         buttons = [
             ("Informações", "Informações"),
-            ("Setor Responsável", "Setor Responsável"),
+            ("IRP", "IRP"),
+            ("Demandante", "Demandante"),
             ("Documentos", "Documentos"),
             ("Anexos", "Anexos"),
             ("PNCP", "PNCP"),
+            ("Check-list", "Check-list"),
+            ("Nota Técnica", "Nota Técnica"),
         ]
 
         for text, name in buttons:
@@ -140,7 +144,7 @@ class EditDataDialog(QDialog):
     def add_navigation_button(self, layout, text, callback):
         button = QPushButton(text)
         button.setCheckable(True)
-        button.setMinimumWidth(150)
+        button.setMinimumWidth(117)
         button.setStyleSheet(self.get_button_style())
         button.clicked.connect(callback)
         layout.addWidget(button)
@@ -182,16 +186,32 @@ class EditDataDialog(QDialog):
         # Método para configurar os widgets no StackWidgetManager
         widgets = {
             "Informações": self.stacked_widget_info(data),
-            "Setor Responsável": self.stacked_widget_responsaveis(data),
+            "IRP": self.stacked_widget_irp(data),
+            "Demandante": self.stacked_widget_responsaveis(data),
             "Documentos": self.stacked_widget_documentos(data),
             "Anexos": self.stacked_widget_anexos(data),
             "PNCP": self.stacked_widget_pncp(data),
+            "Nota Técnica": self.stacked_widget_nt(data),
         }
 
         for name, widget in widgets.items():
             self.stack_manager.addWidget(widget)
             widget.setObjectName(name)
 
+    def stacked_widget_irp(self, data):
+        # Cria um widget básico para o stack
+        frame = QFrame()
+        layout = QVBoxLayout()
+
+        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
+        irp_group = self.create_irp_group()
+        layout.addWidget(irp_group)
+
+        # Define o layout para o frame
+        frame.setLayout(layout)
+
+        return frame
+    
     def stacked_widget_responsaveis(self, data):
         # Cria um widget básico para o stack
         frame = QFrame()
@@ -226,7 +246,6 @@ class EditDataDialog(QDialog):
         frame = QFrame()
         layout = QVBoxLayout()
 
-        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
         anexos_group = self.create_anexos_group()
         layout.addWidget(anexos_group)
 
@@ -238,7 +257,17 @@ class EditDataDialog(QDialog):
         frame = QFrame()
         layout = QVBoxLayout()
 
-        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
+        pncp_group = self.create_pncp_group()
+        layout.addWidget(pncp_group)
+
+        # Define o layout para o frame
+        frame.setLayout(layout)        
+        return frame
+    
+    def stacked_widget_nt(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+
         pncp_group = self.create_pncp_group()
         layout.addWidget(pncp_group)
 
@@ -269,6 +298,10 @@ class EditDataDialog(QDialog):
         formulario_group_box = self.create_frame_formulario_group()
         layout_orcamentario_formulario.addWidget(formulario_group_box)
 
+        # Cria o "Formulário de Dados" e adiciona ao layout vertical
+        pncp_group_box = self.create_frame_pncp()
+        layout_orcamentario_formulario.addWidget(pncp_group_box)
+
         # Adiciona o layout vertical ao layout horizontal
         hbox_top_layout.addLayout(layout_orcamentario_formulario)
 
@@ -281,7 +314,8 @@ class EditDataDialog(QDialog):
     def create_contratacao_group(self, data):
         contratacao_group_box = QGroupBox("Contratação")
         self.apply_widget_style(contratacao_group_box)
-        contratacao_group_box.setFixedWidth(400)
+        contratacao_group_box.setFixedWidth(700)
+        # Coluna da esquerda - Contratação
         contratacao_layout = QVBoxLayout()
 
         # Objeto
@@ -294,19 +328,8 @@ class EditDataDialog(QDialog):
         objeto_layout.addWidget(objeto_label)
         objeto_layout.addWidget(self.objeto_edit)
 
-        # Criando o ícone
-        icon_label = QLabel()
-        icon = QIcon(str(self.ICONS_DIR / "prioridade.png"))
-        icon_pixmap = icon.pixmap(27, 27)  # Definindo o tamanho do ícone
-        icon_label.setPixmap(icon_pixmap)
-        icon_label.setFixedSize(30, 30)
-
-        # Adicionando o ícone ao layout
-        objeto_layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignRight)
-
         # Aplicando estilo diretamente aos widgets dentro do layout
         self.apply_widget_style(self.objeto_edit)
-        self.apply_widget_style(icon_label)
 
         # Adicionando o layout horizontal diretamente ao layout principal de contratação
         contratacao_layout.addLayout(objeto_layout)
@@ -382,97 +405,85 @@ class EditDataDialog(QDialog):
         criterio_layout.addWidget(self.criterio_edit)
         contratacao_layout.addLayout(criterio_layout)
 
-        # Configuração de Com Disputa na mesma linha
-        disputa_layout = QHBoxLayout()
-        disputa_label = QLabel("Com disputa?")
-        self.apply_widget_style(disputa_label)
-        self.radio_disputa_sim = QRadioButton("Sim")
-        self.radio_disputa_nao = QRadioButton("Não")
-        self.disputa_group = QButtonGroup(self)
-        self.disputa_group.addButton(self.radio_disputa_sim)
-        self.disputa_group.addButton(self.radio_disputa_nao)
-        disputa_layout.addWidget(disputa_label)
-        disputa_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        # Criando o ícone
+        icon = QIcon(str(self.ICONS_DIR / "prioridade.png"))
+        icon_pixmap = icon.pixmap(27, 27)  # Definindo o tamanho do ícone
+        icon_label = QLabel()  # Criando o QLabel para o ícone
+        icon_label.setPixmap(icon_pixmap)
+        icon_label.setFixedSize(30, 30)
 
-        disputa_layout.addWidget(self.radio_disputa_sim)
-        disputa_layout.addWidget(self.radio_disputa_nao)
-        contratacao_layout.addLayout(disputa_layout)
+        # Layout horizontal para todos os checkboxes
+        checkboxes_layout = QHBoxLayout()
 
-        com_disputa_value = data.get('com_disputa', 'Sim')
-        if com_disputa_value is None or pd.isna(com_disputa_value):
-            com_disputa_value = 'Sim'
-        self.radio_disputa_sim.setChecked(com_disputa_value == 'Sim')
-        self.radio_disputa_nao.setChecked(com_disputa_value != 'Sim')
-
-        # Pesquisa de Preço Concomitante
-        pesquisa_concomitante_layout = QHBoxLayout()
-        pesquisa_concomitante_label = QLabel("Pesquisa Concomitante?")
-        self.apply_widget_style(pesquisa_concomitante_label)
-        self.radio_pesquisa_sim = QRadioButton("Sim")
-        self.radio_pesquisa_nao = QRadioButton("Não")
-        self.pesquisa_group = QButtonGroup(self)
-        self.pesquisa_group.addButton(self.radio_pesquisa_sim)
-        self.pesquisa_group.addButton(self.radio_pesquisa_nao)
+        checkbox_style = """
+            QCheckBox::indicator {
+                width: 30px;
+                height: 30px;
+            }
+        """
+        
+        # Checkbox para "Prioritário?" com ícone
+        self.checkbox_prioritario = QCheckBox("Prioritário")
+        self.checkbox_prioritario.setStyleSheet(checkbox_style)
+        icon_prioritario = QIcon(str(self.ICONS_DIR / "prioridade.png"))
+        self.checkbox_prioritario.setIcon(icon_prioritario)
+        self.checkbox_prioritario.setIconSize(QSize(27, 27))
         pesquisa_preco_value = data.get('pesquisa_preco', 'Não')
-        self.radio_pesquisa_sim.setChecked(pesquisa_preco_value == 'Sim')
-        self.radio_pesquisa_nao.setChecked(pesquisa_preco_value != 'Sim')
-        pesquisa_concomitante_layout.addWidget(pesquisa_concomitante_label)
-        pesquisa_concomitante_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        self.checkbox_prioritario.setChecked(pesquisa_preco_value == 'Sim')
 
-        pesquisa_concomitante_layout.addWidget(self.radio_pesquisa_sim)
-        pesquisa_concomitante_layout.addWidget(self.radio_pesquisa_nao)
-        contratacao_layout.addLayout(pesquisa_concomitante_layout)
+        checkboxes_layout.addWidget(self.checkbox_prioritario)
 
-        # Atividade de Custeio
-        atividade_custeio_layout = QHBoxLayout()
-        custeio_label = QLabel("Atividade de Custeio?")
-        self.apply_widget_style(custeio_label)
-        self.radio_custeio_sim = QRadioButton("Sim")
-        self.radio_custeio_nao = QRadioButton("Não")
+        # Checkbox para "Emenda Parlamentar?" com ícone
+        self.checkbox_emenda = QCheckBox("Emenda Parlamentar")
+        self.checkbox_emenda.setStyleSheet(checkbox_style)
+        icon_emenda = QIcon(str(self.ICONS_DIR / "subsidy.png"))
+        self.checkbox_emenda.setIcon(icon_emenda)
+        self.checkbox_emenda.setIconSize(QSize(27, 27))
+        emenda_value = data.get('atividade_custeio', 'Não')
+        self.checkbox_emenda.setChecked(emenda_value == 'Sim')
+
+        checkboxes_layout.addWidget(self.checkbox_emenda)
+        
+        # Checkbox para "Registro de Preços?" com ícone
+        self.checkbox_registro_precos = QCheckBox("SRP")
+        self.checkbox_registro_precos.setStyleSheet(checkbox_style)        
+        icon_registro_precos = QIcon(str(self.ICONS_DIR / "price-tag.png"))  # Substitua pelo ícone correto
+        self.checkbox_registro_precos.setIcon(icon_registro_precos)
+        self.checkbox_registro_precos.setIconSize(QSize(27, 27))
+        registro_precos_value = data.get('registro_precos', 'Não')
+        self.checkbox_registro_precos.setChecked(registro_precos_value == 'Sim')
+
+        checkboxes_layout.addWidget(self.checkbox_registro_precos)
+
+        # Checkbox para "Atividade de Custeio?" com ícone
+        self.checkbox_atividade_custeio = QCheckBox("Atividade de Custeio")
+        self.checkbox_atividade_custeio.setStyleSheet(checkbox_style)        
+        icon_atividade_custeio = QIcon(str(self.ICONS_DIR / "custeio.png"))  # Substitua pelo ícone correto
+        self.checkbox_atividade_custeio.setIcon(icon_atividade_custeio)
+        self.checkbox_atividade_custeio.setIconSize(QSize(27, 27))
         atividade_custeio_value = data.get('atividade_custeio', 'Não')
-        self.radio_custeio_sim.setChecked(atividade_custeio_value == 'Sim')
-        self.radio_custeio_nao.setChecked(atividade_custeio_value != 'Sim')
-        atividade_custeio_layout.addWidget(custeio_label)
-        atividade_custeio_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        self.checkbox_atividade_custeio.setChecked(atividade_custeio_value == 'Sim')
 
-        atividade_custeio_layout.addWidget(self.radio_custeio_sim)
-        atividade_custeio_layout.addWidget(self.radio_custeio_nao)
-        contratacao_layout.addLayout(atividade_custeio_layout)
+        checkboxes_layout.addWidget(self.checkbox_atividade_custeio)
 
-        cnpj_layout = QHBoxLayout()
-
-        # Criação do campo de texto com o valor '00394502000144'
-        self.cnpj_matriz_edit = QLineEdit('00394502000144')
-        cnpj_layout.addLayout(self.create_layout("CNPJ Matriz:", self.cnpj_matriz_edit))
-
-        # Adicionando o campo CNPJ ao layout principal antes do campo "Sequencial PNCP"
-        contratacao_layout.addLayout(cnpj_layout)
-
-        # Layout Link PNCP
-        link_pncp_layout = QHBoxLayout()
-
-        self.link_pncp_edit = QLineEdit(data.get('link_pncp', ''))
-        link_pncp_layout.addLayout(self.create_layout("Sequencial PNCP:", self.link_pncp_edit))
-
-        icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
-        link_pncp_button = self.create_button(
-            "",
-            icon=icon_link,
-            callback=self.on_link_pncp_clicked,
-            tooltip_text="Clique para acessar o Link da dispensa no Portal Nacional de Contratações Públicas (PNCP)",
-            button_size=QSize(30, 30),
-            icon_size=QSize(30, 30)
-        )
-        self.apply_widget_style(link_pncp_button)
-        link_pncp_layout.addWidget(link_pncp_button)
-
-        # Adicionando o layout do campo Sequencial PNCP
-        contratacao_layout.addLayout(link_pncp_layout)
+        # Adiciona o layout de checkboxes ao layout principal
+        contratacao_layout.addLayout(checkboxes_layout)
 
         contratacao_group_box.setLayout(contratacao_layout)
 
         return contratacao_group_box
 
+    def validate_and_convert_date(self, date_str):
+        """Valida e converte uma string de data para QDate."""
+        try:
+            # Tenta converter a string para datetime
+            parsed_date = datetime.strptime(date_str, "%Y-%m-%d")
+            # Converte datetime para QDate
+            return QDate(parsed_date.year, parsed_date.month, parsed_date.day)
+        except (ValueError, TypeError):
+            # Retorna None se houver erro na conversão
+            return None
+        
     def on_link_pncp_clicked(self):
         cnpj = self.cnpj_matriz_edit.text()  # Valor do CNPJ Matriz
         ano = self.ano  # Valor do Ano
@@ -488,7 +499,7 @@ class EditDataDialog(QDialog):
         data = self.extract_registro_data()
         classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
         self.apply_widget_style(classificacao_orcamentaria_group_box)
-        classificacao_orcamentaria_group_box.setFixedWidth(400)  
+        classificacao_orcamentaria_group_box.setFixedWidth(350)  
         classificacao_orcamentaria_layout = QVBoxLayout()
 
         # Valor Estimado
@@ -850,7 +861,7 @@ class EditDataDialog(QDialog):
     def create_frame_formulario_group(self):
         formulario_group_box = QGroupBox("Formulário de Dados")
         self.apply_widget_style(formulario_group_box)   
-        formulario_group_box.setFixedWidth(400)   
+        formulario_group_box.setFixedWidth(350)   
         formulario_layout = QVBoxLayout()
 
         # Adicionando os botões ao layout
@@ -880,6 +891,47 @@ class EditDataDialog(QDialog):
         formulario_group_box.setLayout(formulario_layout)
 
         return formulario_group_box
+
+    def create_frame_pncp(self):
+        data = self.extract_registro_data()
+        pncp_group_box = QGroupBox("Integração ao PNCP")
+        self.apply_widget_style(pncp_group_box)   
+        pncp_group_box.setFixedWidth(350)   
+        pncp_layout = QVBoxLayout()
+
+        cnpj_layout = QHBoxLayout()
+
+        # Criação do campo de texto com o valor '00394502000144'
+        self.cnpj_matriz_edit = QLineEdit('00394502000144')
+        cnpj_layout.addLayout(self.create_layout("CNPJ Matriz:", self.cnpj_matriz_edit))
+
+        # Adicionando o campo CNPJ ao layout principal antes do campo "Sequencial PNCP"
+        pncp_layout.addLayout(cnpj_layout)
+
+        # Layout Link PNCP
+        link_pncp_layout = QHBoxLayout()
+
+        self.link_pncp_edit = QLineEdit(data.get('link_pncp', ''))
+        link_pncp_layout.addLayout(self.create_layout("Sequencial PNCP:", self.link_pncp_edit))
+
+        icon_link = QIcon(str(self.ICONS_DIR / "link.png"))
+        link_pncp_button = self.create_button(
+            "",
+            icon=icon_link,
+            callback=self.on_link_pncp_clicked,
+            tooltip_text="Clique para acessar o Link da dispensa no Portal Nacional de Contratações Públicas (PNCP)",
+            button_size=QSize(30, 30),
+            icon_size=QSize(30, 30)
+        )
+        self.apply_widget_style(link_pncp_button)
+        link_pncp_layout.addWidget(link_pncp_button)
+
+        # Adicionando o layout do campo Sequencial PNCP
+        pncp_layout.addLayout(link_pncp_layout)
+
+        pncp_group_box.setLayout(pncp_layout)
+
+        return pncp_group_box
 
     def preencher_campos(self):
         try:
@@ -1733,6 +1785,81 @@ class EditDataDialog(QDialog):
 
         self.dados_atualizados.emit()
 
+    def create_irp_group(self):
+        data = self.extract_registro_data()
+
+        # Cria o QGroupBox para o grupo de IRP
+        irp_group_box = QGroupBox("Dados relativos à Intenção de Registro de Preços (IRP)")
+        self.apply_widget_style(irp_group_box)
+
+        # Layout principal
+        irp_layout = QVBoxLayout()
+
+        # Inicializando dicionários de line_edits e date_edits se ainda não estiverem inicializados
+        if not hasattr(self, 'line_edits'):
+            self.line_edits = {}
+        if not hasattr(self, 'date_edits'):
+            self.date_edits = {}
+
+        # Layout de texto (msg_irp e num_irp)
+        irp_text_layout = QVBoxLayout()
+
+        # QHBoxLayout para msg_irp
+        msg_irp_layout = QHBoxLayout()
+        label_msg_irp = QLabel("Data/Hora MSG:")
+        self.line_edit_msg_irp = QLineEdit()
+        self.line_edit_msg_irp.setText(data.get('msg_irp', ''))
+        msg_irp_layout.addWidget(label_msg_irp)
+        msg_irp_layout.addWidget(self.line_edit_msg_irp)
+        irp_text_layout.addLayout(msg_irp_layout)
+        self.line_edits['msg_irp'] = self.line_edit_msg_irp
+
+        # QHBoxLayout para num_irp
+        num_irp_layout = QHBoxLayout()
+        label_num_irp = QLabel("Número IRP:")
+        self.line_edit_num_irp = QLineEdit()
+        self.line_edit_num_irp.setText(data.get('num_irp', ''))  # Corrigido para usar 'data' em vez de 'self.dados'
+        num_irp_layout.addWidget(label_num_irp)
+        num_irp_layout.addWidget(self.line_edit_num_irp)
+        irp_text_layout.addLayout(num_irp_layout)
+        self.line_edits['num_irp'] = self.line_edit_num_irp
+
+        # Adicionar o QVBoxLayout de textos ao layout principal
+        irp_layout.addLayout(irp_text_layout)
+
+        # Layout para as datas (data_limite_manifestacao_irp e data_limite_confirmacao_irp)
+        irp_date_layout = QVBoxLayout()
+
+        # Campos de data com QDateEdit
+        date_fields = {
+            'data_limite_manifestacao_irp': "Limite para Manifestação",
+            'data_limite_confirmacao_irp': "Limite para Confirmação"
+        }
+
+        for field, label_text in date_fields.items():
+            date_layout = QVBoxLayout()
+            label = QLabel(label_text + ':')
+            date_edit = QDateEdit()
+            date_edit.setCalendarPopup(True)
+            date_str = data.get(field)  # Corrigido para usar 'data' em vez de 'self.dados'
+            valid_date = self.validate_and_convert_date(date_str)
+            if valid_date:
+                date_edit.setDate(valid_date)
+            else:
+                date_edit.setDate(QDate.currentDate())
+            date_layout.addWidget(label)
+            date_layout.addWidget(date_edit)
+            irp_date_layout.addLayout(date_layout)
+            self.date_edits[field] = date_edit
+
+        # Adicionar o layout de datas ao layout principal
+        irp_layout.addLayout(irp_date_layout)
+
+        # Configurar o layout principal no QGroupBox
+        irp_group_box.setLayout(irp_layout)
+
+        return irp_group_box
+    
     """
     
     

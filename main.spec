@@ -10,7 +10,6 @@ BASE_DIR = Path("C:/Users/guilh/OneDrive/Documentos/Backup/360/licitacao360")
 DATABASE_DIR = BASE_DIR / "database"
 RESOURCES_DIR = BASE_DIR / "resources"
 ICON_PATH = RESOURCES_DIR / "brasil.ico"
-STREAMLIT_DIR = BASE_DIR / "streamlit"
 
 # Adicione o caminho do diretório base ao sys.path
 sys.path.insert(0, str(BASE_DIR))
@@ -34,7 +33,6 @@ a = Analysis(
 # Inclua os diretórios database e resources inteiros
 a.datas += Tree(str(DATABASE_DIR), prefix='database/')
 a.datas += Tree(str(RESOURCES_DIR), prefix='resources/')
-a.datas += Tree(str(STREAMLIT_DIR), prefix='streamlit/')
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 

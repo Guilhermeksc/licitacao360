@@ -434,7 +434,7 @@ class EditarDadosDialog(QDialog):
         irp_text_layout = QHBoxLayout()
         
         # QVBoxLayout para 'msg_irp'
-        msg_irp_layout = QVBoxLayout()
+        msg_irp_layout = QHBoxLayout()
         label_msg_irp = QLabel("Data/Hora MSG:")
         self.line_edit_msg_irp = QLineEdit()
         self.line_edit_msg_irp.setText(self.dados.get('msg_irp', ''))
@@ -444,7 +444,7 @@ class EditarDadosDialog(QDialog):
         self.line_edits['msg_irp'] = self.line_edit_msg_irp
 
         # QVBoxLayout para 'num_irp'
-        num_irp_layout = QVBoxLayout()
+        num_irp_layout = QHBoxLayout()
         label_num_irp = QLabel("Número IRP:")
         self.line_edit_num_irp = QLineEdit()
         self.line_edit_num_irp.setText(self.dados.get('num_irp', ''))
@@ -466,7 +466,7 @@ class EditarDadosDialog(QDialog):
         }
 
         for field, label_text in date_fields.items():
-            date_layout = QVBoxLayout()
+            date_layout = QHBoxLayout()
             label = QLabel(label_text + ':')
             date_edit = QDateEdit()
             date_edit.setCalendarPopup(True)

@@ -86,14 +86,6 @@ TEMPLATE_PATH = TEMPLATE_DIR / 'template_ata.docx'
 MSG_DIR = RESOURCES_DIR / "msg"
 MSG_CONTRATOS_DIR = MSG_DIR / "contratos"
 
-# Streamlit dir
-STREAMLIT_DIR = BASE_DIR / "streamlit"
-STREAMLIT_CSV = STREAMLIT_DIR / "current_dataframe.csv"
-STREAMLIT_PATH = STREAMLIT_DIR / "streamlit_app.py"
-
-STREAMLIT_PLANEJAMENTO_CSV = STREAMLIT_DIR / "dataframe_planejamento.csv"
-STREAMLIT_PLANEJAMENTO_PATH = STREAMLIT_DIR / "streamlit_planejamento.py"
-
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos
 PLANEJAMENTO_DIR = MODULES_DIR / "planejamento"
 
@@ -101,7 +93,6 @@ PASTA_TEMPLATE = Path(load_config("PASTA_TEMPLATE", RESOURCES_DIR / "template"))
 
 TEMPLATE_PLANEJAMENTO_DIR = PLANEJAMENTO_DIR / "template"
 TEMPLATE_DISPENSA_DIR = PASTA_TEMPLATE / "template_dispensa"
-
 
 DISPENSA_DIR = MODULES_DIR / "dispensa_eletronica"
 JSON_DISPENSA_DIR = DISPENSA_DIR / "json"
@@ -125,10 +116,6 @@ SICAF_TXT_DIR = SICAF_DIR / "sicaf_txt"
 
 RELATORIO_PATH = Path(load_config("RELATORIO_PATH", DATABASE_DIR / "relatorio"))
 LV_DIR = Path(load_config("LV_DIR", BASE_DIR / "Lista_de_Verificacao"))
-
-
-CONTROLE_LIMITE_DISPENSA_DIR = DATABASE_DIR / "controle_limite_dispensa"
-ARQUIVO_DADOS_PDM_CATSER = CONTROLE_LIMITE_DISPENSA_DIR / 'dados_pdm.db'
 
 
 ATA_DIR = DATABASE_DIR / "atas"
