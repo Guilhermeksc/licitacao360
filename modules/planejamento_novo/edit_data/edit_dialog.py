@@ -6,6 +6,8 @@ from modules.dispensa_eletronica.documentos_cp_dfd_tr import PDFAddDialog, Conso
 from modules.dispensa_eletronica.utils_dispensa_eletronica import RealLineEdit
 from modules.dispensa_eletronica.dados_api.api_consulta import PNCPConsultaThread, PNCPConsulta
 from modules.dispensa_eletronica.formulario_excel import FormularioExcel
+from modules.planejamento_novo.edit_data.edit_dialog_utils import EditDataDialogUtils
+from modules.planejamento_novo.edit_data.stacked_widget import StackedWidgetManager
 from diretorios import *
 from pathlib import Path
 import pandas as pd
@@ -29,13 +31,65 @@ class EditDataDialog(QDialog):
         self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
         self._init_paths()
         self.formulario_excel = FormularioExcel(self.df_registro_selecionado, self.pasta_base, self)
+        # Extrair os dados e armazenar como atributos da classe
+        self.set_registro_data()
+
+        # Inicializar o gerenciador do StackedWidget
+        self.stacked_widget_manager = StackedWidgetManager(self, self.df_registro_selecionado)
 
         # Criar layout
         self._init_ui()
         self._init_connections()
 
         # Conectar o sinal ao método que atualiza o status_label
-        self.status_atualizado.connect(self.atualizar_status_label)
+        self.status_atualizado.connect(lambda msg, icon: EditDataDialogUtils.atualizar_status_label(self.status_label, self.icon_label, msg, icon))
+
+    def set_registro_data(self):
+        # Extrai os dados do DataFrame e armazena como atributos da classe
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
+        self.id_processo = data.get('id_processo')
+        self.tipo = data.get('tipo')
+        self.numero = data.get('numero')
+        self.ano = data.get('ano')
+        self.situacao = data.get('status')
+        self.nup = data.get('nup')
+        self.material_servico = data.get('material_servico')
+        self.objeto = data.get('objeto')
+        self.vigencia = data.get('vigencia')
+        self.data_sessao = data.get('data_sessao')
+        self.operador = data.get('operador')
+        self.criterio_julgamento = data.get('criterio_julgamento')
+        self.com_disputa = data.get('com_disputa')
+        self.pesquisa_preco = data.get('pesquisa_preco')
+        self.previsao_contratacao = data.get('previsao_contratacao')
+        self.uasg = data.get('uasg')
+        self.orgao_responsavel = data.get('orgao_responsavel')
+        self.sigla_om = data.get('sigla_om')
+        self.uf = data.get('uf')
+        self.codigoMunicipioIbge = data.get('codigoMunicipioIbge')
+        self.setor_responsavel = data.get('setor_responsavel')
+        self.responsavel_pela_demanda = data.get('responsavel_pela_demanda')
+        self.ordenador_despesas = data.get('ordenador_despesas')
+        self.agente_fiscal = data.get('agente_fiscal')
+        self.gerente_de_credito = data.get('gerente_de_credito')
+        self.cod_par = data.get('cod_par')
+        self.prioridade_par = data.get('prioridade_par')
+        self.cep = data.get('cep')
+        self.endereco = data.get('endereco')
+        self.email = data.get('email')
+        self.telefone = data.get('telefone')
+        self.dias_para_recebimento = data.get('dias_para_recebimento')
+        self.horario_para_recebimento = data.get('horario_para_recebimento')
+        self.valor_total = data.get('valor_total')
+        self.acao_interna = data.get('acao_interna')
+        self.fonte_recursos = data.get('fonte_recursos')
+        self.natureza_despesa = data.get('natureza_despesa')
+        self.unidade_orcamentaria = data.get('unidade_orcamentaria')
+        self.programa_trabalho_resuminho = data.get('programa_trabalho_resuminho')
+        self.atividade_custeio = data.get('atividade_custeio')
+        self.comentarios = data.get('comentarios')
+        self.justificativa = data.get('justificativa')
+        self.link_pncp = data.get('link_pncp')
 
     def _init_paths(self):
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
@@ -44,10 +98,7 @@ class EditDataDialog(QDialog):
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))
 
     def _init_ui(self):
-        # Define o título da janela e o ícone
         self.setWindowTitle("Editar Dados do Processo")
-        
-        # Define o ícone da janela como 'edit.png'
         icon_path = self.ICONS_DIR / "edit.png"
         if icon_path.is_file():
             self.setWindowIcon(QIcon(str(icon_path)))
@@ -57,18 +108,17 @@ class EditDataDialog(QDialog):
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
+        layout_principal.addWidget(EditDataDialogUtils.update_title_label(self.df_registro_selecionado))
 
-        # Adicionando título e navegação
-        layout_principal.addWidget(self.update_title_label())
-        layout_principal.addLayout(self.create_navigation_layout())
+        # Criar o layout de navegação
+        navigation_layout = EditDataDialogUtils.create_navigation_layout(self.show_widget, self.add_action_buttons)
+        layout_principal.addLayout(navigation_layout)  # Adicionando o layout de navegação aqui
+
+        # Adiciona o StackedWidget gerenciado pelo StackedWidgetManager
+        layout_principal.addWidget(self.stacked_widget_manager.get_stacked_widget())
 
         layout_principal.setSpacing(0)
         layout_principal.setContentsMargins(0, 0, 0, 0)
-
-        # Gerenciador de Stacked Widgets e Configuração
-        self.stack_manager = QStackedWidget(self)
-        self.setup_stacked_widgets()
-        layout_principal.addWidget(self.stack_manager)
 
         # Cria o layout de agentes responsáveis e aplica borda lateral
         layout_agentes_responsaveis = self.create_agentes_responsaveis_layout()
@@ -83,198 +133,30 @@ class EditDataDialog(QDialog):
 
         # Mostra o widget inicial
         self.show_widget("Informações")
-    
-    def _init_connections(self):
-        self.title_updated.connect(self.update_title_label_text)
-
-    def create_navigation_layout(self):
-        nav_layout = QHBoxLayout()
-
-        nav_layout.setSpacing(0)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Cria um QIcon ao invés de QPixmap
-        brasil_icon = QIcon(str(BRASIL_IMAGE_PATH))
-        
-        # Cria um QLabel e adiciona o ícone como um QIcon
-        image_label_esquerda = QLabel()
-        image_label_esquerda.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        image_label_esquerda.setPixmap(brasil_icon.pixmap(30, 30))  # Define o QIcon como um QPixmap para o QLabel
-        
-        nav_layout.addWidget(image_label_esquerda)
-
-        # Lista de botões de navegação
-        buttons = [
-            ("Informações", "Informações"),
-            ("IRP", "IRP"),
-            ("Demandante", "Demandante"),
-            ("Documentos", "Documentos"),
-            ("Anexos", "Anexos"),
-            ("PNCP", "PNCP"),
-            ("Check-list", "Check-list"),
-            ("Nota Técnica", "Nota Técnica"),
-        ]
-
-        for text, name in buttons:
-            self.add_navigation_button(nav_layout, text, lambda _, n=name: self.show_widget(n))
-
-        nav_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        self.add_action_buttons(nav_layout)
-        nav_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-
-        return nav_layout
 
     def show_widget(self, name):
         # Desmarcar todos os botões de navegação
         for button in self.navigation_buttons:
             button.setChecked(False)
+
         # Encontrar o botão correspondente e marcar
         for button in self.navigation_buttons:
             if button.text() == name:
                 button.setChecked(True)
-                self.update_button_styles(button)
                 break
-        # Mostrar o widget correspondente no QStackedWidget
-        for i in range(self.stack_manager.count()):
-            widget = self.stack_manager.widget(i)
+
+        # Mostrar o widget correspondente no QStackedWidget gerenciado pelo StackedWidgetManager
+        stack_manager = self.stacked_widget_manager.get_stacked_widget()
+        for i in range(stack_manager.count()):
+            widget = stack_manager.widget(i)
             if widget.objectName() == name:
-                self.stack_manager.setCurrentWidget(widget)
+                stack_manager.setCurrentWidget(widget)
                 break
 
-    def add_navigation_button(self, layout, text, callback):
-        button = QPushButton(text)
-        button.setCheckable(True)
-        button.setMinimumWidth(117)
-        button.setStyleSheet(self.get_button_style())
-        button.clicked.connect(callback)
-        layout.addWidget(button)
-        self.navigation_buttons.append(button)
+    def _init_connections(self):
+        self.title_updated.connect(self.update_title_label_text)
 
-    def get_button_style(self):
-        return (
-            "QPushButton {"
-            "border: 1px solid #414242; background: #B0B0B0; color: black; font-weight: bold; font-size: 12pt;"
-            "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-            "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-            "border-bottom-color: #414242; }"
-            "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-        )
 
-    def update_button_styles(self, active_button):
-        for button in self.navigation_buttons:
-            if button == active_button:
-                button.setStyleSheet(
-                    "QPushButton { border: 1px solid #414242; background: #414242; font-weight: bold; color: white; "
-                    "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-                    "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom-color: #414242; font-size: 12pt; }"
-                    "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-                )
-            else:
-                button.setStyleSheet(
-                    "QPushButton { background: #B0B0B0; font-weight: bold; color: black; border: 1px solid #414242; "
-                    "border-top-left-radius: 5px; border-top-right-radius: 5px; "
-                    "border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; "
-                    "border-bottom-color: #414242; font-size: 12pt; }"
-                    "QPushButton:hover { background: #D0D0D0; font-weight: bold; color: black; }"
-                )
-
-    def setup_stacked_widgets(self):
-        # Extrai dados do DataFrame selecionado
-        data = self.extract_registro_data()
-
-        # Método para configurar os widgets no StackWidgetManager
-        widgets = {
-            "Informações": self.stacked_widget_info(data),
-            "IRP": self.stacked_widget_irp(data),
-            "Demandante": self.stacked_widget_responsaveis(data),
-            "Documentos": self.stacked_widget_documentos(data),
-            "Anexos": self.stacked_widget_anexos(data),
-            "PNCP": self.stacked_widget_pncp(data),
-            "Nota Técnica": self.stacked_widget_nt(data),
-        }
-
-        for name, widget in widgets.items():
-            self.stack_manager.addWidget(widget)
-            widget.setObjectName(name)
-
-    def stacked_widget_irp(self, data):
-        # Cria um widget básico para o stack
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
-        irp_group = self.create_irp_group()
-        layout.addWidget(irp_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)
-
-        return frame
-    
-    def stacked_widget_responsaveis(self, data):
-        # Cria um widget básico para o stack
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
-        dados_responsavel_contratacao_group = self.create_dados_responsavel_contratacao_group()
-        layout.addWidget(dados_responsavel_contratacao_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)
-
-        return frame
-
-    def stacked_widget_documentos(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        # Cria e adiciona o QGroupBox "Dados do Setor Responsável pela Contratação"
-        botao_documentos = self.create_gerar_documentos_group()
-        sigdem_group = self.create_GrupoSIGDEM()
-        utilidade_group = self.create_utilidades_group()
-        layout.addLayout(botao_documentos)
-        layout.addWidget(sigdem_group)
-        layout.addLayout(utilidade_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)        
-        return frame
-    
-    def stacked_widget_anexos(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        anexos_group = self.create_anexos_group()
-        layout.addWidget(anexos_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)        
-        return frame
-
-    def stacked_widget_pncp(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        pncp_group = self.create_pncp_group()
-        layout.addWidget(pncp_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)        
-        return frame
-    
-    def stacked_widget_nt(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-
-        pncp_group = self.create_pncp_group()
-        layout.addWidget(pncp_group)
-
-        # Define o layout para o frame
-        frame.setLayout(layout)        
-        return frame
-    
     def stacked_widget_info(self, data):
         # Cria um widget básico para o stack
         frame = QFrame()
@@ -496,7 +378,7 @@ class EditDataDialog(QDialog):
         QDesktopServices.openUrl(QUrl(url))
 
     def create_classificacao_orcamentaria_group(self):
-        data = self.extract_registro_data()
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
         classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
         self.apply_widget_style(classificacao_orcamentaria_group_box)
         classificacao_orcamentaria_group_box.setFixedWidth(350)  
@@ -536,34 +418,10 @@ class EditDataDialog(QDialog):
         classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
 
         return classificacao_orcamentaria_group_box
-    
-    def update_title_label(self):
-        data = self.extract_registro_data()
-        html_text = (
-            f"{data['tipo']} {data['numero']}/{data['ano']} - {data['objeto']}<br>"
-            f"<span style='font-size: 16px'>OM: {data['orgao_responsavel']} (UASG: {data['uasg']})</span>"
-        )
 
-        if not hasattr(self, 'titleLabel'):
-            self.titleLabel = QLabel()
-            self.titleLabel.setTextFormat(Qt.TextFormat.RichText)
-            self.titleLabel.setStyleSheet("font-size: 26px; font-weight: bold;")
-
-        self.titleLabel.setText(html_text)
-
-        if not hasattr(self, 'header_layout'):
-            self.header_layout = QHBoxLayout()
-            self.header_layout.addWidget(self.titleLabel)  # Adiciona o QLabel ao layout
-
-            header_widget = QWidget()
-            header_widget.setLayout(self.header_layout)
-            header_widget.setFixedHeight(80)
-            self.header_widget = header_widget
-
-        return self.header_widget
 
     def update_title_label_text(self, new_title):
-        data = self.extract_registro_data()
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
         html_text = (
             f"{data['tipo']} {data['numero']}/{data['ano']} - {data['objeto']}<br>"
             f"<span style='font-size: 16px'>OM: {new_title}</span>"
@@ -575,9 +433,7 @@ class EditDataDialog(QDialog):
         icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
         
         button_confirm = self.create_button(" Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(110, 30), QSize(30, 30))
-                
         layout.addWidget(button_confirm)
-
         self.apply_widget_style(button_confirm)
     
     def create_group_box(self, title, details):
@@ -607,115 +463,6 @@ class EditDataDialog(QDialog):
             btn.clicked.connect(callback)  # Conecta o callback ao evento de clique
         return btn
     
-    def extract_registro_data(self):
-        # Verifica se o DataFrame não está vazio
-        if self.df_registro_selecionado.empty:
-            print("DataFrame está vazio")
-            return {}
-
-        # Extrai dados do registro selecionado e armazena como atributos de instância
-        self.id_processo = self.df_registro_selecionado['id_processo'].iloc[0]
-        self.tipo = self.df_registro_selecionado['tipo'].iloc[0]
-        self.numero = self.df_registro_selecionado['numero'].iloc[0]
-        self.ano = self.df_registro_selecionado['ano'].iloc[0]
-        self.situacao = self.df_registro_selecionado['status'].iloc[0]
-        self.nup = self.df_registro_selecionado['nup'].iloc[0]
-        self.material_servico = self.df_registro_selecionado['material_servico'].iloc[0]
-        self.objeto = self.df_registro_selecionado['objeto'].iloc[0]
-        self.vigencia = self.df_registro_selecionado['vigencia'].iloc[0]
-        self.data_sessao = self.df_registro_selecionado['data_sessao'].iloc[0]
-        self.operador = self.df_registro_selecionado['operador'].iloc[0]
-        self.criterio_julgamento = self.df_registro_selecionado['criterio_julgamento'].iloc[0]
-        self.com_disputa = self.df_registro_selecionado['com_disputa'].iloc[0]
-        self.pesquisa_preco = self.df_registro_selecionado['pesquisa_preco'].iloc[0]
-        self.previsao_contratacao = self.df_registro_selecionado['previsao_contratacao'].iloc[0]
-        self.uasg = self.df_registro_selecionado['uasg'].iloc[0]
-        self.orgao_responsavel = self.df_registro_selecionado['orgao_responsavel'].iloc[0]
-        self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
-        # Verifica se a coluna 'uf' existe antes de acessá-la
-        if 'uf' in self.df_registro_selecionado.columns:
-            self.uf = self.df_registro_selecionado['uf'].iloc[0]
-        else:
-            self.uf = None  # Define como None se a coluna não existir
-        
-        # Verifica se a coluna 'codigoMunicipioIbge' existe antes de acessá-la
-        if 'codigoMunicipioIbge' in self.df_registro_selecionado.columns:
-            self.codigoMunicipioIbge = self.df_registro_selecionado['codigoMunicipioIbge'].iloc[0]
-        else:
-            self.codigoMunicipioIbge = None  # Define como None se a coluna não existir
-
-        self.setor_responsavel = self.df_registro_selecionado['setor_responsavel'].iloc[0]
-        self.responsavel_pela_demanda = self.df_registro_selecionado['responsavel_pela_demanda'].iloc[0]
-        self.ordenador_despesas = self.df_registro_selecionado['ordenador_despesas'].iloc[0]
-        self.agente_fiscal = self.df_registro_selecionado['agente_fiscal'].iloc[0]
-        self.gerente_de_credito = self.df_registro_selecionado['gerente_de_credito'].iloc[0]
-        self.cod_par = self.df_registro_selecionado['cod_par'].iloc[0]
-        self.prioridade_par = self.df_registro_selecionado['prioridade_par'].iloc[0]
-        self.cep = self.df_registro_selecionado['cep'].iloc[0]
-        self.endereco = self.df_registro_selecionado['endereco'].iloc[0]
-        self.email = self.df_registro_selecionado['email'].iloc[0]
-        self.telefone = self.df_registro_selecionado['telefone'].iloc[0]
-        self.dias_para_recebimento = self.df_registro_selecionado['dias_para_recebimento'].iloc[0]
-        self.horario_para_recebimento = self.df_registro_selecionado['horario_para_recebimento'].iloc[0]
-        self.valor_total = self.df_registro_selecionado['valor_total'].iloc[0]
-        self.acao_interna = self.df_registro_selecionado['acao_interna'].iloc[0]
-        self.fonte_recursos = self.df_registro_selecionado['fonte_recursos'].iloc[0]
-        self.natureza_despesa = self.df_registro_selecionado['natureza_despesa'].iloc[0]
-        self.unidade_orcamentaria = self.df_registro_selecionado['unidade_orcamentaria'].iloc[0]
-        self.programa_trabalho_resuminho = self.df_registro_selecionado['programa_trabalho_resuminho'].iloc[0]
-        self.atividade_custeio = self.df_registro_selecionado['atividade_custeio'].iloc[0]
-        self.comentarios = self.df_registro_selecionado['comentarios'].iloc[0]
-        self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
-        self.link_pncp = self.df_registro_selecionado['link_pncp'].iloc[0]
-
-        data = {
-            'id_processo': self.id_processo,
-            'tipo': self.tipo,
-            'numero': self.numero,
-            'ano': self.ano,
-            'status': self.situacao,
-            'nup': self.nup,
-            'material_servico': self.material_servico,
-            'objeto': self.objeto,
-            'vigencia': self.vigencia,
-            'data_sessao': self.data_sessao,
-            'operador': self.operador,
-            'criterio_julgamento': self.criterio_julgamento,
-            'com_disputa': self.com_disputa,
-            'pesquisa_preco': self.pesquisa_preco,
-            'previsao_contratacao': self.previsao_contratacao,
-            'uasg': self.uasg,
-            'orgao_responsavel': self.orgao_responsavel,
-            'sigla_om': self.sigla_om,
-            'uf': self.uf,
-            'codigoMunicipioIbge': self.codigoMunicipioIbge,
-            'setor_responsavel': self.setor_responsavel,
-            'responsavel_pela_demanda': self.responsavel_pela_demanda,
-            'ordenador_despesas': self.ordenador_despesas,
-            'agente_fiscal': self.agente_fiscal,
-            'gerente_de_credito': self.gerente_de_credito,
-            'cod_par': self.cod_par,
-            'prioridade_par': self.prioridade_par,
-            'cep': self.cep,
-            'endereco': self.endereco,
-            'email': self.email,
-            'telefone': self.telefone,
-            'dias_para_recebimento': self.dias_para_recebimento,
-            'horario_para_recebimento': self.horario_para_recebimento,
-            'valor_total': self.valor_total,
-            'acao_interna': self.acao_interna,
-            'fonte_recursos': self.fonte_recursos,
-            'natureza_despesa': self.natureza_despesa,
-            'unidade_orcamentaria': self.unidade_orcamentaria,
-            'programa_trabalho_resuminho': self.programa_trabalho_resuminho,
-            'atividade_custeio': self.atividade_custeio,
-            'comentarios': self.comentarios,
-            'justificativa': self.justificativa,
-            'link_pncp': self.link_pncp,
-        }
-
-        return data
-
     def save_changes(self):
         try:
             data = {
@@ -893,7 +640,7 @@ class EditDataDialog(QDialog):
         return formulario_group_box
 
     def create_frame_pncp(self):
-        data = self.extract_registro_data()
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
         pncp_group_box = QGroupBox("Integração ao PNCP")
         self.apply_widget_style(pncp_group_box)   
         pncp_group_box.setFixedWidth(350)   
@@ -1332,14 +1079,10 @@ class EditDataDialog(QDialog):
 
         QMessageBox.warning(self, "Erro", mensagem)
         self.consulta_button.setEnabled(True)
-
             
     def create_anexos_group(self):
-        data = self.extract_registro_data()
-
-        # LineEdit para o ID de Dispensa Eletrônica
-        self.id_dispensa_eletronica = data.get('id_processo', '')
-        id_display = self.id_dispensa_eletronica if self.id_dispensa_eletronica else 'ID não disponível'
+        # Usar o id_processo armazenado na instância da classe
+        id_display = self.id_processo if self.id_processo else 'ID não disponível'
 
         # GroupBox para Anexos
         anexos_group_box = QGroupBox(f"Anexos da {id_display}")
@@ -1557,18 +1300,6 @@ class EditDataDialog(QDialog):
 
         return gerar_documentos_layout
 
-    def atualizar_status_label(self, status_message, icon_path):
-        # Atualiza o texto do status_label com a mensagem passada
-        self.status_label.setText(status_message)
-
-        # Atualiza o ícone
-        icon_folder = QIcon(icon_path)
-        icon_pixmap = icon_folder.pixmap(30, 30)  # Define o tamanho do ícone
-        self.icon_label.setPixmap(icon_pixmap)
-
-        # Opcional: Mude a cor do texto de status (se necessário)
-        self.status_label.setStyleSheet("font-size: 14px;")
-
     def handle_gerar_autorizacao(self):
         self.assunto_text = f"{self.id_processo} - Abertura de Processo ({self.objeto})"
         self.sinopse_text = (
@@ -1633,7 +1364,7 @@ class EditDataDialog(QDialog):
         self.textEditAssunto.setPlainText(self.assunto_text)
         self.textEditSinopse.setPlainText(self.sinopse_text)
 
-    def create_GrupoSIGDEM(self):       
+    def create_GrupoSIGDEM(self):
         grupoSIGDEM = QGroupBox("SIGDEM")
         self.apply_widget_style(grupoSIGDEM)
 
@@ -1642,11 +1373,14 @@ class EditDataDialog(QDialog):
         labelAssunto = QLabel("No campo “Assunto”:")
         labelAssunto.setStyleSheet("font-size: 12pt;")
         layout.addWidget(labelAssunto)
+        
+        # Usando os atributos da classe para preencher o texto
         self.textEditAssunto = QTextEdit(f"{self.id_processo} - Abertura de Processo ({self.objeto})")
         self.textEditAssunto.setStyleSheet("font-size: 12pt;")
         self.textEditAssunto.setMaximumHeight(60)
         layoutHAssunto = QHBoxLayout()
         layoutHAssunto.addWidget(self.textEditAssunto)
+        
         icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))
         btnCopyAssunto = self.create_button(text="", icon=icon_copy, callback=lambda: self.copyToClipboard(self.textEditAssunto.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
         layoutHAssunto.addWidget(btnCopyAssunto)
@@ -1655,6 +1389,8 @@ class EditDataDialog(QDialog):
         labelSinopse = QLabel("No campo “Sinopse”:")
         labelSinopse.setStyleSheet("font-size: 12pt;")
         layout.addWidget(labelSinopse)
+        
+        # Usando os atributos da classe para preencher o texto
         self.textEditSinopse = QTextEdit(
             f"Termo de Abertura referente à {self.tipo} nº {self.numero}/{self.ano}, para {self.get_descricao_servico()} {self.objeto}\n"
             f"Processo Administrativo NUP: {self.nup}\n"
@@ -1662,8 +1398,10 @@ class EditDataDialog(QDialog):
         )
         self.textEditSinopse.setStyleSheet("font-size: 12pt;")
         self.textEditSinopse.setMaximumHeight(140)
+        
         layoutHSinopse = QHBoxLayout()
         layoutHSinopse.addWidget(self.textEditSinopse)
+        
         btnCopySinopse = self.create_button(text="", icon=icon_copy, callback=lambda: self.copyToClipboard(self.textEditSinopse.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
         layoutHSinopse.addWidget(btnCopySinopse)
         layout.addLayout(layoutHSinopse)
@@ -1672,6 +1410,7 @@ class EditDataDialog(QDialog):
         self.carregarAgentesResponsaveis()
         
         return grupoSIGDEM
+
 
     def get_descricao_servico(self):
         return "aquisição de" if self.material_servico == "Material" else "contratação de empresa especializada em"
@@ -1786,7 +1525,7 @@ class EditDataDialog(QDialog):
         self.dados_atualizados.emit()
 
     def create_irp_group(self):
-        data = self.extract_registro_data()
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
 
         # Cria o QGroupBox para o grupo de IRP
         irp_group_box = QGroupBox("Dados relativos à Intenção de Registro de Preços (IRP)")
@@ -1881,7 +1620,7 @@ class EditDataDialog(QDialog):
     """
 
     def create_dados_responsavel_contratacao_group(self):
-        data = self.extract_registro_data()
+        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
 
         setor_responsavel_group_box = QGroupBox("Divisão/Setor Responsável pela Demanda")
         self.apply_widget_style(setor_responsavel_group_box)
