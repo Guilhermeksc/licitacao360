@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         menu_buttons = [
             "Início",
             "Planejamento",
-            "Planejamento Novo",
+            "Licitação",
             "Atas",
             "Contratos",
             "Dispensa Eletrônica",
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
     def change_content(self, content_name):
         content_actions = {
             "Planejamento": self.setup_planejamento,
-            "Planejamento Novo": self.setup_planejamento_novo,
+            "Licitação": self.setup_licitacao,
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
@@ -250,7 +250,7 @@ class MainWindow(QMainWindow):
         self.application_ui = PlanejamentoWidget(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
 
-    def setup_planejamento_novo(self):
+    def setup_licitacao(self):
         self.clear_content_area()
         self.application_ui = PlanejamentoNovoWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.application_ui)

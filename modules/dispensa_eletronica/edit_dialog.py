@@ -797,16 +797,6 @@ class EditDataDialog(QDialog):
         columns_info = cursor.fetchall()
         return [col[1] for col in columns_info]  # O segundo elemento em cada tupla é o nome da coluna
 
-    def fill_frame_dados_do_setor_resposavel_contratacao(self):
-        frame = QFrame(self)
-        layout = QVBoxLayout()
-
-        label_setor = QLabel("Setor Responsável")
-        layout.addWidget(label_setor)
-
-        frame.setLayout(layout)
-        return frame
-
     def apply_widget_style(self, widget):
         widget.setStyleSheet("font-size: 11pt;") 
 
