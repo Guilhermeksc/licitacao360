@@ -57,14 +57,25 @@ class CarregarTabelaDialog(QDialog):
                 'numero': f"{int(row['numero']):02}",
                 'ano': row['ano'],
                 'objeto': row['objeto'],
+                'objeto_completo': row.get('objeto_completo', None),
                 'sigla_om': row.get('sigla_om', None),
                 'material_servico': row.get('material_servico', None),
                 'id_processo': f"{row['tipo']} {int(row['numero']):02}/{row['ano']}",
                 'nup': row.get('nup', None),
                 'orgao_responsavel': row.get('orgao_responsavel', None),
                 'uasg': row['uasg'],
-                'etapa': "Planejamento",
-                'pregoeiro': "-"
+                'status': row.get('status', '-'),
+                'pregoeiro': row.get('pregoeiro', '-'),
+                'coordenador_planejamento': row.get('coordenador_planejamento', '-'),
+                'setor_responsavel': row.get('setor_responsavel', '-'),
+                'data_sessao': row.get('data_sessao', None),
+                'srp': row.get('srp', None),
+                'msg_irp': row.get('msg_irp', None),
+                'data_limite_manifestacao_irp': row.get('data_limite_manifestacao_irp', None),
+                'data_limite_confirmacao_irp': row.get('data_limite_confirmacao_irp', None),
+                'num_irp': row.get('num_irp', None),
+                'valor_total': row.get('valor_total', None),
+                'comentarios': row.get('comentarios', None),
             }
 
             # Adiciona o item à lista de itens para inserção
@@ -104,7 +115,7 @@ class CarregarTabelaDialog(QDialog):
         # Formata o valor de 'numero' para ter duas casas decimais
         numero_formatado = f"{int(row['numero']):02}"
         id_processo = f"{row['tipo']} {numero_formatado}/{row['ano']}"
-        etapa = "Planejamento"
+        etapa = f"{row['status']}"
         return id_processo, etapa
 
 

@@ -10,6 +10,7 @@ import os
 from modules.planejamento.settings import SettingsDialog
 from modules.planejamento.adicionar_itens import AddItemDialog
 from modules.planejamento.editar_dados import EditarDadosDialog
+from modules.planejamento_novo.edit_data.edit_dialog import EditDataDialogNovo
 from modules.planejamento.popup_relatorio import ReportDialog
 from modules.planejamento.fluxoprocesso import FluxoProcessoDialog
 from modules.planejamento.settings import SettingsDialog
@@ -72,7 +73,7 @@ class CustomTableView(QTableView):
 
             # Abre o diálogo de edição se houver dados selecionados
             if not df_registro_selecionado.empty:
-                self.main_app.editar_dados(df_registro_selecionado)
+                self.main_app.editar_dados_dois_cliques(df_registro_selecionado)
         
         super().mouseDoubleClickEvent(event)
 
@@ -105,6 +106,11 @@ class PlanejamentoWidget(QMainWindow):
         dialog = EditarDadosDialog(ICONS_DIR, parent=self, dados=df_registro_selecionado.iloc[0].to_dict())
         dialog.dados_atualizados.connect(self.atualizar_tabela)
         dialog.show()
+
+    def editar_dados_dois_cliques(self, df_registro_selecionado):
+        dialog = EditDataDialogNovo(df_registro_selecionado, ICONS_DIR)
+        dialog.dados_atualizados.connect(self.atualizar_tabela)  # Conectar o sinal ao método de atualização
+        dialog.exec()
 
     def setup_managers(self):
         self.config_manager = ConfigManager(BASE_DIR / "config.json")
@@ -254,8 +260,8 @@ class PlanejamentoWidget(QMainWindow):
                 cursor = conn.cursor()
 
                 # Definir valores fixos para 'etapa' e 'pregoeiro'
-                data['etapa'] = "Planejamento"
-                data['pregoeiro'] = "-"
+                # data['etapa'] = "Planejamento"
+                # data['pregoeiro'] = "-"
 
                 # Verificar se o id_processo já existe
                 cursor.execute(
@@ -273,12 +279,20 @@ class PlanejamentoWidget(QMainWindow):
                     '''
                     INSERT INTO controle_processos (
                         tipo, numero, ano, objeto, sigla_om, material_servico, 
-                        id_processo, nup, orgao_responsavel, uasg, etapa, pregoeiro) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (data['tipo'], data['numero'], data['ano'], data['objeto'], 
-                        data['sigla_om'], data['material_servico'], data['id_processo'], 
-                        data['nup'], data['orgao_responsavel'], data['uasg'], data['etapa'], 
-                        data['pregoeiro'])
+                        id_processo, nup, orgao_responsavel, uasg, etapa, pregoeiro, 
+                        objeto_completo, setor_responsavel, srp, msg_irp, 
+                        data_limite_manifestacao_irp, data_limite_confirmacao_irp, 
+                        num_irp, valor_total, comentarios, data_sessao
+                        ) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        data['tipo'], data['numero'], data['ano'], data['objeto'], data['sigla_om'], 
+                        data['material_servico'], data['id_processo'], data['nup'], data['orgao_responsavel'], 
+                        data['uasg'], data['etapa'], data['pregoeiro'], data['objeto_completo'], 
+                        data['setor_responsavel'], data['srp'], data['msg_irp'], data['data_limite_manifestacao_irp'], 
+                        data['data_limite_confirmacao_irp'], data['num_irp'], data['valor_total'], 
+                        data['comentarios'], data['data_sessao']
+                    )
                 )
                 conn.commit()
 

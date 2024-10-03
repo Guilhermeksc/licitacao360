@@ -17,3 +17,372 @@ root - ERROR - Error executing query: DROP TABLE IF EXISTS controle_contratos, E
 root - ERROR - Error executing query: DROP TABLE IF EXISTS controle_contratos, Error: database is locked
 root - ERROR - Error executing query: DROP TABLE IF EXISTS controle_contratos, Error: database is locked
 httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+root - ERROR - Erro ao carregar dados do banco de dados: can only concatenate str (not "int") to str
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 551, in carregar_dados_pregao
+    query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+                                                         ~~~~~~^~~
+TypeError: can only concatenate str (not "int") to str
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=3': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=3': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=5': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=5': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=6': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=6': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=7': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=7': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=11': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=11': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=12': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=12': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: can only concatenate str (not "int") to str
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 527, in carregar_dados_pregao
+    query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+                                                         ~~~~~~^~~
+TypeError: can only concatenate str (not "int") to str
+root - ERROR - Erro ao carregar dados do banco de dados: can only concatenate str (not "int") to str
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 527, in carregar_dados_pregao
+    query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+                                                         ~~~~~~^~~
+TypeError: can only concatenate str (not "int") to str
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=2': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=2': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=6': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=6': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: can only concatenate str (not "int") to str
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 527, in carregar_dados_pregao
+    query = f"SELECT * FROM controle_processos WHERE id={index + 1}"
+                                                         ~~~~~~^~~
+TypeError: can only concatenate str (not "int") to str
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=9': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=9': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=4': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=4': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=4': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=4': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=5': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=5': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=3': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=3': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=8': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=8': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=7': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\Documents\360\licitacao360\modules\planejamento\utilidades_planejamento.py", line 529, in carregar_dados_pregao
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\Documents\360\licitacao360\venv\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_processos WHERE id=7': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - A consulta retornou um DataFrame vazio.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - A consulta retornou um DataFrame vazio.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.

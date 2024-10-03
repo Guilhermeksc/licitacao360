@@ -10,7 +10,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import locale
 import re
 from datetime import datetime
-from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
+from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos, carregar_dados_pregao
 from database.utils.treeview_utils import load_images, create_button_2
 from pathlib import Path
 import pandas as pd

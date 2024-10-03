@@ -8,7 +8,8 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     create_combo_box, create_layout, create_button, 
                                     apply_widget_style_11, validate_and_convert_date)
 import pandas as pd
-import sqlite3      
+import sqlite3     
+import logging 
 class StackedWidgetManager:
     def __init__(self, parent, df_registro_selecionado):
         self.parent = parent
@@ -280,11 +281,11 @@ class StackedWidgetManager:
 
         classificacao_orcamentaria_layout.addLayout(valor_layout)
 
-        acao_interna_edit = QLineEdit(data['acao_interna'])
-        fonte_recurso_edit = QLineEdit(data['fonte_recursos'])
-        natureza_despesa_edit = QLineEdit(data['natureza_despesa'])
-        unidade_orcamentaria_edit = QLineEdit(data['unidade_orcamentaria'])
-        ptres_edit = QLineEdit(data['programa_trabalho_resuminho'])
+        acao_interna_edit = QLineEdit(data['uasg'])
+        fonte_recurso_edit = QLineEdit(data['uasg'])
+        natureza_despesa_edit = QLineEdit(data['uasg'])
+        unidade_orcamentaria_edit = QLineEdit(data['uasg'])
+        ptres_edit = QLineEdit(data['uasg'])
 
         # Utilizando a função create_layout fora da classe
         classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", acao_interna_edit, apply_style_fn=apply_widget_style_11))
@@ -509,19 +510,29 @@ class StackedWidgetManager:
             print(f"Error loading data for selected OM: {e}")
 
     def get_justification_text(self):
-        # Recupera o valor atual da justificativa no DataFrame
-        current_justification = self.df_registro_selecionado['justificativa'].iloc[0]
+        # Tenta recuperar o valor atual da justificativa no DataFrame
+        try:
+            current_justification = self.df_registro_selecionado['justificativa'].iloc[0]
+        except KeyError:
+            logging.error("A coluna 'justificativa' não foi encontrada no DataFrame.")
+            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
+        except IndexError:
+            logging.warning("O DataFrame 'df_registro_selecionado' está vazio. Retornando justificativa padrão.")
+            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
 
         # Retorna o valor atual se ele existir, senão, constrói uma justificativa baseada no tipo de material/serviço
         if current_justification:  # Checa se existe uma justificativa
             return current_justification
         else:
-            # Gera justificativa padrão com base no tipo de material ou serviço
-            if self.material_servico == 'Material':
-                return (f"A aquisição de {self.objeto} se faz necessária para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}). A disponibilidade e a qualidade dos materiais são essenciais para garantir a continuidade das operações e a eficiência das atividades desempenhadas pelo(a) {self.setor_responsavel}.")
-            elif self.material_servico == 'Serviço':
-                return (f"A contratação de empresa especializada na prestação de serviços de {self.objeto} é imprescindível para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}).")
-            return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
+            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
+
+    def generate_default_justification(self):
+        # Gera justificativa padrão com base no tipo de material ou serviço
+        if self.material_servico == 'Material':
+            return (f"A aquisição de {self.objeto} se faz necessária para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}). A disponibilidade e a qualidade dos materiais são essenciais para garantir a continuidade das operações e a eficiência das atividades desempenhadas pelo(a) {self.setor_responsavel}.")
+        elif self.material_servico == 'Serviço':
+            return (f"A contratação de empresa especializada na prestação de serviços de {self.objeto} é imprescindível para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}).")
+        return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
 
     def create_frame_pncp(self, data):
         pncp_group_box = QGroupBox("Integração ao PNCP")

@@ -15,7 +15,7 @@ import sqlite3
 import webbrowser
 from datetime import datetime
 
-class EditDataDialog(QDialog): 
+class EditDataDialogNovo(QDialog): 
     dados_atualizados = pyqtSignal()
     title_updated = pyqtSignal(str)
     status_atualizado = pyqtSignal(str, str)

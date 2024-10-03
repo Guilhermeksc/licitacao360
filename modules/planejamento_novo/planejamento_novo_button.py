@@ -16,7 +16,7 @@ import os
 import subprocess
 import logging
 import sqlite3
-from modules.planejamento_novo.edit_data.edit_dialog import EditDataDialog
+from modules.planejamento_novo.edit_data.edit_dialog import EditDataDialogNovo
 
 class PlanejamentoNovoWidget(QMainWindow):
     dataUpdatedPlanejamento = pyqtSignal()
@@ -335,7 +335,7 @@ class UIManager:
         
         if id_processo:
             # Carrega os dados do registro selecionado usando o ID do processo
-            df_registro_selecionado = carregar_dados_licitacao(id_processo, str(self.parent.database_path))
+            df_registro_selecionado = carregar_dados_pregao(id_processo, str(self.parent.database_path))
             
             if not df_registro_selecionado.empty:
                 # Chama o método para editar dados
@@ -346,7 +346,7 @@ class UIManager:
             QMessageBox.warning(self.parent, "Erro", "Nenhum ID de processo foi encontrado para a linha selecionada.")
 
     def editar_dados(self, df_registro_selecionado):
-        dialog = EditDataDialog(df_registro_selecionado, self.parent.icons_dir)
+        dialog = EditDataDialogNovo(df_registro_selecionado, self.parent.icons_dir)
         dialog.dados_atualizados.connect(self.parent.refresh_model)  # Conectar o sinal ao método de atualização
         dialog.exec()
 
@@ -363,6 +363,7 @@ class UIManager:
         if self.table_view.selectionModel():
             self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
             self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+            self.table_view.selectionModel().selectionChanged.connect(self.linhaSelecionada)
 
         self.update_column_headers()
         self.reorder_columns()
@@ -376,15 +377,15 @@ class UIManager:
     def apply_custom_column_sizes(self):
         header = self.table_view.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(17, QHeaderView.ResizeMode.Fixed)
 
-        header.resizeSection(0, 130)      
-        header.resizeSection(5, 160)
-        header.resizeSection(7, 170)
-        header.resizeSection(17, 100)
+        header.resizeSection(0, 200)      
+        header.resizeSection(1, 120)
+        header.resizeSection(2, 170)
+        header.resizeSection(5, 100)
 
     def apply_custom_style(self):
         # Aplica um estilo CSS personalizado ao tableView
@@ -402,38 +403,47 @@ class UIManager:
                 font-size: 14px;
             }
         """)
-
+                
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():
-            proxy_index = selected.indexes()[0]
+            proxy_index = selected.indexes()[0]            
             source_index = self.parent.proxy_model.mapToSource(proxy_index)
-            print(f"Linha selecionada: {source_index.row()}, Coluna: {source_index.column()}")
+           
+            # Obtém a linha e a coluna no modelo original
+            selected_row = source_index.row()
+            selected_column = source_index.column()
+            id_processo = self.parent.model.data(self.parent.model.index(source_index.row(), self.parent.model.fieldIndex('id_processo')))
 
-            df_registro_selecionado = carregar_dados_pregao(source_index.row(), self.parent.database_path)
+            print(f"id_processo selecionado: {id_processo}")
+            print(f"Linha selecionada: {selected_row}, Coluna: {selected_column}")
+
+            # Carrega os dados usando a linha correta do modelo original
+            df_registro_selecionado = carregar_dados_licitacao(selected_row, self.parent.database_path)
+            
             if not df_registro_selecionado.empty:
                 logging.debug(f"Registro selecionado: {df_registro_selecionado.iloc[0].to_dict()}")
             else:
                 logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
                 QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
-
+                
     def update_column_headers(self):
         titles = {
-            0: "ID Processo",
-            7: "NUP",
-            8: "Objeto",
-            17: "OM",
-            5: "Status",
+            0: "Status",
+            1: "ID Processo",
+            2: "NUP",
+            3: "Objeto",
+            5: "OM",
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
-        new_order = [5, 0, 7, 8, 17]
+        new_order = [0, 1, 2, 3, 5]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 5, 7, 17, 8}
+        visible_columns = {0, 1, 2, 3, 5}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)

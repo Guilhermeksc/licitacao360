@@ -520,30 +520,6 @@ class DatabaseManager:
             self.connection.commit()
             print("Dados iniciais inseridos na tabela controle_prazos com sucesso.")
 
-def extrair_chave_processo(itemText):
-    # Exemplo usando BeautifulSoup para análise HTML
-    soup = BeautifulSoup(itemText, 'html.parser')
-    texto_completo = soup.get_text()
-    # Supondo que o texto completo tenha a forma 'MOD NUM_PREGAO/ANO_PREGAO Objeto'
-    # Use expressão regular para extrair a chave
-    match = re.search(r'(\w+)\s(\d+)/(\d+)', texto_completo)
-    if match:
-        return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
-    return None
-
-def extrair_chave_processo(itemText):
-    # Exemplo usando BeautifulSoup para análise HTML
-    soup = BeautifulSoup(itemText, 'html.parser')
-    texto_completo = soup.get_text()
-    # Supondo que o texto completo tenha a forma 'MOD NUM_PREGAO/ANO_PREGAO Objeto'
-    # Use expressão regular para extrair a chave
-    match = re.search(r'(\w+)\s(\d+)/(\d+)', texto_completo)
-    if match:
-        return f"{match.group(1)} {match.group(2)}/{match.group(3)}"
-    return None
-
-import traceback
-
 def carregar_dados_pregao(index, caminho_banco_dados):
     try:
         logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
@@ -558,15 +534,32 @@ def carregar_dados_pregao(index, caminho_banco_dados):
         logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
         return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
 
-def carregar_dados_licitacao(id_processo, caminho_banco_dados):
+# def carregar_dados_licitacao(id_processo, caminho_banco_dados):
+#     try:
+#         logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
+#         connection = sqlite3.connect(caminho_banco_dados)
+#         query = f"SELECT * FROM controle_processos WHERE id_processo='{id_processo}'"
+#         logging.debug(f"Executando consulta SQL: {query}")
+#         df_registro_selecionado = pd.read_sql_query(query, connection)
+#         connection.close()
+#         logging.debug(f"Dados carregados com sucesso para id_processo {id_processo}: {df_registro_selecionado}")
+#         return df_registro_selecionado
+#     except Exception as e:
+#         logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
+#         return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+def carregar_dados_licitacao(index, caminho_banco_dados):
     try:
         logging.debug(f"Conectando ao banco de dados: {caminho_banco_dados}")
         connection = sqlite3.connect(caminho_banco_dados)
-        query = f"SELECT * FROM controle_processos WHERE id_processo='{id_processo}'"
+        query = f"SELECT * FROM controle_processos WHERE id_processo='{index}'"
         logging.debug(f"Executando consulta SQL: {query}")
         df_registro_selecionado = pd.read_sql_query(query, connection)
         connection.close()
-        logging.debug(f"Dados carregados com sucesso para id_processo {id_processo}: {df_registro_selecionado}")
+        
+        if df_registro_selecionado.empty:
+            logging.warning("A consulta retornou um DataFrame vazio.")
+        
+        logging.debug(f"Dados carregados com sucesso para o índice {index}: {df_registro_selecionado}")
         return df_registro_selecionado
     except Exception as e:
         logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
