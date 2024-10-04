@@ -9,6 +9,7 @@ from modules.atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.antigo_planejamento_button import PlanejamentoWidget
 from modules.planejamento_novo.planejamento_novo_button import PlanejamentoNovoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
+from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.contratos.classe_contratos import ContratosWidget
 from config.menu_superior.menu_manager import MenuManager
 from pathlib import Path
@@ -177,6 +178,7 @@ class MainWindow(QMainWindow):
             "Atas",
             "Contratos",
             "Dispensa Eletrônica",
+            "Matriz de Riscos",
         ]
         
         for button_name in menu_buttons:
@@ -240,10 +242,18 @@ class MainWindow(QMainWindow):
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,
+            "Matriz de Riscos": self.setup_matriz_riscos,
         }
         action = content_actions.get(content_name)
         if action:
             action()
+
+
+    def setup_matriz_riscos(self):
+        self.clear_content_area()
+        self.matriz_riscos_widget = MatrizRiscosWidget(self)
+        self.content_layout.addWidget(self.matriz_riscos_widget)
+
 
     def setup_planejamento(self):
         self.clear_content_area()
