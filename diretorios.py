@@ -84,6 +84,7 @@ TEMPLATE_PATH = TEMPLATE_DIR / 'template_ata.docx'
 
 # Diretórios de mensagens
 MSG_DIR = RESOURCES_DIR / "msg"
+MSG_DIR_IRP = MSG_DIR / "irp"
 MSG_CONTRATOS_DIR = MSG_DIR / "contratos"
 
 MODULES_DIR = BASE_DIR / "modules"  # Diretório dos módulos

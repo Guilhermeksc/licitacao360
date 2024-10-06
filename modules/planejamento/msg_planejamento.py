@@ -20,37 +20,6 @@ class MSGIRP(QDialog):
 
         self.image_cache = load_images(self.icons_dir, ["apply.png", "copy.png"])
 
-        self.setObjectName("AlertaPrazoDialog")
-
-        self.setStyleSheet("""
-            #AlertaPrazoDialog {
-                background-color: black;
-                color: white;
-                font-size: 12pt;
-            }
-            QDialog {
-                font-size: 12pt;
-            }
-            QTextEdit, QListWidget {
-                background-color: white; 
-                color: black;
-                font-size: 12pt;
-            }
-            QGroupBox {
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 0.5em;
-                font-size: 14pt;
-                font-weight: bold;
-                color: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 3px 0 3px;
-            }
-        """)
-
         self.mainLayout = QVBoxLayout(self)
 
         # Configuração dos GroupBoxes e seus layouts

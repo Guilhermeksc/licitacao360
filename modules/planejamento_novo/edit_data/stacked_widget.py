@@ -3,10 +3,14 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
+from modules.planejamento.utilidades_planejamento import DatabaseManager
 from modules.planejamento_novo.edit_data.edit_dialog_utils import (
-                                    EditDataDialogUtils, RealLineEdit,
+                                    EditDataDialogUtils, RealLineEdit, TextEditDelegate,
                                     create_combo_box, create_layout, create_button, 
                                     apply_widget_style_11, validate_and_convert_date)
+from modules.planejamento_novo.edit_data.widgets.info_contratacao import create_contratacao_group
+from modules.planejamento_novo.edit_data.widgets.irp import create_irp_group
+from modules.planejamento_novo.edit_data.widgets.planejamento import create_classificacao_orcamentaria_group, create_frame_formulario_group
 import pandas as pd
 import sqlite3     
 import logging 
@@ -15,11 +19,14 @@ class StackedWidgetManager:
         self.parent = parent
         self.df_registro_selecionado = df_registro_selecionado
         self.stack_manager = QStackedWidget(parent)
+        self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
+        self.database_manager = DatabaseManager(self.database_path)
         self.material_servico = None  # Inicialize aqui ou no método apropriado
         self.objeto = None
         self.setor_responsavel = None
         self.orgao_responsavel = None
         self.sigla_om = None
+        self.templatePath = MSG_DIR_IRP / "last_template_msg_irp.txt"
         self.setup_stacked_widgets()
 
     def setup_stacked_widgets(self):
@@ -28,10 +35,13 @@ class StackedWidgetManager:
 
         # Configura os widgets no StackedWidgetManager
         widgets = {
-            "Informações": self.stacked_widget_info(data),  # Use o método correto da própria classe
+            "Informações": self.stacked_widget_info(data),
+            "Planejamento": self.stacked_widget_planejamento(data),
             "IRP": self.stacked_widget_irp(data),
             "Demandante": self.stacked_widget_responsaveis(data),
             "Documentos": self.stacked_widget_documentos(data),
+            "ETP": self.stacked_widget_etp(data),
+            "MR": self.stacked_widget_matriz_riscos(data),
             "Anexos": self.stacked_widget_anexos(data),
             "PNCP": self.stacked_widget_pncp(data),
             "Nota Técnica": self.stacked_widget_nt(data),
@@ -44,10 +54,36 @@ class StackedWidgetManager:
     def get_stacked_widget(self):
         return self.stack_manager
 
+    def stacked_widget_info(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        hbox_top_layout = QHBoxLayout()
+        contratacao_group_box = create_contratacao_group(data, self.database_manager)
+        hbox_top_layout.addWidget(contratacao_group_box)
+        layout.addLayout(hbox_top_layout)
+        frame.setLayout(layout)
+        return frame
+
+    def stacked_widget_planejamento(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        hbox_top_layout = QHBoxLayout()
+        layout_orcamentario_formulario = QVBoxLayout()
+        classificacao_orcamentaria_group_box = self.create_classificacao_orcamentaria_group(data)
+        layout_orcamentario_formulario.addWidget(classificacao_orcamentaria_group_box)
+        formulario_group_box = self.create_frame_formulario_group()
+        layout_orcamentario_formulario.addWidget(formulario_group_box)
+        pncp_group_box = self.create_frame_pncp(data)
+        layout_orcamentario_formulario.addWidget(pncp_group_box)
+        hbox_top_layout.addLayout(layout_orcamentario_formulario)
+        layout.addLayout(hbox_top_layout)
+        frame.setLayout(layout)
+        return frame
+        
     def stacked_widget_irp(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
-        irp_group = self.create_irp_group(data)
+        irp_group = create_irp_group(data, self.templatePath)
         layout.addWidget(irp_group)
         frame.setLayout(layout)
         return frame
@@ -72,6 +108,22 @@ class StackedWidgetManager:
         frame.setLayout(layout)
         return frame
 
+    def stacked_widget_etp(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        anexos_group = self.parent.create_anexos_group()
+        layout.addWidget(anexos_group)
+        frame.setLayout(layout)
+        return frame
+    
+    def stacked_widget_matriz_riscos(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        anexos_group = self.parent.create_anexos_group()
+        layout.addWidget(anexos_group)
+        frame.setLayout(layout)
+        return frame
+
     def stacked_widget_anexos(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
@@ -91,195 +143,16 @@ class StackedWidgetManager:
     def stacked_widget_nt(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
-        nt_group = self.create_irp_group(data)
+        nt_group = self.create_pncp_group(data)
         layout.addWidget(nt_group)
         frame.setLayout(layout)
         return frame
-
-    def stacked_widget_info(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        hbox_top_layout = QHBoxLayout()
-        contratacao_group_box = self.create_contratacao_group(data)
-        hbox_top_layout.addWidget(contratacao_group_box)
-        layout_orcamentario_formulario = QVBoxLayout()
-        classificacao_orcamentaria_group_box = self.create_classificacao_orcamentaria_group(data)
-        layout_orcamentario_formulario.addWidget(classificacao_orcamentaria_group_box)
-        formulario_group_box = self.create_frame_formulario_group()
-        layout_orcamentario_formulario.addWidget(formulario_group_box)
-        pncp_group_box = self.create_frame_pncp(data)
-        layout_orcamentario_formulario.addWidget(pncp_group_box)
-        hbox_top_layout.addLayout(layout_orcamentario_formulario)
-        layout.addLayout(hbox_top_layout)
-        frame.setLayout(layout)
-        return frame
-
-    def create_contratacao_group(self, data):
-        contratacao_group_box = QGroupBox("Contratação")
-        apply_widget_style_11(contratacao_group_box)
-        contratacao_group_box.setFixedWidth(700)
-
-        contratacao_layout = QVBoxLayout()
-
-        # Objeto
-        objeto_edit = QLineEdit(data['objeto'])
-        objeto_layout = QHBoxLayout()
-        objeto_label = QLabel("Objeto:")
-        objeto_layout.addWidget(objeto_label)
-        objeto_layout.addWidget(objeto_edit)
-        apply_widget_style_11(objeto_edit)
-        contratacao_layout.addLayout(objeto_layout)
-
-        # Situação
-        situacao_layout = QHBoxLayout()
-        situacao_label = QLabel("Situação:")
-        apply_widget_style_11(situacao_label)
-        situacao_edit = create_combo_box(data.get('status', 'Planejamento'), 
-                                                ["Planejamento", "Consolidar Demandas", "Montagem do Processo", 
-                                                "Nota Técnica", "AGU", "Recomendações AGU", "Sessão Pública",  
-                                                "Assinatura Contrato", "Concluído"], 185, 35, 
-                                                apply_widget_style_11)
-        situacao_layout.addWidget(situacao_label)
-        situacao_layout.addWidget(situacao_edit)
-        contratacao_layout.addLayout(situacao_layout)
-
-        # NUP
-        nup_edit = QLineEdit(data['nup'])
-        contratacao_layout.addLayout(create_layout("NUP:", nup_edit))
-
-        # Material/Serviço
-        material_layout = QHBoxLayout()
-        material_label = QLabel("Material/Serviço:")
-        apply_widget_style_11(material_label)
-        material_edit = create_combo_box(data.get('material_servico', 'Material'), 
-                                            ["Material", "Serviço"], 185, 35, 
-                                            apply_widget_style_11)
-        material_layout.addWidget(material_label)
-        material_layout.addWidget(material_edit)
-        contratacao_layout.addLayout(material_layout)
-
-        # Data da Sessão
-        data_layout = QHBoxLayout()
-        data_label = QLabel("Data da Sessão Pública:")
-        apply_widget_style_11(data_label)
-        data_edit = QDateEdit()
-        data_edit.setCalendarPopup(True)
-        data_sessao_str = data.get('data_sessao', '')
-        if data_sessao_str:
-            data_edit.setDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
-        else:
-            data_edit.setDate(QDate.currentDate())
-        data_layout.addWidget(data_label)
-        data_layout.addWidget(data_edit)
-        contratacao_layout.addLayout(data_layout)
-
-        # Previsão Contratação
-        previsao_contratacao_layout = QHBoxLayout()
-        previsao_contratacao_label = QLabel("Previsão da Contratação:")
-        apply_widget_style_11(previsao_contratacao_label)
-        previsao_contratacao_edit = QDateEdit()
-        previsao_contratacao_edit.setCalendarPopup(True)
-        previsao_contratacao_str = data.get('previsao_contratacao', '')
-        if previsao_contratacao_str:
-            previsao_contratacao_edit.setDate(QDate.fromString(previsao_contratacao_str, "yyyy-MM-dd"))
-        else:
-            previsao_contratacao_edit.setDate(QDate.currentDate())
-        previsao_contratacao_layout.addWidget(previsao_contratacao_label)
-        previsao_contratacao_layout.addWidget(previsao_contratacao_edit)
-        contratacao_layout.addLayout(previsao_contratacao_layout)
-
-        # Vigência
-        vigencia_edit = QComboBox()
-        vigencia_edit.setEditable(True)
-        
-        # Lista de números em palavras
-        numbers_in_words = ["um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze"]
-        
-        for i in range(1, 13):
-            vigencia_edit.addItem(f"{i} ({numbers_in_words[i-1]}) meses")
-        
-        vigencia = data.get('vigencia', '2 (dois) meses')
-        vigencia_edit.setCurrentText(vigencia)
-        contratacao_layout.addLayout(create_layout("Vigência:", vigencia_edit))
-
-        # Critério de Julgamento
-        criterio_layout = QHBoxLayout()
-        criterio_label = QLabel("Critério Julgamento:")
-        apply_widget_style_11(criterio_label)  # Aplicar estilo ao label
-        criterio_edit = create_combo_box(data.get('criterio_julgamento', 'Menor Preço'), 
-                                        ["Menor Preço", "Maior Desconto"], 
-                                        185, 35, 
-                                        apply_widget_style_11)
-        criterio_layout.addWidget(criterio_label)
-        criterio_layout.addWidget(criterio_edit)
-        contratacao_layout.addLayout(criterio_layout)
-
-        # Checkbox layouts e adição ao group box
-        contratacao_layout.addLayout(self.create_checkboxes(data))
-
-        contratacao_group_box.setLayout(contratacao_layout)
-
-        return contratacao_group_box
-
-    def create_checkboxes(self, data):
-        checkbox_style = """
-            QCheckBox::indicator {
-                width: 30px;
-                height: 30px;
-            }
-        """
-
-        checkboxes_layout = QHBoxLayout()
-
-        # Checkbox para "Prioritário?"
-        self.checkbox_prioritario = QCheckBox("Prioritário")
-        self.checkbox_prioritario.setStyleSheet(checkbox_style)
-        self.checkbox_prioritario.setChecked(data.get('pesquisa_preco', 'Não') == 'Sim')
-        checkboxes_layout.addWidget(self.checkbox_prioritario)
-
-        # Checkbox para "Emenda Parlamentar?"
-        self.checkbox_emenda = QCheckBox("Emenda Parlamentar")
-        self.checkbox_emenda.setStyleSheet(checkbox_style)
-        self.checkbox_emenda.setChecked(data.get('atividade_custeio', 'Não') == 'Sim')
-        checkboxes_layout.addWidget(self.checkbox_emenda)
-
-        # Checkbox para "Registro de Preços?"
-        self.checkbox_registro_precos = QCheckBox("SRP")
-        self.checkbox_registro_precos.setStyleSheet(checkbox_style)
-        self.checkbox_registro_precos.setChecked(data.get('registro_precos', 'Não') == 'Sim')
-        checkboxes_layout.addWidget(self.checkbox_registro_precos)
-
-        # Checkbox para "Atividade de Custeio?"
-        self.checkbox_atividade_custeio = QCheckBox("Atividade de Custeio")
-        self.checkbox_atividade_custeio.setStyleSheet(checkbox_style)
-        self.checkbox_atividade_custeio.setChecked(data.get('atividade_custeio', 'Não') == 'Sim')
-        checkboxes_layout.addWidget(self.checkbox_atividade_custeio)
-
-        return checkboxes_layout    
-
+            
     def create_classificacao_orcamentaria_group(self, data):
         classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
         apply_widget_style_11(classificacao_orcamentaria_group_box)
         classificacao_orcamentaria_group_box.setFixedWidth(350)  
         classificacao_orcamentaria_layout = QVBoxLayout()
-
-        # Valor Estimado
-        valor_edit = RealLineEdit(str(data['valor_total']) if pd.notna(data['valor_total']) else "")
-        valor_layout = QHBoxLayout()
-        valor_label = QLabel("Valor Estimado:")
-        valor_layout.addWidget(valor_label)
-        valor_layout.addWidget(valor_edit)
-
-        # Criando o ícone
-        icon_label_layout = QLabel()
-        icon_valor = QIcon(str(ICONS_DIR / "emenda_parlamentar.png"))
-        icon_pixmap_valor = icon_valor.pixmap(27, 27)
-        icon_label_layout.setPixmap(icon_pixmap_valor)
-        icon_label_layout.setFixedSize(30, 30)
-
-        valor_layout.addWidget(icon_label_layout, alignment=Qt.AlignmentFlag.AlignRight)
-
-        classificacao_orcamentaria_layout.addLayout(valor_layout)
 
         acao_interna_edit = QLineEdit(data['uasg'])
         fonte_recurso_edit = QLineEdit(data['uasg'])
@@ -590,79 +463,6 @@ class StackedWidgetManager:
 
         # Abrindo o link no navegador padrão
         QDesktopServices.openUrl(QUrl(url))
-
-    def create_irp_group(self, data):
-        # Cria o QGroupBox para o grupo de IRP
-        irp_group_box = QGroupBox("Dados relativos à Intenção de Registro de Preços (IRP)")
-        apply_widget_style_11(irp_group_box)
-
-        # Layout principal
-        irp_layout = QVBoxLayout()
-
-        # Inicializando dicionários de line_edits e date_edits se ainda não estiverem inicializados
-        if not hasattr(self, 'line_edits'):
-            self.line_edits = {}
-        if not hasattr(self, 'date_edits'):
-            self.date_edits = {}
-
-        # Layout de texto (msg_irp e num_irp)
-        irp_text_layout = QVBoxLayout()
-
-        # QHBoxLayout para msg_irp
-        msg_irp_layout = QHBoxLayout()
-        label_msg_irp = QLabel("Data/Hora MSG:")
-        self.line_edit_msg_irp = QLineEdit()
-        self.line_edit_msg_irp.setText(data.get('msg_irp', ''))
-        msg_irp_layout.addWidget(label_msg_irp)
-        msg_irp_layout.addWidget(self.line_edit_msg_irp)
-        irp_text_layout.addLayout(msg_irp_layout)
-        self.line_edits['msg_irp'] = self.line_edit_msg_irp
-
-        # QHBoxLayout para num_irp
-        num_irp_layout = QHBoxLayout()
-        label_num_irp = QLabel("Número IRP:")
-        self.line_edit_num_irp = QLineEdit()
-        self.line_edit_num_irp.setText(data.get('num_irp', ''))  # Corrigido para usar 'data' em vez de 'self.dados'
-        num_irp_layout.addWidget(label_num_irp)
-        num_irp_layout.addWidget(self.line_edit_num_irp)
-        irp_text_layout.addLayout(num_irp_layout)
-        self.line_edits['num_irp'] = self.line_edit_num_irp
-
-        # Adicionar o QVBoxLayout de textos ao layout principal
-        irp_layout.addLayout(irp_text_layout)
-
-        # Layout para as datas (data_limite_manifestacao_irp e data_limite_confirmacao_irp)
-        irp_date_layout = QVBoxLayout()
-
-        # Campos de data com QDateEdit
-        date_fields = {
-            'data_limite_manifestacao_irp': "Limite para Manifestação",
-            'data_limite_confirmacao_irp': "Limite para Confirmação"
-        }
-
-        for field, label_text in date_fields.items():
-            date_layout = QVBoxLayout()
-            label = QLabel(label_text + ':')
-            date_edit = QDateEdit()
-            date_edit.setCalendarPopup(True)
-            date_str = data.get(field)  # Corrigido para usar 'data' em vez de 'self.dados'
-            valid_date = validate_and_convert_date(date_str)  # Chama a função externa
-            if valid_date:
-                date_edit.setDate(valid_date)
-            else:
-                date_edit.setDate(QDate.currentDate())
-            date_layout.addWidget(label)
-            date_layout.addWidget(date_edit)
-            irp_date_layout.addLayout(date_layout)
-            self.date_edits[field] = date_edit
-
-        # Adicionar o layout de datas ao layout principal
-        irp_layout.addLayout(irp_date_layout)
-
-        # Configurar o layout principal no QGroupBox
-        irp_group_box.setLayout(irp_layout)
-
-        return irp_group_box
     
     def create_utilidades_group(self):
         utilidades_layout = QHBoxLayout()

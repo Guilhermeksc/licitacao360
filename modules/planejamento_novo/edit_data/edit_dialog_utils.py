@@ -114,9 +114,12 @@ class EditDataDialogUtils:
         # Lista de botões de navegação
         buttons = [
             ("Informações", "Informações"),
+            ("Planejamento", "Planejamento"),
             ("IRP", "IRP"),
             ("Demandante", "Demandante"),
             ("Documentos", "Documentos"),
+            ("ETP", "ETP"),
+            ("MR", "MR"),
             ("Anexos", "Anexos"),
             ("PNCP", "PNCP"),
             ("Check-list", "Check-list"),
@@ -176,6 +179,23 @@ class EditDataDialogUtils:
         }
 
         return data
+
+class TextEditDelegate(QItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = QTextEdit(parent)
+        editor.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        return editor
+
+    def setEditorData(self, editor, index):
+        text = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+        editor.setText(text)  # Apenas define o texto completo no editor
+
+    def setModelData(self, editor, model, index):
+        edited_text = editor.toPlainText().strip()
+        model.setData(index, edited_text, Qt.ItemDataRole.DisplayRole)  # Define apenas o texto editado no modelo
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
 
 class RealLineEdit(QLineEdit):
     def __init__(self, text='', parent=None):

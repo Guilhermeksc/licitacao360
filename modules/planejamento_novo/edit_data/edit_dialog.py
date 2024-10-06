@@ -95,7 +95,7 @@ class EditDataDialogNovo(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1400, 720)
+        self.setFixedSize(1450, 800)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
