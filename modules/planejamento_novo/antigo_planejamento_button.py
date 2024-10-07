@@ -108,7 +108,7 @@ class PlanejamentoWidget(QMainWindow):
         dialog.show()
 
     def editar_dados_dois_cliques(self, df_registro_selecionado):
-        dialog = EditDataDialogNovo(df_registro_selecionado, ICONS_DIR)
+        dialog = EditDataDialogNovo(df_registro_selecionado, self.config_manager, ICONS_DIR)
         dialog.dados_atualizados.connect(self.atualizar_tabela)  # Conectar o sinal ao método de atualização
         dialog.exec()
 

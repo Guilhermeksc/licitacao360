@@ -22,7 +22,7 @@ from modules.planejamento.escalar_pregoeiro import EscalarPregoeiroDialog
 from modules.planejamento.autorizacao import AutorizacaoAberturaLicitacaoDialog
 from modules.planejamento.edital import EditalDialog
 from modules.planejamento.fluxoprocesso import FluxoProcessoDialog
-from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos,extrair_chave_processo, carregar_dados_pregao
+from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_processos, carregar_dados_pregao
 df_uasg = pd.read_excel(TABELA_UASG_DIR)
 global df_registro_selecionado
 df_registro_selecionado = None

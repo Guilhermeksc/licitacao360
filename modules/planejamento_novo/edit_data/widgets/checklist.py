@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import *
 from PyQt6.QtGui import *
+from PyQt6.QtCore import *
+from modules.planejamento_novo.edit_data.edit_dialog_utils import (
+                                    apply_widget_style_11, validate_and_convert_date)
 from diretorios import *
-from pathlib import Path
 import os
+from pathlib import Path
 import pandas as pd
 from database.utils.treeview_utils import open_folder, load_images, create_button
 import PyPDF2
@@ -19,246 +21,26 @@ from datetime import datetime
 from num2words import num2words
 import webbrowser
 from modules.planejamento.utilidades_planejamento import remover_caracteres_especiais
-from functools import partial
 import subprocess
 import sys
 
-class DraggableTreeWidget(QTreeWidget):
-    def __init__(self, parent=None):
-        super(DraggableTreeWidget, self).__init__(parent)
-        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        self.setDefaultDropAction(Qt.DropAction.MoveAction)
-        self.previous_values = {}  # Dicionário para armazenar os valores anteriores
-        self.itemChanged.connect(self.onItemChanged)
-        self.itemDoubleClicked.connect(self.onItemDoubleClicked)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.open_context_menu)
-
-    def open_context_menu(self, position):
-        menu = QMenu(self)
-        add_item_action = QAction("Adicionar item", self)
-        delete_item_action = QAction("Excluir item", self)
-
-        add_item_action.triggered.connect(partial(self.inserir_item))
-        delete_item_action.triggered.connect(self.delete_selected_rows)
-
-        menu.addAction(add_item_action)
-        menu.addAction(delete_item_action)
-
-        menu.exec(self.viewport().mapToGlobal(position))
-
-    def inserir_item(self, identificacao=None, marcador_sapiens="definir_marcador"):
-        if identificacao is None or isinstance(identificacao, bool):
-            identificacao = "-------Definir o novo documento--------"
-        
-        print(f"Valores recebidos - Identificação: {identificacao}, Marcador Sapiens: {marcador_sapiens}")
-        selected_items = self.selectedItems()
-        if selected_items:
-            last_item = selected_items[-1]
-            insert_position = self.indexOfTopLevelItem(last_item) + 1
-            last_fim_value = int(last_item.text(4))
-        else:
-            if self.topLevelItemCount() > 0:
-                last_item = self.topLevelItem(self.topLevelItemCount() - 1)
-                last_fim_value = int(last_item.text(4))
-                insert_position = self.topLevelItemCount()
-            else:
-                last_fim_value = 0
-                insert_position = 0
-
-        inicio = last_fim_value + 1
-        fim = inicio + 1
-        num_paginas = fim - inicio + 1
-
-        formatted_position = f"{insert_position:02}"
-        print(f"Insert Position Formatado: {formatted_position}")  # Debug para ver o valor formatado
-
-        new_item = QTreeWidgetItem([
-            formatted_position,
-            str(identificacao),
-            str(marcador_sapiens),
-            str(inicio),
-            str(fim),
-            str(num_paginas)
-        ])
-
-        self.insertTopLevelItem(insert_position, new_item)
-        print(f"Valor no Item: {self.topLevelItem(insert_position).text(0)}")  # Debug para verificar o valor no widget
-
-        self.reordenar_treeview()
-
-    def delete_selected_rows(self):
-        selected_items = self.selectedItems()
-        for item in selected_items:
-            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
-
-        # Reordenar os índices e ajustar os dados
-        self.reordenar_treeview()
-        
-    def reordenar_treeview(self):
-        df = self.save_treeview_to_dataframe()
-        df = self.ajustar_dataframe(df)
-        self.atualizar_tree_from_dataframe(df)
-
-    def ajustar_dataframe(self, df):
-        inicio_atual = 1
-        for index, row in df.iterrows():
-            df.at[index, 'Início'] = inicio_atual
-            fim_atual = inicio_atual + int(row['qnt_pag']) - 1
-            df.at[index, 'Fim'] = fim_atual
-            inicio_atual = fim_atual + 1
-        return df
-
-    def atualizar_tree_from_dataframe(self, df):
-        self.clear()  # Limpar todos os itens existentes antes de adicionar novos
-        for idx, (_, row) in enumerate(df.iterrows(), start=1):
-            # Criar um novo QTreeWidgetItem com os valores corretos
-            item = QTreeWidgetItem([
-                f"{idx:02}",  # Formatação explícita como texto com dois dígitos
-                str(row["Identificação"]),
-                str(row["Marcador"]),
-                str(row["Início"]),
-                str(row["Fim"]),
-                str(row["qnt_pag"])
-            ])
-            # Adicionar o novo item ao QTreeWidget
-            self.addTopLevelItem(item)
-
-    def save_treeview_to_dataframe(self):
-        items = [self.topLevelItem(i) for i in range(self.topLevelItemCount())]
-        data = [(item.text(1), item.text(2), item.text(3), item.text(4), item.text(5)) for item in items]
-        df = pd.DataFrame(data, columns=["Identificação", "Marcador", "Início", "Fim", "qnt_pag"])
-        # Aqui você deve definir o TREEVIEW_DATA_PATH se ainda não foi definido
-        df.to_csv(TREEVIEW_DATA_PATH, index=False)
-        return df
-
-    def onItemChanged(self, item, column):
-        # Verificar se a coluna editada é a coluna "Fim"
-        if column == 4:
-            try:
-                inicio = int(item.text(3))
-                fim = int(item.text(4))
-                qnt_pag = fim - inicio + 1
-                if qnt_pag < 1:
-                    raise ValueError("O número de fim é menor que o de início")
-                item.setText(5, str(qnt_pag))
-                self.ajustar_itens()
-            except ValueError as e:
-                QMessageBox.critical(self, "Erro de Validação", str(e))
-                # Reverter para o valor anterior se houver um erro
-                item.setText(4, self.previous_values.get(id(item), ""))
-                self.clearSelection()
-        self.save_data_to_csv()
-
-    def onItemDoubleClicked(self, item, column):
-        # Verifique se a coluna clicada é uma das que devem ser editáveis
-        editable_columns = [1, 2, 4]  # "Identificação", "SAPIENS" e "Fim"
-        if column in editable_columns:
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-
-            self.editItem(item, column)
-            if column == 4:  # Armazenar o valor anterior apenas para a coluna "Fim"
-                self.previous_values[id(item)] = item.text(column)
-        else:
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-
-    def dropEvent(self, event):
-        # Obter a posição onde o item será solto
-        pointer_position = event.position().toPoint()
-        target_item = self.itemAt(pointer_position)
-        
-        if not target_item:
-            # Se o destino não for um item (por exemplo, espaço vazio), ignore o evento
-            event.ignore()
-            return
-
-        # Obter o item arrastado
-        dragged_item = self.currentItem()
-
-        if dragged_item == target_item:
-            # Se o item arrastado for solto sobre si mesmo, ignore o evento
-            event.ignore()
-            return
-
-        # Salvar as informações do item arrastado
-        item_data = self.mimeData(self.selectedItems())
-        parent_item = dragged_item.parent() if dragged_item.parent() else self.invisibleRootItem()
-        index = parent_item.indexOfChild(dragged_item)
-        parent_item.takeChild(index)
-        # Descobrir onde inserir o item arrastado
-        parent_of_target = target_item.parent() if target_item.parent() else self.invisibleRootItem()
-        index_of_target = parent_of_target.indexOfChild(target_item)
-        # Inserir o item arrastado na nova posição
-        parent_of_target.insertChild(index_of_target, dragged_item)
-        # Redefinir os dados do item arrastado (se necessário)
-        self.clearSelection()
-        self.selectionModel().select(self.indexFromItem(dragged_item), QItemSelectionModel.SelectionFlag.Select)
-
-        # Aceitar o evento de soltar
-        self.ajustar_itens()
-        # Chamar atualizar_idx para reordenar os números
-        self.atualizar_idx()
-        self.save_data_to_csv()
-        event.accept()
-        
-    def ajustar_itens(self):
-        inicio_atual = 1
-        for index in range(self.topLevelItemCount()):
-            item = self.topLevelItem(index)
-            try:
-                qnt_pag_text = item.text(5)
-                qnt_pag = int(qnt_pag_text) if qnt_pag_text else 2  # Default to 2 if empty
-            except ValueError:
-                qnt_pag = 2  # Default to 2 if conversion fails
-            fim_atual = inicio_atual + qnt_pag - 1
-            
-            item.setText(3, str(inicio_atual))  # Atualiza a coluna 'Início'
-            item.setText(4, str(fim_atual))     # Atualiza a coluna 'Fim'
-            
-            inicio_atual = fim_atual + 1
-
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key.Key_Delete:
-
-            selected_items = self.selectedItems()
-            for item in selected_items:
-                parent = item.parent() or self.invisibleRootItem()
-                parent.removeChild(item)
-            self.atualizar_idx()  # Atualizar os índices após a exclusão
-            self.ajustar_itens()  # Adicionado para recalcular as colunas Início e Fim
-        else:
-            super().keyPressEvent(event)
-        self.save_data_to_csv()
-
-    def atualizar_idx(self):
-        for idx in range(self.topLevelItemCount()):
-            item = self.topLevelItem(idx)
-            item.setText(0, f"{idx + 1:02}") 
-
-    def collect_data(self):
-        # Coletar os dados dos itens do QTreeWidget e retornar como um DataFrame
-        data = []
-        for index in range(self.topLevelItemCount()):
-            item = self.topLevelItem(index)
-            row_data = [item.text(column) for column in range(self.columnCount())]
-            data.append(row_data)
-        columns = [self.headerItem().text(i) for i in range(self.columnCount())]
-        df = pd.DataFrame(data, columns=columns)
-        return df
-
-    def save_data_to_csv(self):
-        # Salvar os dados coletados em um arquivo CSV
-        df = self.collect_data()
-        df.to_csv(TREEVIEW_DATA_PATH, index=False)
+def create_checklist_group(data, templatePath, config_manager):
+    checklist_group_box = QGroupBox("Lista de Verificação")
+    apply_widget_style_11(checklist_group_box)
+    # Layout principal
+    layout = QVBoxLayout(checklist_group_box)
+    # Adicionando o ChecklistWidget ao layout principal
+    checklist_widget = ChecklistWidget(None, config_manager, data)
+    layout.addWidget(checklist_widget)
+    checklist_group_box.setLayout(layout)    
+    return checklist_group_box
 
 class ChecklistWidget(QWidget):
-    def __init__(self, parent, config_manager, icons_path, df_registro_selecionado):
+    def __init__(self, parent, config_manager, df_registro):
         super().__init__(parent)
-        self.icons_dir = icons_path
-        self.config_manager = config_manager 
-        self.df_registro = df_registro_selecionado
-        self.image_cache = load_images(self.icons_dir, [
+        self.config_manager = config_manager
+        self.df_registro = df_registro
+        self.image_cache = load_images(ICONS_DIR, [
             "sapiens.png", "processing.png", "word.png", "rotate.png", "save.png", "page.png", "import.png",
         ])
         self.layout = QVBoxLayout(self)
@@ -894,3 +676,232 @@ def substituir_variaveis_nota_tecnica(df_registro_selecionado, df):
     doc.save(output_path)
 
     return output_path
+
+class DraggableTreeWidget(QTreeWidget):
+    def __init__(self, parent=None):
+        super(DraggableTreeWidget, self).__init__(parent)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.previous_values = {}  # Dicionário para armazenar os valores anteriores
+        self.itemChanged.connect(self.onItemChanged)
+        self.itemDoubleClicked.connect(self.onItemDoubleClicked)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_context_menu)
+
+    def open_context_menu(self, position):
+        menu = QMenu(self)
+        add_item_action = QAction("Adicionar item", self)
+        delete_item_action = QAction("Excluir item", self)
+
+        add_item_action.triggered.connect(partial(self.inserir_item))
+        delete_item_action.triggered.connect(self.delete_selected_rows)
+
+        menu.addAction(add_item_action)
+        menu.addAction(delete_item_action)
+
+        menu.exec(self.viewport().mapToGlobal(position))
+
+    def inserir_item(self, identificacao=None, marcador_sapiens="definir_marcador"):
+        if identificacao is None or isinstance(identificacao, bool):
+            identificacao = "-------Definir o novo documento--------"
+        
+        print(f"Valores recebidos - Identificação: {identificacao}, Marcador Sapiens: {marcador_sapiens}")
+        selected_items = self.selectedItems()
+        if selected_items:
+            last_item = selected_items[-1]
+            insert_position = self.indexOfTopLevelItem(last_item) + 1
+            last_fim_value = int(last_item.text(4))
+        else:
+            if self.topLevelItemCount() > 0:
+                last_item = self.topLevelItem(self.topLevelItemCount() - 1)
+                last_fim_value = int(last_item.text(4))
+                insert_position = self.topLevelItemCount()
+            else:
+                last_fim_value = 0
+                insert_position = 0
+
+        inicio = last_fim_value + 1
+        fim = inicio + 1
+        num_paginas = fim - inicio + 1
+
+        formatted_position = f"{insert_position:02}"
+        print(f"Insert Position Formatado: {formatted_position}")  # Debug para ver o valor formatado
+
+        new_item = QTreeWidgetItem([
+            formatted_position,
+            str(identificacao),
+            str(marcador_sapiens),
+            str(inicio),
+            str(fim),
+            str(num_paginas)
+        ])
+
+        self.insertTopLevelItem(insert_position, new_item)
+        print(f"Valor no Item: {self.topLevelItem(insert_position).text(0)}")  # Debug para verificar o valor no widget
+
+        self.reordenar_treeview()
+
+    def delete_selected_rows(self):
+        selected_items = self.selectedItems()
+        for item in selected_items:
+            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+
+        # Reordenar os índices e ajustar os dados
+        self.reordenar_treeview()
+        
+    def reordenar_treeview(self):
+        df = self.save_treeview_to_dataframe()
+        df = self.ajustar_dataframe(df)
+        self.atualizar_tree_from_dataframe(df)
+
+    def ajustar_dataframe(self, df):
+        inicio_atual = 1
+        for index, row in df.iterrows():
+            df.at[index, 'Início'] = inicio_atual
+            fim_atual = inicio_atual + int(row['qnt_pag']) - 1
+            df.at[index, 'Fim'] = fim_atual
+            inicio_atual = fim_atual + 1
+        return df
+
+    def atualizar_tree_from_dataframe(self, df):
+        self.clear()  # Limpar todos os itens existentes antes de adicionar novos
+        for idx, (_, row) in enumerate(df.iterrows(), start=1):
+            # Criar um novo QTreeWidgetItem com os valores corretos
+            item = QTreeWidgetItem([
+                f"{idx:02}",  # Formatação explícita como texto com dois dígitos
+                str(row["Identificação"]),
+                str(row["Marcador"]),
+                str(row["Início"]),
+                str(row["Fim"]),
+                str(row["qnt_pag"])
+            ])
+            # Adicionar o novo item ao QTreeWidget
+            self.addTopLevelItem(item)
+
+    def save_treeview_to_dataframe(self):
+        items = [self.topLevelItem(i) for i in range(self.topLevelItemCount())]
+        data = [(item.text(1), item.text(2), item.text(3), item.text(4), item.text(5)) for item in items]
+        df = pd.DataFrame(data, columns=["Identificação", "Marcador", "Início", "Fim", "qnt_pag"])
+        # Aqui você deve definir o TREEVIEW_DATA_PATH se ainda não foi definido
+        df.to_csv(TREEVIEW_DATA_PATH, index=False)
+        return df
+
+    def onItemChanged(self, item, column):
+        # Verificar se a coluna editada é a coluna "Fim"
+        if column == 4:
+            try:
+                inicio = int(item.text(3))
+                fim = int(item.text(4))
+                qnt_pag = fim - inicio + 1
+                if qnt_pag < 1:
+                    raise ValueError("O número de fim é menor que o de início")
+                item.setText(5, str(qnt_pag))
+                self.ajustar_itens()
+            except ValueError as e:
+                QMessageBox.critical(self, "Erro de Validação", str(e))
+                # Reverter para o valor anterior se houver um erro
+                item.setText(4, self.previous_values.get(id(item), ""))
+                self.clearSelection()
+        self.save_data_to_csv()
+
+    def onItemDoubleClicked(self, item, column):
+        # Verifique se a coluna clicada é uma das que devem ser editáveis
+        editable_columns = [1, 2, 4]  # "Identificação", "SAPIENS" e "Fim"
+        if column in editable_columns:
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+
+            self.editItem(item, column)
+            if column == 4:  # Armazenar o valor anterior apenas para a coluna "Fim"
+                self.previous_values[id(item)] = item.text(column)
+        else:
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+    def dropEvent(self, event):
+        # Obter a posição onde o item será solto
+        pointer_position = event.position().toPoint()
+        target_item = self.itemAt(pointer_position)
+        
+        if not target_item:
+            # Se o destino não for um item (por exemplo, espaço vazio), ignore o evento
+            event.ignore()
+            return
+
+        # Obter o item arrastado
+        dragged_item = self.currentItem()
+
+        if dragged_item == target_item:
+            # Se o item arrastado for solto sobre si mesmo, ignore o evento
+            event.ignore()
+            return
+
+        # Salvar as informações do item arrastado
+        item_data = self.mimeData(self.selectedItems())
+        parent_item = dragged_item.parent() if dragged_item.parent() else self.invisibleRootItem()
+        index = parent_item.indexOfChild(dragged_item)
+        parent_item.takeChild(index)
+        # Descobrir onde inserir o item arrastado
+        parent_of_target = target_item.parent() if target_item.parent() else self.invisibleRootItem()
+        index_of_target = parent_of_target.indexOfChild(target_item)
+        # Inserir o item arrastado na nova posição
+        parent_of_target.insertChild(index_of_target, dragged_item)
+        # Redefinir os dados do item arrastado (se necessário)
+        self.clearSelection()
+        self.selectionModel().select(self.indexFromItem(dragged_item), QItemSelectionModel.SelectionFlag.Select)
+
+        # Aceitar o evento de soltar
+        self.ajustar_itens()
+        # Chamar atualizar_idx para reordenar os números
+        self.atualizar_idx()
+        self.save_data_to_csv()
+        event.accept()
+        
+    def ajustar_itens(self):
+        inicio_atual = 1
+        for index in range(self.topLevelItemCount()):
+            item = self.topLevelItem(index)
+            try:
+                qnt_pag_text = item.text(5)
+                qnt_pag = int(qnt_pag_text) if qnt_pag_text else 2  # Default to 2 if empty
+            except ValueError:
+                qnt_pag = 2  # Default to 2 if conversion fails
+            fim_atual = inicio_atual + qnt_pag - 1
+            
+            item.setText(3, str(inicio_atual))  # Atualiza a coluna 'Início'
+            item.setText(4, str(fim_atual))     # Atualiza a coluna 'Fim'
+            
+            inicio_atual = fim_atual + 1
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key.Key_Delete:
+
+            selected_items = self.selectedItems()
+            for item in selected_items:
+                parent = item.parent() or self.invisibleRootItem()
+                parent.removeChild(item)
+            self.atualizar_idx()  # Atualizar os índices após a exclusão
+            self.ajustar_itens()  # Adicionado para recalcular as colunas Início e Fim
+        else:
+            super().keyPressEvent(event)
+        self.save_data_to_csv()
+
+    def atualizar_idx(self):
+        for idx in range(self.topLevelItemCount()):
+            item = self.topLevelItem(idx)
+            item.setText(0, f"{idx + 1:02}") 
+
+    def collect_data(self):
+        # Coletar os dados dos itens do QTreeWidget e retornar como um DataFrame
+        data = []
+        for index in range(self.topLevelItemCount()):
+            item = self.topLevelItem(index)
+            row_data = [item.text(column) for column in range(self.columnCount())]
+            data.append(row_data)
+        columns = [self.headerItem().text(i) for i in range(self.columnCount())]
+        df = pd.DataFrame(data, columns=columns)
+        return df
+
+    def save_data_to_csv(self):
+        # Salvar os dados coletados em um arquivo CSV
+        df = self.collect_data()
+        df.to_csv(TREEVIEW_DATA_PATH, index=False)

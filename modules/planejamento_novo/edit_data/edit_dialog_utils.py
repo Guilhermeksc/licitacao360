@@ -5,6 +5,13 @@ from PyQt6.QtCore import *
 from diretorios import *
 from datetime import datetime
 
+def add_separator_line(layout):
+    """Adiciona um QFrame horizontal como linha separadora ao layout especificado."""
+    separator_line = QFrame()
+    separator_line.setFrameShape(QFrame.Shape.HLine)
+    separator_line.setFrameShadow(QFrame.Shadow.Sunken)
+    layout.addWidget(separator_line)
+
 def apply_widget_style_11(widget):
     widget.setStyleSheet("font-size: 11pt;") 
 
@@ -52,7 +59,7 @@ def validate_and_convert_date(date_str):
         # Retorna None se houver erro na conversão
         return None
     
-def create_combo_box(current_text, items, fixed_width, fixed_height, style_fn=None):
+def create_combo_box(current_text, items, fixed_width, fixed_height, style_fn=None): 
     combo_box = QComboBox()
     combo_box.addItems(items)
     combo_box.setFixedWidth(fixed_width)

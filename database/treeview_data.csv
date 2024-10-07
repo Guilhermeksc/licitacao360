@@ -1,13 +1,13 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
-01,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,1,4,4
-02,Autorização para Abertura de Processo,termo_abertura,5,6,2
-03,Documento de Formalização da Demanda (DFD),dfd,7,16,10
-04,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,17,18,2
-05,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,19,21,3
-06,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,22,25,4
-07,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,26,29,4
-08,Estudo Técnico Preliminar (ETP),etp,30,57,28
-09,Matriz de Gerenciamento de Riscos,mr,58,68,11
+01,Documento de Formalização da Demanda (DFD),dfd,1,10,10
+02,Estudo Técnico Preliminar (ETP),etp,11,38,28
+03,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,39,42,4
+04,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,43,44,2
+05,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,45,47,3
+06,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,48,51,4
+07,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,52,55,4
+08,Matriz de Gerenciamento de Riscos,mr,56,66,11
+09,Autorização para Abertura de Processo,termo_abertura,67,68,2
 10,Termo de Referência,tr,69,88,20
 11,Pesquisa de Preços,pesquisa_precos,89,91,3
 12,Minuta do Edital,minuta_edital,92,118,27

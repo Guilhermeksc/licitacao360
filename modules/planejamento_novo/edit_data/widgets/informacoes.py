@@ -3,10 +3,9 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     EditDataDialogUtils, RealLineEdit, TextEditDelegate,
-                                    create_combo_box, create_layout, create_button, 
+                                    create_combo_box, add_separator_line, create_button, 
                                     apply_widget_style_11, validate_and_convert_date)
 from diretorios import *
-from modules.planejamento.utilidades_planejamento import DatabaseManager
 
 def create_contratacao_group(data, database_manager):
     contratacao_group_box = QGroupBox("Contratação")
@@ -215,13 +214,6 @@ def create_data_previsao_layout(data):
 
     return data_previsao_layout
 
-def add_separator_line(layout):
-    """Adiciona um QFrame horizontal como linha separadora ao layout especificado."""
-    separator_line = QFrame()
-    separator_line.setFrameShape(QFrame.Shape.HLine)
-    separator_line.setFrameShadow(QFrame.Shadow.Sunken)
-    layout.addWidget(separator_line)
-
 def create_checkboxes(data):
     checkbox_style = """
         QCheckBox::indicator {
@@ -299,7 +291,7 @@ def definir_comentarios(data, database_manager):
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
         listWidget_comentarios.addItem(item)
 
-    label_novo_comentario = QLabel("Campo de edição de Comentário:")
+    label_novo_comentario = QLabel("Novo Comentário:")
     label_novo_comentario.setFont(QFont("Arial", 14, QFont.Weight.Bold))
     textEdit_novo_comentario = QTextEdit()
     textEdit_novo_comentario.setPlaceholderText("Adicione um novo comentário aqui...")
@@ -308,8 +300,6 @@ def definir_comentarios(data, database_manager):
     edicao_vlayout = QVBoxLayout()
     edicao_vlayout.addWidget(label_novo_comentario)
     edicao_vlayout.addWidget(textEdit_novo_comentario)
-    textEdit_novo_comentario.setPlaceholderText("Adicione um novo comentário aqui...")
-    textEdit_novo_comentario.setFont(QFont("Arial", 12))
 
     buttonsLayout = QHBoxLayout()
 

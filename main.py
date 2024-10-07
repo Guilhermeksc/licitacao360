@@ -7,7 +7,6 @@ from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.antigo_planejamento_button import PlanejamentoWidget
-from modules.planejamento_novo.planejamento_novo_button import PlanejamentoNovoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.contratos.classe_contratos import ContratosWidget

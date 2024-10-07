@@ -7,6 +7,7 @@ from modules.dispensa_eletronica.formulario_excel import FormularioExcel
 from modules.planejamento_novo.edit_data.edit_dialog_utils import EditDataDialogUtils, create_combo_box, validate_and_convert_date, create_layout, create_button, apply_widget_style_11
 from modules.planejamento_novo.edit_data.stacked_widget import StackedWidgetManager
 from modules.planejamento_novo.edit_data.data_saver import DataSaver
+from modules.planejamento_novo.edit_data.consulta_api import create_frame_pncp
 from diretorios import *
 from pathlib import Path
 import pandas as pd
@@ -20,9 +21,10 @@ class EditDataDialogNovo(QDialog):
     title_updated = pyqtSignal(str)
     status_atualizado = pyqtSignal(str, str)
 
-    def __init__(self, df_registro_selecionado, icons_dir, parent=None):
+    def __init__(self, df_registro_selecionado, config_manager, icons_dir, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
+        self.config_manager = config_manager
         self.ICONS_DIR = Path(icons_dir)
         self.navigation_buttons = []
         self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
@@ -30,7 +32,7 @@ class EditDataDialogNovo(QDialog):
         self.data_saver = DataSaver(self.database_manager, self.df_registro_selecionado)  
         self.formulario_excel = FormularioExcel(self.df_registro_selecionado, self.pasta_base, self)
         self.set_registro_data()
-        self.stacked_widget_manager = StackedWidgetManager(self, self.df_registro_selecionado)
+        self.stacked_widget_manager = StackedWidgetManager(self, self.config_manager, self.df_registro_selecionado)
         self._init_ui()
         self._init_connections()
         self.status_atualizado.connect(lambda msg, icon: EditDataDialogUtils.atualizar_status_label(self.status_label, self.icon_label, msg, icon))
@@ -115,7 +117,9 @@ class EditDataDialogNovo(QDialog):
         layout_principal.setContentsMargins(0, 0, 0, 0)
 
         # Cria o layout de agentes responsáveis e aplica borda lateral
-        layout_agentes_responsaveis = self.create_agentes_responsaveis_layout()
+        layout_agentes_responsaveis = self.create_agentes_responsaveis_layout(self.df_registro_selecionado)
+        layout_agentes_responsaveis.setStyleSheet("QFrame { background-color: black; }")
+        layout_agentes_responsaveis.setContentsMargins(0, 0, 0, 0)
 
         # Layout horizontal principal para conter ambos os layouts
         hlayout_main = QHBoxLayout(self)
@@ -303,12 +307,23 @@ class EditDataDialogNovo(QDialog):
 
         return utilidades_layout
     
-    def create_agentes_responsaveis_layout(self):
-        # Frame para agentes responsáveis com borda lateral
+    def create_agentes_responsaveis_layout(self, data):
         frame_agentes = QFrame()
+
         # Criação do layout principal para os agentes responsáveis
         agente_responsavel_layout = QVBoxLayout(frame_agentes)
-        agente_responsavel_layout.setContentsMargins(10, 1, 10, 1)  # Define margens ao redor do layout
+
+        # Inclui o frame PNCP no layout principal (fica no topo)
+        pncp_frame = create_frame_pncp(data)  # Chama a função para criar o frame do PNCP
+        agente_responsavel_layout.addWidget(pncp_frame)
+
+        # Criação do QGroupBox para os agentes responsáveis
+        agentes_group_box = QGroupBox("Agentes Responsáveis")
+        apply_widget_style_11(agentes_group_box)  # Aplica estilo personalizado, se necessário
+        agentes_layout = QVBoxLayout(agentes_group_box)
+
+        # Definindo a política de tamanho para que o QGroupBox preencha o espaço disponível
+        agentes_group_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Criação dos ComboBox com ajuste de altura
         self.ordenador_combo = create_combo_box('', [], 260, 70)
@@ -317,37 +332,63 @@ class EditDataDialogNovo(QDialog):
         self.responsavel_demanda_combo = create_combo_box('', [], 260, 65)
         self.operador_dispensa_combo = create_combo_box('', [], 260, 70)
 
-        # Adicionando labels e ComboBox diretamente ao layout
+        # Adicionando labels e ComboBox diretamente ao layout do GroupBox
         labels_combos = [
-            ("Ordenador de Despesa:", self.ordenador_combo),
-            ("Agente Fiscal:", self.agente_fiscal_combo),
-            ("Gerente de Crédito:", self.gerente_credito_combo),
-            ("Responsável pela Demanda:", self.responsavel_demanda_combo),
-            ("Operador da Contratação:", self.operador_dispensa_combo)
+            ("Ordenador de Despesa", self.ordenador_combo),
+            ("Agente Fiscal", self.agente_fiscal_combo),
+            ("Gerente de Crédito", self.gerente_credito_combo),
+            ("Coordenador do Planejamento", self.responsavel_demanda_combo),
+            ("Agente da Contratação", self.operador_dispensa_combo)
         ]
 
         for label_text, combo_box in labels_combos:
-            # Cria um layout horizontal para a label e o ComboBox
-            h_layout = QVBoxLayout()
-            h_layout.setSpacing(0)  # Ajusta o espaçamento entre label e ComboBox
-            h_layout.setContentsMargins(0, 0, 0, 0)  # Margens para o layout
+            # Cria um layout vertical para a label e o ComboBox
+            v_layout = QVBoxLayout()
 
             # Cria e estiliza a label
             label = QLabel(label_text)
-            label.setStyleSheet("color: #8AB4F7; font-size: 16px")
-            label.setContentsMargins(0, 0, 0, 0)  # Define margens para a label
+            label.setStyleSheet("background-color: #202124; color: #8AB4F7; font-size: 16px")
+            label.setFixedHeight(25)
 
-            # Adiciona a label e o ComboBox ao layout horizontal
-            h_layout.addWidget(label)
-            h_layout.addWidget(combo_box)
+            # Adiciona a label ao layout
+            v_layout.addWidget(label)
+            # Adiciona o ComboBox ao layout
+            v_layout.addWidget(combo_box)
 
-            # Adiciona o layout horizontal ao layout principal
-            agente_responsavel_layout.addLayout(h_layout)
+            # Adiciona o layout vertical ao layout do GroupBox
+            agentes_layout.addLayout(v_layout)
+
+        # Criando botão adicional "Configurar Responsáveis"
+        icon_api = QIcon(str(ICONS_DIR / "responsaveis.png"))
+        consulta_button = create_button(
+            "Configurar Responsáveis",
+            icon=icon_api,
+            callback=lambda: self.teste(),  # Substitua esta função pelo seu callback
+            tooltip_text="Consultar o PNCP com os dados fornecidos",
+            button_size=QSize(220, 40),
+            icon_size=QSize(30, 30)
+        )
+
+        # Criando um layout horizontal para centralizar o botão
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()  # Adiciona espaço elástico à esquerda
+        button_layout.addWidget(consulta_button)  # Adiciona o botão ao layout
+        button_layout.addStretch()  # Adiciona espaço elástico à direita
+
+        # Adiciona o layout com o botão centralizado ao layout do GroupBox
+        agentes_layout.addLayout(button_layout)
+
+        # Adiciona o QGroupBox ao layout principal e faz com que preencha o espaço disponível
+        agente_responsavel_layout.addWidget(agentes_group_box)
 
         # Carrega os agentes responsáveis para popular os ComboBoxes
         self.carregarAgentesResponsaveis()
 
         return frame_agentes
+
+    
+    def teste(self):
+        print("Teste")
 
     def carregarAgentesResponsaveis(self):
         try:
