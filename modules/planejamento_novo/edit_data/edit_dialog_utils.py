@@ -5,6 +5,74 @@ from PyQt6.QtCore import *
 from diretorios import *
 from datetime import datetime
 
+def create_sigdem_layout(data, titulo):
+    grupoSIGDEM = QGroupBox("SIGDEM")
+    apply_widget_style_11(grupoSIGDEM)
+    layout = QVBoxLayout(grupoSIGDEM)
+
+    # Campo Assunto
+    labelAssunto = QLabel("No campo “Assunto”:")
+    labelAssunto.setStyleSheet("color: #8AB4F7; font-size: 16px")
+    layout.addWidget(labelAssunto)
+    edital_text = f"{data.get('id_processo', '')} - {titulo} ({data.get('objeto', '')})"
+    textEditAssunto = QTextEdit(edital_text)
+    textEditAssunto.setStyleSheet("font-size: 12pt;")
+    textEditAssunto.setMaximumHeight(60)
+    layoutHAssunto = QHBoxLayout()
+    layoutHAssunto.addWidget(textEditAssunto)
+    icon_copy = QIcon(str(ICONS_DIR / "copy_1.png"))
+    btnCopyAssunto = create_button(text="", icon=icon_copy, callback=lambda: copyToClipboard(textEditAssunto.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
+    layoutHAssunto.addWidget(btnCopyAssunto)
+    layout.addLayout(layoutHAssunto)
+
+    # Campo Sinopse
+    labelSinopse = QLabel("No campo “Sinopse”:")
+    labelSinopse.setStyleSheet("color: #8AB4F7; font-size: 16px")
+    layout.addWidget(labelSinopse)
+    textEditSinopse = QTextEdit()
+    textEditSinopse.setPlainText(create_sinopse_text(data, titulo))
+    textEditSinopse.setStyleSheet("font-size: 12pt;")
+    textEditSinopse.setMaximumHeight(140)
+    layoutHSinopse = QHBoxLayout()
+    layoutHSinopse.addWidget(textEditSinopse)
+    btnCopySinopse = create_button(text="", icon=icon_copy, callback=lambda: copyToClipboard(textEditSinopse.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
+    layoutHSinopse.addWidget(btnCopySinopse)
+    layout.addLayout(layoutHSinopse)
+
+    grupoSIGDEM.setLayout(layout)
+
+    return grupoSIGDEM
+
+def get_descricao_servico(data):
+    return "aquisição de" if data.get('material_servico', '') == "Material" else "contratação de empresa especializada em"
+
+def copyToClipboard(text):
+    clipboard = QApplication.clipboard()
+    clipboard.setText(text)
+
+def get_preposicao_tipo(tipo):
+    if tipo == "CC":
+        return "à Concorrência (CC)"
+    elif tipo == "PE":
+        return "ao Pregão Eletrônico (PE)"
+    elif tipo == "TJDL":
+        return "ao  Termo de Justificativa para Dispensa de Licitação (TJDL)"
+    elif tipo == "TJIL":
+        return "ao  Termo de Justificativa para Inexibilidade de Licitação (TJIL)"
+    elif tipo == "DE":
+        return f"à {tipo}"
+    else:
+        return f"ao {tipo}"
+
+def create_sinopse_text(data, titulo):
+    tipo = data.get('tipo', '')
+    preposicao_tipo = get_preposicao_tipo(tipo)
+    return (
+        f"{titulo} referente {preposicao_tipo} nº {data.get('numero', '')}/{data.get('ano', '')}, para {get_descricao_servico(data)} {data.get('objeto', '')}\n"
+        f"Processo Administrativo NUP: {data.get('nup', '')}\n"
+        f"Setor Demandante: {data.get('setor_responsavel', '')}"
+    )
+
 def add_separator_line(layout):
     """Adiciona um QFrame horizontal como linha separadora ao layout especificado."""
     separator_line = QFrame()
@@ -121,16 +189,18 @@ class EditDataDialogUtils:
         # Lista de botões de navegação
         buttons = [
             ("Informações", "Informações"),
+            ("Documentos", "Documentos"),
             ("Planejamento", "Planejamento"),
             ("IRP", "IRP"),
-            ("Demandante", "Demandante"),
-            ("Documentos", "Documentos"),
+            ("DFD", "DFD"),
             ("ETP", "ETP"),
             ("MR", "MR"),
-            ("Anexos", "Anexos"),
-            ("PNCP", "PNCP"),
+            ("TR", "TR"),
+            ("Edital", "Edital"),
             ("Check-list", "Check-list"),
             ("Nota Técnica", "Nota Técnica"),
+            ("AGU", "AGU"),
+            ("PNCP", "PNCP"),
         ]
 
         button_style = EditDataDialogUtils.get_button_style()

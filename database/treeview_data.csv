@@ -1,20 +1,20 @@
 Nº,Identificação,Marcador,Início,Fim,Págs
-01,Documento de Formalização da Demanda (DFD),dfd,1,10,10
-02,Estudo Técnico Preliminar (ETP),etp,11,38,28
-03,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,39,42,4
-04,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,43,44,2
-05,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,45,47,3
-06,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,48,51,4
-07,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,52,55,4
-08,Matriz de Gerenciamento de Riscos,mr,56,66,11
-09,Autorização para Abertura de Processo,termo_abertura,67,68,2
-10,Termo de Referência,tr,69,88,20
-11,Pesquisa de Preços,pesquisa_precos,89,91,3
-12,Minuta do Edital,minuta_edital,92,118,27
-13,Minuta do Contrato,minuta_contrato,119,127,9
-14,Minuta da Ata de Registro de Preços,minuta_arp,128,130,3
-15,Lista de Verificação,checklist,131,137,7
-16,Despacho,despacho,138,139,2
-17,Nota Técnica,nota_tecnica,140,147,8
-18,Comunicação Padronizada,termo,148,149,2
+01,Comunicação Padronizada,termo,1,2,2
+02,Documento de Formalização da Demanda (DFD),dfd,3,12,10
+03,Portaria XXXX Com7°DN de Designação de Equipe de Planejamento,portaria_plan,13,16,4
+04,Lista de Verificação,checklist,17,23,7
+05,Matriz de Gerenciamento de Riscos,mr,24,34,11
+06,Autorização para Abertura de Processo,termo_abertura,35,36,2
+07,Portaria XXXX de Designação de Militares para Comissão de Licitação,portaria_comissao,37,40,4
+08,Capa de Abertura do Pregão Eletrônico e Termo de Autuação,termo_autuacao,41,44,4
+09,Termo de Referência,tr,45,64,20
+10,Despacho,despacho,65,66,2
+11,Pesquisa de Preços,pesquisa_precos,67,69,3
+12,Estudo Técnico Preliminar (ETP),etp,70,97,28
+13,Portaria XXXX de Designação de Ordenador de Despesas,portaria_od,98,100,3
+14,Minuta do Edital,minuta_edital,101,127,27
+15,Minuta do Contrato,minuta_contrato,128,136,9
+16,Minuta da Ata de Registro de Preços,minuta_arp,137,139,3
+17,Comprovação da Divulgação da Intenção do Registro de Preços,termo_irp,140,141,2
+18,Nota Técnica,nota_tecnica,142,149,8
 19,Despacho de Encaminhamento para AGU,termo,150,151,2

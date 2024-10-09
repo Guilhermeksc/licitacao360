@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         menu_buttons = [
             "Início",
-            "Planejamento",
+            "Licitação",
             "Atas",
             "Contratos",
             "Dispensa Eletrônica",
@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
 
     def change_content(self, content_name):
         content_actions = {
-            "Planejamento": self.setup_planejamento,
+            "Licitação": self.setup_planejamento,
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa Eletrônica": self.setup_dispensa_eletronica,

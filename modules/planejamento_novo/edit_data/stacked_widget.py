@@ -10,7 +10,12 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     apply_widget_style_11, validate_and_convert_date)
 from modules.planejamento_novo.edit_data.widgets.informacoes import create_contratacao_group
 from modules.planejamento_novo.edit_data.widgets.irp import create_irp_group
+from modules.planejamento_novo.edit_data.widgets.etp import create_etp_group
+from modules.planejamento_novo.edit_data.widgets.mr import create_matriz_risco_group
+from modules.planejamento_novo.edit_data.widgets.tr import create_tr_group
+from modules.planejamento_novo.edit_data.widgets.edital import create_edital_group
 from modules.planejamento_novo.edit_data.widgets.checklist import create_checklist_group
+from modules.planejamento_novo.edit_data.widgets.nota_tecnica import create_nt_group
 from modules.planejamento_novo.edit_data.widgets.planejamento import create_planejamento_group, create_classificacao_orcamentaria_group, create_frame_formulario_group
 import pandas as pd
 import sqlite3     
@@ -39,16 +44,18 @@ class StackedWidgetManager:
         # Configura os widgets no StackedWidgetManager
         widgets = {
             "Informações": self.stacked_widget_info(data),
+            "Documentos": self.stacked_widget_documentos(data),
             "Planejamento": self.stacked_widget_planejamento(data),
             "IRP": self.stacked_widget_irp(data),
-            "Demandante": self.stacked_widget_responsaveis(data),
-            "Documentos": self.stacked_widget_documentos(data),
+            "DFD": self.stacked_widget_dfd(data),
             "ETP": self.stacked_widget_etp(data),
             "MR": self.stacked_widget_matriz_riscos(data),
-            "Anexos": self.stacked_widget_anexos(data),
-            "PNCP": self.stacked_widget_pncp(data),
+            "TR": self.stacked_widget_tr(data),
+            "Edital": self.stacked_widget_edital(data),
             "Check-list": self.stacked_widget_checklist(data),
             "Nota Técnica": self.stacked_widget_nt(data),
+            "AGU": self.stacked_widget_nt(data),
+            "PNCP": self.stacked_widget_pncp(data),
         }
 
         for name, widget in widgets.items():
@@ -58,6 +65,46 @@ class StackedWidgetManager:
     def get_stacked_widget(self):
         return self.stack_manager
 
+    def stacked_widget_nt(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        nt_group = create_nt_group(data, self.templatePathMSG)
+        layout.addWidget(nt_group)
+        frame.setLayout(layout)
+        return frame
+    
+    def stacked_widget_tr(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        tr_group = create_tr_group(data, self.templatePathMSG)
+        layout.addWidget(tr_group)
+        frame.setLayout(layout)
+        return frame
+
+    def stacked_widget_edital(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        tr_group = create_edital_group(data, self.templatePathMSG)
+        layout.addWidget(tr_group)
+        frame.setLayout(layout)
+        return frame
+        
+    def stacked_widget_matriz_riscos(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        matriz_riscos_group = create_matriz_risco_group(data, self.templatePathMSG)
+        layout.addWidget(matriz_riscos_group)
+        frame.setLayout(layout)
+        return frame
+    
+    def stacked_widget_etp(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        etp_group = create_etp_group(data, self.templatePathMSG)
+        layout.addWidget(etp_group)
+        frame.setLayout(layout)
+        return frame
+    
     def stacked_widget_info(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
@@ -94,7 +141,7 @@ class StackedWidgetManager:
         frame.setLayout(layout)
         return frame
 
-    def stacked_widget_responsaveis(self, data):
+    def stacked_widget_dfd(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
         dados_responsavel_contratacao_group = self.create_dados_responsavel_contratacao_group(data)
@@ -114,22 +161,6 @@ class StackedWidgetManager:
         frame.setLayout(layout)
         return frame
 
-    def stacked_widget_etp(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        anexos_group = self.parent.create_anexos_group()
-        layout.addWidget(anexos_group)
-        frame.setLayout(layout)
-        return frame
-    
-    def stacked_widget_matriz_riscos(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        anexos_group = self.parent.create_anexos_group()
-        layout.addWidget(anexos_group)
-        frame.setLayout(layout)
-        return frame
-
     def stacked_widget_anexos(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
@@ -145,72 +176,7 @@ class StackedWidgetManager:
         layout.addWidget(pncp_group)
         frame.setLayout(layout)
         return frame
-
-    def stacked_widget_nt(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        nt_group = self.create_pncp_group(data)
-        layout.addWidget(nt_group)
-        frame.setLayout(layout)
-        return frame
             
-    # def create_classificacao_orcamentaria_group(self, data):
-    #     classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
-    #     apply_widget_style_11(classificacao_orcamentaria_group_box)
-    #     classificacao_orcamentaria_group_box.setFixedWidth(350)  
-    #     classificacao_orcamentaria_layout = QVBoxLayout()
-
-    #     acao_interna_edit = QLineEdit(data['uasg'])
-    #     fonte_recurso_edit = QLineEdit(data['uasg'])
-    #     natureza_despesa_edit = QLineEdit(data['uasg'])
-    #     unidade_orcamentaria_edit = QLineEdit(data['uasg'])
-    #     ptres_edit = QLineEdit(data['uasg'])
-
-    #     # Utilizando a função create_layout fora da classe
-    #     classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", acao_interna_edit, apply_style_fn=apply_widget_style_11))
-    #     classificacao_orcamentaria_layout.addLayout(create_layout("Fonte de Recurso (FR):", fonte_recurso_edit, apply_style_fn=apply_widget_style_11))
-    #     classificacao_orcamentaria_layout.addLayout(create_layout("Natureza de Despesa (ND):", natureza_despesa_edit, apply_style_fn=apply_widget_style_11))
-    #     classificacao_orcamentaria_layout.addLayout(create_layout("Unidade Orçamentária (UO):", unidade_orcamentaria_edit, apply_style_fn=apply_widget_style_11))
-    #     classificacao_orcamentaria_layout.addLayout(create_layout("PTRES:", ptres_edit, apply_style_fn=apply_widget_style_11))
-
-    #     classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
-
-    #     return classificacao_orcamentaria_group_box
-
-    # def create_frame_formulario_group(self):
-    #     formulario_group_box = QGroupBox("Formulário de Dados")
-    #     apply_widget_style_11(formulario_group_box)   
-    #     formulario_group_box.setFixedWidth(350)   
-    #     formulario_layout = QVBoxLayout()
-
-    #     # Adicionando os botões ao layout
-    #     icon_excel_up = QIcon(str(ICONS_DIR / "excel_up.png"))
-    #     icon_excel_down = QIcon(str(ICONS_DIR / "excel_down.png"))
-
-    #     criar_formulario_button = create_button(
-    #         "   Criar Formulário   ",
-    #         icon=icon_excel_up,
-    #         callback=self.parent.formulario_excel.criar_formulario,  # Chama o método do parent
-    #         tooltip_text="Clique para criar o formulário",
-    #         button_size=QSize(220, 50),
-    #         icon_size=QSize(45, 45)
-    #     )
-
-    #     carregar_formulario_button = create_button(
-    #         "Carregar Formulário",
-    #         icon=icon_excel_down,
-    #         callback=self.parent.formulario_excel.carregar_formulario,  # Chama o método do parent
-    #         tooltip_text="Clique para carregar o formulário",
-    #         button_size=QSize(220, 50),
-    #         icon_size=QSize(45, 45)
-    #     )
-
-    #     formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-    #     formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-    #     formulario_group_box.setLayout(formulario_layout)
-
-    #     return formulario_group_box
-
     def create_dados_responsavel_contratacao_group(self, data):
         setor_responsavel_group_box = QGroupBox("Divisão/Setor Responsável pela Demanda")
         apply_widget_style_11(setor_responsavel_group_box)

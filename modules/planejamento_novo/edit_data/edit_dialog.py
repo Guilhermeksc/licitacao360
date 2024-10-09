@@ -359,14 +359,14 @@ class EditDataDialogNovo(QDialog):
             agentes_layout.addLayout(v_layout)
 
         # Criando botão adicional "Configurar Responsáveis"
-        icon_api = QIcon(str(ICONS_DIR / "responsaveis.png"))
+        icon_api = QIcon(str(ICONS_DIR / "switch.png"))
         consulta_button = create_button(
             "Configurar Responsáveis",
             icon=icon_api,
             callback=lambda: self.teste(),  # Substitua esta função pelo seu callback
             tooltip_text="Consultar o PNCP com os dados fornecidos",
             button_size=QSize(220, 40),
-            icon_size=QSize(30, 30)
+            icon_size=QSize(40, 40)
         )
 
         # Criando um layout horizontal para centralizar o botão

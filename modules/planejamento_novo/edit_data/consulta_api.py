@@ -75,7 +75,7 @@ def create_frame_pncp(data):
         callback=lambda: on_consultar_pncp(numero, ano),  # Substitua esta função pelo seu callback
         tooltip_text="Consultar o PNCP com os dados fornecidos",
         button_size=QSize(220, 40),
-        icon_size=QSize(30, 30)
+        icon_size=QSize(40, 40)
     )
     apply_widget_style_11(consulta_button)
 
