@@ -1189,7 +1189,7 @@ class ConsolidarDocumentos:
         # Verifica se todas as pastas necessárias existem
         pastas_existentes = all(pasta.exists() for pasta in pastas_necessarias)
         return pastas_existentes
-    
+        
     def verificar_e_criar_pastas(self, pasta_base):
         id_processo_modificado = self.id_processo.replace("/", "-")
         objeto_modificado = self.objeto.replace("/", "-")

@@ -9,6 +9,7 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     create_combo_box, create_layout, create_button, 
                                     apply_widget_style_11, validate_and_convert_date)
 from modules.planejamento_novo.edit_data.widgets.informacoes import create_contratacao_group
+from modules.planejamento_novo.edit_data.widgets.autorizacao import AutorizacaoWidget
 from modules.planejamento_novo.edit_data.widgets.irp import create_irp_group
 from modules.planejamento_novo.edit_data.widgets.etp import create_etp_group
 from modules.planejamento_novo.edit_data.widgets.mr import create_matriz_risco_group
@@ -19,16 +20,27 @@ from modules.planejamento_novo.edit_data.widgets.nota_tecnica import create_nt_g
 from modules.planejamento_novo.edit_data.widgets.planejamento import create_planejamento_group, create_classificacao_orcamentaria_group, create_frame_formulario_group
 import pandas as pd
 import sqlite3     
-import logging 
+import logging
+
+CONFIG_FILE = 'config.json'
+
+def load_config_path_id():
+    if not Path(CONFIG_FILE).exists():
+        return {}
+    with open(CONFIG_FILE, 'r') as file:
+        return json.load(file)
+    
 class StackedWidgetManager:
     def __init__(self, parent, config_manager, df_registro_selecionado):
         self.parent = parent
         self.config_manager = config_manager
         self.df_registro_selecionado = df_registro_selecionado
         self.stack_manager = QStackedWidget(parent)
+        self.config = load_config_path_id()  # Carrega a configuração aqui
+        self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))  # Inicializa pasta_base
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
-        self.material_servico = None  # Inicialize aqui ou no método apropriado
+        self.material_servico = None
         self.objeto = None
         self.setor_responsavel = None
         self.orgao_responsavel = None
@@ -63,8 +75,31 @@ class StackedWidgetManager:
             widget.setObjectName(name)
 
     def get_stacked_widget(self):
-        return self.stack_manager
 
+        return self.stack_manager       
+     
+    def stacked_widget_documentos(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        # Passa self.pasta_base e self.config para o widget de autorização
+        autorizacao_widget = AutorizacaoWidget(data, self.templatePathMSG, self.pasta_base, self.config)
+        autorizacao_group = autorizacao_widget.create_autorizacao_group()
+        layout.addWidget(autorizacao_group)
+        frame.setLayout(layout)
+        return frame
+    
+    # def stacked_widget_documentos(self, data):
+    #     frame = QFrame()
+    #     layout = QVBoxLayout()
+    #     botao_documentos = self.parent.create_gerar_documentos_group()
+    #     sigdem_group = self.parent.create_GrupoSIGDEM()
+    #     utilidade_group = self.create_utilidades_group()
+    #     layout.addLayout(botao_documentos)
+    #     layout.addWidget(sigdem_group)
+    #     layout.addLayout(utilidade_group)
+    #     frame.setLayout(layout)
+    #     return frame
+    
     def stacked_widget_nt(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
@@ -146,18 +181,6 @@ class StackedWidgetManager:
         layout = QVBoxLayout()
         dados_responsavel_contratacao_group = self.create_dados_responsavel_contratacao_group(data)
         layout.addWidget(dados_responsavel_contratacao_group)
-        frame.setLayout(layout)
-        return frame
-
-    def stacked_widget_documentos(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        botao_documentos = self.parent.create_gerar_documentos_group()
-        sigdem_group = self.parent.create_GrupoSIGDEM()
-        utilidade_group = self.create_utilidades_group()
-        layout.addLayout(botao_documentos)
-        layout.addWidget(sigdem_group)
-        layout.addLayout(utilidade_group)
         frame.setLayout(layout)
         return frame
 

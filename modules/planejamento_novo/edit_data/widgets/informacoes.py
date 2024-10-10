@@ -5,6 +5,7 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     EditDataDialogUtils, RealLineEdit, TextEditDelegate,
                                     create_combo_box, add_separator_line, create_button, 
                                     apply_widget_style_11, validate_and_convert_date)
+from modules.dispensa_eletronica.formulario_excel import FormularioExcel
 from diretorios import *
 
 def create_contratacao_group(data, database_manager):
@@ -266,72 +267,192 @@ def create_checkboxes(data):
 
     return checkboxes_layout
 
+def create_frame_formulario_group():
+    formulario_group_box = QGroupBox("Formulário de Dados")
+    apply_widget_style_11(formulario_group_box)   
+    formulario_group_box.setFixedWidth(300)   
+    formulario_layout = QVBoxLayout()
+
+    # Adicionando os botões ao layout
+    icon_excel_up = QIcon(str(ICONS_DIR / "excel_up.png"))
+    icon_excel_down = QIcon(str(ICONS_DIR / "excel_down.png"))
+
+    criar_formulario_button = create_button(
+        "   Criar Formulário   ",
+        icon=icon_excel_up,
+        callback=FormularioExcel.criar_formulario,  # Chama o método do parent
+        tooltip_text="Clique para criar o formulário",
+        button_size=QSize(220, 50),
+        icon_size=QSize(45, 45)
+    )
+
+    carregar_formulario_button = create_button(
+        "Carregar Formulário",
+        icon=icon_excel_down,
+        callback=FormularioExcel.carregar_formulario,  # Chama o método do parent
+        tooltip_text="Clique para carregar o formulário",
+        button_size=QSize(220, 50),
+        icon_size=QSize(45, 45)
+    )
+
+    formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
+    formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
+    formulario_group_box.setLayout(formulario_layout)
+
+    return formulario_group_box
+
 def definir_comentarios(data, database_manager):
+    # Label para os comentários
     label = QLabel("Comentários:")
     label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
 
+    # Lista de comentários
     listWidget_comentarios = QListWidget()
     listWidget_comentarios.setFont(QFont("Arial", 12))
     listWidget_comentarios.setWordWrap(True)
-    # self.listWidget_comentarios.setFixedWidth(430)
-
-    comentarios_vlayout = QVBoxLayout()
-    comentarios_vlayout.addWidget(label)
-    comentarios_vlayout.addWidget(listWidget_comentarios)
-    listWidget_comentarios.setFixedWidth(700)
-
+    listWidget_comentarios.setFixedWidth(760)
+    
+    # Delegado para edição de texto
     delegate = TextEditDelegate()
     listWidget_comentarios.setItemDelegate(delegate)
     listWidget_comentarios.itemChanged.connect(lambda: salvar_comentarios_editados(data, listWidget_comentarios, database_manager))
 
+    # Carregar comentários existentes
     comentarios = carregar_comentarios(data, database_manager)
     for comentario in comentarios:
-        item = QListWidgetItem(comentario)
-        item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
+        partes = comentario.split('<>', 2)
+        if len(partes) == 3:
+            _, icone_inicio, texto_comentario = partes
+        else:
+            icone_inicio, texto_comentario = "checked.png", comentario
+        item = QListWidgetItem(texto_comentario)
+        item.setIcon(QIcon(str(ICONS_DIR / icone_inicio)))
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
         listWidget_comentarios.addItem(item)
 
-    label_novo_comentario = QLabel("Novo Comentário:")
-    label_novo_comentario.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-    textEdit_novo_comentario = QTextEdit()
-    textEdit_novo_comentario.setPlaceholderText("Adicione um novo comentário aqui...")
-    textEdit_novo_comentario.setFont(QFont("Arial", 12))
-
-    edicao_vlayout = QVBoxLayout()
-    edicao_vlayout.addWidget(label_novo_comentario)
-    edicao_vlayout.addWidget(textEdit_novo_comentario)
-
-    buttonsLayout = QHBoxLayout()
-
-    # Caminhos para os ícones
+    # Botões para adicionar e excluir comentários
     icon_add = QIcon(str(ICONS_DIR / "add_comment.png"))
     icon_exclude = QIcon(str(ICONS_DIR / "delete_comment.png"))
-
+    
     button_adicionar_comentario = QPushButton("Adicionar Comentário")
     button_adicionar_comentario.setIcon(icon_add)
+    button_adicionar_comentario.setFont(QFont("Arial", 12))
+    
     button_excluir_comentario = QPushButton("Excluir Comentário")
     button_excluir_comentario.setIcon(icon_exclude)
-
-    buttonsLayout.addWidget(button_adicionar_comentario)
-    buttonsLayout.addWidget(button_excluir_comentario)
-
-    button_font = QFont("Arial", 12)
-    button_adicionar_comentario.setFont(button_font)
-    button_excluir_comentario.setFont(button_font)
+    button_excluir_comentario.setFont(QFont("Arial", 12))
     
-    button_adicionar_comentario.clicked.connect(lambda: adicionar_comentario(data, textEdit_novo_comentario, listWidget_comentarios, database_manager))
+    button_adicionar_comentario.clicked.connect(lambda: abrir_dialogo_adicionar_comentario(data, listWidget_comentarios, database_manager))
     button_excluir_comentario.clicked.connect(lambda: excluir_comentario(data, listWidget_comentarios, database_manager))
 
-    comentarios_layout = QHBoxLayout()
-    comentarios_layout.addLayout(edicao_vlayout)
-    comentarios_layout.addLayout(comentarios_vlayout)
+    # Layout para os botões e o label (horizontal layout)
+    top_buttons_layout = QHBoxLayout()
+    top_buttons_layout.addWidget(label)
+    top_buttons_layout.addWidget(button_adicionar_comentario)
+    top_buttons_layout.addWidget(button_excluir_comentario)
+    top_buttons_layout.addStretch()  # Espaço flexível para alinhar corretamente
 
-    edicao_vlayout.addLayout(buttonsLayout)
+    # Layout de edição e botões de comentário (vertical layout)
+    edicao_vlayout = QVBoxLayout()
+    edicao_vlayout.addLayout(top_buttons_layout)
+    edicao_vlayout.addWidget(listWidget_comentarios)
+
+    # Layout final contendo o frame do formulário à esquerda e os comentários à direita
+    comentarios_layout = QHBoxLayout()
+    comentarios_layout.addWidget(create_frame_formulario_group())  # Chama a função de layout do formulário
+    comentarios_layout.addLayout(edicao_vlayout)
 
     return comentarios_layout
 
+def abrir_dialogo_adicionar_comentario(data, listWidget_comentarios, database_manager):
+    dialog = QDialog()
+    dialog.setWindowTitle("Adicionar Comentário")
+    dialog.setModal(True)
+    dialog_layout = QVBoxLayout()
+
+    # TextEdit para adicionar comentário
+    textEdit_novo_comentario = QTextEdit()
+    textEdit_novo_comentario.setPlaceholderText("Adicione um novo comentário aqui...")
+    textEdit_novo_comentario.setFont(QFont("Arial", 12))
+    dialog_layout.addWidget(textEdit_novo_comentario)
+
+    # Label para selecionar ícone
+    label_selecionar_icone = QLabel("Selecionar ícone:")
+    label_selecionar_icone.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+    dialog_layout.addWidget(label_selecionar_icone)
+
+    # Ícones e Checkboxes
+    icones = [
+        ("Caveira", "head_skull.png"),
+        ("Alerta", "alert.png"),
+        ("Mensagem", "message_alert.png"),
+        ("Prioridade", "prioridade.png"),
+        ("Concluído", "concluido.png")
+    ]
+    
+    checkboxes = []
+    checkboxes_layout = QHBoxLayout()
+    for texto, icone_nome in icones:
+        checkbox_layout = QHBoxLayout()
+        checkbox = QCheckBox(texto)
+        checkbox.setFont(QFont("Arial", 12))
+        checkbox.setAutoExclusive(True)  # Permitir apenas um checkbox selecionado
+        label_icone = QLabel()
+        label_icone.setPixmap(QPixmap(str(ICONS_DIR / icone_nome)).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        checkbox_layout.addWidget(label_icone)
+        checkbox_layout.addWidget(checkbox)
+        checkboxes_layout.addLayout(checkbox_layout)
+        checkboxes.append((checkbox, icone_nome))
+    
+    dialog_layout.addLayout(checkboxes_layout)
+
+    # Botões de Ação
+    button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+    button_box.accepted.connect(lambda: adicionar_comentario(data, textEdit_novo_comentario, listWidget_comentarios, database_manager, dialog, checkboxes))
+    button_box.rejected.connect(dialog.reject)
+    dialog_layout.addWidget(button_box)
+
+    dialog.setLayout(dialog_layout)
+    dialog.exec()
+
+def adicionar_comentario(data, textEdit_novo_comentario, listWidget_comentarios, database_manager, dialog, checkboxes):
+    novo_comentario = textEdit_novo_comentario.toPlainText().strip()
+    if novo_comentario:
+        # Verificar qual ícone foi selecionado
+        icone_selecionado = None
+        for checkbox, icone_nome in checkboxes:
+            if checkbox.isChecked():
+                icone_selecionado = icone_nome
+                break
+        
+        if icone_selecionado is None:
+            icone_selecionado = "checked.png"  # Padrão caso nenhum ícone seja selecionado
+        
+        comentario_formatado = f"<>{icone_selecionado}<>{novo_comentario}"
+        item = QListWidgetItem(novo_comentario)
+        item.setIcon(QIcon(str(ICONS_DIR / icone_selecionado)))
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+        listWidget_comentarios.addItem(item)
+        salvar_comentarios_editados(data, listWidget_comentarios, database_manager)
+    dialog.accept()
+
+def carregar_comentarios(data, database_manager):
+    with database_manager as connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT comentarios FROM controle_processos WHERE id_processo = ?", (data['id_processo'],))
+        row = cursor.fetchone()
+        if row and row[0]:
+            # Divide os comentários com base no delimitador "|||"
+            comentarios = row[0].split("|||")
+            return comentarios
+        return []
+
 def salvar_comentarios_editados(data, listWidget_comentarios, database_manager):
-    comentarios = [listWidget_comentarios.item(i).text() for i in range(listWidget_comentarios.count())]
+    comentarios = []
+    for i in range(listWidget_comentarios.count()):
+        item = listWidget_comentarios.item(i)
+        icone_nome = item.icon().name() if not item.icon().isNull() else "checked.png"
+        comentarios.append(f"<>{icone_nome}<>{item.text()}")
     comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com "|||"
 
     with database_manager as connection:
@@ -339,16 +460,6 @@ def salvar_comentarios_editados(data, listWidget_comentarios, database_manager):
         cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id_processo = ?", (comentarios_str, data['id_processo']))
         connection.commit()
         print("Comentários salvos com sucesso.")
-
-def adicionar_comentario(data, textEdit_novo_comentario, listWidget_comentarios, database_manager):
-    novo_comentario = textEdit_novo_comentario.toPlainText().strip()
-    if novo_comentario:
-        item = QListWidgetItem(novo_comentario)
-        item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
-        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-        listWidget_comentarios.addItem(item)
-        textEdit_novo_comentario.clear()
-        salvar_comentarios_editados(data, listWidget_comentarios, database_manager)
 
 def excluir_comentario(data, listWidget_comentarios, database_manager):
     item = listWidget_comentarios.currentItem()
@@ -360,24 +471,3 @@ def excluir_comentario(data, listWidget_comentarios, database_manager):
             # Manter o ícone e o texto do comentário
             item.setIcon(QIcon(str(ICONS_DIR / "checked.png")))
         salvar_comentarios_editados(data, listWidget_comentarios, database_manager)
-
-def carregar_comentarios(data, database_manager):
-    with database_manager as connection:
-        cursor = connection.cursor()
-        cursor.execute("SELECT comentarios FROM controle_processos WHERE id_processo = ?", (data['id_processo'],))
-        row = cursor.fetchone()
-        if row and row[0]:
-            # Divide os comentários com base no delimitador "|||"
-            return row[0].split("|||")
-        return []
-
-def salvar_comentarios(data, listWidget_comentarios, database_manager):
-    # Esta função deve salvar apenas o texto dos comentários, sem os números.
-    comentarios = [listWidget_comentarios.item(i).text() for i in range(listWidget_comentarios.count())]
-    comentarios_str = '|||'.join(comentarios)  # Concatena todos os comentários com "|||"
-
-    with database_manager as connection:
-        cursor = connection.cursor()
-        cursor.execute("UPDATE controle_processos SET comentarios = ? WHERE id_processo = ?", (comentarios_str, data['id_processo']))
-        connection.commit()
-        print("Comentários salvos com sucesso.")
