@@ -190,7 +190,7 @@ class EditDataDialogUtils:
         buttons = [
             ("Informações", "Informações"),
             ("Documentos", "Documentos"),
-            ("Planejamento", "Planejamento"),
+            ("Portaria", "Portaria"),
             ("IRP", "IRP"),
             ("DFD", "DFD"),
             ("ETP", "ETP"),

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento_novo.edit_data.edit_dialog_utils import (
-                                    apply_widget_style_11, create_button, get_descricao_servico, copyToClipboard, 
+                                    apply_widget_style_11, create_button, create_layout, get_descricao_servico, copyToClipboard, 
                                     get_preposicao_tipo, create_sinopse_text, validate_and_convert_date, create_sigdem_layout)
 from diretorios import *
 import os
@@ -28,8 +28,18 @@ def create_tr_group(data, templatePath):
     scroll_content = QWidget()
     scroll_layout = QVBoxLayout(scroll_content)
 
-    # Layout para Informações Básicas
-    informacoes_basicas_layout = create_tr_layout(data)
+    # Layout para Informações Básicas e Classificação Orçamentária
+    informacoes_basicas_layout = QHBoxLayout()
+    informacoes_basicas_layout.addLayout(create_tr_layout(data))  # Layout da esquerda
+
+    classificacao_orcamentaria_group = create_classificacao_orcamentaria_group(data)  # Widget da direita
+    informacoes_basicas_layout.addWidget(classificacao_orcamentaria_group)
+
+    # Definindo a proporção entre os layouts esquerdo e direito
+    informacoes_basicas_layout.setStretch(0, 3)
+    informacoes_basicas_layout.setStretch(1, 1)
+
+    # Adiciona o layout de informações básicas ao layout de rolagem
     scroll_layout.addLayout(informacoes_basicas_layout)
 
     # Define o layout do conteúdo da barra de rolagem
@@ -51,7 +61,7 @@ def create_tr_group(data, templatePath):
     # Cria um widget para conter o layout sigdem_menu_layout
     sigdem_menu_widget = QWidget()
     sigdem_menu_widget.setLayout(sigdem_menu_layout)
-    sigdem_menu_widget.setFixedHeight(250)  # Define a altura fixa de 350
+    sigdem_menu_widget.setFixedHeight(250)  # Define a altura fixa de 250
 
     main_layout.addWidget(sigdem_menu_widget)
 
@@ -60,6 +70,29 @@ def create_tr_group(data, templatePath):
     mr_group_widget.setLayout(main_layout)
 
     return mr_group_widget
+
+def create_classificacao_orcamentaria_group(data):
+    classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
+    apply_widget_style_11(classificacao_orcamentaria_group_box)
+    classificacao_orcamentaria_group_box.setFixedWidth(350)  
+    classificacao_orcamentaria_layout = QVBoxLayout()
+
+    acao_interna_edit = QLineEdit(data['uasg'])
+    fonte_recurso_edit = QLineEdit(data['uasg'])
+    natureza_despesa_edit = QLineEdit(data['uasg'])
+    unidade_orcamentaria_edit = QLineEdit(data['uasg'])
+    ptres_edit = QLineEdit(data['uasg'])
+
+    # Utilizando a função create_layout fora da classe
+    classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", acao_interna_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Fonte de Recurso (FR):", fonte_recurso_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Natureza de Despesa (ND):", natureza_despesa_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Unidade Orçamentária (UO):", unidade_orcamentaria_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("PTRES:", ptres_edit, apply_style_fn=apply_widget_style_11))
+
+    classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
+
+    return classificacao_orcamentaria_group_box
 
 def create_tr_layout(data):
     # Cria um layout vertical principal
