@@ -17,7 +17,7 @@ from modules.planejamento_novo.edit_data.widgets.tr import create_tr_group
 from modules.planejamento_novo.edit_data.widgets.edital import create_edital_group
 from modules.planejamento_novo.edit_data.widgets.checklist import create_checklist_group
 from modules.planejamento_novo.edit_data.widgets.nota_tecnica import create_nt_group
-from modules.planejamento_novo.edit_data.widgets.portaria import create_portaria_group, create_classificacao_orcamentaria_group, create_frame_formulario_group
+from modules.planejamento_novo.edit_data.widgets.portaria import create_portaria_layout
 import pandas as pd
 import sqlite3     
 import logging
@@ -154,7 +154,7 @@ class StackedWidgetManager:
         frame = QFrame()
         layout = QVBoxLayout()
         hbox_top_layout = QHBoxLayout()
-        planejamento_group_box = create_portaria_group(data, self.templatePath)
+        planejamento_group_box = create_portaria_layout(data, self.templatePath)
         hbox_top_layout.addWidget(planejamento_group_box)
         layout.addLayout(hbox_top_layout)
         frame.setLayout(layout)

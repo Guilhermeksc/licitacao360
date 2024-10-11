@@ -11,7 +11,7 @@ import sys
 def load_images(icons_dir, image_file_names):
     images = {}
     for image_file_name in image_file_names:
-        image_path = icons_dir / image_file_name
+        image_path = icons_dir / image_file_name  # Agora funciona corretamente
         if not image_path.is_file():
             print(f"Image file not found: {image_path}")
             continue

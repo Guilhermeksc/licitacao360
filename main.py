@@ -10,7 +10,10 @@ from modules.planejamento_novo.antigo_planejamento_button import PlanejamentoWid
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
 from modules.contratos.classe_contratos import ContratosWidget
-from config.menu_superior.menu_manager import MenuManager
+from config.menu_superior.config.config_database import ConfigurarDatabaseDialog
+from config.menu_superior.config.config_responsaveis import AgentesResponsaveisDialog
+from config.menu_superior.config.config_om import OrganizacoesDialog
+from config.menu_superior.config.config_template import TemplatesDialog
 from pathlib import Path
 
 class InicioWidget(QWidget):
@@ -21,14 +24,6 @@ class InicioWidget(QWidget):
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
-
-        # Aplica o estilo CSS para bordas arredondadas ao QWidget
-        self.setStyleSheet("""
-            InicioWidget {
-                border-radius: 15px;
-                border: 1px solid #0081DB;
-            }
-        """)
 
         # Título do projeto
         self.title_label = QLabel("Licitação 360")
@@ -46,7 +41,6 @@ class InicioWidget(QWidget):
         self.synopsis_label.setAlignment(Qt.AlignmentFlag.AlignJustify)
         self.synopsis_label.setWordWrap(True)
         self.synopsis_label.setStyleSheet("font-size: 16px; padding: 10px;")
-
 
         # Adiciona os widgets ao layout
         self.layout.addWidget(self.title_label)
@@ -163,20 +157,19 @@ class MainWindow(QMainWindow):
         self.central_layout.setContentsMargins(0, 0, 0, 0)
 
     def setup_menu(self):
-        self.menu_manager = MenuManager(self)
-        self.menu_manager.create_menus()
-
         menu_layout = QVBoxLayout()
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         menu_buttons = [
             "Início",
+            "PCA",
             "Licitação",
             "Atas",
             "Contratos",
-            "Dispensa Eletrônica",
-            "Matriz de Riscos",
+            "Dispensa",
+            # "Matriz",
+            "Config",
         ]
         
         for button_name in menu_buttons:
@@ -189,13 +182,48 @@ class MainWindow(QMainWindow):
             self.buttons[button_name] = button
             menu_layout.addWidget(button)
 
-        menu_layout.addStretch(4)
+        # Adiciona um espaçamento após o último botão
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        menu_layout.addItem(spacer)
+
+        # Cria um layout horizontal para os ícones, sem espaçamento
+        icons_layout = QHBoxLayout()
+        icons_layout.setSpacing(5)  # Pequeno espaçamento entre os ícones
+        icons_layout.setContentsMargins(0, 0, 0, 0)
+        icons_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Adiciona o ícone do Brasil
+        icon_brasil_label = QLabel()
+        icon_pixmap = QPixmap(str(ICONS_DIR / "brasil.png"))
+        icon_brasil_label.setPixmap(icon_pixmap.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        
+        # Adiciona o ícone da Marinha
+        icon_marinha_label = QLabel()
+        icon_marinha = QPixmap(str(ICONS_DIR / "icone.ico"))
+        icon_marinha_label.setPixmap(icon_marinha.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+        # Adiciona os ícones ao layout horizontal
+        icons_layout.addWidget(icon_brasil_label)
+        icons_layout.addWidget(icon_marinha_label)
+
+        # Adiciona o layout de ícones ao layout principal
+        menu_layout.addLayout(icons_layout)
+
+        # Adiciona o texto "Licitação 360"
+        label = QLabel("Licitação 360")
+        label.setStyleSheet("color: white; font-size: 16px;")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        menu_layout.addWidget(label)
+
         self.menu_widget = QWidget()
         self.menu_widget.setLayout(menu_layout)
-        self.menu_widget.setFixedWidth(180)
+        self.menu_widget.setFixedWidth(110)
+
+        # Ajustar o fundo do menu para preto
+        self.menu_widget.setStyleSheet("background-color: #13141F;")
 
         self.central_layout.addWidget(self.menu_widget)
-
+        
     def create_menu_button(self, name):
         button = QPushButton(f" {name}")
         button.setStyleSheet(get_menu_button_style())
@@ -221,11 +249,6 @@ class MainWindow(QMainWindow):
         self.clear_content_area(keep_image_label=True)
         self.content_layout.addWidget(self.inicio_widget)
         self.set_active_button("Início")
-        self.content_widget.setStyleSheet("""
-            QWidget#contentWidget {
-                border: 1px solid #E4E7EB;
-            }
-        """)
 
     def update_content_title(self, button=None):
         button = button or self.sender()
@@ -238,13 +261,62 @@ class MainWindow(QMainWindow):
             "Licitação": self.setup_planejamento,
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
-            "Dispensa Eletrônica": self.setup_dispensa_eletronica,
-            "Matriz de Riscos": self.setup_matriz_riscos,
+            "Dispensa": self.setup_dispensa_eletronica,
+            "Matriz": self.setup_matriz_riscos,
+            "Config": self.dialog_config,
         }
         action = content_actions.get(content_name)
         if action:
             action()
 
+    def dialog_config(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Configurações")
+
+        layout = QVBoxLayout(dialog)
+
+        # Criação dos botões
+        btn_database = QPushButton("Configurar Database")
+        btn_agentes = QPushButton("Agentes Responsáveis")
+        btn_templates = QPushButton("Templates")
+        btn_organizacoes = QPushButton("Organizações")
+
+        # Adiciona os botões ao layout
+        layout.addWidget(btn_database)
+        layout.addWidget(btn_agentes)
+        layout.addWidget(btn_templates)
+        layout.addWidget(btn_organizacoes)
+
+        # Conecta os botões aos métodos correspondentes
+        btn_database.clicked.connect(self.show_configurar_database_dialog)
+        btn_agentes.clicked.connect(self.show_agentes_responsaveis_dialog)
+        btn_templates.clicked.connect(self.show_templates_dialog)
+        btn_organizacoes.clicked.connect(self.show_organizacoes_dialog)
+
+        # Define o layout e tamanho do diálogo
+        dialog.setLayout(layout)
+        dialog.setFixedSize(300, 200)
+
+        # Exibe o diálogo
+        dialog.exec()
+
+    # Métodos para abrir os diálogos
+    def show_configurar_database_dialog(self):
+        dialog = ConfigurarDatabaseDialog(self)
+        dialog.exec()
+
+    def show_agentes_responsaveis_dialog(self):
+        dialog = AgentesResponsaveisDialog(self)
+        dialog.exec()
+
+    def show_organizacoes_dialog(self):
+        dialog = OrganizacoesDialog(self)
+        dialog.exec()
+
+    def show_templates_dialog(self):
+        # Corrigir passando o pai correto para o diálogo
+        dialog = TemplatesDialog(self.config_manager, self)
+        dialog.exec()
 
     def setup_matriz_riscos(self):
         self.clear_content_area()

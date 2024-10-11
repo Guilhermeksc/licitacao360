@@ -88,7 +88,6 @@ class MenuManager:
         dialog = OrganizacoesDialog(self.parent)
         dialog.exec()
 
-
     def show_templates_dialog(self):
         # Corrigir passando o pai correto para o diálogo
         dialog = TemplatesDialog(self.config_manager, self.parent)  # Supondo que self.parent seja o QMainWindow ou outro QWidget

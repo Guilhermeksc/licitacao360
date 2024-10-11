@@ -4,34 +4,46 @@ from PyQt6.QtCore import *
 from pathlib import Path
 
 class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, icons, parent=None):
+    def __init__(self, icons, status_column_index, parent=None):
         super().__init__(parent)
         self.icons = icons
+        self.status_column_index = status_column_index
 
     def paint(self, painter, option, index):
-        painter.save()
-        super().paint(painter, option, index)  # Draw default text and background first
-        status = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-        icon = self.icons.get(status, None)
+        if index.column() == self.status_column_index:
+            situacao = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+            icon = self.icons.get(situacao, None)
 
-        if icon:
-            icon_size = 24  # Using the original size of the icon
-            icon_x = option.rect.left() + 5  # X position with a small offset to the left
-            icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2  # Centered Y position
+            if icon:
+                icon_size = 24
+                icon_x = option.rect.left() + 5
+                icon_y = option.rect.top() + (option.rect.height() - icon_size) // 2
+                icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
+                
+                # Obtém o pixmap no tamanho desejado
+                pixmap = icon.pixmap(icon_size, icon_size)
+                painter.drawPixmap(icon_rect, pixmap)
 
-            icon_rect = QRect(int(icon_x), int(icon_y), icon_size, icon_size)
-            icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter)
-        painter.restore()
+                # Ajusta o retângulo para o texto para ficar ao lado do ícone
+                text_rect = QRect(
+                    icon_rect.right() + 5,
+                    option.rect.top(),
+                    option.rect.width() - icon_size - 10,
+                    option.rect.height()
+                )
+                option.rect = text_rect
+            else:
+                print(f"Ícone não encontrado para a situação: {situacao}")
+
+        # Chama o método padrão para desenhar o texto ajustado
+        super().paint(painter, option, index)
 
     def sizeHint(self, option, index):
         size = super().sizeHint(option, index)
-        size.setWidth(size.width() + 30)  # Add extra width for the icon
+        if index.column() == self.status_column_index:
+            size.setWidth(size.width() + 30)
         return size
 
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        # Garante que o alinhamento centralizado seja aplicado
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
 
 class CenterAlignDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
@@ -52,30 +64,33 @@ etapas = {
     'Concluído': None
 }
 
-
-def load_and_map_icons(icons_dir):
+def load_and_map_icons(icons_dir, image_cache):
     icons = {}
     icon_mapping = {
         'Planejamento': 'business.png',
-        'Consolidar Demandas': 'puzzle.png',
-        'Concluído': 'concluido.png',
-        'AGU': 'law.png',
-        'Pré-Publicação': 'arrows.png',
-        'Montagem do Processo': 'arrows.png',
+        'Consolidar Demandas': 'loading_table.png',
+        'Concluído': 'aproved.png',
+        'AGU': 'deal.png',
+        'Pré-Publicação': 'loading_table.png',
+        'Montagem do Processo': 'loading_table.png',
         'Nota Técnica': 'law_menu.png',
         'Assinatura Contrato': 'contrato.png',
-        'Recomendações AGU': 'certified.png',
-        'Sessão Pública': 'deal.png'
+        'Recomendações AGU': 'loading_table.png',
+        'Sessão Pública': 'session.png'
     }
-    # print(f"Verificando ícones no diretório: {icons_dir}")
     for status, filename in icon_mapping.items():
-        icon_path = Path(icons_dir) / filename
-        # print(f"Procurando ícone para status '{status}': {icon_path}")
-        if icon_path.exists():
-            # print(f"Ícone encontrado: {filename}")
-            pixmap = QPixmap(str(icon_path))
-            pixmap = pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            icons[status] = QIcon(pixmap)
+        if filename in image_cache:
+            pixmap = image_cache[filename]
         else:
-            print(f"Ignore warning: Icon file {filename} not found in {icons_dir}")
+            icon_path = icons_dir / filename
+            if icon_path.exists():
+                pixmap = QPixmap(str(icon_path))
+                image_cache[filename] = pixmap
+            else:
+                print(f"Warning: Icon file {filename} not found in {icons_dir}")
+                continue
+        icon = QIcon(pixmap)
+        icons[status] = icon
     return icons
+
+

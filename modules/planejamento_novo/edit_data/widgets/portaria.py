@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import * 
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from modules.planejamento_novo.edit_data.edit_dialog_utils import (
@@ -8,12 +8,12 @@ from diretorios import *
 import os
 import docx
 
-def create_portaria_group(data, templatePath):
+def create_portaria_layout(data, templatePath):
     # Cria o layout principal
     main_layout = QVBoxLayout()
 
     # Adiciona a label para o título
-    titulo_label = QLabel("Termo de Referência (TR)")
+    titulo_label = QLabel("Equipe de Planejamento")
     titulo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     titulo_label.setStyleSheet("color: #8AB4F7; font-size: 18px; font-weight: bold")
     main_layout.addWidget(titulo_label)
@@ -29,19 +29,9 @@ def create_portaria_group(data, templatePath):
     scroll_content = QWidget()
     scroll_layout = QVBoxLayout(scroll_content)
 
-    # Layout para Informações Básicas e Classificação Orçamentária
-    informacoes_basicas_layout = QHBoxLayout()
-    informacoes_basicas_layout.addWidget(create_planejamento_group(data, templatePath))  # Layout da esquerda
-
-    classificacao_orcamentaria_group = create_classificacao_orcamentaria_group(data)  # Widget da direita
-    informacoes_basicas_layout.addWidget(classificacao_orcamentaria_group)
-
-    # Definindo a proporção entre os layouts esquerdo e direito
-    informacoes_basicas_layout.setStretch(0, 3)
-    informacoes_basicas_layout.setStretch(1, 1)
-
-    # Adiciona o layout de informações básicas ao layout de rolagem
-    scroll_layout.addLayout(informacoes_basicas_layout)
+    # Layout para Informações Básicas
+    informacoes_basicas_layout = create_planejamento_layout(data, templatePath)
+    scroll_layout.addWidget(informacoes_basicas_layout)
 
     # Define o layout do conteúdo da barra de rolagem
     scroll_area.setWidget(scroll_content)
@@ -62,7 +52,7 @@ def create_portaria_group(data, templatePath):
     # Cria um widget para conter o layout sigdem_menu_layout
     sigdem_menu_widget = QWidget()
     sigdem_menu_widget.setLayout(sigdem_menu_layout)
-    sigdem_menu_widget.setFixedHeight(250)  # Define a altura fixa de 250
+    sigdem_menu_widget.setFixedHeight(250)
 
     main_layout.addWidget(sigdem_menu_widget)
 
@@ -85,7 +75,7 @@ def create_menu_layout(templatePath):
 
     buttons = [
         create_button(
-            text=" Importar Tabela ",
+            text="Declaração Ciência",
             icon=icon_table,
             tooltip_text="Gerar texto",
             callback=lambda: print("Gerar Texto clicked"),
@@ -93,7 +83,7 @@ def create_menu_layout(templatePath):
             icon_size=QSize(45, 45)
         ),
         create_button(
-            text=" Gerar Documento ",                   
+            text=" Gerar Portaria ",                   
             icon=icon_gerar_documento,
             callback=lambda: print("Gerar Texto clicked"),
             tooltip_text="Clique para gerar o ETP",
@@ -110,10 +100,10 @@ def create_menu_layout(templatePath):
     menu_group_box.setLayout(layout)
     return menu_group_box
 
-def create_planejamento_group(data, templatePath):
-    data = data 
-    portaria_group_box = QGroupBox("Portaria")
-    apply_widget_style_11(portaria_group_box)
+def create_planejamento_layout(data, templatePath):
+    data = data
+    portaria_widget = QWidget()
+    apply_widget_style_11(portaria_widget)
     portaria_layout = QVBoxLayout()
 
     # Nº da Portaria
@@ -132,7 +122,7 @@ def create_planejamento_group(data, templatePath):
     coordenador_hbox.addWidget(QLabel("Posto/Graduação:"))
     coordenador_hbox.addWidget(posto_graduacao_edit)
     coordenador_hbox.addWidget(QLabel("Nome:"))
-    coordenador_hbox.addWidget(nome_edit,2)
+    coordenador_hbox.addWidget(nome_edit, 2)
     coordenador_layout.addLayout(coordenador_hbox)
 
     telefone_email_hbox = QHBoxLayout()
@@ -188,8 +178,8 @@ def create_planejamento_group(data, templatePath):
     )
     portaria_layout.addWidget(gerar_portaria_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-    portaria_group_box.setLayout(portaria_layout)
-    return portaria_group_box
+    portaria_widget.setLayout(portaria_layout)
+    return portaria_widget
 
 def on_gerar_portaria_clicked(templatePath):
     # Abrindo o arquivo template_portaria.docx
@@ -202,33 +192,10 @@ def on_gerar_portaria_clicked(templatePath):
     else:
         print(f"Template não encontrado em {template_file}")
 
-def create_classificacao_orcamentaria_group(data):
-    classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
-    apply_widget_style_11(classificacao_orcamentaria_group_box)
-    classificacao_orcamentaria_group_box.setFixedWidth(350)  
-    classificacao_orcamentaria_layout = QVBoxLayout()
-
-    acao_interna_edit = QLineEdit(data['uasg'])
-    fonte_recurso_edit = QLineEdit(data['uasg'])
-    natureza_despesa_edit = QLineEdit(data['uasg'])
-    unidade_orcamentaria_edit = QLineEdit(data['uasg'])
-    ptres_edit = QLineEdit(data['uasg'])
-
-    # Utilizando a função create_layout fora da classe
-    classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", acao_interna_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Fonte de Recurso (FR):", fonte_recurso_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Natureza de Despesa (ND):", natureza_despesa_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Unidade Orçamentária (UO):", unidade_orcamentaria_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("PTRES:", ptres_edit, apply_style_fn=apply_widget_style_11))
-
-    classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
-
-    return classificacao_orcamentaria_group_box
-
-def create_frame_formulario_group():
-    formulario_group_box = QGroupBox("Formulário de Dados")
-    apply_widget_style_11(formulario_group_box)   
-    formulario_group_box.setFixedWidth(350)   
+def create_frame_formulario_widget():
+    formulario_widget = QWidget()
+    apply_widget_style_11(formulario_widget)   
+    formulario_widget.setFixedWidth(350)   
     formulario_layout = QVBoxLayout()
 
     # Adicionando os botões ao layout
@@ -255,7 +222,6 @@ def create_frame_formulario_group():
 
     formulario_layout.addWidget(criar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
     formulario_layout.addWidget(carregar_formulario_button, alignment=Qt.AlignmentFlag.AlignCenter)
-    formulario_group_box.setLayout(formulario_layout)
+    formulario_widget.setLayout(formulario_layout)
 
-    return formulario_group_box
-
+    return formulario_widget

@@ -88,11 +88,12 @@ class PlanejamentoWidget(QMainWindow):
     def __init__(self, app, icons_dir):
         super().__init__()
         self.app = app
-        self.icons_dir = Path(icons_dir)
-        self.icons = load_and_map_icons(self.icons_dir)  # Carrega os ícones
+        self.icons_dir = Path(icons_dir)  # Converter icons_dir para Path
+        self.image_cache = {}
+        self.icons = load_and_map_icons(self.icons_dir, self.image_cache)
         self.setup_managers()
         self.load_icons()
-        self.initialize_ui()  # Inicializa o modelo e a UI
+        self.initialize_ui() 
 
     def initialize_ui(self):
         # Inicializa o modelo e a interface do usuário
@@ -126,8 +127,11 @@ class PlanejamentoWidget(QMainWindow):
         # print("Carregando dados iniciais...")
         self.image_cache = load_images(self.icons_dir, [
             "plus.png", "save_to_drive.png", "loading.png", "delete.png", "contrato.png",
-            "planification.png", "business.png", "deal.png", "law.png", "puzzle.png",
-            "excel.png", "calendar.png", "report.png", "management.png", "data-processing.png", "performance.png"
+            "planification.png", "business.png", "deal.png", "law.png", "puzzle.png", "time-management.png",
+            "excel.png", "calendar.png", "report.png", "management.png", "data-server.png", "data-processing.png", "performance.png",
+            "aproved.png", "session.png", "deal.png", "emenda_parlamentar.png", "verify_menu.png", "archive.png",
+            "plus.png", "import_de.png", "save_to_drive.png", "loading.png", "delete.png", "performance.png",
+            "excel.png", "calendar.png", "report.png", "management.png", "image-processing.png"
         ])
         self.selectedIndex = None
 
@@ -511,7 +515,17 @@ class UIManager:
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
         status_index = self.model.fieldIndex("etapa")
-        self.table_view.setItemDelegateForColumn(status_index, CustomItemDelegate(self.icons, self.table_view))
+        print(f"Índice da coluna 'etapa': {status_index}")  # Para depuração
+
+        center_delegate = CenterAlignDelegate(self.table_view)
+        for column in range(self.model.columnCount()):
+            if column != status_index:
+                self.table_view.setItemDelegateForColumn(column, center_delegate)
+
+        self.table_view.setItemDelegateForColumn(
+            status_index,
+            CustomItemDelegate(self.icons, status_index, self.table_view)
+        )
 
     def configure_table_model(self):
         self.parent.proxy_model = QSortFilterProxyModel(self.parent)
@@ -564,7 +578,7 @@ class UIManager:
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch) 
         # Definir tamanhos específicos onde necessário
-        header.resizeSection(0, 250)
+        header.resizeSection(0, 230)
         header.resizeSection(1, 130)
         header.resizeSection(2, 200)
         header.resizeSection(4, 80)
@@ -574,6 +588,7 @@ class UIManager:
         self.table_view.setStyleSheet("""
             QTableView {
                 font-size: 16px;
+                background-color: #13141F;                      
             }
             QTableView::section {
                 font-size: 16px;
@@ -617,13 +632,12 @@ class UIManager:
             2: "NUP",
             3: "Objeto",
             4: "UASG",
-            6: "Pregoeiro"
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def hide_unwanted_columns(self):
-        visible_columns = {0, 1,2,3,4,6}
+        visible_columns = {0, 1,2,3,4}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
@@ -772,8 +786,8 @@ class ButtonManager:
             ("Adicionar", self.parent.image_cache['plus'], self.parent.on_add_item, "Adiciona um novo item ao banco de dados"),
             ("Salvar", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo excel('.xlsx')"),
             ("Excluir", self.parent.image_cache['delete'], self.parent.on_delete_item, "Exclui um item selecionado"),
-            ("Controle", self.parent.image_cache['calendar'], self.parent.on_control_process, "Abre o painel de controle do processo"),
-            ("Database", self.parent.image_cache['data-processing'], self.parent.open_carregar_tabela_dialog, "Abre o painel de controle do processo"),
+            ("Controle", self.parent.image_cache['time-management'], self.parent.on_control_process, "Abre o painel de controle do processo"),
+            ("Database", self.parent.image_cache['data-server'], self.parent.open_carregar_tabela_dialog, "Abre o painel de controle do processo"),
         ]
         for text, icon, callback, tooltip in button_specs:
             btn = self.create_button(text, icon, callback, tooltip, self.parent)
