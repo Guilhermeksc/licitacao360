@@ -392,6 +392,7 @@ class UIManager:
         self.table_view.setStyleSheet("""
             QTableView {
                 font-size: 14px;
+                background-color: #13141F;
             }
             QTableView::section {
                 font-size: 14px;
