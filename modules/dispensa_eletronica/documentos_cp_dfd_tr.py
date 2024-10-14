@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from diretorios import *
-import fitz
+# import fitz
 from docxtpl import DocxTemplate
 import pandas as pd
 import win32com.client
@@ -17,7 +17,7 @@ import re
 from num2words import num2words
 from datetime import datetime
 import subprocess
-from fpdf import FPDF
+# from fpdf import FPDF
 from modules.dispensa_eletronica.merge_pdf.merge_anexos import MergePDFDialog
 
 
@@ -575,30 +575,30 @@ class PDFAddDialog(QDialog):
             print(f"Tentando abrir o arquivo PDF mais recente: {file_path}")
             self.load_pdf(file_path)
 
-    def load_pdf(self, file_path):
-        try:
-            self.document = fitz.open(file_path) 
-            self.current_page = 0  # Define a primeira página como a atual
-            self.show_page(self.current_page)  # Mostra a primeira página
-        except Exception as e:
-            print(f"Erro ao abrir o arquivo PDF: {e}")
+    # def load_pdf(self, file_path):
+    #     try:
+    #         self.document = fitz.open(file_path) 
+    #         self.current_page = 0  # Define a primeira página como a atual
+    #         self.show_page(self.current_page)  # Mostra a primeira página
+    #     except Exception as e:
+    #         print(f"Erro ao abrir o arquivo PDF: {e}")
 
-    def show_page(self, page_number):
-        if self.document:
-            page = self.document.load_page(page_number)
-            mat = fitz.Matrix(5, 5)  # Ajuste para a escala desejada, mantém alta qualidade
-            pix = page.get_pixmap(matrix=mat)
-            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-            pixmap = QPixmap.fromImage(img)
-            self.scene.clear()
-            self.scene.addPixmap(pixmap)
-            # Aplica o fator de escala inicial de 50%
-            self.pdf_view.resetTransform()
-            self.pdf_view.scale(0.5, 0.5)
-            # Atualiza o contador de páginas
-            self.page_label.setText(f"{page_number + 1} de {self.document.page_count}")
+    # def show_page(self, page_number):
+    #     if self.document:
+    #         page = self.document.load_page(page_number)
+    #         mat = fitz.Matrix(5, 5)  # Ajuste para a escala desejada, mantém alta qualidade
+    #         pix = page.get_pixmap(matrix=mat)
+    #         img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+    #         pixmap = QPixmap.fromImage(img)
+    #         self.scene.clear()
+    #         self.scene.addPixmap(pixmap)
+    #         # Aplica o fator de escala inicial de 50%
+    #         self.pdf_view.resetTransform()
+    #         self.pdf_view.scale(0.5, 0.5)
+    #         # Atualiza o contador de páginas
+    #         self.page_label.setText(f"{page_number + 1} de {self.document.page_count}")
 
-    def next_page(self):
+    # def next_page(self):
         if self.document and self.current_page < self.document.page_count - 1:
             self.current_page += 1
             self.show_page(self.current_page)
@@ -923,43 +923,42 @@ class ConsolidarDocumentos:
         else:
             print(f"Arquivo não encontrado: {path}")
 
-    def abrir_indice(self):
-        # Cria o PDF dos índices
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+    # def abrir_indice(self):
+    #     # Cria o PDF dos índices
+    #     pdf = FPDF()
+    #     pdf.add_page()
+    #     pdf.set_font("Arial", size=12)
 
-        # Adicionar título
-        pdf.cell(200, 10, txt="Índices Utilizados nos Templates", ln=True, align='C')
+    #     # Adicionar título
+    #     pdf.cell(200, 10, txt="Índices Utilizados nos Templates", ln=True, align='C')
 
-        # Adicionar exemplos de cada índice com cores personalizadas
-        for key, example in self.data.items():
-            # Definir cor para o 'key' (azul marinho)
-            pdf.set_text_color(0, 0, 128)  # Azul marinho (RGB: 0, 0, 128)
-            pdf.write(10, f"{{{{{key}}}}}: ")
+    #     # Adicionar exemplos de cada índice com cores personalizadas
+    #     for key, example in self.data.items():
+    #         # Definir cor para o 'key' (azul marinho)
+    #         pdf.set_text_color(0, 0, 128)  # Azul marinho (RGB: 0, 0, 128)
+    #         pdf.write(10, f"{{{{{key}}}}}: ")
 
-            # Definir cor para o 'example' (vermelho escuro)
-            pdf.set_text_color(139, 0, 0)  # Vermelho escuro (RGB: 139, 0, 0)
-            pdf.write(10, f"Exemplo: {example}\n")  # Adiciona texto com nova linha
+    #         # Definir cor para o 'example' (vermelho escuro)
+    #         pdf.set_text_color(139, 0, 0)  # Vermelho escuro (RGB: 139, 0, 0)
+    #         pdf.write(10, f"Exemplo: {example}\n")  # Adiciona texto com nova linha
 
-        # Salva o PDF
-        pdf_path = self.pasta_base / "indice_templates.pdf"
-        pdf.output(str(pdf_path))
+    #     # Salva o PDF
+    #     pdf_path = self.pasta_base / "indice_templates.pdf"
+    #     pdf.output(str(pdf_path))
 
-        print(f"Arquivo PDF de índices criado: {pdf_path}")
+    #     print(f"Arquivo PDF de índices criado: {pdf_path}")
 
-        # Abrir o PDF criado
-        if pdf_path.exists() and pdf_path.is_file():
-            try:
-                subprocess.run(f'start "" "{str(pdf_path)}"', shell=True)  # Windows
-                # Para Linux ou macOS, use os comandos adequados
-                # subprocess.run(['xdg-open', str(pdf_path)])  # Linux
-                # subprocess.run(['open', str(pdf_path)])  # macOS
-            except Exception as e:
-                print(f"Erro ao abrir o PDF de índices: {e}")
-        else:
-            print(f"Arquivo PDF de índices não encontrado: {pdf_path}")
-
+    #     # Abrir o PDF criado
+    #     if pdf_path.exists() and pdf_path.is_file():
+    #         try:
+    #             subprocess.run(f'start "" "{str(pdf_path)}"', shell=True)  # Windows
+    #             # Para Linux ou macOS, use os comandos adequados
+    #             # subprocess.run(['xdg-open', str(pdf_path)])  # Linux
+    #             # subprocess.run(['open', str(pdf_path)])  # macOS
+    #         except Exception as e:
+    #             print(f"Erro ao abrir o PDF de índices: {e}")
+        # else:
+        #     print(f"Arquivo PDF de índices não encontrado: {pdf_path}")
 
 
     def alterar_diretorio_base(self):

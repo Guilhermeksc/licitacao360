@@ -19,26 +19,8 @@ class PCAWidget(QWidget):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setStyleSheet("font-size: 30px; font-weight: bold;")
 
-        # Descrição do módulo
-        self.description_label = QLabel(
-            "Este módulo permite o planejamento anual de contratações, garantindo a organização e execução" 
-            "eficiente das licitações. O objetivo é auxiliar na preparação e gerenciamento das contratações" 
-            "públicas, visando atender aos requisitos da administração de forma planejada."
-        )
-        self.description_label.setAlignment(Qt.AlignmentFlag.AlignJustify)
-        self.description_label.setWordWrap(True)
-        self.description_label.setStyleSheet("font-size: 16px; padding: 10px;")
-
         # Adiciona os widgets ao layout
         self.layout.addWidget(self.title_label)
-        self.layout.addWidget(self.description_label)
-
-        # Carregar ícones
-        self.image_cache = self.load_initial_data()
-
-        # Exemplo de submodulo
-        self.add_submodule("Planejamento Estratégico", "Ferramenta para definir estratégias de contratação.", "planning.png")
-        self.add_submodule("Monitoramento de Contratações", "Acompanhe as contratações planejadas ao longo do ano.", "monitoring.png")
 
         self.layout.addStretch(1)
 

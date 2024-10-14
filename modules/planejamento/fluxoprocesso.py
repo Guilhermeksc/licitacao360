@@ -11,7 +11,7 @@ from datetime import datetime
 import re
 from functools import partial
 from database.utils.treeview_utils import load_images, create_button_2
-from database.utils.treeview_utils import load_images, create_button, save_dataframe_to_excel
+from database.utils.treeview_utils import load_images, save_dataframe_to_excel
 from modules.planejamento_novo.utilidades import DatabaseManager, carregar_dados_processos
 import pandas as pd
 import os
@@ -19,7 +19,7 @@ import sys
 import subprocess
 from win32com.client import Dispatch, DispatchEx
 import traceback
-import fitz
+# import fitz
 class FluxoProcessoDialog(QDialog):
     updateRequired = pyqtSignal()  # Sinal para notificar a ApplicationUI
 
@@ -33,7 +33,7 @@ class FluxoProcessoDialog(QDialog):
         self.icons_dir = Path(icons_dir)
         self.image_cache = load_images(self.icons_dir, ["excel.png", "pdf64.png"])
         self.setWindowTitle("Painel de Fluxo dos Processos")
-        self.setStyleSheet("QDialog { background-color: #13141F; }")
+        self.setStyleSheet("QDialog { background-color: #071661; }")
         self._setup_ui()
         # self.showMaximized()
         # self.showFullScreen()
@@ -89,7 +89,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_header_layout(self):
         header_layout = QHBoxLayout()
         titleLabel = QLabel("Controle do Fluxo dos Processos")
-        titleLabel.setStyleSheet("background-color: #13141F; color: white; font-size: 32px; font-weight: bold;")
+        titleLabel.setStyleSheet("background-color: #071661; color: white; font-size: 32px; font-weight: bold;")
 
         header_layout.addWidget(titleLabel)
         header_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
@@ -98,7 +98,7 @@ class FluxoProcessoDialog(QDialog):
         pixmap = QPixmap(str(MARINHA_PATH))
         pixmap = pixmap.scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel()
-        image_label.setStyleSheet("background-color: #13141F;")
+        image_label.setStyleSheet("background-color: #071661;")
         image_label.setPixmap(pixmap)
         header_layout.addWidget(image_label)
         
@@ -148,7 +148,7 @@ class FluxoProcessoDialog(QDialog):
     def _create_group_box(self, etapa):
         group_box = QGroupBox(etapa)
         group_box.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        group_box.setStyleSheet("QGroupBox {background-color: #919497; color: #8AB4F7; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px}")
+        group_box.setStyleSheet("QGroupBox {background-color: white; color: #8AB4F7; border-radius: 10px; } QGroupBox::title { font-weight: bold; font-size: 14px}")
         layout = QVBoxLayout(group_box)
         layout.setContentsMargins(1, 25, 1, 4)
         list_widget = CustomListWidget(parent=self, database_path=self.database_path)
@@ -186,18 +186,18 @@ class CustomListWidget(QListWidget):
         self.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.setStyleSheet("""
             QListWidget {
-                background-color: #91948A;
+                background-color: white;
                 color: black;  
                 border: 2px solid transparent;
                 border-radius: 4px;
                            
             }
             QListWidget::item {
-                background-color: #91948A;
+                background-color: white;
                 color: black;  
             }
             QListWidget::item:selected {
-                background-color: #91948A;
+                background-color: white;
                 color: black;
             }
         """)
@@ -259,7 +259,7 @@ class CustomListWidget(QListWidget):
         item.setSizeHint(QSize(0, 45))  # Ajuste a altura conforme necessário
         label = QLabel(formattedText)
         label.setStyleSheet("""
-            background-color: #91948A;
+            background-color: white;
             color: black;
         """)
         # label.setStyleSheet("background-color: #F8F9FA;")
@@ -489,6 +489,7 @@ class AlterarDatasDialog(QDialog):
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 3px 0 3px;
+                top: 1px;
             }
         """)
         if self.layout() is not None:
@@ -864,14 +865,14 @@ class ReportDialog(QDialog):
         # Especificações dos botões
         button_specs = [
             ("Tabela Excel", self.image_cache['excel'], self.on_export_excel, "Exportar dados para Excel"),
-            ("Relatório PDF", self.image_cache['pdf64'], self.on_export_pdf, "Exportar dados para PDF")
+            # ("Relatório PDF", self.image_cache['pdf64'], self.on_export_pdf, "Exportar dados para PDF")
         ]
 
         # Iterar sobre as especificações dos botões e criar cada botão
         for text, icon, callback, tooltip in button_specs:
-            btn = create_button(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self)
-            buttons_layout.addWidget(btn)  # Adiciona o botão ao layout de botões
-        
+            btn = create_button_2(text=text, icon=icon, callback=callback, tooltip_text=tooltip, parent=self)
+            buttons_layout.addWidget(btn)  # Adiciona o botão ao layout de botões            
+
     def create_excel(self, filename="relatorio.xlsx"):
 
         # Cria um DataFrame dos dados
@@ -1052,69 +1053,69 @@ class ReportDialog(QDialog):
         filename = self.create_excel()  # Cria o arquivo Excel
         self.open_excel_file(filename)  # Abre o arquivo Excel criado
 
-    def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
-        print("Iniciando a adição de imagens ao PDF...")
-        pdf_path = str(pdf_path)
-        left_image_path = str(left_image_path)
-        right_image_path = str(right_image_path)
-        watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
+    # def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
+    #     print("Iniciando a adição de imagens ao PDF...")
+    #     pdf_path = str(pdf_path)
+    #     left_image_path = str(left_image_path)
+    #     right_image_path = str(right_image_path)
+    #     watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
 
-        doc = fitz.open(pdf_path)
-        numero_total_paginas = len(doc)  # Obter o número total de páginas
-        print(f"PDF aberto. Total de páginas: {numero_total_paginas}")  
+    #     doc = fitz.open(pdf_path)
+    #     numero_total_paginas = len(doc)  # Obter o número total de páginas
+    #     print(f"PDF aberto. Total de páginas: {numero_total_paginas}")  
 
-        for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
-            page_width = pagina.rect.width
-            page_height = pagina.rect.height
-            texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
+    #     for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
+    #         page_width = pagina.rect.width
+    #         page_height = pagina.rect.height
+    #         texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
 
-            # Configurar o texto para o contador de páginas
-            text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
-            pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
+    #         # Configurar o texto para o contador de páginas
+    #         text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
+    #         pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
             
-            # Inserir marca d'água centralizada em todas as páginas
-            wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
-            pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
-            scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
-            scaled_width = pix.width * scale
-            scaled_height = pix.height * scale
-            center_x = (page_width - scaled_width) / 2
-            center_y = (page_height - scaled_height) / 2
-            watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
+    #         # Inserir marca d'água centralizada em todas as páginas
+    #         wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
+    #         pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
+    #         scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
+    #         scaled_width = pix.width * scale
+    #         scaled_height = pix.height * scale
+    #         center_x = (page_width - scaled_width) / 2
+    #         center_y = (page_height - scaled_height) / 2
+    #         watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
             
-            pagina.insert_image(watermark_rect, filename=watermark_image_path)
+    #         pagina.insert_image(watermark_rect, filename=watermark_image_path)
             
-            # Inserir imagens esquerda e direita apenas na primeira página
-            if pagina_number == 0:
-                # Calcular o tamanho da imagem em pontos
-                image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
+    #         # Inserir imagens esquerda e direita apenas na primeira página
+    #         if pagina_number == 0:
+    #             # Calcular o tamanho da imagem em pontos
+    #             image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
                 
-                # Calcular o deslocamento das imagens a partir das bordas em pontos
-                offset_left_x_pt = 2 * 72 / 2.54
-                offset_right_x_pt = page_width - (2.9 * 72 / 2.54) - image_size_pt[0]
-                offset_y_pt = 0.9 * 72 / 2.54  # 1 cm do topo
+    #             # Calcular o deslocamento das imagens a partir das bordas em pontos
+    #             offset_left_x_pt = 2 * 72 / 2.54
+    #             offset_right_x_pt = page_width - (2.9 * 72 / 2.54) - image_size_pt[0]
+    #             offset_y_pt = 0.9 * 72 / 2.54  # 1 cm do topo
                 
-                # Definir os retângulos onde as imagens serão inseridas
-                left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
-                right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+    #             # Definir os retângulos onde as imagens serão inseridas
+    #             left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+    #             right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
                 
-                # Inserir as imagens na primeira página
-                pagina.insert_image(left_rect, filename=left_image_path)
-                pagina.insert_image(right_rect, filename=right_image_path)
+    #             # Inserir as imagens na primeira página
+    #             pagina.insert_image(left_rect, filename=left_image_path)
+    #             pagina.insert_image(right_rect, filename=right_image_path)
             
-        # Salvar o documento modificado
-        novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
-        doc.save(novo_pdf_path)
-        doc.close()
+    #     # Salvar o documento modificado
+    #     novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
+    #     doc.save(novo_pdf_path)
+    #     doc.close()
 
-        # Informar ao usuário sobre o salvamento do novo arquivo
-        print(f"PDF modificado salvo como: {novo_pdf_path}")
+    #     # Informar ao usuário sobre o salvamento do novo arquivo
+    #     print(f"PDF modificado salvo como: {novo_pdf_path}")
 
-        # Abrir o PDF automaticamente (Windows)
-        try:
-            os.startfile(novo_pdf_path)
-        except Exception as e:
-            print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
+    #     # Abrir o PDF automaticamente (Windows)
+    #     try:
+    #         os.startfile(novo_pdf_path)
+    #     except Exception as e:
+    #         print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
 
     def on_export_pdf(self):
         xlsx_path = self.create_excel()
@@ -1193,3 +1194,33 @@ class ExportPdfThread(QThread):
             self.finished.emit('', str(e))
             if 'excel' in locals():
                 excel.Quit()
+
+def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(40, 40)):  # Aumente o tamanho padrão do ícone
+    btn = QPushButton(text, parent)
+    if icon:
+        btn.setIcon(QIcon(icon))
+        btn.setIconSize(icon_size)  # Define o tamanho do ícone
+    if callback:
+        btn.clicked.connect(callback)
+    if tooltip_text:
+        btn.setToolTip(tooltip_text)
+
+    # Aplica folhas de estilo para personalizar a aparência do botão, incluindo efeito de hover
+    btn.setStyleSheet("""
+    QPushButton {
+        background-color: #071661;
+        font-size: 14pt;
+        min-height: 30px;
+        padding: 5px;
+    }
+    QPushButton:hover {
+        background-color: white;
+        color: #050f41;
+        border: 2px solid #050f41;
+    }
+    QPushButton:pressed {
+        background-color: #1c3664;
+    }
+    """)
+    
+    return btn

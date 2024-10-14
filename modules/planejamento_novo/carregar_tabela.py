@@ -53,6 +53,7 @@ class CarregarTabelaDialog(QDialog):
         for index, row in df.iterrows():
             # Prepara o item_data com os valores necessários
             item_data = {
+                'etapa': row['etapa'],
                 'tipo': row['tipo'],
                 'numero': f"{int(row['numero']):02}",
                 'ano': row['ano'],
@@ -60,7 +61,7 @@ class CarregarTabelaDialog(QDialog):
                 'objeto_completo': row.get('objeto_completo', None),
                 'sigla_om': row.get('sigla_om', None),
                 'material_servico': row.get('material_servico', None),
-                'id_processo': f"{row['tipo']} {int(row['numero']):02}/{row['ano']}",
+                'id_processo': row['id_processo'],
                 'nup': row.get('nup', None),
                 'orgao_responsavel': row.get('orgao_responsavel', None),
                 'uasg': row['uasg'],

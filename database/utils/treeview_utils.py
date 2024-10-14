@@ -32,7 +32,8 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(40
     # Aplica folhas de estilo para personalizar a aparência do botão, incluindo efeito de hover
     btn.setStyleSheet("""
     QPushButton {
-        font-size: 14pt;
+        background-color: #071661;
+                      font-size: 14pt;
         min-height: 30px;
         padding: 5px;
     }
@@ -62,6 +63,7 @@ def create_button_2(text, icon, callback, tooltip_text, parent, icon_size=QSize(
     # Aplica folhas de estilo para personalizar a aparência do botão, incluindo efeito de hover
     btn.setStyleSheet("""
     QPushButton {
+        background-color: #071661
         font-size: 14pt;
         min-height: 30px;
         padding: 5px;

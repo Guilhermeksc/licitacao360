@@ -17,7 +17,7 @@ from config.menu_superior.config.config_responsaveis import AgentesResponsaveisD
 from config.menu_superior.config.config_om import OrganizacoesDialog
 from config.menu_superior.config.config_template import TemplatesDialog
 from pathlib import Path
-
+import time
 class InicioWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -71,7 +71,7 @@ class InicioWidget(QWidget):
 
         # Adiciona uma imagem à direita com smooth scaling
         self.image_tucano_label = QLabel()
-        self.image_tucano = QPixmap(str(IMAGE_PATH / "acantucano.png"))
+        self.image_tucano = QPixmap(str(IMAGE_PATH / "marinha_logo.png"))
         
         # Redimensiona a imagem mantendo a qualidade com smooth scaling
         self.image_tucano_label.setPixmap(self.image_tucano.scaled(430, 430, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
@@ -460,15 +460,27 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
 
-    # Apply dark theme.
+    # Aplicar o tema escuro
     app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
 
-    try:
-        window = MainWindow(app)
-        window.show()
-        sys.exit(app.exec())
-    except Exception as e:
-        raise e
+    # Criar a splash screen
+    splash_pix = QPixmap(str(IMAGE_PATH / "carregamento.png"))  # Substitua por sua imagem
+    splash = QSplashScreen(splash_pix, Qt.WindowType.WindowStaysOnTopHint)
+    splash.show()
+
+    # # Simular um tempo de carregamento (pode ser removido ou ajustado)
+    # time.sleep(2)  # Simula o tempo de carregamento
+
+    # Inicializar a janela principal
+    window = MainWindow(app)
+    
+    # Fechar a splash screen e mostrar a janela principal
+    splash.finish(window)
+
+    # Mostrar a janela principal
+    window.show()
+    
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()

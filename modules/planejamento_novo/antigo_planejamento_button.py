@@ -282,15 +282,15 @@ class PlanejamentoWidget(QMainWindow):
                 cursor.execute(
                     '''
                     INSERT INTO controle_processos (
-                        tipo, numero, ano, objeto, sigla_om, material_servico, 
+                        etapa, tipo, numero, ano, objeto, sigla_om, material_servico, 
                         id_processo, nup, orgao_responsavel, uasg, etapa, pregoeiro, 
                         objeto_completo, setor_responsavel, srp, msg_irp, 
                         data_limite_manifestacao_irp, data_limite_confirmacao_irp, 
                         num_irp, valor_total, comentarios, data_sessao
                         ) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
-                        data['tipo'], data['numero'], data['ano'], data['objeto'], data['sigla_om'], 
+                        data['etapa'], data['tipo'], data['numero'], data['ano'], data['objeto'], data['sigla_om'], 
                         data['material_servico'], data['id_processo'], data['nup'], data['orgao_responsavel'], 
                         data['uasg'], data['etapa'], data['pregoeiro'], data['objeto_completo'], 
                         data['setor_responsavel'], data['srp'], data['msg_irp'], data['data_limite_manifestacao_irp'], 

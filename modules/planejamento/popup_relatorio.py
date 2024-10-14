@@ -15,7 +15,7 @@ import os
 import sys
 import datetime
 from datetime import datetime
-import fitz
+# import fitz
 import sqlite3
 
 def status_sort_key(status):
@@ -325,67 +325,67 @@ class ReportDialog(QDialog):
                 doc.Close(False)
             excel.Quit()
 
-    def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
-        pdf_path = str(pdf_path)
-        left_image_path = str(left_image_path)
-        right_image_path = str(right_image_path)
-        watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
+    # def adicionar_imagem_ao_pdf(self, pdf_path, left_image_path, right_image_path, watermark_image_path, image_size_cm=(2, 2)):
+    #     pdf_path = str(pdf_path)
+    #     left_image_path = str(left_image_path)
+    #     right_image_path = str(right_image_path)
+    #     watermark_image_path = str(watermark_image_path)  # Caminho para a imagem da marca d'água
 
-        doc = fitz.open(pdf_path)
-        numero_total_paginas = len(doc)  # Obter o número total de páginas
+    #     doc = fitz.open(pdf_path)
+    #     numero_total_paginas = len(doc)  # Obter o número total de páginas
      
-        for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
-            page_width = pagina.rect.width
-            page_height = pagina.rect.height
-            texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
+    #     for pagina_number, pagina in enumerate(doc):  # Iterar por todas as páginas
+    #         page_width = pagina.rect.width
+    #         page_height = pagina.rect.height
+    #         texto_contador_paginas = f"- {pagina_number + 1} de {numero_total_paginas} -"  # Formatar o texto do contador
 
-            # Configurar o texto para o contador de páginas
-            text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
-            pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
+    #         # Configurar o texto para o contador de páginas
+    #         text_rect = fitz.Rect(0, page_height - 40, page_width, page_height)  # Definir a posição do texto na parte inferior da página
+    #         pagina.insert_textbox(text_rect, texto_contador_paginas, fontsize=11, align=1)  # Inserir o texto do contador
             
-            # Inserir marca d'água centralizada em todas as páginas
-            wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
-            pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
-            scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
-            scaled_width = pix.width * scale
-            scaled_height = pix.height * scale
-            center_x = (page_width - scaled_width) / 2
-            center_y = (page_height - scaled_height) / 2
-            watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
+    #         # Inserir marca d'água centralizada em todas as páginas
+    #         wm = fitz.open(watermark_image_path)  # Abrir imagem da marca d'água
+    #         pix = wm[0].get_pixmap()  # Obter pixmap do primeiro documento da imagem
+    #         scale = min(page_width / pix.width, page_height / pix.height) / 1.5  # Escala para reduzir o tamanho da marca d'água
+    #         scaled_width = pix.width * scale
+    #         scaled_height = pix.height * scale
+    #         center_x = (page_width - scaled_width) / 2
+    #         center_y = (page_height - scaled_height) / 2
+    #         watermark_rect = fitz.Rect(center_x, center_y, center_x + scaled_width, center_y + scaled_height)
             
-            pagina.insert_image(watermark_rect, filename=watermark_image_path)
+    #         pagina.insert_image(watermark_rect, filename=watermark_image_path)
             
-            # Inserir imagens esquerda e direita apenas na primeira página
-            if pagina_number == 0:
-                # Calcular o tamanho da imagem em pontos
-                image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
+    #         # Inserir imagens esquerda e direita apenas na primeira página
+    #         if pagina_number == 0:
+    #             # Calcular o tamanho da imagem em pontos
+    #             image_size_pt = (image_size_cm[0] * 70 / 2.54, image_size_cm[1] * 70 / 2.54)
                 
-                # Calcular o deslocamento das imagens a partir das bordas em pontos
-                offset_left_x_pt = 5 * 72 / 2.54
-                offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
-                offset_y_pt = 1.3 * 72 / 2.54  # 1 cm do topo
+    #             # Calcular o deslocamento das imagens a partir das bordas em pontos
+    #             offset_left_x_pt = 5 * 72 / 2.54
+    #             offset_right_x_pt = page_width - (4 * 72 / 2.54) - image_size_pt[0]
+    #             offset_y_pt = 1.3 * 72 / 2.54  # 1 cm do topo
                 
-                # Definir os retângulos onde as imagens serão inseridas
-                left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
-                right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+    #             # Definir os retângulos onde as imagens serão inseridas
+    #             left_rect = fitz.Rect(offset_left_x_pt, offset_y_pt, offset_left_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
+    #             right_rect = fitz.Rect(offset_right_x_pt, offset_y_pt, offset_right_x_pt + image_size_pt[0], offset_y_pt + image_size_pt[1])
                 
-                # Inserir as imagens na primeira página
-                pagina.insert_image(left_rect, filename=left_image_path)
-                pagina.insert_image(right_rect, filename=right_image_path)
+    #             # Inserir as imagens na primeira página
+    #             pagina.insert_image(left_rect, filename=left_image_path)
+    #             pagina.insert_image(right_rect, filename=right_image_path)
             
-        # Salvar o documento modificado
-        novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
-        doc.save(novo_pdf_path)
-        doc.close()
+    #     # Salvar o documento modificado
+    #     novo_pdf_path = pdf_path.replace('.pdf', '_com_modificacoes.pdf')
+    #     doc.save(novo_pdf_path)
+    #     doc.close()
 
-        # Informar ao usuário sobre o salvamento do novo arquivo
-        print(f"PDF modificado salvo como: {novo_pdf_path}")
+    #     # Informar ao usuário sobre o salvamento do novo arquivo
+    #     print(f"PDF modificado salvo como: {novo_pdf_path}")
 
-        # Abrir o PDF automaticamente (Windows)
-        try:
-            os.startfile(novo_pdf_path)
-        except Exception as e:
-            print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
+    #     # Abrir o PDF automaticamente (Windows)
+    #     try:
+    #         os.startfile(novo_pdf_path)
+    #     except Exception as e:
+    #         print(f"Não foi possível abrir o arquivo PDF automaticamente. Erro: {e}")
 
     def on_export_pdf(self):
         """
