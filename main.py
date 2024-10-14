@@ -5,6 +5,8 @@ from PyQt6.QtCore import *
 import qdarktheme
 from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
+from modules.pca.pca import PCAWidget
+from modules.pncp.pncp import PNCPWidget
 from modules.atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.antigo_planejamento_button import PlanejamentoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
@@ -46,10 +48,16 @@ class InicioWidget(QWidget):
         self.layout.addWidget(self.title_label)
         self.layout.addWidget(self.synopsis_label)
 
+        # Agora cria um QHBoxLayout para os módulos e a imagem
+        modules_and_image_layout = QHBoxLayout()
+
+        # Layout à esquerda para os módulos
+        self.modules_layout = QVBoxLayout()
+
         # Carregar ícones
         self.image_cache = self.load_initial_data()
 
-        # Adiciona os módulos ao layout com seus respectivos ícones e descrições
+        # Adiciona os módulos
         self.add_module("Atas", "Automação para criação de Atas de Registro de Preços.", "report.png")
         self.add_module("Contratos", "Gerenciamento de contratos administrativos.", "signature.png")
         self.add_module("Planejamento", "Ferramentas de planejamento para licitações.", "planning.png")
@@ -57,6 +65,26 @@ class InicioWidget(QWidget):
         self.add_module("RPA", "Automação de processos repetitivos via RPA.", "automation.png")
         self.add_module("Funcionalidades PDF", "Manipulação avançada de documentos PDF.", "pdf.png")
         self.add_module("API PNCP e ComprasnetContratos", "Consulta de dados do PNCP e ComprasnetContratos via API.", "api.png")
+
+        # Adiciona o layout dos módulos à esquerda no layout horizontal
+        modules_and_image_layout.addLayout(self.modules_layout)
+
+        # Adiciona uma imagem à direita com smooth scaling
+        self.image_tucano_label = QLabel()
+        self.image_tucano = QPixmap(str(IMAGE_PATH / "acantucano.png"))
+        
+        # Redimensiona a imagem mantendo a qualidade com smooth scaling
+        self.image_tucano_label.setPixmap(self.image_tucano.scaled(430, 430, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.image_tucano_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # Adiciona a imagem ao layout horizontal
+        modules_and_image_layout.addWidget(self.image_tucano_label)
+
+        # Adiciona o layout horizontal de módulos e imagem ao layout principal vertical
+        self.layout.addLayout(modules_and_image_layout)
+
+        # Adiciona um espaço flexível para empurrar o contato para o final
+        self.layout.addStretch()
 
         # Contato
         self.contact_label = QLabel(
@@ -66,44 +94,44 @@ class InicioWidget(QWidget):
         self.contact_label.setOpenExternalLinks(True)
         self.contact_label.setStyleSheet("font-size: 16px; padding: 10px;")
 
-        self.layout.addStretch(1)
+        # Adiciona o contato ao final
         self.layout.addWidget(self.contact_label)
 
     def add_module(self, title, description, icon_name):
         """Adiciona um módulo com ícone, título e descrição alinhados corretamente."""
         icon = self.image_cache.get(icon_name.split('.')[0], QIcon())
         module_layout = QHBoxLayout()
-        
+
         # Define espaçamento 0,0,0,0
         module_layout.setContentsMargins(0, 0, 0, 0)
         module_layout.setSpacing(0)
-        
+
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(40, 40))
-        
+
         title_layout = QVBoxLayout()
         title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(0)
-        
+
         title_label = QLabel(title)
         title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
         title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title_layout.addWidget(title_label)
-        
+
         description_label = QLabel(description)
         description_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignJustify)
         description_label.setWordWrap(True)
         description_label.setFixedWidth(800)
         description_label.setStyleSheet("font-size: 16px; padding-left: 5px;")
         title_layout.addWidget(description_label)
-        
+
         module_layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignRight)
         module_layout.addLayout(title_layout)
-        
+
         module_widget = QWidget()
         module_widget.setLayout(module_layout)
-        
-        self.layout.addWidget(module_widget)
+
+        self.modules_layout.addWidget(module_widget)
         
     def load_initial_data(self):
         image_file_names = [
@@ -130,6 +158,8 @@ class MainWindow(QMainWindow):
         self.app = app 
         self.is_menu_visible = True
         self.buttons = {}
+        self.icon_config = QPixmap(str(ICONS_DIR / "setting_1.png"))
+        self.icon_config_2 = QPixmap(str(ICONS_DIR / "setting_2.png"))        
         self.setup_ui()
         self.open_initial_page()
 
@@ -168,10 +198,9 @@ class MainWindow(QMainWindow):
             "Atas",
             "Contratos",
             "Dispensa",
-            # "Matriz",
-            "Config",
+            "PNCP",
         ]
-        
+
         for button_name in menu_buttons:
             button = self.create_menu_button(button_name)
             if button_name == "Início":
@@ -182,38 +211,36 @@ class MainWindow(QMainWindow):
             self.buttons[button_name] = button
             menu_layout.addWidget(button)
 
-        # Adiciona um espaçamento após o último botão
-        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        menu_layout.addItem(spacer)
+        # Adicionar um espaço expansivo após os botões para empurrar o botão de configuração para baixo
+        spacer_above_config = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        menu_layout.addItem(spacer_above_config)
 
-        # Cria um layout horizontal para os ícones, sem espaçamento
-        icons_layout = QHBoxLayout()
-        icons_layout.setSpacing(5)  # Pequeno espaçamento entre os ícones
-        icons_layout.setContentsMargins(0, 0, 0, 0)
-        icons_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Cria um layout horizontal para o botão de configurações
+        config_layout = QHBoxLayout()
+        config_layout.setSpacing(0)
+        config_layout.setContentsMargins(0, 0, 0, 0)
+        config_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Adiciona o ícone do Brasil
-        icon_brasil_label = QLabel()
-        icon_pixmap = QPixmap(str(ICONS_DIR / "brasil.png"))
-        icon_brasil_label.setPixmap(icon_pixmap.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        
-        # Adiciona o ícone da Marinha
-        icon_marinha_label = QLabel()
-        icon_marinha = QPixmap(str(ICONS_DIR / "icone.ico"))
-        icon_marinha_label.setPixmap(icon_marinha.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        # Adiciona o botão de configurações
+        config_button = QPushButton()
+        config_button.setIcon(QIcon(self.icon_config))
+        config_button.setIconSize(QSize(40, 40))
+        config_button.setStyleSheet("border: none;")
+        config_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        config_button.setFixedSize(40, 40)
 
-        # Adiciona os ícones ao layout horizontal
-        icons_layout.addWidget(icon_brasil_label)
-        icons_layout.addWidget(icon_marinha_label)
+        # Alterações nos ícones ao passar o mouse e clicar
+        config_button.installEventFilter(self)
 
-        # Adiciona o layout de ícones ao layout principal
-        menu_layout.addLayout(icons_layout)
+        # Adiciona o botão de configurações ao layout do botão
+        config_layout.addWidget(config_button)
 
-        # Adiciona o texto "Licitação 360"
-        label = QLabel("Licitação 360")
-        label.setStyleSheet("color: white; font-size: 16px;")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        menu_layout.addWidget(label)
+        # Adiciona o layout do botão de configurações ao layout principal
+        menu_layout.addLayout(config_layout)
+
+        # Adicionar um espaço pequeno abaixo do botão de configuração para deixá-lo afastado da borda inferior
+        spacer_below_config = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        menu_layout.addItem(spacer_below_config)
 
         self.menu_widget = QWidget()
         self.menu_widget.setLayout(menu_layout)
@@ -223,10 +250,79 @@ class MainWindow(QMainWindow):
         self.menu_widget.setStyleSheet("background-color: #13141F;")
 
         self.central_layout.addWidget(self.menu_widget)
+
+        # Conecta o clique do botão de configuração ao menu personalizado
+        config_button.clicked.connect(lambda: self.show_settings_menu(config_button))
+        
+    def create_settings_menu(self):
+        # Cria o menu suspenso para o botão de configurações
+        menu = QMenu()
+        
+        btn_database = QAction("Configurar Banco de Dados", self)
+        btn_database.triggered.connect(self.show_configurar_database_dialog)
+        menu.addAction(btn_database)
+        
+        btn_agentes = QAction("Agentes Responsáveis", self)
+        btn_agentes.triggered.connect(self.show_agentes_responsaveis_dialog)
+        menu.addAction(btn_agentes)
+        
+        btn_templates = QAction("Templates", self)
+        btn_templates.triggered.connect(self.show_templates_dialog)
+        menu.addAction(btn_templates)
+        
+        btn_organizacoes = QAction("Organizações", self)
+        btn_organizacoes.triggered.connect(self.show_organizacoes_dialog)
+        menu.addAction(btn_organizacoes)
+        
+        return menu
+
+    def show_settings_menu(self, button):
+        menu = self.create_settings_menu()
+
+        # Aplicar estilo personalizado ao menu
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #181928;  
+            }
+            QMenu::item {
+                background-color: transparent; 
+                padding: 8px 20px;  
+                color: white; 
+                border-radius: 5px;  
+            }
+            QMenu::item:selected {
+                background-color: #5A5B6A; 
+            }
+        """)
+
+        # Definir a posição e exibir o menu
+        pos = button.mapToGlobal(QPoint(button.width(), 0))
+        menu.exec(pos - QPoint(0, menu.sizeHint().height() - button.height()))
+
+    def eventFilter(self, source, event):
+        if isinstance(source, QPushButton):
+            if event.type() == QEvent.Type.Enter:
+                if source == self.buttons.get("config_button", None):
+                    # Define a posição do tooltip centralizado ao lado direito do botão
+                    tooltip_pos = source.mapToGlobal(QPoint(source.width() + 10, source.height() // 2))
+                    tooltip_pos.setY(tooltip_pos.y() - 10)  # Ajusta o tooltip para ficar centralizado verticalmente
+                    QToolTip.setFont(QFont("Arial", 10))  # Ajusta a fonte do tooltip
+                    QToolTip.showText(tooltip_pos, "Configurações", source)
+
+                source.setIcon(QIcon(self.icon_config_2))
+            elif event.type() == QEvent.Type.Leave:
+                if source == self.buttons.get("config_button", None):
+                    QToolTip.hideText()
+
+                source.setIcon(QIcon(self.icon_config))
+            elif event.type() == QEvent.Type.MouseButtonPress:
+                source.setIcon(QIcon(self.icon_config))
+        return super().eventFilter(source, event)
         
     def create_menu_button(self, name):
         button = QPushButton(f" {name}")
         button.setStyleSheet(get_menu_button_style())
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
         return button
 
     def setup_content_area(self):
@@ -259,46 +355,16 @@ class MainWindow(QMainWindow):
     def change_content(self, content_name):
         content_actions = {
             "Licitação": self.setup_planejamento,
+            "PCA": self.setup_pca,
             "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa": self.setup_dispensa_eletronica,
             "Matriz": self.setup_matriz_riscos,
-            "Config": self.dialog_config,
+            "PNCP": self.setup_pncp,
         }
         action = content_actions.get(content_name)
         if action:
             action()
-
-    def dialog_config(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Configurações")
-
-        layout = QVBoxLayout(dialog)
-
-        # Criação dos botões
-        btn_database = QPushButton("Configurar Database")
-        btn_agentes = QPushButton("Agentes Responsáveis")
-        btn_templates = QPushButton("Templates")
-        btn_organizacoes = QPushButton("Organizações")
-
-        # Adiciona os botões ao layout
-        layout.addWidget(btn_database)
-        layout.addWidget(btn_agentes)
-        layout.addWidget(btn_templates)
-        layout.addWidget(btn_organizacoes)
-
-        # Conecta os botões aos métodos correspondentes
-        btn_database.clicked.connect(self.show_configurar_database_dialog)
-        btn_agentes.clicked.connect(self.show_agentes_responsaveis_dialog)
-        btn_templates.clicked.connect(self.show_templates_dialog)
-        btn_organizacoes.clicked.connect(self.show_organizacoes_dialog)
-
-        # Define o layout e tamanho do diálogo
-        dialog.setLayout(layout)
-        dialog.setFixedSize(300, 200)
-
-        # Exibe o diálogo
-        dialog.exec()
 
     # Métodos para abrir os diálogos
     def show_configurar_database_dialog(self):
@@ -327,7 +393,17 @@ class MainWindow(QMainWindow):
         self.clear_content_area()
         self.application_ui = PlanejamentoWidget(self, str(ICONS_DIR))
         self.content_layout.addWidget(self.application_ui)
-    
+
+    def setup_pca(self):
+        self.clear_content_area()
+        self.pca_widget = PCAWidget(self)
+        self.content_layout.addWidget(self.pca_widget)
+
+    def setup_pncp(self):
+        self.clear_content_area()
+        self.pca_widget = PNCPWidget(self)
+        self.content_layout.addWidget(self.pca_widget)
+
     def setup_atas(self):
         self.clear_content_area()
         self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)

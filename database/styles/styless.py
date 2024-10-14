@@ -11,7 +11,7 @@ def get_menu_button_style():
             padding: 10px;
         }
         QPushButton:hover {
-            background-color: #3F4042;
+            background-color: #181928;
             border-left: 2px solid #3F4042;
             color: white;
             border-radius: 0px;
