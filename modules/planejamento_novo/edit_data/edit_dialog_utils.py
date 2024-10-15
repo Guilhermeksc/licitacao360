@@ -236,7 +236,7 @@ class EditDataDialogUtils:
         if df_registro_selecionado.empty:
             print("DataFrame está vazio")
             return {}
-
+           
         # Extrai dados do DataFrame e retorna um dicionário
         data = {
             'id_processo': df_registro_selecionado['id_processo'].iloc[0],
@@ -253,6 +253,28 @@ class EditDataDialogUtils:
             'sigla_om': df_registro_selecionado['sigla_om'].iloc[0],
             'setor_responsavel': df_registro_selecionado['setor_responsavel'].iloc[0],
             'valor_total': df_registro_selecionado['valor_total'].iloc[0],
+            'gerente_de_credito': df_registro_selecionado['gerente_de_credito'].iloc[0],
+            'responsavel_pela_demanda': df_registro_selecionado['responsavel_pela_demanda'].iloc[0],
+            'ordenador_despesas': df_registro_selecionado['ordenador_despesas'].iloc[0],
+            'agente_fiscal': df_registro_selecionado['agente_fiscal'].iloc[0],
+            'gerente_de_credito': df_registro_selecionado['gerente_de_credito'].iloc[0],
+            'cod_par': df_registro_selecionado['cod_par'].iloc[0],
+            'prioridade_par': df_registro_selecionado['prioridade_par'].iloc[0],
+            'cep': df_registro_selecionado['cep'].iloc[0],
+            'endereco': df_registro_selecionado['endereco'].iloc[0],
+            'email': df_registro_selecionado['email'].iloc[0],
+            'telefone': df_registro_selecionado['telefone'].iloc[0],
+            'dias_para_recebimento': df_registro_selecionado['dias_para_recebimento'].iloc[0],
+            'horario_para_recebimento': df_registro_selecionado['horario_para_recebimento'].iloc[0],
+            'acao_interna': df_registro_selecionado['acao_interna'].iloc[0],
+            'natureza_despesa': df_registro_selecionado['natureza_despesa'].iloc[0],
+            'unidade_orcamentaria': df_registro_selecionado['unidade_orcamentaria'].iloc[0],
+            'programa_trabalho_resuminho': df_registro_selecionado['programa_trabalho_resuminho'].iloc[0],
+            'atividade_custeio': df_registro_selecionado['atividade_custeio'].iloc[0],
+            'comentarios': df_registro_selecionado['comentarios'].iloc[0],
+            'justificativa': df_registro_selecionado['justificativa'].iloc[0],
+            'link_pncp': df_registro_selecionado['link_pncp'].iloc[0],
+
         }
 
         return data

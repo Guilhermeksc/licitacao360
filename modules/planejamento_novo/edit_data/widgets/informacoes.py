@@ -120,11 +120,9 @@ def create_material_criterio_tipo_layout(data):
     etapa_atual_layout = QHBoxLayout()
     etapa_atual_label = QLabel("Etapa Atual:")
     apply_widget_style_11(etapa_atual_label)
-    etapa_edit = create_combo_box(data.get('etapa_atual', 'Planejamento'),
-                                etapas, 200, 30,
-                                apply_widget_style_11)
+    etapa_atual = QLabel(data.get('etapa'))
     etapa_atual_layout.addWidget(etapa_atual_label)
-    etapa_atual_layout.addWidget(etapa_edit)
+    etapa_atual_layout.addWidget(etapa_atual)
     material_criterio_tipo_layout.addLayout(etapa_atual_layout)
 
     # Material/Serviço

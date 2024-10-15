@@ -21,68 +21,21 @@ class EditDataDialogNovo(QDialog):
     title_updated = pyqtSignal(str)
     status_atualizado = pyqtSignal(str, str)
 
-    def __init__(self, df_registro_selecionado, config_manager, icons_dir, parent=None):
+    def __init__(self, df_registro_selecionado, config_manager, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
+        print(self.df_registro_selecionado)
         self.config_manager = config_manager
-        self.ICONS_DIR = Path(icons_dir)
         self.navigation_buttons = []
         self.consolidador = ConsolidarDocumentos(df_registro_selecionado)
         self._init_paths()
         self.data_saver = DataSaver(self.database_manager, self.df_registro_selecionado)  
         self.formulario_excel = FormularioExcel(self.df_registro_selecionado, self.pasta_base, self)
-        self.set_registro_data()
         self.stacked_widget_manager = StackedWidgetManager(self, self.config_manager, self.df_registro_selecionado)
         self._init_ui()
         self._init_connections()
         self.status_atualizado.connect(lambda msg, icon: EditDataDialogUtils.atualizar_status_label(self.status_label, self.icon_label, msg, icon))
 
-    def set_registro_data(self):
-        # Extrai os dados do DataFrame e armazena como atributos da classe
-        data = EditDataDialogUtils.extract_registro_data(self.df_registro_selecionado)
-        self.id_processo = data.get('id_processo')
-        self.tipo = data.get('tipo')
-        self.numero = data.get('numero')
-        self.ano = data.get('ano')
-        self.situacao = data.get('status')
-        self.nup = data.get('nup')
-        self.material_servico = data.get('material_servico')
-        self.objeto = data.get('objeto')
-        self.vigencia = data.get('vigencia')
-        self.data_sessao = data.get('data_sessao')
-        self.operador = data.get('operador')
-        self.criterio_julgamento = data.get('criterio_julgamento')
-        self.com_disputa = data.get('com_disputa')
-        self.pesquisa_preco = data.get('pesquisa_preco')
-        self.previsao_contratacao = data.get('previsao_contratacao')
-        self.uasg = data.get('uasg')
-        self.orgao_responsavel = data.get('orgao_responsavel')
-        self.sigla_om = data.get('sigla_om')
-        self.uf = data.get('uf')
-        self.codigoMunicipioIbge = data.get('codigoMunicipioIbge')
-        self.setor_responsavel = data.get('setor_responsavel')
-        self.responsavel_pela_demanda = data.get('responsavel_pela_demanda')
-        self.ordenador_despesas = data.get('ordenador_despesas')
-        self.agente_fiscal = data.get('agente_fiscal')
-        self.gerente_de_credito = data.get('gerente_de_credito')
-        self.cod_par = data.get('cod_par')
-        self.prioridade_par = data.get('prioridade_par')
-        self.cep = data.get('cep')
-        self.endereco = data.get('endereco')
-        self.email = data.get('email')
-        self.telefone = data.get('telefone')
-        self.dias_para_recebimento = data.get('dias_para_recebimento')
-        self.horario_para_recebimento = data.get('horario_para_recebimento')
-        self.valor_total = data.get('valor_total')
-        self.acao_interna = data.get('acao_interna')
-        self.fonte_recursos = data.get('fonte_recursos')
-        self.natureza_despesa = data.get('natureza_despesa')
-        self.unidade_orcamentaria = data.get('unidade_orcamentaria')
-        self.programa_trabalho_resuminho = data.get('programa_trabalho_resuminho')
-        self.atividade_custeio = data.get('atividade_custeio')
-        self.comentarios = data.get('comentarios')
-        self.justificativa = data.get('justificativa')
-        self.link_pncp = data.get('link_pncp')
 
     def _init_paths(self):
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
@@ -92,12 +45,12 @@ class EditDataDialogNovo(QDialog):
 
     def _init_ui(self):
         self.setWindowTitle("Editar Dados do Processo")
-        icon_path = self.ICONS_DIR / "edit.png"
+        icon_path = ICONS_DIR / "edit.png"
         if icon_path.is_file():
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
             print(f"Icon not found: {icon_path}")
-        self.setFixedSize(1450, 800)
+        self.setFixedSize(1450, 780)
 
         # Layout principal vertical para os componentes existentes
         layout_principal = QVBoxLayout()
@@ -164,7 +117,7 @@ class EditDataDialogNovo(QDialog):
         print(f"Title updated: {html_text}")
 
     def add_action_buttons(self, layout):
-        icon_confirm = QIcon(str(self.ICONS_DIR / "confirm.png"))
+        icon_confirm = QIcon(str(ICONS_DIR / "confirm.png"))
 
         # Chama a função externa create_button
         button_confirm = create_button(" Salvar", icon_confirm, self.save_changes, "Salvar dados", QSize(110, 30), QSize(30, 30))
@@ -175,7 +128,6 @@ class EditDataDialogNovo(QDialog):
         try:
             # Dados que serão atualizados
             data = {
-                'status': self.situacao_edit.currentText(),
                 'ordenador_despesas': self.ordenador_combo.currentText(),
                 'agente_fiscal': self.agente_fiscal_combo.currentText(),
                 'gerente_de_credito': self.gerente_credito_combo.currentText(),
@@ -228,7 +180,7 @@ class EditDataDialogNovo(QDialog):
     
     def preencher_campos(self):
         try:
-            self.situacao_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'status']))
+            self.etapa_edit.setCurrentText(str(self.df_registro_selecionado.at[0, 'etapa']))
             self.ordenador_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'ordenador_despesas']))
             self.agente_fiscal_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'agente_fiscal']))
             self.gerente_credito_combo.setCurrentText(str(self.df_registro_selecionado.at[0, 'gerente_de_credito']))
@@ -282,7 +234,7 @@ class EditDataDialogNovo(QDialog):
         self.nome_pasta = f'{self.id_processo.replace("/", "-")} - {self.objeto.replace("/", "-")}'
 
         # Botão para criar a estrutura de pastas e abrir a pasta
-        icon_criar_pasta = QIcon(str(self.ICONS_DIR / "create-folder.png"))
+        icon_criar_pasta = QIcon(str(ICONS_DIR / "create-folder.png"))
         criar_pasta_button = create_button(
             "Criar e Abrir Pasta", 
             icon=icon_criar_pasta, 
@@ -295,12 +247,12 @@ class EditDataDialogNovo(QDialog):
         utilidades_layout.addWidget(criar_pasta_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Botão para abrir o arquivo de registro
-        icon_salvar_pasta = QIcon(str(self.ICONS_DIR / "zip-folder.png"))
+        icon_salvar_pasta = QIcon(str(ICONS_DIR / "zip-folder.png"))
         editar_registro_button = create_button("Local de Salvamento", icon=icon_salvar_pasta, callback=self.consolidador.alterar_diretorio_base, tooltip_text="Clique para alterar o local de salvamento dos arquivos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
         apply_widget_style_11(editar_registro_button)
         utilidades_layout.addWidget(editar_registro_button, alignment=Qt.AlignmentFlag.AlignCenter)
         # Botão para abrir o arquivo de registro
-        icon_template = QIcon(str(self.ICONS_DIR / "template.png"))
+        icon_template = QIcon(str(ICONS_DIR / "template.png"))
         visualizar_pdf_button = create_button("Editar Modelos", icon=icon_template, callback=self.consolidador.editar_modelo, tooltip_text="Clique para editar os modelos dos documentos", button_size=QSize(210, 40), icon_size=QSize(40, 40))
         apply_widget_style_11(visualizar_pdf_button)
         utilidades_layout.addWidget(visualizar_pdf_button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -533,15 +485,15 @@ class EditDataDialogNovo(QDialog):
 
     def get_icon_for_anexo(self, pasta_anexo):
         """Retorna o ícone correto baseado na existência de arquivos PDF."""
-        icon_confirm = QIcon(str(self.ICONS_DIR / "concluido.png"))
-        icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
+        icon_confirm = QIcon(str(ICONS_DIR / "concluido.png"))
+        icon_x = QIcon(str(ICONS_DIR / "cancel.png"))
         if pasta_anexo and self.verificar_arquivo_pdf(pasta_anexo):
             return icon_confirm
         return icon_x
 
     def create_open_folder_button(self, pasta_anexo, tooltip_text):
         """Cria um botão para abrir a pasta com o tooltip especificado."""
-        icon_abrir_pasta = QIcon(str(self.ICONS_DIR / "open-folder.png"))
+        icon_abrir_pasta = QIcon(str(ICONS_DIR / "open-folder.png"))
         btnabrirpasta = create_button(
             "", icon=icon_abrir_pasta, callback=lambda _, p=pasta_anexo: self.abrir_pasta(p),
             tooltip_text=tooltip_text, button_size=QSize(25, 25), icon_size=QSize(25, 25)
@@ -668,7 +620,7 @@ class EditDataDialogNovo(QDialog):
         self.consolidador.gerar_autorizacao()
 
         # Emite o sinal passando a mensagem de status e o ícone de sucesso (folder_v.png)
-        self.status_atualizado.emit("Pastas encontradas", str(self.ICONS_DIR / "folder_v.png"))
+        self.status_atualizado.emit("Pastas encontradas", str(ICONS_DIR / "folder_v.png"))
 
     def handle_gerar_autorizacao_sidgem(self):
         self.assunto_text = f"{self.id_processo} - Abertura de Processo ({self.objeto})"
@@ -738,7 +690,7 @@ class EditDataDialogNovo(QDialog):
         layoutHAssunto = QHBoxLayout()
         layoutHAssunto.addWidget(self.textEditAssunto)
         
-        icon_copy = QIcon(str(self.ICONS_DIR / "copy_1.png"))
+        icon_copy = QIcon(str(ICONS_DIR / "copy_1.png"))
         btnCopyAssunto = create_button(text="", icon=icon_copy, callback=lambda: self.copyToClipboard(self.textEditAssunto.toPlainText()), tooltip_text="Copiar texto para a área de transferência", button_size=QSize(40, 40), icon_size=QSize(25, 25))
         layoutHAssunto.addWidget(btnCopyAssunto)
         layout.addLayout(layoutHAssunto)
@@ -838,7 +790,7 @@ class EditDataDialogNovo(QDialog):
         cp_number = self.cp_edit.text()
         if cp_number:
             pastas_necessarias = self.verificar_e_criar_pastas(self.pasta_base)
-            pdf_add_dialog = PDFAddDialog(self.df_registro_selecionado, self.ICONS_DIR, pastas_necessarias, self.pasta_base, self)
+            pdf_add_dialog = PDFAddDialog(self.df_registro_selecionado, ICONS_DIR, pastas_necessarias, self.pasta_base, self)
             if pdf_add_dialog.exec():
                 print(f"Adicionar PDF para CP nº {cp_number}")
             else:
@@ -847,8 +799,8 @@ class EditDataDialogNovo(QDialog):
             QMessageBox.warning(self, "Erro", "Por favor, insira um número de CP válido.")
 
     def atualizar_action(self):
-        icon_confirm = QIcon(str(self.ICONS_DIR / "concluido.png"))
-        icon_x = QIcon(str(self.ICONS_DIR / "cancel.png"))
+        icon_confirm = QIcon(str(ICONS_DIR / "concluido.png"))
+        icon_x = QIcon(str(ICONS_DIR / "cancel.png"))
 
         def atualizar_anexo(section_title, anexo, label):
             pasta_anexo = None

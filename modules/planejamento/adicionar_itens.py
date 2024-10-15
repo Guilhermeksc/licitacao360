@@ -118,11 +118,23 @@ class AddItemDialog(QDialog):
     def get_data(self):
         sigla_selected = self.sigla_om_cb.currentText()
         material_servico = "Material" if self.material_radio.isChecked() else "Serviço"
-        
+        etapa = "Planejamento"
         # Formatar o número para ter duas casas decimais
         numero_formatado = f"{int(self.numero_le.text()):02}"
         
         data = {
+            'etapa': etapa,
+            'pregoeiro': "-",
+            'objeto_completo': "-",
+            'setor_responsavel': "-",
+            'srp': "Sim",
+            'msg_irp': "-",
+            'data_limite_manifestacao_irp': "-",
+            'data_limite_confirmacao_irp': "-",
+            'num_irp': "-",
+            'valor_total': "0.00",
+            'comentarios': "-",
+            'data_sessao': "2024-10-01",
             'tipo': self.tipo_cb.currentText(),
             'numero': numero_formatado,
             'ano': self.ano_le.text(),
