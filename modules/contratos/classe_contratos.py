@@ -7,7 +7,7 @@ from pathlib import Path
 from diretorios import *
 from modules.contratos.edit_dialog import AtualizarDadosContratos
 from database.utils.treeview_utils import load_images, create_button
-from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs
+from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs, CustomItemDelegate, CenterAlignDelegate, load_and_map_icons
 from modules.contratos.database_manager import SqlModel, DatabaseContratosManager, CustomTableView
 from modules.contratos.gerenciar_inclusao_exclusao import GerenciarInclusaoExclusaoContratos
 from modules.contratos.treeview_contratos import TreeViewContratosDialog
@@ -36,7 +36,9 @@ class ContratosWidget(QMainWindow):
         self.setup_managers()
         self.load_initial_data()
         self.model = self.init_model()
-        self.ui_manager = UIManager(self, self.icons_dir, self.config_manager, self.model)
+        self.image_cache = {}
+        self.icons = load_and_map_icons(self.icons_dir, self.image_cache)        
+        self.ui_manager = UIManager(self, self.icons, self.config_manager, self.model)
         self.setup_ui()
         self.export_thread = None
         self.output_path = os.path.join(os.getcwd(), "controle_contratos.xlsx")
@@ -157,17 +159,15 @@ class ContratosWidget(QMainWindow):
             print(f"Erro ao abrir o diálogo: {str(e)}")
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao abrir o diálogo de edição: {str(e)}")
 
-
-
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
         self.parent = parent
-        self.icons_dir = icons
+        self.icons = icons
         self.config_manager = config_manager
         self.model = model
         self.main_widget = QWidget(parent)
         self.main_layout = QVBoxLayout(self.main_widget)
-        self.button_manager = ButtonManager(self.parent)
+        self.button_manager = ButtonManager(self.parent, self.icons)
         self.init_ui()
 
     def init_ui(self):
@@ -212,19 +212,38 @@ class UIManager:
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
         self.table_view.setModel(self.model)
         self.main_layout.addWidget(self.table_view)
+        
+        # Corrigir: Desativar edição com duplo clique
+        self.table_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        
+        # Definir o comportamento de seleção para selecionar linhas inteiras
+        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        
+        # Configurar para permitir seleção única
+        self.table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        
         self.configure_table_model()
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
         self.apply_custom_style()
-
         # Centralizar as colunas
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
+        status_index = self.model.fieldIndex("status")
+        print(f"Índice da coluna 'status': {status_index}")  # Para depuração
+
         # Configurar o CustomItemDelegate para a coluna 41
-        custom_delegate = CustomItemDelegate(self.icons_dir, self.table_view)
-        self.table_view.setItemDelegateForColumn(0, custom_delegate)
+        center_delegate = CenterAlignDelegate(self.table_view)
+        for column in range(self.model.columnCount()):
+            if column != status_index:
+                self.table_view.setItemDelegateForColumn(column, center_delegate)
+
+        self.table_view.setItemDelegateForColumn(
+            status_index,
+            CustomItemDelegate(self.icons, status_index, self.table_view)
+        )
 
         self.reorder_columns()
 
@@ -292,31 +311,34 @@ class UIManager:
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)
-        header.resizeSection(0, 120)
-        header.resizeSection(1, 50)
-        header.resizeSection(2, 65)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
+        header.resizeSection(0, 200)
+        header.resizeSection(1, 60)
+        header.resizeSection(2, 80)
         header.resizeSection(3, 65)
         header.resizeSection(5, 75)
         header.resizeSection(7, 150)
-        header.resizeSection(8, 170)
+
         header.resizeSection(9, 125)
 
     def apply_custom_style(self):
+        # Aplica um estilo CSS personalizado ao tableView
         self.table_view.setStyleSheet("""
             QTableView {
-                font-size: 14px;
+                font-size: 16px;
+                background-color: #13141F;                      
             }
             QTableView::section {
-                font-size: 14px;
+                font-size: 16px;
+                font-weight: bold; 
             }
             QHeaderView::section:horizontal {
-                font-size: 14px;
+                font-size: 16px;
+                font-weight: bold;
             }
             QHeaderView::section:vertical {
-                font-size: 14px;
+                font-size: 16px;
             }
         """)
 
@@ -367,27 +389,27 @@ class UIManager:
 
     def hide_unwanted_columns(self):
         # Inclua a coluna de ícones no conjunto de colunas visíveis
-        visible_columns = {0, 1, 2, 4, 6, 7, 8, 9, 14}
+        visible_columns = {0, 1, 2, 4, 7, 9}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
 
-
 class ButtonManager:
-    def __init__(self, parent):
+    def __init__(self, parent, icons):
+        self.icons = icons
         self.parent = parent
         self.buttons = []
         self.create_buttons()
 
     def create_buttons(self):
         button_specs = [
-            ("  Mensagem", self.parent.image_cache['message_alert'], self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
-            # ("  Atas", self.parent.image_cache['production'], self.parent.treeview_atas, "Abre a janela de visualização de atas"),
-            # ("  Contratos", self.parent.image_cache['production_red'], self.parent.treeview_contratos, "Abre a janela de visualização de contratos"),
-            ("  Sincronizar", self.parent.image_cache['csv'], self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
-            ("  Abrir Tabela", self.parent.image_cache['excel'], self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
+            ("  Mensagem", self.icons.get('Mensagem', None), self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
+            ("  API", self.icons.get('API', None), self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
+            ("  Abrir Tabela", self.icons.get('Abrir Tabela', None), self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
         ]
         for text, icon, callback, tooltip in button_specs:
+            if icon is None:
+                print(f"Warning: Icon for '{text.strip()}' not found.")
             btn = create_button(text, icon, callback, tooltip, self.parent)
             self.buttons.append(btn)
 
@@ -405,73 +427,6 @@ def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(30
     if tooltip_text:
         btn.setToolTip(tooltip_text)
     return btn
-
-class CenterAlignDelegate(QStyledItemDelegate):
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        option.displayAlignment = Qt.AlignmentFlag.AlignCenter
-
-class CustomItemDelegate(QStyledItemDelegate):
-    def __init__(self, icons_dir, parent=None):
-        super().__init__(parent)
-        self.icons_dir = icons_dir
-
-    def paint(self, painter, option, index):
-        rect = option.rect
-        model = index.model()
-
-        # Se for um modelo proxy, pegue o modelo subjacente
-        if isinstance(model, QSortFilterProxyModel):
-            model = model.sourceModel()
-
-        # Verifica se estamos na coluna de índice 41
-        if index.column() == 0:
-            dias_icon = None
-            status_icon = None
-
-            # Lógica para obter os ícones com base nos valores das colunas "dias" e "status"
-            dias_index = index.siblingAtColumn(model.fieldIndex("dias"))
-            dias = dias_index.data()
-            if isinstance(dias, int):
-                if dias > 180:
-                    dias_icon = QIcon(str(self.icons_dir / "confirm.png"))
-                if 60 <= dias <= 180:
-                    dias_icon = QIcon(str(self.icons_dir / "message_alert.png"))
-                elif 1 <= dias < 60:
-                    dias_icon = QIcon(str(self.icons_dir / "head_skull.png"))
-
-            status_index = index.siblingAtColumn(model.fieldIndex("status"))
-            status = status_index.data()
-            status_images = {
-                'SIGDEM': 'status_sigdem.png',
-                'Nota Técnica': 'status_nota_tecnica.png',
-                'Prorrogado': 'status_prorrogado.png',
-                'Publicado': 'status_publicado.png',
-                'Alerta Prazo': 'status_alerta_prazo.png',
-                'Ata Gerada': 'status_ata_gerada.png',
-                'Empresa': 'status_empresa.png',
-                'Assinado': 'status_assinado.png',
-                'AGU': 'status_agu.png',
-                'Seção de Contratos': 'status_secao_contratos.png',
-            }
-            if status in status_images:
-                status_icon = QIcon(str(self.icons_dir / status_images[status]))
-
-            # Desenhar ícones na célula
-            if dias_icon or status_icon:
-                if dias_icon:
-                    # Ajuste normal para dias_icon
-                    dias_icon.paint(painter, rect.adjusted(2, 2, -rect.width() * 2 // 3, -2), Qt.AlignmentFlag.AlignLeft)
-                if status_icon:
-                    # Aumenta o espaço para status_icon
-                    status_icon.paint(painter, rect.adjusted(rect.width() // 3, 2, -2, -2), Qt.AlignmentFlag.AlignRight)
-            else:
-                super().paint(painter, option, index)
-        else:
-            # Para outras colunas, usa a pintura padrão
-            super().paint(painter, option, index)
-
-            super().paint(painter, option, index)
 
 def carregar_dados_contrato(linha, database_path):
     conn = sqlite3.connect(database_path)

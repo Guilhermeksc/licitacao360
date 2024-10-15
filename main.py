@@ -186,54 +186,32 @@ class MainWindow(QMainWindow):
         self.central_layout.setSpacing(0)
         self.central_layout.setContentsMargins(0, 0, 0, 0)
 
-    def setup_menu(self):
+    def setup_menu(self): 
         menu_layout = QVBoxLayout()
         menu_layout.setSpacing(0)
         menu_layout.setContentsMargins(0, 0, 0, 0)
         menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
         menu_buttons = [
             "Início",
             "PCA",
             "Licitação",
             "Gerar Atas",
-            "Acordos",
+            "Atas",
+            "Contratos",
             "Dispensa",
             "PNCP",
         ]
 
         for button_name in menu_buttons:
-            if button_name == "Acordos":
-                # Cria um botão principal para "Acordos"
-                button = self.create_menu_button(button_name)
-                button.clicked.connect(self.toggle_acordos_submenu)  # Conecta ao método de toggle
-                self.buttons[button_name] = button
-                menu_layout.addWidget(button)
-
-                # Cria um widget para conter os botões de sub-menu "Atas" e "Contratos"
-                self.acordos_submenu_widget = QWidget()
-                sub_menu_layout = QVBoxLayout(self.acordos_submenu_widget)
-                sub_menu_layout.setContentsMargins(15, 0, 0, 0)  # Indenta os botões do sub-menu
-
-                sub_buttons = ["Atas", "Contratos"]
-                for sub_button_name in sub_buttons:
-                    sub_button = self.create_menu_button(sub_button_name)
-                    sub_button.clicked.connect(self.update_content_title)
-                    self.buttons[sub_button_name] = sub_button
-                    sub_menu_layout.addWidget(sub_button)
-
-                menu_layout.addWidget(self.acordos_submenu_widget)
-
-                # Por padrão, o sub-menu está expandido
-                self.acordos_submenu_visible = True
+            button = self.create_menu_button(button_name)
+            if button_name == "Início":
+                button.clicked.connect(self.open_initial_page)
             else:
-                button = self.create_menu_button(button_name)
-                if button_name == "Início":
-                    button.clicked.connect(self.open_initial_page)
-                else:
-                    button.clicked.connect(self.update_content_title)
+                button.clicked.connect(self.update_content_title)
 
-                self.buttons[button_name] = button
-                menu_layout.addWidget(button)
+            self.buttons[button_name] = button
+            menu_layout.addWidget(button)
 
         # Adicionar um espaço expansivo após os botões para empurrar o botão de configuração para baixo
         spacer_above_config = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
@@ -271,7 +249,7 @@ class MainWindow(QMainWindow):
 
         self.menu_widget = QWidget()
         self.menu_widget.setLayout(menu_layout)
-        self.menu_widget.setFixedWidth(110)
+        self.menu_widget.setFixedWidth(90)
 
         # Ajustar o fundo do menu para preto
         self.menu_widget.setStyleSheet("background-color: #13141F;")
@@ -280,6 +258,7 @@ class MainWindow(QMainWindow):
 
         # Conecta o clique do botão de configuração ao menu personalizado
         config_button.clicked.connect(lambda: self.show_settings_menu(config_button))
+
 
     def create_menu_button(self, name):
         button = QPushButton(f" {name}")
@@ -292,22 +271,6 @@ class MainWindow(QMainWindow):
         self.acordos_submenu_widget.setVisible(self.acordos_submenu_visible)
         # Opcional: mudar o estilo ou ícone do botão "Acordos" para indicar o estado
 
-    def setup_content_area(self):
-        self.content_layout = QVBoxLayout()
-        self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self.content_image_label = QLabel(self.central_widget)
-        self.content_layout.addWidget(self.content_image_label)
-        self.content_image_label.hide()
-
-        self.content_widget = QWidget()
-        self.content_widget.setLayout(self.content_layout)
-        self.content_widget.setMinimumSize(1050, 700)
-        self.content_widget.setObjectName("contentWidget")
-        self.central_layout.addWidget(self.content_widget)
-
-        # self.inicio_widget = InicioWidget(self)  # Substitua pelo seu widget de início
-
     def open_initial_page(self):
         self.clear_content_area(keep_image_label=True)
         # self.content_layout.addWidget(self.inicio_widget)  # Adicione seu widget de início aqui
@@ -318,22 +281,6 @@ class MainWindow(QMainWindow):
         if button:
             self.set_active_button(button.text().strip())
             self.change_content(button.text().strip())
-
-    def change_content(self, content_name):
-        content_actions = {
-            "Licitação": self.setup_planejamento,
-            "PCA": self.setup_pca,
-            "Gerar Atas": self.setup_atas,
-            "Atas": self.setup_atas,
-            "Contratos": self.setup_contratos,
-            "Dispensa": self.setup_dispensa_eletronica,
-            "Matriz": self.setup_matriz_riscos,
-            "PNCP": self.setup_pncp,
-        }
-        action = content_actions.get(content_name)
-        if action:
-            action()
-
             
     def create_settings_menu(self):
         # Cria o menu suspenso para o botão de configurações
@@ -544,25 +491,36 @@ def main():
     # Aplicar o tema escuro
     app.setStyleSheet(qdarktheme.load_stylesheet("dark"))
 
-    # Criar a splash screen e redimensionar a imagem
+    # Criar a splash screen e redimensionar a imagem com efeito suave
     splash_pix = QPixmap(str(IMAGE_PATH / "carregamento.png"))  # Substitua por sua imagem
-    splash_pix = splash_pix.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio)  # Redimensionar a imagem
+    splash_pix = splash_pix.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)  # Redimensionar com transformação suave
 
     splash = QSplashScreen(splash_pix, Qt.WindowType.WindowStaysOnTopHint)
+    
+    # Definir a fonte e a cor para o texto de carregamento
+    font = QFont()
+    font.setPointSize(12)
+    splash.setFont(font)
+
+    # Mostrar a splash screen
     splash.show()
 
-    # # Simular um tempo de carregamento (pode ser removido ou ajustado)
-    # time.sleep(2)  # Simula o tempo de carregamento
+    # Função para atualizar a barra de progresso
+    def update_progress(value):
+        splash.showMessage(
+            f"Carregando... {value}%",
+            Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter,
+            Qt.GlobalColor.white  # Cor do texto
+        )
 
-    # Inicializar a janela principal
-    window = MainWindow(app)
-    
-    # Fechar a splash screen e mostrar a janela principal
-    splash.finish(window)
+    # Simular um tempo de carregamento com animação de barra de progresso
+    for i in range(1, 101):
+        QTimer.singleShot(i * 20, lambda value=i: update_progress(value))
 
-    # Mostrar a janela principal
-    window.show()
-    
+    # Fechar a splash screen e mostrar a janela principal após a animação
+    QTimer.singleShot(2000, lambda: splash.close())
+    QTimer.singleShot(2000, lambda: MainWindow(app).show())
+
     sys.exit(app.exec())
 
 if __name__ == "__main__":
