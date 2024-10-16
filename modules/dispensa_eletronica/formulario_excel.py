@@ -40,7 +40,7 @@ class FormularioExcel:
             'fonte_recursos': 'Fonte de Recursos',
             'natureza_despesa': 'Natureza da Despesa',
             'unidade_orcamentaria': 'Unidade Orçamentária',
-            'programa_trabalho_resuminho': 'PTRES',
+            'ptres': 'PTRES',
             'atividade_custeio': 'Atividade de Custeio',
             'justificativa': 'Justificativa',
             'comunicacao_padronizada': 'Comunicação Padronizada (CP), Ex: 60-25',

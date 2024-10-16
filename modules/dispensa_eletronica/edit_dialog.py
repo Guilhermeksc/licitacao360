@@ -514,7 +514,7 @@ class EditDataDialog(QDialog):
         self.fonte_recurso_edit = QLineEdit(data['fonte_recursos'])
         self.natureza_despesa_edit = QLineEdit(data['natureza_despesa'])
         self.unidade_orcamentaria_edit = QLineEdit(data['unidade_orcamentaria'])
-        self.ptres_edit = QLineEdit(data['programa_trabalho_resuminho'])
+        self.ptres_edit = QLineEdit(data['ptres'])
 
         classificacao_orcamentaria_layout.addLayout(self.create_layout("Ação Interna:", self.acao_interna_edit))
         classificacao_orcamentaria_layout.addLayout(self.create_layout("Fonte de Recurso (FR):", self.fonte_recurso_edit))
@@ -651,7 +651,7 @@ class EditDataDialog(QDialog):
         self.fonte_recursos = self.df_registro_selecionado['fonte_recursos'].iloc[0]
         self.natureza_despesa = self.df_registro_selecionado['natureza_despesa'].iloc[0]
         self.unidade_orcamentaria = self.df_registro_selecionado['unidade_orcamentaria'].iloc[0]
-        self.programa_trabalho_resuminho = self.df_registro_selecionado['programa_trabalho_resuminho'].iloc[0]
+        self.ptres = self.df_registro_selecionado['ptres'].iloc[0]
         self.atividade_custeio = self.df_registro_selecionado['atividade_custeio'].iloc[0]
         self.comentarios = self.df_registro_selecionado['comentarios'].iloc[0]
         self.justificativa = self.df_registro_selecionado['justificativa'].iloc[0]
@@ -697,7 +697,7 @@ class EditDataDialog(QDialog):
             'fonte_recursos': self.fonte_recursos,
             'natureza_despesa': self.natureza_despesa,
             'unidade_orcamentaria': self.unidade_orcamentaria,
-            'programa_trabalho_resuminho': self.programa_trabalho_resuminho,
+            'ptres': self.ptres,
             'atividade_custeio': self.atividade_custeio,
             'comentarios': self.comentarios,
             'justificativa': self.justificativa,
@@ -743,7 +743,7 @@ class EditDataDialog(QDialog):
                 'fonte_recursos': self.fonte_recurso_edit.text().strip(),
                 'natureza_despesa': self.natureza_despesa_edit.text().strip(),
                 'unidade_orcamentaria': self.unidade_orcamentaria_edit.text().strip(),
-                'programa_trabalho_resuminho': self.ptres_edit.text().strip(),
+                'ptres': self.ptres_edit.text().strip(),
                 'atividade_custeio': 'Sim' if self.radio_custeio_sim.isChecked() else 'Não',
                 'comunicacao_padronizada': self.cp_edit.text().strip(),
                 'link_pncp': self.link_pncp_edit.text().strip(),
@@ -909,7 +909,7 @@ class EditDataDialog(QDialog):
             self.fonte_recurso_edit.setText(str(self.df_registro_selecionado.at[0, 'fonte_recursos']))
             self.natureza_despesa_edit.setText(str(self.df_registro_selecionado.at[0, 'natureza_despesa']))
             self.unidade_orcamentaria_edit.setText(str(self.df_registro_selecionado.at[0, 'unidade_orcamentaria']))
-            self.ptres_edit.setText(str(self.df_registro_selecionado.at[0, 'programa_trabalho_resuminho']))
+            self.ptres_edit.setText(str(self.df_registro_selecionado.at[0, 'ptres']))
             self.radio_custeio_sim.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Sim')
             self.radio_custeio_nao.setChecked(str(self.df_registro_selecionado.at[0, 'atividade_custeio']) == 'Não')
             self.cp_edit.setText(str(self.df_registro_selecionado.at[0, 'comunicacao_padronizada']))

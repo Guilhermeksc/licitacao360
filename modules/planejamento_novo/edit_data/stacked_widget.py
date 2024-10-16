@@ -10,6 +10,7 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
                                     apply_widget_style_11, validate_and_convert_date)
 from modules.planejamento_novo.edit_data.widgets.informacoes import create_contratacao_group
 from modules.planejamento_novo.edit_data.widgets.autorizacao import AutorizacaoWidget
+from modules.planejamento_novo.edit_data.widgets.setor_responsavel import create_dados_responsavel_contratacao_group
 from modules.planejamento_novo.edit_data.widgets.irp import create_irp_group
 from modules.planejamento_novo.edit_data.widgets.etp import create_etp_group
 from modules.planejamento_novo.edit_data.widgets.mr import create_matriz_risco_group
@@ -40,11 +41,6 @@ class StackedWidgetManager:
         self.pasta_base = Path(self.config.get('pasta_base', str(Path.home() / 'Desktop')))  # Inicializa pasta_base
         self.database_path = Path(load_config("CONTROLE_DADOS", str(CONTROLE_DADOS)))
         self.database_manager = DatabaseManager(self.database_path)
-        self.material_servico = None
-        self.objeto = None
-        self.setor_responsavel = None
-        self.orgao_responsavel = None
-        self.sigla_om = None
         self.templatePathMSG = MSG_DIR_IRP / "last_template_msg_irp.txt"
         self.templatePath = PASTA_TEMPLATE
         self.setup_stacked_widgets()
@@ -88,18 +84,6 @@ class StackedWidgetManager:
         frame.setLayout(layout)
         return frame
     
-    # def stacked_widget_documentos(self, data):
-    #     frame = QFrame()
-    #     layout = QVBoxLayout()
-    #     botao_documentos = self.parent.create_gerar_documentos_group()
-    #     sigdem_group = self.parent.create_GrupoSIGDEM()
-    #     utilidade_group = self.create_utilidades_group()
-    #     layout.addLayout(botao_documentos)
-    #     layout.addWidget(sigdem_group)
-    #     layout.addLayout(utilidade_group)
-    #     frame.setLayout(layout)
-    #     return frame
-    
     def stacked_widget_nt(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
@@ -111,7 +95,7 @@ class StackedWidgetManager:
     def stacked_widget_tr(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
-        tr_group = create_tr_group(data, self.templatePathMSG)
+        tr_group = create_tr_group(data, self.templatePathMSG, self.parent)
         layout.addWidget(tr_group)
         frame.setLayout(layout)
         return frame
@@ -139,13 +123,23 @@ class StackedWidgetManager:
         layout.addWidget(etp_group)
         frame.setLayout(layout)
         return frame
-    
+
     def stacked_widget_info(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
         hbox_top_layout = QHBoxLayout()
-        contratacao_group_box = create_contratacao_group(data, self.database_manager)
+        contratacao_group_box = create_contratacao_group(data, self.database_manager, self.parent)
         hbox_top_layout.addWidget(contratacao_group_box)
+        layout.addLayout(hbox_top_layout)
+        frame.setLayout(layout)
+        return frame
+
+    def stacked_widget_dfd(self, data):
+        frame = QFrame()
+        layout = QVBoxLayout()
+        hbox_top_layout = QHBoxLayout()
+        dados_responsavel_contratacao_group = create_dados_responsavel_contratacao_group(data, self.parent)
+        hbox_top_layout.addWidget(dados_responsavel_contratacao_group)
         layout.addLayout(hbox_top_layout)
         frame.setLayout(layout)
         return frame
@@ -163,7 +157,7 @@ class StackedWidgetManager:
     def stacked_widget_irp(self, data):
         frame = QFrame()
         layout = QVBoxLayout()
-        irp_group = create_irp_group(data, self.templatePathMSG)
+        irp_group = create_irp_group(data, self.templatePathMSG, self.parent)
         layout.addWidget(irp_group)
         frame.setLayout(layout)
         return frame
@@ -173,14 +167,6 @@ class StackedWidgetManager:
         layout = QVBoxLayout()
         irp_group = create_checklist_group(data, self.templatePath, self.config_manager)
         layout.addWidget(irp_group)
-        frame.setLayout(layout)
-        return frame
-
-    def stacked_widget_dfd(self, data):
-        frame = QFrame()
-        layout = QVBoxLayout()
-        dados_responsavel_contratacao_group = self.create_dados_responsavel_contratacao_group(data)
-        layout.addWidget(dados_responsavel_contratacao_group)
         frame.setLayout(layout)
         return frame
 
@@ -199,208 +185,6 @@ class StackedWidgetManager:
         layout.addWidget(pncp_group)
         frame.setLayout(layout)
         return frame
-            
-    def create_dados_responsavel_contratacao_group(self, data):
-        setor_responsavel_group_box = QGroupBox("Divisão/Setor Responsável pela Demanda")
-        apply_widget_style_11(setor_responsavel_group_box)
-        setor_responsavel_layout = QVBoxLayout()
-
-        # Layout OM e Divisão
-        om_divisao_layout = self.create_om_divisao_layout(data)
-        setor_responsavel_layout.addLayout(om_divisao_layout)
-
-        # Carrega sigla_om
-        self.load_sigla_om()
-
-        # Layout PAR
-        par_layout = self.create_par_layout(data)
-        setor_responsavel_layout.addLayout(par_layout)
-
-        # Layout Endereço
-        endereco_cep_layout = self.create_endereco_layout(data)
-        setor_responsavel_layout.addLayout(endereco_cep_layout)
-
-        # Layout Contato
-        email_telefone_layout = self.create_contato_layout(data)
-        setor_responsavel_layout.addLayout(email_telefone_layout)
-
-        # Outros campos
-        self.dias_edit = QLineEdit("Segunda à Sexta")
-        setor_responsavel_layout.addLayout(create_layout("Dias para Recebimento:", self.dias_edit))
-
-        self.horario_edit = QLineEdit("09 às 11h20 e 14 às 16h30")
-        setor_responsavel_layout.addLayout(create_layout("Horário para Recebimento:", self.horario_edit))
-
-        # Adicionando Justificativa
-        justificativa_label = QLabel("Justificativa para a contratação:")
-        justificativa_label.setStyleSheet("font-size: 12pt;")
-        self.justificativa_edit = QTextEdit(self.get_justification_text())
-        apply_widget_style_11(self.justificativa_edit)
-        setor_responsavel_layout.addWidget(justificativa_label)
-        setor_responsavel_layout.addWidget(self.justificativa_edit)
-
-        setor_responsavel_group_box.setLayout(setor_responsavel_layout)
-        return setor_responsavel_group_box
-
-    def create_om_divisao_layout(self, data):
-        om_divisao_layout = QHBoxLayout()
-
-        # Configuração da OM
-        om_layout = QHBoxLayout()
-        om_label = QLabel("OM:")
-        apply_widget_style_11(om_label)
-
-        self.sigla_om = data.get('sigla_om', 'CeIMBra')
-        if self.df_registro_selecionado is not None and 'sigla_om' in self.df_registro_selecionado.columns:
-            if not self.df_registro_selecionado['sigla_om'].empty:
-                self.sigla_om = self.df_registro_selecionado['sigla_om'].iloc[0]
-            else:
-                self.sigla_om = 'CeIMBra'
-
-        self.om_combo = create_combo_box(self.sigla_om, [], 150, 35)
-        om_layout.addWidget(om_label)
-        om_layout.addWidget(self.om_combo)
-
-        # Adicionando o layout OM ao layout principal
-        om_divisao_layout.addLayout(om_layout)
-
-        # Configuração da Divisão
-        divisao_label = QLabel("Divisão:")
-        apply_widget_style_11(divisao_label)
-
-        self.setor_responsavel_combo = QComboBox()
-        self.setor_responsavel_combo.setEditable(True)
-
-        # Adicionando as opções ao ComboBox
-        divisoes = [
-            "Divisão de Abastecimento",
-            "Divisão de Finanças",
-            "Divisão de Obtenção",
-            "Divisão de Pagamento",
-            "Divisão de Administração",
-            "Divisão de Subsistência"
-        ]
-        self.setor_responsavel_combo.addItems(divisoes)
-
-        self.setor_responsavel_combo.setCurrentText(data.get('setor_responsavel', ''))
-        self.setor_responsavel_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        om_divisao_layout.addWidget(divisao_label)
-        om_divisao_layout.addWidget(self.setor_responsavel_combo)
-
-        return om_divisao_layout
-
-    def create_par_layout(self, data):
-        self.par_edit = QLineEdit(str(data.get('cod_par', '')))
-        self.par_edit.setFixedWidth(150)
-        self.prioridade_combo = create_combo_box(
-            data.get('prioridade_par', 'Necessário'),
-            ["Necessário", "Urgente", "Desejável"],
-            190, 35
-        )
-
-        par_layout = QHBoxLayout()
-
-        par_label = QLabel("Meta do PAR:")
-        prioridade_label = QLabel("Prioridade:")
-        apply_widget_style_11(par_label)
-        apply_widget_style_11(prioridade_label)
-
-        par_layout.addWidget(par_label)
-        par_layout.addWidget(self.par_edit)
-        par_layout.addWidget(prioridade_label)
-        par_layout.addWidget(self.prioridade_combo)
-
-        return par_layout
-
-    def create_endereco_layout(self, data):
-        self.endereco_edit = QLineEdit(data.get('endereco', ''))
-        self.endereco_edit.setFixedWidth(450)
-        self.cep_edit = QLineEdit(str(data.get('cep', '')))
-
-        endereco_cep_layout = QHBoxLayout()
-        endereco_label = QLabel("Endereço:")
-        cep_label = QLabel("CEP:")
-        apply_widget_style_11(endereco_label)
-        apply_widget_style_11(cep_label)
-
-        endereco_cep_layout.addWidget(endereco_label)
-        endereco_cep_layout.addWidget(self.endereco_edit)
-        endereco_cep_layout.addWidget(cep_label)
-        endereco_cep_layout.addWidget(self.cep_edit)
-
-        return endereco_cep_layout
-
-    def create_contato_layout(self, data):
-        self.email_edit = QLineEdit(data.get('email', ''))
-        self.email_edit.setFixedWidth(400)
-        self.telefone_edit = QLineEdit(data.get('telefone', ''))
-
-        email_telefone_layout = QHBoxLayout()
-        email_telefone_layout.addLayout(create_layout("E-mail:", self.email_edit))
-        email_telefone_layout.addLayout(create_layout("Tel:", self.telefone_edit))
-
-        return email_telefone_layout
-
-    def load_sigla_om(self):
-        sigla_om = self.sigla_om  # Utilize a variável de instância
-        try:
-            with sqlite3.connect(self.parent.database_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT DISTINCT sigla_om FROM controle_om ORDER BY sigla_om")
-                items = [row[0] for row in cursor.fetchall()]
-                self.om_combo.addItems(items)
-                self.om_combo.setCurrentText(sigla_om)
-                self.om_combo.currentTextChanged.connect(self.on_om_changed)
-        except Exception as e:
-            QMessageBox.warning(self.parent, "Erro", f"Erro ao carregar OM: {e}")
-
-    def on_om_changed(self):
-        selected_om = self.om_combo.currentText()
-        print(f"OM changed to: {selected_om}")
-        try:
-            with sqlite3.connect(self.parent.database_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT uasg, orgao_responsavel, uf, codigoMunicipioIbge FROM controle_om WHERE sigla_om = ?", (selected_om,))
-                result = cursor.fetchone()
-                if result:
-                    uasg, orgao_responsavel, uf, codigoMunicipioIbge = result
-                    index = self.df_registro_selecionado.index[0]
-                    self.df_registro_selecionado.loc[index, 'uasg'] = uasg
-                    self.df_registro_selecionado.loc[index, 'orgao_responsavel'] = orgao_responsavel
-                    print(f"Updated DataFrame: uasg={uasg}, orgao_responsavel={orgao_responsavel}")
-                    # Emite o sinal title_updated do parent
-                    self.parent.title_updated.emit(f"{orgao_responsavel} (UASG: {uasg})")
-                else:
-                    print("Nenhum resultado encontrado para a OM selecionada.")
-        except Exception as e:
-            QMessageBox.warning(self.parent, "Erro", f"Erro ao carregar dados da OM: {e}")
-            print(f"Error loading data for selected OM: {e}")
-
-    def get_justification_text(self):
-        # Tenta recuperar o valor atual da justificativa no DataFrame
-        try:
-            current_justification = self.df_registro_selecionado['justificativa'].iloc[0]
-        except KeyError:
-            logging.error("A coluna 'justificativa' não foi encontrada no DataFrame.")
-            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
-        except IndexError:
-            logging.warning("O DataFrame 'df_registro_selecionado' está vazio. Retornando justificativa padrão.")
-            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
-
-        # Retorna o valor atual se ele existir, senão, constrói uma justificativa baseada no tipo de material/serviço
-        if current_justification:  # Checa se existe uma justificativa
-            return current_justification
-        else:
-            return self.generate_default_justification()  # Chama uma função para gerar uma justificativa padrão
-
-    def generate_default_justification(self):
-        # Gera justificativa padrão com base no tipo de material ou serviço
-        if self.material_servico == 'Material':
-            return (f"A aquisição de {self.objeto} se faz necessária para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}). A disponibilidade e a qualidade dos materiais são essenciais para garantir a continuidade das operações e a eficiência das atividades desempenhadas pelo(a) {self.setor_responsavel}.")
-        elif self.material_servico == 'Serviço':
-            return (f"A contratação de empresa especializada na prestação de serviços de {self.objeto} é imprescindível para o atendimento das necessidades do(a) {self.setor_responsavel} do(a) {self.orgao_responsavel} ({self.sigla_om}).")
-        return ""  # Retorna uma string vazia se nenhuma condição acima for satisfeita
 
     def create_frame_pncp(self, data):
         pncp_group_box = QGroupBox("Integração ao PNCP")
@@ -443,7 +227,7 @@ class StackedWidgetManager:
         pncp_layout.addLayout(link_pncp_layout)
 
         # Definindo o nome da tabela utilizando os dados extraídos de `data`
-        self.table_name = f"DE{numero}{ano}{link_pncp}{uasg}"
+        self.table_name = f"{numero}{ano}{link_pncp}{uasg}"
 
         pncp_group_box.setLayout(pncp_layout)
         return pncp_group_box

@@ -6,41 +6,45 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
 from diretorios import *
 import os
 
-def create_irp_group(data, templatePath):
+def create_irp_group(data, templatePath, parent_dialog):
     irp_group_box = QGroupBox("Intenção de Registro de Preços (IRP)")
     apply_widget_style_11(irp_group_box)
 
-    # Layout principal
+    # Main layout
     main_layout = QHBoxLayout()
 
-    # Seção da esquerda
-    irp_left_group_box = create_left_section(data)
+    # Left section
+    irp_left_group_box = create_left_section(data, parent_dialog)
     main_layout.addWidget(irp_left_group_box)
 
-    # Seção da direita (Text Viewer e botões)
+    # Right section
     right_section_layout = create_right_section(data, templatePath)
     main_layout.addLayout(right_section_layout)
 
-    # Configurar o layout principal no QGroupBox
     irp_group_box.setLayout(main_layout)
-
     return irp_group_box
 
-def create_left_section(data):
+
+def create_left_section(data, parent_dialog):
     irp_left_group_box = QGroupBox("Dados")
     irp_left_group_layout = QVBoxLayout()
     irp_left_group_box.setMaximumWidth(300)
 
-    # Layout de texto (msg_irp e num_irp)
-    irp_text_layout = create_irp_text_layout(data, {})
+    # Dictionaries to collect widgets
+    line_edits = {}
+    date_edits = {}
+
+    # Text layout
+    irp_text_layout = create_irp_text_layout(data, line_edits, parent_dialog)
     irp_left_group_layout.addLayout(irp_text_layout)
 
-    # Layout para as datas (data_limite_manifestacao_irp e data_limite_confirmacao_irp)
-    irp_date_layout = create_irp_date_layout(data, {})
+    # Date layout
+    irp_date_layout = create_irp_date_layout(data, date_edits, parent_dialog)
     irp_left_group_layout.addLayout(irp_date_layout)
 
     irp_left_group_box.setLayout(irp_left_group_layout)
     return irp_left_group_box
+
 
 def create_right_section(data, templatePath):
     right_section_layout = QVBoxLayout()
@@ -55,10 +59,10 @@ def create_right_section(data, templatePath):
 
     return right_section_layout
 
-def create_irp_text_layout(data, line_edits):
+def create_irp_text_layout(data, line_edits, parent_dialog):
     irp_text_layout = QVBoxLayout()
 
-    # QHBoxLayout para msg_irp
+    # MSG IRP
     msg_irp_layout = QHBoxLayout()
     label_msg_irp = QLabel("Data/Hora MSG:")
     line_edit_msg_irp = QLineEdit()
@@ -68,7 +72,11 @@ def create_irp_text_layout(data, line_edits):
     irp_text_layout.addLayout(msg_irp_layout)
     line_edits['msg_irp'] = line_edit_msg_irp
 
-    # QHBoxLayout para num_irp
+    # Set as attributes
+    parent_dialog.label_msg_irp = label_msg_irp
+    parent_dialog.line_edit_msg_irp = line_edit_msg_irp
+
+    # Número IRP
     num_irp_layout = QHBoxLayout()
     label_num_irp = QLabel("Número IRP:")
     line_edit_num_irp = QLineEdit()
@@ -78,12 +86,17 @@ def create_irp_text_layout(data, line_edits):
     irp_text_layout.addLayout(num_irp_layout)
     line_edits['num_irp'] = line_edit_num_irp
 
+    # Set as attributes
+    parent_dialog.label_num_irp = label_num_irp
+    parent_dialog.line_edit_num_irp = line_edit_num_irp
+
     return irp_text_layout
 
-def create_irp_date_layout(data, date_edits):
+
+def create_irp_date_layout(data, date_edits, parent_dialog):
     irp_date_layout = QVBoxLayout()
 
-    # Campos de data com QCalendarWidget
+    # Date fields with QCalendarWidget
     date_fields = {
         'data_limite_manifestacao_irp': "Limite para Manifestação",
         'data_limite_confirmacao_irp': "Limite para Confirmação"
@@ -94,7 +107,7 @@ def create_irp_date_layout(data, date_edits):
         label = QLabel(label_text + ':')
         calendar_widget = QCalendarWidget()
         date_str = data.get(field)
-        valid_date = validate_and_convert_date(date_str)  # Chama a função externa
+        valid_date = validate_and_convert_date(date_str)
         if valid_date:
             calendar_widget.setSelectedDate(valid_date)
         else:
@@ -104,7 +117,16 @@ def create_irp_date_layout(data, date_edits):
         irp_date_layout.addLayout(date_layout)
         date_edits[field] = calendar_widget
 
+        # Set as attributes
+        if field == 'data_limite_manifestacao_irp':
+            parent_dialog.label_data_limite_manifestacao_irp = label
+            parent_dialog.calendar_data_limite_manifestacao_irp = calendar_widget
+        elif field == 'data_limite_confirmacao_irp':
+            parent_dialog.label_data_limite_confirmacao_irp = label
+            parent_dialog.calendar_data_limite_confirmacao_irp = calendar_widget
+
     return irp_date_layout
+
 
 def create_variable_list_group_box(data):
     variableListGroupBox = QGroupBox("Índice de Variáveis")

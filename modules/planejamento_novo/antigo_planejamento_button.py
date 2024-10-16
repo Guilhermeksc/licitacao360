@@ -262,11 +262,6 @@ class PlanejamentoWidget(QMainWindow):
         try:
             with self.database_manager as conn:
                 cursor = conn.cursor()
-
-                # Definir valores fixos para 'etapa' e 'pregoeiro'
-                # data['etapa'] = "Planejamento"
-                # data['pregoeiro'] = "-"
-
                 # Verificar se o id_processo já existe
                 cursor.execute(
                     '''
@@ -284,16 +279,16 @@ class PlanejamentoWidget(QMainWindow):
                     INSERT INTO controle_processos (
                         etapa, tipo, numero, ano, objeto, sigla_om, material_servico, 
                         id_processo, nup, orgao_responsavel, uasg, etapa, pregoeiro, 
-                        objeto_completo, setor_responsavel, srp, msg_irp, 
+                        objeto_completo, setor_responsavel, msg_irp, 
                         data_limite_manifestacao_irp, data_limite_confirmacao_irp, 
                         num_irp, valor_total, comentarios, data_sessao
                         ) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (
                         data['etapa'], data['tipo'], data['numero'], data['ano'], data['objeto'], data['sigla_om'], 
                         data['material_servico'], data['id_processo'], data['nup'], data['orgao_responsavel'], 
                         data['uasg'], data['etapa'], data['pregoeiro'], data['objeto_completo'], 
-                        data['setor_responsavel'], data['srp'], data['msg_irp'], data['data_limite_manifestacao_irp'], 
+                        data['setor_responsavel'], data['msg_irp'], data['data_limite_manifestacao_irp'], 
                         data['data_limite_confirmacao_irp'], data['num_irp'], data['valor_total'], 
                         data['comentarios'], data['data_sessao']
                     )
@@ -709,8 +704,8 @@ class SqlModel:
                 data_sessao DATE,
                 data_limite_entrega_tr DATE,
                 nup_portaria_planejamento TEXT,
-                srp TEXT,
                 material_servico VARCHAR(30),
+                tipo_licitacao TEXT,
                 parecer_agu TEXT,
                 msg_irp TEXT,
                 data_limite_manifestacao_irp DATE,
@@ -720,8 +715,6 @@ class SqlModel:
                 link_pncp TEXT,
                 link_portal_marinha TEXT,
                 comentarios TEXT,
-                prioridade INTEGER DEFAULT 0,  
-                emenda_parlamentar INTEGER DEFAULT 0,
                 tipo VARCHAR(100),
                 numero VARCHAR(100),
                 ano VARCHAR(100),
@@ -729,8 +722,6 @@ class SqlModel:
                 objeto_completo TEXT,
                 vigencia TEXT,
                 criterio_julgamento TEXT,
-                com_disputa TEXT,
-                pesquisa_preco TEXT,
                 previsao_contratacao TEXT,       
                 responsavel_pela_demanda TEXT,
                 ordenador_despesas TEXT,
@@ -739,7 +730,7 @@ class SqlModel:
                 cod_par TEXT,
                 prioridade_par TEXT,
                 cep TEXT,
-                endereco TEXT,          
+                endereco TEXT,         
                 email TEXT,
                 telefone TEXT,
                 dias_para_recebimento TEXT,
@@ -748,9 +739,13 @@ class SqlModel:
                 fonte_recursos TEXT,
                 natureza_despesa TEXT,
                 unidade_orcamentaria TEXT,
-                programa_trabalho_resuminho TEXT,
-                atividade_custeio TEXT,                          
-                justificativa TEXT   
+                ptres TEXT,                        
+                justificativa TEXT,
+                srp INTEGER,
+                atividade_custeio INTEGER,    
+                prioritario INTEGER,  
+                emenda_parlamentar INTEGER,
+                processo_parametrizado INTEGER                                 
             )
             '''
         )

@@ -186,7 +186,7 @@ class SqlModel:
                 fonte_recursos TEXT,
                 natureza_despesa TEXT,
                 unidade_orcamentaria TEXT,
-                programa_trabalho_resuminho TEXT,
+                ptres TEXT,
                 atividade_custeio TEXT,                          
                 comentarios TEXT,                          
                 justificativa TEXT,

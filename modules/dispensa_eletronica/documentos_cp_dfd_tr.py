@@ -799,7 +799,7 @@ class ConsolidarDocumentos:
             'fonte_recursos': 'Exemplo: Tesouro Nacional',
             'natureza_despesa': 'Exemplo: Material de Consumo',
             'unidade_orcamentaria': 'Exemplo: 20203',
-            'programa_trabalho_resuminho': 'Exemplo: Apoio Administrativo',
+            'ptres': 'Exemplo: Apoio Administrativo',
             'atividade_custeio': 'Exemplo: Manutenção Predial',
             'comentarios': 'Exemplo: Necessidade urgente devido ao fim do estoque',
             'justificativa': 'Exemplo: Demanda emergencial para continuidade dos serviços',

@@ -8,41 +8,44 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
 from modules.dispensa_eletronica.formulario_excel import FormularioExcel
 from diretorios import *
 
-def create_contratacao_group(data, database_manager):
+def create_contratacao_group(data, database_manager, parent_dialog):
     contratacao_group_box = QGroupBox("Contratação")
     apply_widget_style_11(contratacao_group_box)
     contratacao_layout = QVBoxLayout()
 
     # Objeto e NUP
-    contratacao_layout.addLayout(create_objeto_nup_layout(data))
+    contratacao_layout.addLayout(create_objeto_nup_layout(data, parent_dialog))
 
     # Objeto Completo
-    contratacao_layout.addLayout(create_objeto_completo_layout(data))
+    contratacao_layout.addLayout(create_objeto_completo_layout(data, parent_dialog))
 
     add_separator_line(contratacao_layout)
 
-    # Cria o layout horizontal para agrupar Material/Critério/Tipo e Data/Previsão
+    # Create the horizontal layout to group Material/Critério/Tipo and Data/Previsão
     material_previsao_layout = QHBoxLayout()
-    # Material/Serviço e Critério de Julgamento
-    material_previsao_layout.addLayout(create_material_criterio_tipo_layout(data))
-    # Checkbox layouts e adição ao group box
-    material_previsao_layout.addLayout(create_checkboxes(data))
-    # Data da Sessão e Previsão de Contratação
-    material_previsao_layout.addLayout(create_data_previsao_layout(data))
 
-    # Adiciona o layout horizontal ao layout principal do grupo
+    # Material/Serviço, Critério de Julgamento, Tipo de Licitação, Vigência
+    material_previsao_layout.addLayout(create_material_criterio_tipo_layout(data, parent_dialog))
+
+    # Checkbox layouts and addition to group box
+    material_previsao_layout.addLayout(create_checkboxes(data, parent_dialog))
+
+    # Data da Sessão and Previsão de Contratação
+    material_previsao_layout.addLayout(create_data_previsao_layout(data, parent_dialog))
+
+    # Add the horizontal layout to the group's main layout
     contratacao_layout.addLayout(material_previsao_layout)
 
     add_separator_line(contratacao_layout)
 
-    # Definir Comentários
+    # Define Comments (assuming this function also needs parent_dialog if necessary)
     contratacao_layout.addLayout(definir_comentarios(data, database_manager))
 
     contratacao_group_box.setLayout(contratacao_layout)
 
     return contratacao_group_box
 
-def create_objeto_nup_layout(data):
+def create_objeto_nup_layout(data, parent_dialog):
     # Cria o layout horizontal para Objeto e NUP
     objeto_nup_layout = QHBoxLayout()
 
@@ -61,44 +64,43 @@ def create_objeto_nup_layout(data):
 
     # Parecer AGU/NT
     parecer_agu_label = QLabel("Parecer AGU/NT:")
-    parecer_agu_edit = QLineEdit(data.get('parecer_agu', ''))
+    parecer_agu_edit = QLineEdit(data['parecer_agu'])
     parecer_agu_edit.setFixedWidth(200)
     apply_widget_style_11(parecer_agu_edit)
     objeto_nup_layout.addWidget(parecer_agu_label)
     objeto_nup_layout.addWidget(parecer_agu_edit)
 
+    # Set the widgets as attributes of the parent dialog
+    parent_dialog.objeto_edit = objeto_edit
+    parent_dialog.nup_edit = nup_edit
+    parent_dialog.parecer_agu_edit = parecer_agu_edit
+
     return objeto_nup_layout
 
-def create_objeto_completo_layout(data):
+def create_objeto_completo_layout(data, parent_dialog):
     # Cria o layout principal que ocupará o espaço disponível horizontalmente
     objeto_completo_layout = QHBoxLayout()
 
     # Valor Estimado
     valor_layout = QHBoxLayout()
+    valor_label = QLabel("Valor Estimado:")
     valor_edit = RealLineEdit(str(data.get('valor_total', "")))
     valor_edit.setFixedWidth(140)
-
-    # Configurando o QLabel para o texto
-    valor_label = QLabel("Valor Estimado:")
-
-    # Adicionando os widgets ao layout
     valor_layout.addWidget(valor_label)
     valor_layout.addWidget(valor_edit)
-
-    # Adiciona o layout do valor estimado ao layout principal
+    # Set as attribute
+    parent_dialog.valor_edit = valor_edit
     objeto_completo_layout.addLayout(valor_layout)
 
-    # Layout para o Objeto Completo
+    # Objeto Completo
     objeto_completo_label = QLabel("Objeto Completo:")
-    objeto_completo_edit = QTextEdit()
+    objeto_completo_edit = QTextEdit(data['objeto_completo'])
     objeto_completo_edit.setFixedHeight(60)
-    
-    # Removendo a altura fixa e ajustando para que o QTextEdit preencha todo o espaço disponível
     objeto_completo_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-    # Adiciona o label e o QTextEdit diretamente ao layout principal
     objeto_completo_layout.addWidget(objeto_completo_label)
     objeto_completo_layout.addWidget(objeto_completo_edit)
+    # Set as attribute
+    parent_dialog.objeto_completo_edit = objeto_completo_edit
 
     # Expande o QTextEdit para empurrar o restante do conteúdo
     objeto_completo_layout.setStretch(1, 0)  # O label não expande
@@ -106,85 +108,110 @@ def create_objeto_completo_layout(data):
 
     return objeto_completo_layout
 
-def create_material_criterio_tipo_layout(data):
-    # Cria o layout horizontal para Material/Serviço, Critério de Julgamento e Tipo de Licitação
+def create_material_criterio_tipo_layout(data, parent_dialog):
+    # Create the main vertical layout
     material_criterio_tipo_layout = QVBoxLayout()
 
-    etapas = (
-        'Planejamento', 'Consolidação de Demanda', 'Montagem do Processo',
-        'Nota Técnica', 'AGU', 'Recomendações AGU',
-        'Pré-Publicação', 'Sessão Pública', 'Assinatura Contrato', 'Concluído'
-    )
+    # Define the stages
+    etapas = [
+        'Planejamento',
+        'Consolidar Demandas',
+        'Montagem do Processo',
+        'Nota Técnica',
+        'AGU',
+        'Recomendações AGU',
+        'Pré-Publicação',
+        'Sessão Pública',
+        'Assinatura Contrato',
+        'Concluído'
+    ]
 
     # Etapa Atual
     etapa_atual_layout = QHBoxLayout()
     etapa_atual_label = QLabel("Etapa Atual:")
     apply_widget_style_11(etapa_atual_label)
-    etapa_atual = QLabel(data.get('etapa'))
+
+    etapa_atual_combo = create_combo_box(
+        data.get('etapa', etapas[0]),  # Default to the first stage if not specified
+        etapas,
+        200, 30,
+        apply_widget_style_11
+    )
     etapa_atual_layout.addWidget(etapa_atual_label)
-    etapa_atual_layout.addWidget(etapa_atual)
+    etapa_atual_layout.addWidget(etapa_atual_combo)
+    # Set as attribute
+    parent_dialog.etapa_atual_combo = etapa_atual_combo
     material_criterio_tipo_layout.addLayout(etapa_atual_layout)
 
     # Material/Serviço
     material_layout = QHBoxLayout()
     material_label = QLabel("Material/Serviço:")
     apply_widget_style_11(material_label)
-    material_edit = create_combo_box(data.get('material_servico', 'Material'),
-                                    ["Material", "Serviço"], 150, 30,
-                                    apply_widget_style_11)
+    material_edit = create_combo_box(
+        data.get('material_servico', 'Material'),
+        ["Material", "Serviço"], 150, 30, apply_widget_style_11
+    )
     material_layout.addWidget(material_label)
     material_layout.addWidget(material_edit)
+    # Set as attribute
+    parent_dialog.material_edit = material_edit
     material_criterio_tipo_layout.addLayout(material_layout)
 
     # Critério de Julgamento
     criterio_layout = QHBoxLayout()
     criterio_label = QLabel("Critério Julgamento:")
-    apply_widget_style_11(criterio_label)  # Aplicar estilo ao label
-    criterio_edit = create_combo_box(data.get('criterio_julgamento', 'Menor Preço'),
-                                    ["Menor Preço", "Maior Desconto"],
-                                    150, 30,
-                                    apply_widget_style_11)
+    apply_widget_style_11(criterio_label)
+    criterio_edit = create_combo_box(
+        data.get('criterio_julgamento', 'Menor Preço'),
+        ["Menor Preço", "Maior Desconto"], 150, 30, apply_widget_style_11
+    )
     criterio_layout.addWidget(criterio_label)
     criterio_layout.addWidget(criterio_edit)
+    # Set as attribute
+    parent_dialog.criterio_edit = criterio_edit
     material_criterio_tipo_layout.addLayout(criterio_layout)
 
     # Tipo de Licitação
     tipo_layout = QHBoxLayout()
     tipo_label = QLabel("Tipo:")
-    apply_widget_style_11(tipo_label)  # Aplicar estilo ao label
-    tipo_edit = create_combo_box(data.get('criterio_julgamento', 'Menor Preço'),
-                                ["Compras", "Gêneros", "TI", "Serviços", "Obras", "Outros"],
-                                150, 30,
-                                apply_widget_style_11)
+    apply_widget_style_11(tipo_label)
+    tipo_edit = create_combo_box(
+        data.get('tipo_licitacao', 'Compras'),
+        ["Compras", "Gêneros", "TI", "Serviços", "Obras", "Outros"], 150, 30, apply_widget_style_11
+    )
     tipo_layout.addWidget(tipo_label)
     tipo_layout.addWidget(tipo_edit)
+    # Set as attribute
+    parent_dialog.tipo_edit = tipo_edit
     material_criterio_tipo_layout.addLayout(tipo_layout)
 
     # Vigência
     vigencia_layout = QHBoxLayout()
     vigencia_label = QLabel("Vigência:")
-    apply_widget_style_11(tipo_label)  # Aplicar estilo ao label
-    vigencia_edit = create_combo_box(data.get('vigencia', '12 (Doze) meses'),
-                                ["6 (Seis) meses", "12 (Doze) meses", "24 (vinte e quatro) meses", "36 (trinta e seis) meses", "48 (quarenta e oito) meses"],
-                                200, 30,
-                                apply_widget_style_11)
+    apply_widget_style_11(vigencia_label)
+    vigencia_edit = create_combo_box(
+        data.get('vigencia', '12 (Doze) meses'),
+        ["6 (Seis) meses", "12 (Doze) meses", "24 (vinte e quatro) meses",
+         "36 (trinta e seis) meses", "48 (quarenta e oito) meses"],
+        200, 30, apply_widget_style_11
+    )
     vigencia_layout.addWidget(vigencia_label)
     vigencia_layout.addWidget(vigencia_edit)
+    # Set as attribute
+    parent_dialog.vigencia_edit = vigencia_edit
     material_criterio_tipo_layout.addLayout(vigencia_layout)
 
     return material_criterio_tipo_layout
 
-def create_data_previsao_layout(data):
-    # Cria o layout horizontal para Data da Sessão e Previsão de Contratação
+def create_data_previsao_layout(data, parent_dialog):
+    # Create the layout
     data_previsao_layout = QHBoxLayout()
 
-    # Data da Sessão
+    # Data da Sessão Pública
     data_layout = QVBoxLayout()
     data_label = QLabel("Data da Sessão Pública:")
     apply_widget_style_11(data_label)
     data_edit = QCalendarWidget()
-    # Removendo a coluna de semana do calendário
-            
     data_sessao_str = data.get('data_sessao', '')
     if data_sessao_str:
         data_edit.setSelectedDate(QDate.fromString(data_sessao_str, "yyyy-MM-dd"))
@@ -192,16 +219,15 @@ def create_data_previsao_layout(data):
         data_edit.setSelectedDate(QDate.currentDate())
     data_layout.addWidget(data_label)
     data_layout.addWidget(data_edit)
+    # Set as attribute
+    parent_dialog.data_edit = data_edit
     data_previsao_layout.addLayout(data_layout)
 
-    # Previsão Contratação
+    # Previsão da Contratação
     previsao_contratacao_layout = QVBoxLayout()
     previsao_contratacao_label = QLabel("Previsão da Contratação:")
     apply_widget_style_11(previsao_contratacao_label)
     previsao_contratacao_edit = QCalendarWidget()
-    # Removendo a coluna de semana do calendário
-    
-    
     previsao_contratacao_str = data.get('previsao_contratacao', '')
     if previsao_contratacao_str:
         previsao_contratacao_edit.setSelectedDate(QDate.fromString(previsao_contratacao_str, "yyyy-MM-dd"))
@@ -209,11 +235,13 @@ def create_data_previsao_layout(data):
         previsao_contratacao_edit.setSelectedDate(QDate.currentDate())
     previsao_contratacao_layout.addWidget(previsao_contratacao_label)
     previsao_contratacao_layout.addWidget(previsao_contratacao_edit)
+    # Set as attribute
+    parent_dialog.previsao_contratacao_edit = previsao_contratacao_edit
     data_previsao_layout.addLayout(previsao_contratacao_layout)
 
     return data_previsao_layout
 
-def create_checkboxes(data):
+def create_checkboxes(data, parent_dialog):
     checkbox_style = """
         QCheckBox::indicator {
             width: 25px;
@@ -223,47 +251,60 @@ def create_checkboxes(data):
 
     checkboxes_layout = QVBoxLayout()
 
-    # Checkbox para "Prioritário?"
+    def to_bool(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in ('sim', 'true', 'yes', '1')
+        return False
+
+    # Prioritário
     checkbox_prioritario = QCheckBox("Prioritário")
     checkbox_prioritario.setStyleSheet(checkbox_style)
-    checkbox_prioritario.setChecked(data.get('pesquisa_preco', 'Não') == 'Sim')
+    checkbox_prioritario.setChecked(to_bool(data.get('prioritario', False)))
     checkbox_prioritario.setIcon(QIcon(str(ICONS_DIR / "prioridade.png")))
     checkbox_prioritario.setIconSize(QSize(24, 24))
     checkboxes_layout.addWidget(checkbox_prioritario)
+    parent_dialog.checkbox_prioritario = checkbox_prioritario
 
-    # Checkbox para "Emenda Parlamentar?"
+    # Emenda Parlamentar
     checkbox_emenda = QCheckBox("Emenda Parlamentar")
     checkbox_emenda.setStyleSheet(checkbox_style)
-    checkbox_emenda.setChecked(data.get('atividade_custeio', 'Não') == 'Sim')
+    checkbox_emenda.setChecked(to_bool(data.get('emenda_parlamentar', False)))
     checkbox_emenda.setIcon(QIcon(str(ICONS_DIR / "subsidy.png")))
     checkbox_emenda.setIconSize(QSize(24, 24))
     checkboxes_layout.addWidget(checkbox_emenda)
+    parent_dialog.checkbox_emenda = checkbox_emenda
 
-    # Checkbox para "Registro de Preços?"
+    # Registro de Preços
     checkbox_registro_precos = QCheckBox("SRP")
     checkbox_registro_precos.setStyleSheet(checkbox_style)
-    checkbox_registro_precos.setChecked(data.get('registro_precos', 'Não') == 'Sim')
+    checkbox_registro_precos.setChecked(to_bool(data.get('srp', False)))
     checkbox_registro_precos.setIcon(QIcon(str(ICONS_DIR / "price-tag.png")))
     checkbox_registro_precos.setIconSize(QSize(24, 24))
     checkboxes_layout.addWidget(checkbox_registro_precos)
+    parent_dialog.checkbox_registro_precos = checkbox_registro_precos
 
-    # Checkbox para "Atividade de Custeio?"
+    # Atividade de Custeio
     checkbox_atividade_custeio = QCheckBox("Atividade de Custeio")
     checkbox_atividade_custeio.setStyleSheet(checkbox_style)
-    checkbox_atividade_custeio.setChecked(data.get('atividade_custeio', 'Não') == 'Sim')
+    checkbox_atividade_custeio.setChecked(to_bool(data.get('atividade_custeio', False)))
     checkbox_atividade_custeio.setIcon(QIcon(str(ICONS_DIR / "verify_menu.png")))
     checkbox_atividade_custeio.setIconSize(QSize(24, 24))
     checkboxes_layout.addWidget(checkbox_atividade_custeio)
+    parent_dialog.checkbox_atividade_custeio = checkbox_atividade_custeio
 
-    # Checkbox para "Processo Parametrizado"
+    # Processo Parametrizado
     checkbox_parametrizado = QCheckBox("Processo Parametrizado")
     checkbox_parametrizado.setStyleSheet(checkbox_style)
-    checkbox_parametrizado.setChecked(data.get('atividade_custeio', 'Não') == 'Sim')
+    checkbox_parametrizado.setChecked(to_bool(data.get('processo_parametrizado', False)))
     checkbox_parametrizado.setIcon(QIcon(str(ICONS_DIR / "standard.png")))
     checkbox_parametrizado.setIconSize(QSize(24, 24))
     checkboxes_layout.addWidget(checkbox_parametrizado)
+    parent_dialog.checkbox_parametrizado = checkbox_parametrizado
 
     return checkboxes_layout
+
 
 def create_frame_formulario_group():
     formulario_group_box = QGroupBox("Formulário de Dados")

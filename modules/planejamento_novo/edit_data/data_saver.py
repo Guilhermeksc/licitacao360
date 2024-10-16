@@ -7,6 +7,9 @@ class DataSaver:
         try:
             # Atualizar o DataFrame com os novos valores
             for key, value in data.items():
+                # Check if the DataFrame column is of type int64 and the value is boolean
+                if self.df_registro_selecionado[key].dtype == 'int64' and isinstance(value, bool):
+                    value = int(value)
                 self.df_registro_selecionado.at[self.df_registro_selecionado.index[0], key] = value
 
             # Atualizar banco de dados
@@ -15,17 +18,19 @@ class DataSaver:
         except Exception as e:
             raise Exception(f"Ocorreu um erro ao salvar as alterações: {str(e)}")
 
+
     def update_database(self, data):
         try:
             with self.database_manager as connection:
                 cursor = connection.cursor()
 
-                # Apenas incluir colunas que realmente existem no banco de dados
-                available_columns = self.get_available_columns(cursor)  # Função que retorna as colunas disponíveis no banco
+                # Get available columns
+                available_columns = self.get_available_columns(cursor)
 
-                # Filtrar os dados com base nas colunas disponíveis
+                # Filter data to include only columns that exist in the database
                 filtered_data = {key: value for key, value in data.items() if key in available_columns}
 
+                # Build the SQL query
                 set_part = ', '.join([f"{key} = ?" for key in filtered_data.keys()])
                 valores = list(filtered_data.values())
                 valores.append(self.df_registro_selecionado['id_processo'].iloc[0])
@@ -38,6 +43,6 @@ class DataSaver:
             raise Exception(f"Erro ao atualizar o banco de dados: {str(e)}")
 
     def get_available_columns(self, cursor):
-        cursor.execute("PRAGMA table_info(controle_dispensas)")
+        cursor.execute("PRAGMA table_info(controle_processos)")
         columns_info = cursor.fetchall()
         return [col[1] for col in columns_info]

@@ -7,48 +7,48 @@ from modules.planejamento_novo.edit_data.edit_dialog_utils import (
 from diretorios import *
 import os
 
-def create_tr_group(data, templatePath):
-    # Cria o layout principal
+def create_tr_group(data, templatePath, parent_dialog):
+    # Create the main layout
     main_layout = QVBoxLayout()
 
-    # Adiciona a label para o título
+    # Add a label for the title
     titulo_label = QLabel("Termo de Referência (TR)")
     titulo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     titulo_label.setStyleSheet("color: #8AB4F7; font-size: 18px; font-weight: bold")
     main_layout.addWidget(titulo_label)
 
-    # Armazena o valor do título
+    # Store the title value
     titulo = titulo_label.text()
 
-    # Cria a barra de rolagem
+    # Create a scroll area
     scroll_area = QScrollArea()
     scroll_area.setWidgetResizable(True)
 
-    # Cria o conteúdo da barra de rolagem
+    # Create the scroll area content
     scroll_content = QWidget()
     scroll_layout = QVBoxLayout(scroll_content)
 
-    # Layout para Informações Básicas e Classificação Orçamentária
+    # Layout for Basic Information and Budget Classification
     informacoes_basicas_layout = QHBoxLayout()
-    informacoes_basicas_layout.addLayout(create_tr_layout(data))  # Layout da esquerda
+    informacoes_basicas_layout.addLayout(create_tr_layout(data, parent_dialog))  # Left layout
 
-    classificacao_orcamentaria_group = create_classificacao_orcamentaria_group(data)  # Widget da direita
+    classificacao_orcamentaria_group = create_classificacao_orcamentaria_group(data, parent_dialog)  # Right widget
     informacoes_basicas_layout.addWidget(classificacao_orcamentaria_group)
 
-    # Definindo a proporção entre os layouts esquerdo e direito
+    # Set the proportion between the layouts
     informacoes_basicas_layout.setStretch(0, 3)
     informacoes_basicas_layout.setStretch(1, 1)
 
-    # Adiciona o layout de informações básicas ao layout de rolagem
+    # Add the basic information layout to the scroll layout
     scroll_layout.addLayout(informacoes_basicas_layout)
 
-    # Define o layout do conteúdo da barra de rolagem
+    # Set the scroll content layout
     scroll_area.setWidget(scroll_content)
 
-    # Adiciona a barra de rolagem ao layout principal
+    # Add the scroll area to the main layout
     main_layout.addWidget(scroll_area)
 
-    # Layout para Sigdem e Menu (fora da barra de rolagem)
+    # Layout for Sigdem and Menu (outside the scroll area)
     sigdem_layout = create_sigdem_layout(data, titulo)
     menu_layout = create_menu_layout(templatePath)
 
@@ -58,107 +58,110 @@ def create_tr_group(data, templatePath):
     sigdem_menu_layout.setStretch(0, 4)
     sigdem_menu_layout.setStretch(1, 1)
 
-    # Cria um widget para conter o layout sigdem_menu_layout
+    # Create a widget to contain the sigdem_menu_layout
     sigdem_menu_widget = QWidget()
     sigdem_menu_widget.setLayout(sigdem_menu_layout)
-    sigdem_menu_widget.setFixedHeight(250)  # Define a altura fixa de 250
+    sigdem_menu_widget.setFixedHeight(250)  # Set fixed height
 
     main_layout.addWidget(sigdem_menu_widget)
 
-    # Cria um widget para o grupo MR e define o layout
-    mr_group_widget = QWidget()
-    mr_group_widget.setLayout(main_layout)
+    # Create a widget for the TR group and set the layout
+    tr_group_widget = QWidget()
+    tr_group_widget.setLayout(main_layout)
 
-    return mr_group_widget
+    return tr_group_widget
 
-def create_classificacao_orcamentaria_group(data):
+def create_classificacao_orcamentaria_group(data, parent_dialog):
     classificacao_orcamentaria_group_box = QGroupBox("Classificação Orçamentária")
     apply_widget_style_11(classificacao_orcamentaria_group_box)
-    classificacao_orcamentaria_group_box.setFixedWidth(350)  
+    classificacao_orcamentaria_group_box.setFixedWidth(350)
     classificacao_orcamentaria_layout = QVBoxLayout()
 
-    acao_interna_edit = QLineEdit(data['uasg'])
-    fonte_recurso_edit = QLineEdit(data['uasg'])
-    natureza_despesa_edit = QLineEdit(data['uasg'])
-    unidade_orcamentaria_edit = QLineEdit(data['uasg'])
-    ptres_edit = QLineEdit(data['uasg'])
+    # Set widgets as attributes of parent_dialog
+    parent_dialog.acao_interna_edit = QLineEdit(data.get('acao_interna', ''))
+    parent_dialog.fonte_recurso_edit = QLineEdit(data.get('fonte_recursos', ''))
+    parent_dialog.natureza_despesa_edit = QLineEdit(data.get('natureza_despesa', ''))
+    parent_dialog.unidade_orcamentaria_edit = QLineEdit(data.get('unidade_orcamentaria', ''))
+    parent_dialog.ptres_edit = QLineEdit(data.get('ptres', ''))
 
-    # Utilizando a função create_layout fora da classe
-    classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", acao_interna_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Fonte de Recurso (FR):", fonte_recurso_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Natureza de Despesa (ND):", natureza_despesa_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("Unidade Orçamentária (UO):", unidade_orcamentaria_edit, apply_style_fn=apply_widget_style_11))
-    classificacao_orcamentaria_layout.addLayout(create_layout("PTRES:", ptres_edit, apply_style_fn=apply_widget_style_11))
+    # Use the create_layout function
+    classificacao_orcamentaria_layout.addLayout(create_layout("Ação Interna:", parent_dialog.acao_interna_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Fonte de Recurso (FR):", parent_dialog.fonte_recurso_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Natureza de Despesa (ND):", parent_dialog.natureza_despesa_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("Unidade Orçamentária (UO):", parent_dialog.unidade_orcamentaria_edit, apply_style_fn=apply_widget_style_11))
+    classificacao_orcamentaria_layout.addLayout(create_layout("PTRES:", parent_dialog.ptres_edit, apply_style_fn=apply_widget_style_11))
 
     classificacao_orcamentaria_group_box.setLayout(classificacao_orcamentaria_layout)
 
     return classificacao_orcamentaria_group_box
 
-def create_tr_layout(data):
-    # Cria um layout vertical principal
+def create_tr_layout(data, parent_dialog):
+    # Create a main vertical layout
     layout = QVBoxLayout()
 
-    # Label e QTextEdit para Endereço de Entrega
+    # Label and QTextEdit for Delivery Address
     endereco_layout = QHBoxLayout()
     endereco_label = QLabel("Endereço de Entrega:")
     apply_widget_style_11(endereco_label)
-    endereco_text_edit = QTextEdit()
-    endereco_text_edit.setMaximumHeight(60)
-    apply_widget_style_11(endereco_text_edit)
+    parent_dialog.endereco_text_edit = QTextEdit(data.get('endereco_entrega', ''))
+    parent_dialog.endereco_text_edit.setMaximumHeight(60)
+    apply_widget_style_11(parent_dialog.endereco_text_edit)
     endereco_layout.addWidget(endereco_label)
-    endereco_layout.addWidget(endereco_text_edit)
+    endereco_layout.addWidget(parent_dialog.endereco_text_edit)
     layout.addLayout(endereco_layout)
 
-    # Label e QLineEdit para Prazo para itens rejeitados
+    # Label and QLineEdit for Deadline for Rejected Items
     prazo_rejeitados_layout = QHBoxLayout()
     prazo_rejeitados_label = QLabel("Prazo para itens rejeitados:")
     apply_widget_style_11(prazo_rejeitados_label)
-    prazo_rejeitados_value = QLineEdit("30 (trinta) dias")
-    apply_widget_style_11(prazo_rejeitados_value)
+    parent_dialog.prazo_rejeitados_value = QLineEdit(data.get('prazo_itens_rejeitados', '30 (trinta) dias'))
+    apply_widget_style_11(parent_dialog.prazo_rejeitados_value)
     prazo_rejeitados_layout.addWidget(prazo_rejeitados_label)
-    prazo_rejeitados_layout.addWidget(prazo_rejeitados_value)
+    prazo_rejeitados_layout.addWidget(parent_dialog.prazo_rejeitados_value)
     layout.addLayout(prazo_rejeitados_layout)
 
-    # Label e QLineEdit para Prazo máximo para o recebimento definitivo
+    # Label and QLineEdit for Maximum Deadline for Definitive Receipt
     prazo_recebimento_layout = QHBoxLayout()
     prazo_recebimento_label = QLabel("Prazo máximo para o recebimento definitivo:")
     apply_widget_style_11(prazo_recebimento_label)
-    prazo_recebimento_value = QLineEdit("30 (trinta) dias")
-    apply_widget_style_11(prazo_recebimento_value)
+    parent_dialog.prazo_recebimento_value = QLineEdit(data.get('prazo_recebimento_definitivo', '30 (trinta) dias'))
+    apply_widget_style_11(parent_dialog.prazo_recebimento_value)
     prazo_recebimento_layout.addWidget(prazo_recebimento_label)
-    prazo_recebimento_layout.addWidget(prazo_recebimento_value)
+    prazo_recebimento_layout.addWidget(parent_dialog.prazo_recebimento_value)
     layout.addLayout(prazo_recebimento_layout)
 
-    # Label e QComboBox para Índice de correção monetária
+    # Label and QComboBox for Monetary Correction Index
     correcao_layout = QHBoxLayout()
     correcao_label = QLabel("Índice de correção monetária:")
     apply_widget_style_11(correcao_label)
-    correcao_combobox = QComboBox()
-    correcao_combobox.addItems(["IPCA-E", "IGPM", "IPCA", "X", "Y", "Z"])
-    apply_widget_style_11(correcao_combobox)
+    parent_dialog.correcao_combobox = QComboBox()
+    parent_dialog.correcao_combobox.addItems(["IPCA-E", "IGPM", "IPCA", "X", "Y", "Z"])
+    parent_dialog.correcao_combobox.setCurrentText(data.get('indice_correcao_monetaria', 'IPCA-E'))
+    apply_widget_style_11(parent_dialog.correcao_combobox)
     correcao_layout.addWidget(correcao_label)
-    correcao_layout.addWidget(correcao_combobox)
+    correcao_layout.addWidget(parent_dialog.correcao_combobox)
     layout.addLayout(correcao_layout)
 
-    # Label e QComboBox para Forma de fornecimento
+    # Label and QComboBox for Supply Form
     fornecimento_layout = QHBoxLayout()
     fornecimento_label = QLabel("Forma de fornecimento:")
     apply_widget_style_11(fornecimento_label)
-    fornecimento_combobox = QComboBox()
-    fornecimento_combobox.addItems(["integral", "parcelado", "continuado"])
-    apply_widget_style_11(fornecimento_combobox)
+    parent_dialog.fornecimento_combobox = QComboBox()
+    parent_dialog.fornecimento_combobox.addItems(["integral", "parcelado", "continuado"])
+    parent_dialog.fornecimento_combobox.setCurrentText(data.get('forma_fornecimento', 'integral'))
+    apply_widget_style_11(parent_dialog.fornecimento_combobox)
     fornecimento_layout.addWidget(fornecimento_label)
-    fornecimento_layout.addWidget(fornecimento_combobox)
+    fornecimento_layout.addWidget(parent_dialog.fornecimento_combobox)
     layout.addLayout(fornecimento_layout)
 
-    # Label e QLabel para Índices de Liquidez Geral (LG)
+    # Label and QLineEdit for General Liquidity Indices (LG)
     liquidez_layout = QHBoxLayout()
     liquidez_label = QLabel("Índices de Liquidez Geral (LG):")
     apply_widget_style_11(liquidez_label)
-    liquidez_value = QLineEdit("10%")
-    apply_widget_style_11(liquidez_value)
+    parent_dialog.liquidez_value = QLineEdit(data.get('indices_liquidez_geral', '10%'))
+    apply_widget_style_11(parent_dialog.liquidez_value)
     liquidez_layout.addWidget(liquidez_label)
-    liquidez_layout.addWidget(liquidez_value)
+    liquidez_layout.addWidget(parent_dialog.liquidez_value)
     layout.addLayout(liquidez_layout)
 
     return layout
