@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-from modules.atas.regex_termo_homolog import *
-from modules.atas.regex_sicaf import *
-from modules.atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
+from modules.gerar_atas.regex_termo_homolog import *
+from modules.gerar_atas.regex_sicaf import *
+from modules.gerar_atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
 from diretorios import *
 import pandas as pd
 import matplotlib.pyplot as plt

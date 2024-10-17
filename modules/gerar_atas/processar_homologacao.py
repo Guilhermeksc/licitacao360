@@ -2,12 +2,12 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from modules.atas.regex_termo_homolog import *
-from modules.atas.regex_sicaf import *
-from modules.atas.canvas_gerar_atas import *
+from modules.gerar_atas.regex_termo_homolog import *
+from modules.gerar_atas.regex_sicaf import *
+from modules.gerar_atas.canvas_gerar_atas import *
 from database.utils.treeview_utils import open_folder, load_images, create_button
 from diretorios import *
-from modules.atas.data_utils import PDFProcessingThread
+from modules.gerar_atas.data_utils import PDFProcessingThread
 import webbrowser
 
 class ProgressDialog(QDialog):

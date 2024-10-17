@@ -7,10 +7,11 @@ from diretorios import ICONS_DIR, IMAGE_PATH
 from database.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.pca.pca import PCAWidget
 from modules.pncp.pncp import PNCPWidget
-from modules.atas.layout_gerar_atas import GerarAtasWidget
+from modules.gerar_atas.layout_gerar_atas import GerarAtasWidget
 from modules.planejamento_novo.antigo_planejamento_button import PlanejamentoWidget
 from modules.dispensa_eletronica.classe_dispensa_eletronica import DispensaEletronicaWidget
 from modules.matriz_de_riscos.classe_matriz import MatrizRiscosWidget
+from modules.atas.classe_atas import AtasWidget
 from modules.contratos.classe_contratos import ContratosWidget
 from config.menu_superior.config.config_database import ConfigurarDatabaseDialog
 from config.menu_superior.config.config_responsaveis import AgentesResponsaveisDialog
@@ -259,7 +260,6 @@ class MainWindow(QMainWindow):
         # Conecta o clique do botão de configuração ao menu personalizado
         config_button.clicked.connect(lambda: self.show_settings_menu(config_button))
 
-
     def create_menu_button(self, name):
         button = QPushButton(f" {name}")
         button.setStyleSheet(get_menu_button_style())
@@ -384,7 +384,8 @@ class MainWindow(QMainWindow):
         content_actions = {
             "Licitação": self.setup_planejamento,
             "PCA": self.setup_pca,
-            "Gerar Atas": self.setup_atas,
+            "Gerar Atas": self.setup_gerar_atas,
+            "Atas": self.setup_atas,
             "Contratos": self.setup_contratos,
             "Dispensa": self.setup_dispensa_eletronica,
             "Matriz": self.setup_matriz_riscos,
@@ -432,10 +433,16 @@ class MainWindow(QMainWindow):
         self.pca_widget = PNCPWidget(self)
         self.content_layout.addWidget(self.pca_widget)
 
-    def setup_atas(self):
+    def setup_gerar_atas(self):
         self.clear_content_area()
         self.atas_contratos_widget = GerarAtasWidget(str(ICONS_DIR), self)
         self.content_layout.addWidget(self.atas_contratos_widget)
+
+    def setup_atas(self):
+        self.clear_content_area()
+        self.atas_widget = AtasWidget(str(ICONS_DIR), self)
+        self.content_layout.addWidget(self.atas_widget)
+        print("Contratos widget added to layout")
 
     def setup_contratos(self):
         print("Setting up contratos...")

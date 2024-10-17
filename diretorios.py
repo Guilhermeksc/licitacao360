@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "database"
 CONFIG_FILE = BASE_DIR / "config.json"
 CONTROLE_CONTRATOS_DADOS = DATABASE_DIR / "controle_contrato.db"
+CONTROLE_ATAS_DADOS = DATABASE_DIR / "controle_atas.db"
 CONTROLE_ASS_CONTRATOS_DADOS = DATABASE_DIR / "controle_assinatura.db"
 HOME_PATH = BASE_DIR / "main.py"
 

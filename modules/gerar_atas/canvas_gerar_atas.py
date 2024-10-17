@@ -1,5 +1,5 @@
-from modules.atas.regex_termo_homolog import *
-from modules.atas.regex_sicaf import *
+from modules.gerar_atas.regex_termo_homolog import *
+from modules.gerar_atas.regex_sicaf import *
 import locale
 from docxtpl import DocxTemplate
 from docx import Document

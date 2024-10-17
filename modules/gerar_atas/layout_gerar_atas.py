@@ -2,15 +2,15 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from pathlib import Path
-from modules.atas.regex_termo_homolog import *
-from modules.atas.regex_sicaf import *
-from modules.atas.processar_homologacao import ProgressDialog
-from modules.atas.processar_sicaf import SICAFDialog
-from modules.atas.relatorio_indicadores import RelatorioIndicadores
-from modules.atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
-from modules.atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
-from modules.atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
-from modules.atas.dialog_gerar_atas import AtasDialog
+from modules.gerar_atas.regex_termo_homolog import *
+from modules.gerar_atas.regex_sicaf import *
+from modules.gerar_atas.processar_homologacao import ProgressDialog
+from modules.gerar_atas.processar_sicaf import SICAFDialog
+from modules.gerar_atas.relatorio_indicadores import RelatorioIndicadores
+from modules.gerar_atas.utils import create_button, load_icons, apply_standard_style, limpar_quebras_de_linha
+from modules.gerar_atas.data_utils import DatabaseDialog, PDFProcessingThread, atualizar_modelo_com_dados, save_to_dataframe, load_file_path, obter_arquivos_txt, ler_arquivos_txt
+from modules.gerar_atas.canvas_gerar_atas import criar_pastas_com_subpastas, abrir_pasta, gerar_soma_valor_homologado, inserir_relacao_empresa, inserir_relacao_itens, adicione_texto_formatado
+from modules.gerar_atas.dialog_gerar_atas import AtasDialog
 from diretorios import *
 import pandas as pd
 import numpy as np
