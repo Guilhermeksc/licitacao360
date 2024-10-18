@@ -525,8 +525,8 @@ def main():
         QTimer.singleShot(i * 20, lambda value=i: update_progress(value))
 
     # Fechar a splash screen e mostrar a janela principal após a animação
-    QTimer.singleShot(2000, lambda: splash.close())
-    QTimer.singleShot(2000, lambda: MainWindow(app).show())
+    QTimer.singleShot(1, lambda: splash.close())
+    QTimer.singleShot(1, lambda: MainWindow(app).show())
 
     sys.exit(app.exec())
 

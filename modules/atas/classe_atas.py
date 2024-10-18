@@ -148,45 +148,149 @@ class AtasWidget(QMainWindow):
             print(f"Erro ao abrir o diálogo: {str(e)}")
             QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao abrir o diálogo de edição: {str(e)}")
 
-class UIManager:
+class UIManager(QObject):
     def __init__(self, parent, icons, config_manager, model):
+        super().__init__(parent)  # Inicializa a classe QObject
         self.parent = parent
         self.icons = icons
         self.config_manager = config_manager
         self.model = model
         self.main_widget = QWidget(parent)
-        self.main_layout = QVBoxLayout(self.main_widget)
-        self.button_manager = ButtonManager(self.parent, self.icons)
+        self.main_layout = QHBoxLayout(self.main_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)  # Remove as margens do layout principal
         self.init_ui()
 
     def init_ui(self):
+        self.setup_main_content()
+        self.setup_side_menu()
+
+        self.parent.setCentralWidget(self.main_widget)
+
+    def setup_side_menu(self):
+        # Cria um layout vertical para o menu lateral
+        self.side_menu_layout = QVBoxLayout()
+        self.side_menu_layout.setContentsMargins(0, 0, 0, 0)
+        self.side_menu_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Mapeia as chaves dos ícones com os textos dos tooltips
+        icon_keys_and_actions = [
+            ("Mensagem", "Enviar Mensagem", self.parent.show_mensagem_dialog),
+            ("API", "Configurações de API", self.parent.gerenciar_itens),
+            ("excel", "Salvar Tabela", self.parent.salvar_tabela),
+            ("statistics", "Visualizar Nota Técnica", self.parent.salvar_tabela),
+            ("data-server", "Gerenciar Contratos", self.parent.salvar_tabela),
+            ("external-link", "Abrir Site", self.parent.salvar_tabela),
+            ("download-pdf", "Relatório de Contratos", self.parent.salvar_tabela),
+            ("portaria_fiscal", "Portaria de Fiscalização", self.parent.salvar_tabela),
+        ]
+
+        # Adiciona os botões ao menu lateral e conecta os sinais
+        for icon_key, tooltip_text, action in icon_keys_and_actions:
+            button = self.create_menu_button(icon_key, tooltip_text)
+            button.clicked.connect(action)  # Conecta o clique do botão à função correspondente
+            self.side_menu_layout.addWidget(button)
+
+        # Adiciona o menu lateral ao layout principal
+        side_menu_widget = QWidget()
+        side_menu_widget.setLayout(self.side_menu_layout)
+        self.main_layout.addWidget(side_menu_widget)
+
+    def create_menu_button(self, icon_key, tooltip_text):
+        # Obtém os ícones não selecionado (padrão) e selecionado (azul)
+        icon_default = self.icons.get(icon_key)
+        icon_selected = self.icons.get(f"{icon_key}_azul")
+
+        if not icon_default or not icon_selected:
+            raise ValueError(f"Os ícones para '{icon_key}' não foram encontrados em 'self.icons'.")
+
+        # Cria um botão com o ícone padrão para o menu lateral
+        button = QPushButton()
+        button.setIcon(icon_selected)  # Usa o ícone não selecionado inicialmente
+        button.setIconSize(QSize(40, 40))
+        button.setStyleSheet("""
+            QPushButton {
+                border: none;
+                background-color: transparent;
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 0, 0, 0);
+            }
+            QToolTip {
+                background-color: #13141F;
+                color: white;
+                border: none;
+                font-size: 14px;
+            }                             
+        """)
+
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setFixedSize(50, 50)
+        button.setToolTip(tooltip_text)  # Define o texto do tooltip
+        button.setToolTipDuration(0)     # Faz o tooltip aparecer instantaneamente
+
+        # Adiciona o evento de filtro para alterar o ícone no hover
+        button.installEventFilter(self)
+
+        # Armazena os ícones para uso posterior
+        button.icon_default = icon_default
+        button.icon_selected = icon_selected
+
+        return button
+
+    def eventFilter(self, source, event):
+        if isinstance(source, QPushButton):
+            if event.type() == QEvent.Type.Enter:
+                # Muda o ícone para o ícone "hover" (azul) ao passar o mouse
+                source.setIcon(source.icon_default)
+            elif event.type() == QEvent.Type.Leave:
+                # Restaura o ícone para o ícone padrão ao sair do botão
+                source.setIcon(source.icon_selected)
+        return super().eventFilter(source, event)
+
+    def setup_main_content(self):
+        # Cria um layout vertical para o conteúdo principal
+        self.content_layout = QVBoxLayout()
+        
+        # Configura a barra de pesquisa e os botões
         self.setup_search_bar_and_buttons()
         self.setup_table_view()
-        self.parent.setCentralWidget(self.main_widget)
-        
+
+        # Adiciona o layout de conteúdo ao layout principal
+        content_widget = QWidget()
+        content_widget.setLayout(self.content_layout)
+        self.main_layout.addWidget(content_widget)
+
+    def get_codigo_unidade(self):
+        # Verifica se o modelo tem dados
+        if self.model.rowCount() > 0:
+            # Obtém o valor da primeira linha e da coluna específica que representa 'codigo_unidade'
+            index = self.model.index(0, self.model.fieldIndex("codigo_unidade"))
+            codigo_unidade = self.model.data(index)
+            return codigo_unidade if codigo_unidade else "Não Definido"
+        return "Não Definido"
+
     def setup_search_bar_and_buttons(self):
         search_layout = QHBoxLayout()
+        search_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Adicionar texto "Localizar:"
-        search_label = QLabel("Localizar:")
-        search_label.setStyleSheet("font-size: 14px;")
+        # Obtém o valor do código da unidade
+        codigo_unidade = self.get_codigo_unidade()
+        search_label = QLabel(f"Controle de Atas - Uasg {codigo_unidade}")
+        search_label.setStyleSheet("font-size: 20px; font-weight: bold;")
+
         search_layout.addWidget(search_label)
-        
-        # Adicionar barra de pesquisa
+
         self.search_bar = QLineEdit(self.parent)
         self.search_bar.setPlaceholderText("Digite para buscar...")
         self.search_bar.setStyleSheet("font-size: 14px;")
         search_layout.addWidget(self.search_bar)
-        
+
         def handle_text_change(text):
             regex = QRegularExpression(text, QRegularExpression.PatternOption.CaseInsensitiveOption)
             self.parent.proxy_model.setFilterRegularExpression(regex)
-        
-        self.search_bar.textChanged.connect(handle_text_change)
 
-        # Adicionar layout de botões na mesma linha da barra de pesquisa
-        self.setup_buttons_layout(search_layout)
-        self.main_layout.addLayout(search_layout)
+        self.search_bar.textChanged.connect(handle_text_change)
+        self.content_layout.addLayout(search_layout)
 
     def setup_buttons_layout(self, parent_layout):
         self.buttons_layout = QHBoxLayout()
@@ -195,36 +299,27 @@ class UIManager:
         for i in range(self.buttons_layout.count()):
             widget = self.buttons_layout.itemAt(i).widget()
             if isinstance(widget, QPushButton):
-                widget.setStyleSheet("font-size: 14px; min-width: 120px; min-height: 20px; max-width: 120px; max-height: 20px;")
-                
+                widget.setStyleSheet(
+                    "font-size: 14px; min-width: 120px; min-height: 20px; max-width: 120px; max-height: 20px;"
+                )
+
     def setup_table_view(self):
         self.table_view = CustomTableView(main_app=self.parent, config_manager=self.config_manager, parent=self.main_widget)
         self.table_view.setModel(self.model)
-        self.main_layout.addWidget(self.table_view)
-        
-        # Corrigir: Desativar edição com duplo clique
+        self.content_layout.addWidget(self.table_view)
         self.table_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        
-        # Definir o comportamento de seleção para selecionar linhas inteiras
         self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        
-        # Configurar para permitir seleção única
         self.table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        
+
         self.configure_table_model()
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
         self.apply_custom_style()
-        # Centralizar as colunas
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
             self.table_view.setItemDelegateForColumn(column, center_delegate)
 
         status_index = self.model.fieldIndex("status")
-        print(f"Índice da coluna 'status': {status_index}")  # Para depuração
-
-        # Configurar o CustomItemDelegate para a coluna 41
-        center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
             if column != status_index:
                 self.table_view.setItemDelegateForColumn(column, center_delegate)
@@ -233,13 +328,8 @@ class UIManager:
             status_index,
             CustomItemDelegate(self.icons, status_index, self.table_view)
         )
-
         self.reorder_columns()
-
-        # Conectar o evento de duplo clique à função que abre o diálogo
         self.table_view.doubleClicked.connect(self.open_editar_dados_dialog)
-
-        # Adicionar menu de contexto (clique direito)
         self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_view.customContextMenuRequested.connect(self.show_context_menu)
 
@@ -281,9 +371,9 @@ class UIManager:
 
             # Obter os valores de cnpj, ano, sequencial e numero_ata do df_registro_selecionado
             cnpj = df_registro_selecionado.get("cnpj", [None])[0]
-            ano = df_registro_selecionado.get("ano", [None])[0]
+            ano = df_registro_selecionado.get("sequencial_ano_pncp", [None])[0]
             sequencial = df_registro_selecionado.get("sequencial", [None])[0]
-            numero_ata = df_registro_selecionado.get("numero_ata", [None])[0]
+            numero_ata = df_registro_selecionado.get("sequencial_ata_pncp", [None])[0]
 
             # Verificar se todos os valores necessários estão presentes
             if not all([cnpj, ano, sequencial, numero_ata]):
@@ -408,8 +498,8 @@ class UIManager:
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(12, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(14, QHeaderView.ResizeMode.Stretch)
         header.resizeSection(0, 200)
         header.resizeSection(1, 60)
         header.resizeSection(2, 170)
@@ -464,47 +554,24 @@ class UIManager:
             2: "Cnpj",
             4: "Sequencial",
             5: "Ano",
-            6: "Número Ata",
-            12: "Objeto",
+            7: "Número",
+            14: "Objeto",
         }
         for column, title in titles.items():
             self.model.setHeaderData(column, Qt.Orientation.Horizontal, title)
 
     def reorder_columns(self):
         # Inclua a coluna de ícones na nova ordem
-        new_order = [0, 1, 2, 3, 4, 5, 6, 12]
+        new_order = [0, 1, 2, 3, 4, 5]
         for i, col in enumerate(new_order):
             self.table_view.horizontalHeader().moveSection(self.table_view.horizontalHeader().visualIndex(col), i)
 
     def hide_unwanted_columns(self):
         # Inclua a coluna de ícones no conjunto de colunas visíveis
-        visible_columns = {0, 1, 2, 4, 5, 6, 12}
+        visible_columns = {0, 1, 2, 4, 5, 7, 14}
         for column in range(self.model.columnCount()):
             if column not in visible_columns:
                 self.table_view.hideColumn(column)
-
-class ButtonManager:
-    def __init__(self, parent, icons):
-        self.icons = icons
-        self.parent = parent
-        self.buttons = []
-        self.create_buttons()
-
-    def create_buttons(self):
-        button_specs = [
-            ("  Mensagem", self.icons.get('Mensagem', None), self.parent.show_mensagem_dialog, "Enviar a mensagem de alerta entre outras"),
-            ("  API", self.icons.get('API', None), self.parent.gerenciar_itens, "Adiciona um novo item ao banco de dados"),
-            ("  Abrir Tabela", self.icons.get('Abrir Tabela', None), self.parent.salvar_tabela, "Salva o dataframe em um arquivo Excel"),
-        ]
-        for text, icon, callback, tooltip in button_specs:
-            if icon is None:
-                print(f"Warning: Icon for '{text.strip()}' not found.")
-            btn = create_button(text, icon, callback, tooltip, self.parent)
-            self.buttons.append(btn)
-
-    def add_buttons_to_layout(self, layout):
-        for btn in self.buttons:
-            layout.addWidget(btn)
 
 def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(30, 30)):
     btn = QPushButton(text, parent)

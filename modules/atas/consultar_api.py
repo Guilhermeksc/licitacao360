@@ -242,8 +242,10 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
             if variaveis:
                 contrato_info = {
                     'id_pncp': contrato.get("numeroControlePNCPAta"),
-                    'numero_ata': variaveis["numero_ata"],
-                    'ano': variaveis["ano"],
+                    'sequencial_ata_pncp': variaveis["numero_ata"],
+                    'numero_controle_ata': contrato.get("numeroAtaRegistroPreco"),
+                    'sequencial_ano_pncp': variaveis["ano"],
+                    'numero_controle_ano': contrato.get("anoAta"),
                     'status': contrato.get('status', "Seção de Contratos"),
                     'dias': (pd.to_datetime(contrato.get("vigenciaFim")) - pd.to_datetime(contrato.get("vigenciaInicio"))).days if contrato.get("vigenciaFim") else None,
                     'cnpj': variaveis["CNPJ"],
@@ -297,21 +299,33 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
                         # Atualizar se já existe
                         update_query = """
                         UPDATE controle_atas SET
-                            status = ?, numero_ata = ?, ano = ?, dias = ?, cnpj = ?, referencia = ?, sequencial = ?, 
+                            sequencial_ata_pncp = ?, numero_controle_ata = ?, sequencial_ano_pncp = ?, numero_controle_ano = ?,
+                            status = ?, dias = ?, cnpj = ?, referencia = ?, sequencial = ?, 
                             vigencia_inicial = ?, vigencia_final = ?, data_assinatura = ?, data_publicacao = ?, 
                             objeto = ?, codigo_unidade = ?, nome_unidade = ?
                         WHERE id_pncp = ?;
                         """
-                        cursor.execute(update_query, tuple(row[col] for col in df.columns if col != 'id_pncp') + (row['id_pncp'],))
+                        cursor.execute(update_query, (
+                            row['sequencial_ata_pncp'], row['numero_controle_ata'], row['sequencial_ano_pncp'], row['numero_controle_ano'],
+                            row['status'], row['dias'], row['cnpj'], row['referencia'], row['sequencial'], 
+                            row['vigencia_inicial'], row['vigencia_final'], row['data_assinatura'], row['data_publicacao'], 
+                            row['objeto'], row['codigo_unidade'], row['nome_unidade'], row['id_pncp']
+                        ))
                     else:
                         # Inserir se não existe
                         insert_query = """
                         INSERT INTO controle_atas (
-                            id_pncp, numero_ata, ano, status, dias, cnpj, referencia, sequencial, vigencia_inicial, vigencia_final, 
+                            id_pncp, sequencial_ata_pncp, numero_controle_ata, sequencial_ano_pncp, numero_controle_ano, 
+                            status, dias, cnpj, referencia, sequencial, vigencia_inicial, vigencia_final, 
                             data_assinatura, data_publicacao, objeto, codigo_unidade, nome_unidade
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                         """
-                        cursor.execute(insert_query, tuple(row[col] for col in df.columns))
+                        cursor.execute(insert_query, (
+                            row['id_pncp'], row['sequencial_ata_pncp'], row['numero_controle_ata'], row['sequencial_ano_pncp'], 
+                            row['numero_controle_ano'], row['status'], row['dias'], row['cnpj'], row['referencia'], 
+                            row['sequencial'], row['vigencia_inicial'], row['vigencia_final'], row['data_assinatura'], 
+                            row['data_publicacao'], row['objeto'], row['codigo_unidade'], row['nome_unidade']
+                        ))
                 conn.commit()
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar no banco de dados: {e}")

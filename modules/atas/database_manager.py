@@ -135,8 +135,10 @@ class SqlModel:
                 cnpj TEXT,                
                 referencia TEXT,
                 sequencial TEXT,
-                ano TEXT,
-                numero_ata TEXT,
+                numero_controle_ano TEXT,
+                sequencial_ata_pncp TEXT,
+                numero_controle_ata TEXT,
+                sequencial_ano_pncp TEXT,
                 id_pncp TEXT PRIMARY KEY,
                 vigencia_inicial DATE,
                 vigencia_final DATE,
@@ -144,9 +146,7 @@ class SqlModel:
                 data_publicacao DATE,
                 objeto TEXT,
                 codigo_unidade TEXT,
-                nome_unidade TEXT,
-                nome_fornecedor TEXT,
-                cnpj_cpf_fornecedor TEXT
+                nome_unidade TEXT
             )
         """):
             print("Falha ao criar a tabela 'controle_atas':", query.lastError().text())
