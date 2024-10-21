@@ -1,7 +1,7 @@
 Final de vigência de Contrato Administrativo - {{Objeto}}
 
-VTD proximidade de termo final da vigência do Contrato Administrativo n° {{Contrato/Ata}}, cujo objeto é {{material_servico}} {{Objeto}}, CNS PSB:
-
+VTD proximidade de termo final da vigência do Contrato Administrativo n° {{Contrato/Ata}}, cujo objeto é {{material_servico}} {{objeto}}, CNS PSB:
+{{cnpj}}{{sequencial}}
 ALFA - INF intenção, ou não, de iniciar os procedimentos para a prorrogação contratual;
 
 BRAVO - Havendo interesse em prorrogar o REF contrato, PTC NEC ENC subsídios para referida prorrogação ao CeIMBra, até {{prazo_final}}; e

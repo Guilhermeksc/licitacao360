@@ -6,6 +6,36 @@ from PyQt6.QtCore import *
 import pandas as pd
 import sqlite3
 
+def create_button(text, icon, callback, tooltip_text, parent, icon_size=QSize(30, 30)):
+    btn = QPushButton(text, parent)
+    if icon:
+        btn.setIcon(QIcon(icon))
+        btn.setIconSize(icon_size)
+    if callback:
+        btn.clicked.connect(callback)
+    if tooltip_text:
+        btn.setToolTip(tooltip_text)
+    return btn
+
+def carregar_dados_contrato(linha, database_path, table_name):
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT 1 OFFSET ?", (linha,))
+        row = cursor.fetchone()
+        if row:
+            df_registro_selecionado = pd.DataFrame([row], columns=[desc[0] for desc in cursor.description])
+            return df_registro_selecionado
+        else:
+            return pd.DataFrame()
+    except sqlite3.Error as e:
+        print(f"Erro ao carregar os dados de {table_name}: {e}")
+        return pd.DataFrame()
+    finally:
+        conn.close()
+
+        
 class WidgetHelper:
     @staticmethod
     def create_line_edit(label_text, initial_value=""):
@@ -369,6 +399,12 @@ def load_and_map_icons(icons_dir, image_cache):
         'download-pdf_azul': 'download-pdf_azul.png',
         'portaria_fiscal': 'portaria_fiscal.png',
         'portaria_fiscal_azul': 'portaria_fiscal_azul.png',
+        'downloading': 'downloading.png',
+        'downloading_azul': 'downloading_azul.png',
+        'cp': 'cp.png',
+        'cp_azul': 'cp_azul.png',
+        'performance': 'performance.png',
+        'performance_azul': 'performance_azul.png',
     }
 
     for status, filename in icon_mapping.items():

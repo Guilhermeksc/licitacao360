@@ -19,18 +19,23 @@ class DatabaseATASManager:
         self.db_path = db_path
         self.connection = None
 
+    def set_database_path(self, db_path):
+        """Permite alterar dinamicamente o caminho do banco de dados."""
+        self.db_path = db_path
+        logging.info(f"Database path set to: {self.db_path}")
+
     def connect_to_database(self):
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_path)
-            # print(f"Conexão com o banco de dados aberta em {self.db_path}")
+            logging.info(f"Conexão com o banco de dados aberta em {self.db_path}")
         return self.connection
 
     def close_connection(self):
         if self.connection:
-            # print("Fechando conexão...")
+            logging.info("Fechando conexão com o banco de dados...")
             self.connection.close()
             self.connection = None
-            # print(f"Conexão com o banco de dados fechada em {self.db_path}")
+            logging.info(f"Conexão com o banco de dados fechada em {self.db_path}")
 
     def is_closed(self):
         return self.connection is None
@@ -46,6 +51,7 @@ class DatabaseATASManager:
         conn = self.connect_to_database()
         try:
             df.to_sql(table_name, conn, if_exists='append', index=False)
+            logging.info(f"DataFrame salvo na tabela {table_name}.")
         except sqlite3.IntegrityError as e:
             valor_duplicado = df.loc[df.duplicated(subset=['id'], keep=False), 'id']
             mensagem_erro = f"Erro ao salvar o DataFrame: Valor duplicado(s) encontrado(s) na coluna 'id': {valor_duplicado.to_list()}."
@@ -55,15 +61,16 @@ class DatabaseATASManager:
             logging.error(f"Erro ao salvar DataFrame: {e}")
         finally:
             self.close_connection()
-            
+
     def delete_record(self, table_name, column, value):
         conn = self.connect_to_database()
         try:
             cursor = conn.cursor()
             cursor.execute(f"DELETE FROM {table_name} WHERE {column} = ?", (value,))
             conn.commit()
+            logging.info(f"Registro deletado da tabela {table_name} onde {column} = {value}.")
         except sqlite3.Error as e:
-            logging.error(f"Error deleting record: {e}")
+            logging.error(f"Erro ao deletar registro: {e}")
         finally:
             self.close_connection()
 
@@ -78,23 +85,8 @@ class DatabaseATASManager:
             conn.commit()
             return cursor.fetchall()
         except sqlite3.Error as e:
-            logging.error(f"Error executing query: {query}, Error: {e}")
+            logging.error(f"Erro ao executar consulta: {query}, Erro: {e}")
             return None
-        finally:
-            self.close_connection()
-
-    def load_contract_data_by_key(self, id):
-        """
-        Carrega os dados do contrato a partir da chave primária id.
-        """
-        conn = self.connect_to_database()
-        try:
-            query = "SELECT * FROM controle_contratos WHERE id = ?"
-            df = pd.read_sql_query(query, conn, params=(id,))
-            return df
-        except sqlite3.Error as e:
-            logging.error(f"Erro ao carregar dados do contrato '{id}': {e}")
-            return pd.DataFrame()  # Retorna DataFrame vazio em caso de erro
         finally:
             self.close_connection()
             
@@ -129,10 +121,10 @@ class SqlModel:
     def create_table_if_not_exists(self):
         query = QSqlQuery(self.db)
         if not query.exec("""
-            CREATE TABLE IF NOT EXISTS controle_atas (
-                status TEXT,
-                dias INTEGER,
-                cnpj TEXT,                
+            CREATE TABLE IF NOT EXISTS xsequencial (
+                Status TEXT,
+                Dias INTEGER,
+                CNPJ TEXT,                
                 referencia TEXT,
                 sequencial TEXT,
                 numero_controle_ano TEXT,
@@ -153,10 +145,24 @@ class SqlModel:
         else:
             print("Tabela 'controle_atas' criada com sucesso.")
 
+    def get_first_table_name(self):
+        # Obtenha o nome da primeira tabela do banco de dados
+        query = QSqlQuery(self.db)
+        query.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name LIMIT 1")
 
+        if query.next():
+            first_table_name = query.value(0)  # Nome da primeira tabela
+            print(f"Carregando a primeira tabela: {first_table_name}")
+            return first_table_name
+        else:
+            # Se não houver nenhuma tabela, retornar None
+            print("Nenhuma tabela encontrada no banco de dados.")
+            return None
+        
     def setup_model(self, table_name, editable=False):
         self.model = CustomSqlTableModel(parent=self.parent, db=self.db, non_editable_columns=None, icons_dir=self.icons_dir)
         self.model.setTable(table_name)
+        self.model.table_name = table_name  # Armazena o table_name no modelo
 
         if editable:
             self.model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
@@ -231,7 +237,7 @@ class CustomSqlTableModel(QSqlTableModel):
                     return QIcon(str(self.icons_dir / 'unchecked.png'))
 
         # Lógica para a coluna "dias"
-        if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("dias"):
+        if role == Qt.ItemDataRole.DisplayRole and index.column() == self.fieldIndex("Dias"):
             vigencia_final_index = self.fieldIndex("vigencia_final")
             vigencia_final = self.index(index.row(), vigencia_final_index).data()
             
@@ -253,7 +259,7 @@ class CustomSqlTableModel(QSqlTableModel):
                 return dias
 
         # Lógica para cores da coluna "dias"
-        if role == Qt.ItemDataRole.ForegroundRole and index.column() == self.fieldIndex("dias"):
+        if role == Qt.ItemDataRole.ForegroundRole and index.column() == self.fieldIndex("Dias"):
             dias = self.data(index, Qt.ItemDataRole.DisplayRole)
             if isinstance(dias, int):
                 if dias < 31:

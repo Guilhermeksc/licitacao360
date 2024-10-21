@@ -10,10 +10,10 @@ https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010045/itens/
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/011176/itens/1/resultados/1
 
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/010045/itens/1/resultados/1
-https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/011176/arquivos 
+https://pncp.gov.br/api/pncp/v1/orgaos/00394502/compras/2024/011176/arquivos 
 
 
-https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/2900
+https://pncp.gov.br/api/pncp/v1/orgaos/00394502/compras/2024/2900
 
 
 https://pncp.gov.br/api/pncp/v1/orgaos/00394502000144/compras/2024/2900/itens 

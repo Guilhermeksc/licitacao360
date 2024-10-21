@@ -224,7 +224,7 @@ class GerenciarInclusaoExclusaoContratos(QDialog):
 
         # Chamando a função para salvar no banco de dados SQLite
         self.salvar_dados_no_sqlite(df)
-
+        
     def salvar_dados_no_sqlite(self, df):
         """Salva o DataFrame no banco de dados SQLite, atualizando registros existentes e inserindo novos registros."""
         try:

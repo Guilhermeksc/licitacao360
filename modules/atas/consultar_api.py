@@ -38,11 +38,12 @@ def extrair_variaveis(numeroControlePNCPAta):
 class RequestThread(QThread):
     data_received = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
-    save_json = pyqtSignal(object, str)
+    attempt_number = pyqtSignal(int)  # Sinal para atualizar a barra de progresso
 
-    def __init__(self, unidade_codigo):
+    def __init__(self, unidade_codigo, max_tentativas):
         super().__init__()
         self.unidade_codigo = unidade_codigo
+        self.max_tentativas = max_tentativas
 
     def run(self):
         base_url = "https://pncp.gov.br"
@@ -50,54 +51,42 @@ class RequestThread(QThread):
         url = base_url + endpoint
         print(f"Request endpoint: {url}")
 
-        try:
-            response = requests.get(url)
-            print("Raw response content:", response.text)
-
-            response.raise_for_status()
-            data = response.json()
-
-            if isinstance(data, list):
-                data = {"data": data}  # Certificando-se de que o dado é um dicionário conforme o formato esperado
-
-            self.data_received.emit(data)
-            self.save_json.emit(data, self.unidade_codigo)
-        except requests.exceptions.HTTPError as http_err:
-            error_message = f"HTTP error occurred: {http_err}"
-            print(error_message)
-            self.error_occurred.emit(error_message)
-        except Exception as err:
-            error_message = f"Other error occurred: {err}"
-            print(error_message)
-            self.error_occurred.emit(error_message)
-
-class ConsultaAPIDialog(QDialog):
-    def __init__(self, max_tentativas, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Tentando Obter Dados da API")
-        self.setFixedSize(300, 100)
-        self.layout = QVBoxLayout(self)
-
-        self.label = QLabel(f"Tentativa 0/{max_tentativas}")
-        self.layout.addWidget(self.label)
-
-        # Tornar o diálogo modal e sobrepor as outras janelas
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
-
-    def atualizar_tentativa(self, tentativa_atual, max_tentativas):
-        self.label.setText(f"Tentativa {tentativa_atual}/{max_tentativas}")
+        for tentativa in range(1, self.max_tentativas + 1):
+            self.attempt_number.emit(tentativa)
+            try:
+                response = requests.get(url)
+                print("Raw response content:", response.text)
+                response.raise_for_status()
+                data = response.json()
+                if isinstance(data, list):
+                    data = {"data": data}
+                self.data_received.emit(data)
+                return  # Saída bem-sucedida
+            except requests.exceptions.HTTPError as http_err:
+                error_message = f"HTTP error occurred: {http_err}"
+                print(error_message)
+                time.sleep(2)
+                continue
+            except Exception as err:
+                error_message = f"Other error occurred: {err}"
+                print(error_message)
+                time.sleep(2)
+                continue
+        self.error_occurred.emit(f"Não foi possível obter os dados da API após {self.max_tentativas} tentativas.")
 
     
 class GerenciarInclusaoExclusaoATAS(QDialog):
+    dataUpdated = pyqtSignal(str) 
+
     def __init__(self, icons_dir, database_path, required_columns, parent=None):
         super().__init__(parent)
         self.icons_dir = icons_dir
         self.database_path = database_path
         self.required_columns = required_columns
         self.setWindowTitle("Sincronizar Atas")
-        self.setFixedSize(400, 300)  # Define o tamanho fixo da janela
+        self.setFixedSize(400, 500)
         self.database_manager = DatabaseATASManager(self.database_path)
+        self.max_tentativas = 10  # Definindo o número máximo de tentativas
         self.init_ui()
 
     def init_ui(self):
@@ -151,56 +140,48 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         self.baixar_json_button.clicked.connect(self.baixar_json)
         self.layout.addWidget(self.baixar_json_button)
 
+        # Barra de progresso e label
+        self.progress_label = QLabel(f"Tentativa 0/{self.max_tentativas}", self)
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(self.max_tentativas)
+        self.progress_bar.setValue(0)
+        self.progress_label.setVisible(False)
+        self.progress_bar.setVisible(False)
+        self.layout.addWidget(self.progress_label)
+        self.layout.addWidget(self.progress_bar)
+
         # Adicionando os botões existentes
         self.layout.addLayout(self.create_button_layout())
 
     def baixar_json(self):
         unidade_codigo = self.unidade_codigo_input.text()
         if len(unidade_codigo) == 6 and unidade_codigo.isdigit():
-            data = self.tentar_consulta_api(unidade_codigo)
-            if data:
-                self.processar_dados_para_tabela(data)
+            self.progress_label.setVisible(True)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(0)
+            self.progress_label.setText(f"Tentativa 0/{self.max_tentativas}")
+            self.request_thread = RequestThread(unidade_codigo, self.max_tentativas)
+            self.request_thread.attempt_number.connect(self.update_progress)
+            self.request_thread.data_received.connect(self.on_data_received)
+            self.request_thread.error_occurred.connect(self.on_error_occurred)
+            self.request_thread.start()
         else:
             QMessageBox.warning(self, "Entrada Inválida", "Por favor, insira um código de unidade válido de 6 dígitos.")
 
-    def tentar_consulta_api(self, unidade_codigo):
-        max_tentativas = 10
-        dialog = ConsultaAPIDialog(max_tentativas)
-        dialog.show()
-
-        for tentativa in range(1, max_tentativas + 1):
-            dialog.atualizar_tentativa(tentativa, max_tentativas)
-            QCoreApplication.processEvents()  # Atualiza a interface gráfica
-
-            try:
-                # Endpoint da API
-                base_url = "https://pncp.gov.br"
-                endpoint = f"/api/consulta/v1/atas?dataInicial=20240101&dataFinal=20241015&cnpj=00394502000144&codigoUnidadeAdministrativa={unidade_codigo}&pagina=1"
-                url = base_url + endpoint
-                response = requests.get(url)
-
-                # Verifica se a resposta foi bem-sucedida
-                if response.status_code == 200:
-                    data = response.json()
-                    dialog.close()
-                    QMessageBox.information(self, "Sucesso", "Dados obtidos com sucesso!")
-                    return data
-                else:
-                    raise requests.exceptions.RequestException(f"Erro HTTP: {response.status_code}")
-
-            except requests.exceptions.RequestException as e:
-                print(f"Erro na tentativa {tentativa}: {e}")
-                time.sleep(2)  # Pausa entre as tentativas
-
-        dialog.close()
-        QMessageBox.critical(self, "Erro", "Não foi possível obter os dados da API após 10 tentativas.")
-        return None
+    def update_progress(self, tentativa):
+        self.progress_bar.setValue(tentativa)
+        self.progress_label.setText(f"Tentativa {tentativa}/{self.max_tentativas}")
 
     def on_data_received(self, data):
-        # QMessageBox.information(self, "Sucesso", "Dados recebidos com sucesso!")
+        self.progress_bar.setVisible(False)
+        self.progress_label.setVisible(False)
+        QMessageBox.information(self, "Sucesso", "Dados recebidos com sucesso!")
         self.processar_dados_para_tabela(data)
 
     def on_error_occurred(self, error_message):
+        self.progress_bar.setVisible(False)
+        self.progress_label.setVisible(False)
         QMessageBox.critical(self, "Erro", error_message)
 
     def save_json(self, data, unidade_codigo):
@@ -209,7 +190,6 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         try:
             with open(file_path, 'w', encoding='utf-8') as json_file:
                 json.dump(data, json_file, ensure_ascii=False, indent=4)
-            QMessageBox.information(self, "Sucesso", f"Arquivo JSON salvo em {file_path}")
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar o arquivo JSON: {e}")
 
@@ -226,8 +206,12 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         # Reordenar e formatar colunas
         df = self.reordenar_e_formatar_colunas(df)
 
+        # Obter o código da unidade
+        unidade_codigo = self.unidade_codigo_input.text()
+
         # Salvar no banco de dados SQLite
-        self.salvar_dados_no_sqlite(df)
+        self.salvar_dados_no_sqlite(df, unidade_codigo)
+        self.dataUpdated.emit(unidade_codigo)
 
     def extrair_contratos(self, data):
         """Extrai as informações necessárias do JSON e formata para o banco de dados."""
@@ -246,9 +230,9 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
                     'numero_controle_ata': contrato.get("numeroAtaRegistroPreco"),
                     'sequencial_ano_pncp': variaveis["ano"],
                     'numero_controle_ano': contrato.get("anoAta"),
-                    'status': contrato.get('status', "Seção de Contratos"),
-                    'dias': (pd.to_datetime(contrato.get("vigenciaFim")) - pd.to_datetime(contrato.get("vigenciaInicio"))).days if contrato.get("vigenciaFim") else None,
-                    'cnpj': variaveis["CNPJ"],
+                    'Status': contrato.get('Status', "Seção de Contratos"),
+                    'Dias': (pd.to_datetime(contrato.get("vigenciaFim")) - pd.to_datetime(contrato.get("vigenciaInicio"))).days if contrato.get("vigenciaFim") else None,
+                    'CNPJ': variaveis["CNPJ"],
                     'referencia': variaveis["referencia"],
                     'sequencial': variaveis["sequencial"],
                     'vigencia_inicial': contrato.get("vigenciaInicio"),
@@ -285,51 +269,77 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         df['vigencia_final'] = df['vigencia_final'].dt.strftime('%Y-%m-%d')
         return df
 
-    def salvar_dados_no_sqlite(self, df):
+    def salvar_dados_no_sqlite(self, df, unidade_codigo):
         """Salva o DataFrame no banco de dados SQLite, atualizando registros existentes e inserindo novos registros."""
+        table_name = f"uasg_{unidade_codigo}"  # Nome dinâmico da tabela
+
         try:
             with sqlite3.connect(CONTROLE_ATAS_DADOS) as conn:
                 cursor = conn.cursor()
+                
+                # Verificar se a tabela existe, caso contrário, criar
+                cursor.execute(f"""
+                    CREATE TABLE IF NOT EXISTS {table_name} (
+                        Status TEXT,
+                        Dias INTEGER,
+                        CNPJ TEXT,                
+                        referencia TEXT,
+                        sequencial TEXT,
+                        numero_controle_ano TEXT,
+                        sequencial_ata_pncp TEXT,
+                        numero_controle_ata TEXT,
+                        sequencial_ano_pncp TEXT,
+                        id_pncp TEXT PRIMARY KEY,
+                        vigencia_inicial DATE,
+                        vigencia_final DATE,
+                        data_assinatura DATE,
+                        data_publicacao DATE,
+                        objeto TEXT,
+                        codigo_unidade TEXT,
+                        nome_unidade TEXT
+                    )
+                """)
+
                 for _, row in df.iterrows():
                     # Verificar se o registro já existe
-                    cursor.execute("SELECT COUNT(1) FROM controle_atas WHERE id_pncp = ?", (row['id_pncp'],))
+                    cursor.execute(f"SELECT COUNT(1) FROM {table_name} WHERE id_pncp = ?", (row['id_pncp'],))
                     exists = cursor.fetchone()[0] > 0
 
                     if exists:
                         # Atualizar se já existe
-                        update_query = """
-                        UPDATE controle_atas SET
+                        update_query = f"""
+                        UPDATE {table_name} SET
                             sequencial_ata_pncp = ?, numero_controle_ata = ?, sequencial_ano_pncp = ?, numero_controle_ano = ?,
-                            status = ?, dias = ?, cnpj = ?, referencia = ?, sequencial = ?, 
+                            Status = ?, Dias = ?, CNPJ = ?, referencia = ?, sequencial = ?, 
                             vigencia_inicial = ?, vigencia_final = ?, data_assinatura = ?, data_publicacao = ?, 
                             objeto = ?, codigo_unidade = ?, nome_unidade = ?
                         WHERE id_pncp = ?;
                         """
                         cursor.execute(update_query, (
                             row['sequencial_ata_pncp'], row['numero_controle_ata'], row['sequencial_ano_pncp'], row['numero_controle_ano'],
-                            row['status'], row['dias'], row['cnpj'], row['referencia'], row['sequencial'], 
+                            row['Status'], row['Dias'], row['CNPJ'], row['referencia'], row['sequencial'], 
                             row['vigencia_inicial'], row['vigencia_final'], row['data_assinatura'], row['data_publicacao'], 
                             row['objeto'], row['codigo_unidade'], row['nome_unidade'], row['id_pncp']
                         ))
                     else:
                         # Inserir se não existe
-                        insert_query = """
-                        INSERT INTO controle_atas (
+                        insert_query = f"""
+                        INSERT INTO {table_name} (
                             id_pncp, sequencial_ata_pncp, numero_controle_ata, sequencial_ano_pncp, numero_controle_ano, 
-                            status, dias, cnpj, referencia, sequencial, vigencia_inicial, vigencia_final, 
+                            Status, Dias, CNPJ, referencia, sequencial, vigencia_inicial, vigencia_final, 
                             data_assinatura, data_publicacao, objeto, codigo_unidade, nome_unidade
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                         """
                         cursor.execute(insert_query, (
                             row['id_pncp'], row['sequencial_ata_pncp'], row['numero_controle_ata'], row['sequencial_ano_pncp'], 
-                            row['numero_controle_ano'], row['status'], row['dias'], row['cnpj'], row['referencia'], 
+                            row['numero_controle_ano'], row['Status'], row['Dias'], row['CNPJ'], row['referencia'], 
                             row['sequencial'], row['vigencia_inicial'], row['vigencia_final'], row['data_assinatura'], 
                             row['data_publicacao'], row['objeto'], row['codigo_unidade'], row['nome_unidade']
                         ))
                 conn.commit()
+            QMessageBox.information(self, "Sucesso", f"Dados salvos na tabela {table_name}.")
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar no banco de dados: {e}")
-
 
     def hide_unwanted_columns(self):
         # Função para ocultar colunas não desejadas

@@ -815,3 +815,7 @@ root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
 root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
 root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
 root - ERROR - A coluna 'justificativa' não foi encontrada no DataFrame.
+root - ERROR - Erro ao fazer a requisição para https://pncp.gov.br/api/pncp/v1/orgaos/None/compras/None/000410: 400 Client Error: Bad Request for url: https://pncp.gov.br/api/pncp/v1/orgaos/None/compras/None/000410
+root - INFO - Dados salvos na tabela PE-90008-2024-787000 no banco de dados C:\Users\Guilherme\Documents\360_novo\licitacao360\database\Atas\controle_dados_pregao_ata.db.
+root - INFO - Dados salvos na tabela DADOS_PREGAO no banco de dados C:\Users\Guilherme\Documents\360_novo\licitacao360\database\Atas\controle_dados_pregao_ata.db.
+root - INFO - Dados salvos na tabela DADOS_PREGAO no banco de dados C:\Users\Guilherme\Documents\360_novo\licitacao360\database\Atas\controle_dados_pregao_ata.db.
