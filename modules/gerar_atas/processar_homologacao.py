@@ -21,9 +21,6 @@ class ProgressDialog(QDialog):
         self.processed_files = set()
         self.setup_ui()
 
-    def set_conversion_callback(self, callback):
-        self.confirmButton.clicked.connect(callback)
-
     def setup_ui(self):
         self.setWindowTitle("Processando Arquivos PDF")
         self.setFixedSize(800, 300)
@@ -35,9 +32,27 @@ class ProgressDialog(QDialog):
         fonte_padrao = QFont()
         fonte_padrao.setPointSize(14)
 
-        self.abrirPastaButtonHomolog = self.create_button("   Abrir Pasta", QIcon(str(ICONS_DIR / "folder128.png")), lambda: open_folder(self.pdf_dir), "Abrir diretório de PDFs", QSize(40, 40))
-        self.atualizarButton = self.create_button("   Atualizar", QIcon(str(ICONS_DIR / "refresh.png")), self.atualizar_contagem_arquivos, "Atualizar contagem de arquivos PDF", QSize(40, 40))
-        self.comprasnetButton = self.create_button("", QIcon(str(ICONS_DIR / "comprasnet.svg")), self.abrir_comprasnet, "Abrir Comprasnet", QSize(200, 40))
+        self.abrirPastaButtonHomolog = self.create_button(
+            "   Abrir Pasta",
+            QIcon(str(ICONS_DIR / "folder128.png")),
+            lambda: open_folder(self.pdf_dir),
+            "Abrir diretório de PDFs",
+            QSize(40, 40)
+        )
+        self.atualizarButton = self.create_button(
+            "   Atualizar",
+            QIcon(str(ICONS_DIR / "refresh.png")),
+            self.atualizar_contagem_arquivos,
+            "Atualizar contagem de arquivos PDF",
+            QSize(40, 40)
+        )
+        self.comprasnetButton = self.create_button(
+            "",
+            QIcon(str(ICONS_DIR / "comprasnet.svg")),
+            self.abrir_comprasnet,
+            "Abrir Comprasnet",
+            QSize(200, 40)
+        )
 
         buttons_layout = QHBoxLayout()
         buttons_layout.addWidget(self.abrirPastaButtonHomolog)
@@ -49,48 +64,38 @@ class ProgressDialog(QDialog):
         self.label.setFont(fonte_padrao)
         main_layout.addWidget(self.label)
 
-        self.progressBar = CustomProgressBar(self)
-        self.progressBar.setMaximum(100)
-        self.progressBar.setValue(0)  # Inicializar com valor 0
-        main_layout.addWidget(self.progressBar)
-
-        self.progress_label = QLabel("")  # Apenas para mostrar o texto sem o percentual
-        self.progress_label.setFont(QFont("Arial", 16))  # Aumentar a fonte do texto
-        self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.confirmButton = self.create_button("Iniciar Processamento", QIcon(str(ICONS_DIR / "rpa.png")), self.start_conversion, "Iniciar o processamento para obtenção dos dados dos Termos de Homologação", QSize(40, 40))
+        self.confirmButton = self.create_button(
+            "Iniciar Processamento",
+            QIcon(str(ICONS_DIR / "rpa.png")),
+            self.start_conversion,
+            "Iniciar o processamento para obtenção dos dados dos Termos de Homologação",
+            QSize(40, 40)
+        )
         main_layout.addWidget(self.confirmButton)
 
         self.setLayout(main_layout)
 
     def start_conversion(self):
+        print("Iniciando a conversão de PDFs...")
+        print(f"Pasta de PDFs: {self.pdf_dir}")
         self.confirmButton.setEnabled(False)
         self.processing_thread = PDFProcessingThread(self.pdf_dir, TXT_DIR)
-        self.processing_thread.progress_updated.connect(lambda current, total, current_file: self.update_progress(current, total, current_file))
         self.processing_thread.processing_complete.connect(self.on_conversion_finished)
         self.processing_thread.start()
-
-        # Remover `self.label` e adicionar `self.progress_label` ao layout
-        self.layout().removeWidget(self.label)
-        self.label.deleteLater()
-        self.layout().insertWidget(2, self.progress_label)  # Inserir na mesma posição de `self.label`
-
-    def update_progress(self, current, total, current_file):
-        if self.isVisible():
-            # Calcular a porcentagem baseada na proporção de arquivos processados
-            progress_percent = int((current / total) * 100)
-            self.progressBar.setValue(progress_percent)
-            self.progress_label.setText(f"Analisando \"{current_file}\"")
-        
-            # Se for o último arquivo, garantir que a barra vá até 100%
-            if current == total:
-                self.progressBar.setValue(100)
+        print("Thread de processamento de PDF iniciada.")
 
     def on_conversion_finished(self, extracted_data):
         self.processing_complete.emit(extracted_data)
-        # QMessageBox.information(self, "Conclusão", "O processamento dos dados foi concluído com sucesso!")
-        # self.confirmButton.setEnabled(True)
         self.close()
+
+    def atualizar_contagem_arquivos(self):
+        pdf_files = list(self.pdf_dir.glob("*.pdf"))
+        self.total_files = len(pdf_files)
+        self.label.setText(f"{self.total_files} arquivos PDF encontrados. Deseja processá-los?")
+
+    def update_progress(self, current, total, filename):
+        """Atualiza a interface com o progresso atual."""
+        self.label.setText(f"Processando {filename} ({current}/{total})")
 
     def abrir_pasta_homolog(self):
         open_folder(self.pdf_dir)
@@ -100,12 +105,6 @@ class ProgressDialog(QDialog):
         QMessageBox.information(self, "Atualização", f"PDF_DIR atualizado para: {new_pdf_dir}")
         self.pdf_dir = new_pdf_dir
         self.atualizar_contagem_arquivos()
-
-    def atualizar_contagem_arquivos(self):
-        pdf_files = list(self.pdf_dir.glob("*.pdf"))
-        self.total_files = len(pdf_files)
-        self.label.setText(f"{self.total_files} arquivos PDF encontrados. Deseja processá-los?")
-        self.progressBar.setMaximum(self.total_files)
 
     def cabecalho_layout(self):
         header_layout = QHBoxLayout()

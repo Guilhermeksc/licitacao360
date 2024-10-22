@@ -405,6 +405,8 @@ def load_and_map_icons(icons_dir, image_cache):
         'cp_azul': 'cp_azul.png',
         'performance': 'performance.png',
         'performance_azul': 'performance_azul.png',
+        'license': 'license.png',
+        'license_azul': 'license_azul.png'
     }
 
     for status, filename in icon_mapping.items():

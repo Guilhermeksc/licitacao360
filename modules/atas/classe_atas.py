@@ -13,6 +13,7 @@ from modules.atas.menu_button.menu_button import create_menu_button, visualizar_
 from modules.atas.menu_button.gerar_relatorio_pdf import gerar_relatorio_atas
 from modules.atas.menu_button.obter_dados_pregao import DadosPregaoThread, LoadingDialog
 from modules.atas.msg.msg_alerta_prazo import MensagemDialog
+from modules.atas.gerar_atas.classe_gerar_atas import GerarAtas
 import pandas as pd
 import os
 import subprocess
@@ -41,9 +42,11 @@ class AtasWidget(QMainWindow):
         self.output_path = os.path.join(os.getcwd(), "controle_atas.xlsx")
         self.dataUpdated.connect(self.refresh_model)
         self.refresh_model()
+        self.gerar_atas_dialog = None
 
     def setup_managers(self):
         config_path = BASE_DIR / "config.json"
+        self.database_path = CONTROLE_ATAS_DADOS
         self.config_manager = ConfigManager(config_path)
         self.database_manager = DatabaseATASManager(CONTROLE_ATAS_DADOS)
         self.setup_database_paths()
@@ -231,7 +234,20 @@ class AtasWidget(QMainWindow):
         """Lida com o sinal de erro da thread."""
         self.loading_dialog.reject()  # Fecha o diálogo de carregamento
         QMessageBox.critical(self, "Erro", error_message)
-            
+
+    def abrir_gerar_atas_dialog(self):
+        if self.gerar_atas_dialog is None or not self.gerar_atas_dialog.dialog.isVisible():
+            self.gerar_atas_dialog = GerarAtas(self, self.icons_dir)
+            # Conecta ao sinal destroyed do diálogo para redefinir a referência
+            self.gerar_atas_dialog.dialog.destroyed.connect(self.on_gerar_atas_dialog_closed)
+        else:
+            # Traz o diálogo existente para a frente
+            self.gerar_atas_dialog.dialog.raise_()
+            self.gerar_atas_dialog.dialog.activateWindow()
+
+    def on_gerar_atas_dialog_closed(self):
+        self.gerar_atas_dialog = None
+
 class UIManager(QObject):
     def __init__(self, parent, icons, config_manager, model):
         super().__init__(parent)  # Inicializa a classe QObject
@@ -293,6 +309,7 @@ class UIManager(QObject):
             ("download-pdf", "Relatório de Contratos", self.parent.gerar_relatorio),
             ("portaria_fiscal", "Portaria de Fiscalização", self.parent.salvar_tabela),
             ("downloading", "Dowload da Ata disponível no PNCP", self.parent.salvar_tabela),
+            ("license", "Gerar Atas Automaticamente", self.parent.abrir_gerar_atas_dialog)
         ]
 
         # Adiciona os botões ao menu lateral e conecta os sinais

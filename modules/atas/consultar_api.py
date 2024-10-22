@@ -210,7 +210,7 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         unidade_codigo = self.unidade_codigo_input.text()
 
         # Salvar no banco de dados SQLite
-        self.salvar_dados_no_sqlite(df, unidade_codigo)
+        self.salvar_dados_no_sqlite(df, unidade_codigo, self.database_path)
         self.dataUpdated.emit(unidade_codigo)
 
     def extrair_contratos(self, data):
@@ -269,12 +269,12 @@ class GerenciarInclusaoExclusaoATAS(QDialog):
         df['vigencia_final'] = df['vigencia_final'].dt.strftime('%Y-%m-%d')
         return df
 
-    def salvar_dados_no_sqlite(self, df, unidade_codigo):
+    def salvar_dados_no_sqlite(self, df, unidade_codigo, database_path):
         """Salva o DataFrame no banco de dados SQLite, atualizando registros existentes e inserindo novos registros."""
         table_name = f"uasg_{unidade_codigo}"  # Nome dinâmico da tabela
 
         try:
-            with sqlite3.connect(CONTROLE_ATAS_DADOS) as conn:
+            with sqlite3.connect(database_path) as conn:
                 cursor = conn.cursor()
                 
                 # Verificar se a tabela existe, caso contrário, criar
