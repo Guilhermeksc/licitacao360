@@ -70,3 +70,25 @@ def get_transparent_title_style():
             border: none;
         }
     """
+
+def apply_table_custom_style(table_view):
+    """
+    Aplica um estilo CSS personalizado ao tableView.
+    """
+    table_view.setStyleSheet("""
+        QTableView {
+            font-size: 16px;
+            background-color: #13141F;                      
+        }
+        QTableView::section {
+            font-size: 16px;
+            font-weight: bold; 
+        }
+        QHeaderView::section:horizontal {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        QHeaderView::section:vertical {
+            font-size: 16px;
+        }
+    """)

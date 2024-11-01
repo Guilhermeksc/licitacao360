@@ -5,6 +5,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
+from config.styles.styless import apply_table_custom_style
 from modules.contratos.edit_dialog import AtualizarDadosContratos
 from database.utils.treeview_utils import load_images, create_button
 from modules.contratos.utils import ExportThread, ColorDelegate, carregar_dados_contratos, Dialogs, CustomItemDelegate, CenterAlignDelegate, load_and_map_icons
@@ -225,7 +226,9 @@ class UIManager:
         self.configure_table_model()
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
-        self.apply_custom_style()
+
+        apply_table_custom_style(self.table_view)
+
         # Centralizar as colunas
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
@@ -321,26 +324,6 @@ class UIManager:
         header.resizeSection(7, 150)
 
         header.resizeSection(9, 125)
-
-    def apply_custom_style(self):
-        # Aplica um estilo CSS personalizado ao tableView
-        self.table_view.setStyleSheet("""
-            QTableView {
-                font-size: 16px;
-                background-color: #13141F;                      
-            }
-            QTableView::section {
-                font-size: 16px;
-                font-weight: bold; 
-            }
-            QHeaderView::section:horizontal {
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QHeaderView::section:vertical {
-                font-size: 16px;
-            }
-        """)
 
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():

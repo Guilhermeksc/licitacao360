@@ -3,6 +3,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from pathlib import Path
 from diretorios import *
+from config.styles.styless import apply_table_custom_style
 from database.utils.treeview_utils import load_images, create_button
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao, carregar_dados_dispensa
 from modules.dispensa_eletronica.utilidades_dispensa_eletronica import ExportThread
@@ -17,6 +18,7 @@ import subprocess
 import logging
 import sqlite3
 from modules.dispensa_eletronica.edit_dialog import EditDataDialog
+
 class DispensaEletronicaWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
@@ -201,8 +203,14 @@ class DispensaEletronicaWidget(QMainWindow):
                 upsert_sql = '''
                 INSERT INTO controle_dispensas (
                     id_processo, nup, objeto, uasg, tipo, numero, ano, sigla_om, setor_responsavel, 
-                    material_servico, orgao_responsavel, situacao
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    material_servico, orgao_responsavel, situacao, data_sessao, operador, 
+                    criterio_julgamento, com_disputa, pesquisa_preco, previsao_contratacao, 
+                    responsavel_pela_demanda, ordenador_despesas, agente_fiscal, gerente_de_credito,
+                    cod_par, prioridade_par, cep, endereco, email, telefone, dias_para_recebimento,
+                    horario_para_recebimento, valor_total, acao_interna, fonte_recursos, natureza_despesa,
+                    unidade_orcamentaria, ptres
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id_processo) DO UPDATE SET
                     nup=excluded.nup,
                     objeto=excluded.objeto,
@@ -214,7 +222,31 @@ class DispensaEletronicaWidget(QMainWindow):
                     setor_responsavel=excluded.setor_responsavel,
                     material_servico=excluded.material_servico,
                     orgao_responsavel=excluded.orgao_responsavel,
-                    situacao=excluded.situacao;
+                    situacao=excluded.situacao,
+                    data_sessao=excluded.data_sessao,
+                    operador=excluded.operador,
+                    criterio_julgamento=excluded.criterio_julgamento,
+                    com_disputa=excluded.com_disputa,
+                    pesquisa_preco=excluded.pesquisa_preco,
+                    previsao_contratacao=excluded.previsao_contratacao,
+                    responsavel_pela_demanda=excluded.responsavel_pela_demanda, 
+                    ordenador_despesas=excluded.ordenador_despesas, 
+                    agente_fiscal=excluded.agente_fiscal, 
+                    gerente_de_credito=excluded.gerente_de_credito,
+                    cod_par=excluded.cod_par, 
+                    prioridade_par=excluded.prioridade_par, 
+                    cep=excluded.cep, 
+                    endereco=excluded.endereco, 
+                    email=excluded.email, 
+                    telefone=excluded.telefone, 
+                    dias_para_recebimento=excluded.dias_para_recebimento,
+                    horario_para_recebimento=excluded.horario_para_recebimento, 
+                    valor_total=excluded.valor_total, 
+                    acao_interna=excluded.acao_interna, 
+                    fonte_recursos=excluded.fonte_recursos, 
+                    natureza_despesa=excluded.natureza_despesa,
+                    unidade_orcamentaria=excluded.unidade_orcamentaria,
+                    ptres=excluded.ptres
                 '''
 
                 def get_valid_situacao(value):
@@ -229,8 +261,19 @@ class DispensaEletronicaWidget(QMainWindow):
                             row.get('tipo', ''), row.get('numero', ''), row.get('ano', ''),
                             row.get('sigla_om', ''), row.get('setor_responsavel', ''), 
                             row.get('material_servico', ''), row.get('orgao_responsavel', ''),
-                            row['situacao']
-                        ))
+                            row['situacao'], row.get('data_sessao', None), row.get('operador', ''),
+                            row.get('criterio_julgamento', ''), row.get('com_disputa', 0),
+                            row.get('pesquisa_preco', 0), row.get('previsao_contratacao', None), 
+                            row.get('responsavel_pela_demanda', None), row.get('ordenador_despesas', None), 
+                            row.get('agente_fiscal', None), row.get('gerente_de_credito', None), 
+                            row.get('cod_par', None), row.get('prioridade_par', None), 
+                            row.get('cep', None), row.get('endereco', None), 
+                            row.get('email', None), row.get('telefone', None), 
+                            row.get('dias_para_recebimento', None), row.get('horario_para_recebimento', None),
+                            row.get('valor_total', None), row.get('acao_interna', None), 
+                            row.get('fonte_recursos', None), row.get('natureza_despesa', None),  
+                            row.get('unidade_orcamentaria', None), row.get('ptres', None),
+                        ))                      
                 else:
                     # Verifica 'situacao' diretamente no dicionário
                     data['situacao'] = get_valid_situacao(data.get('situacao', ''))
@@ -238,10 +281,23 @@ class DispensaEletronicaWidget(QMainWindow):
                         data['id_processo'], data['nup'], data['objeto'], data['uasg'],
                         data['tipo'], data['numero'], data['ano'],
                         data['sigla_om'], data.get('setor_responsavel', ''), 
-                        data['material_servico'], data['orgao_responsavel'], data['situacao']
+                        data['material_servico'], data['orgao_responsavel'], data['situacao'],
+                        data.get('data_sessao', None), data.get('operador', ''),
+                        data.get('criterio_julgamento', ''), data.get('com_disputa', 0),
+                        data.get('pesquisa_preco', 0), data.get('previsao_contratacao', None),
+                        data.get('responsavel_pela_demanda', None), data.get('ordenador_despesas', None), 
+                        data.get('agente_fiscal', None), data.get('gerente_de_credito', None), 
+                        data.get('cod_par', None), data.get('prioridade_par', None), 
+                        data.get('cep', None), data.get('endereco', None), 
+                        data.get('email', None), data.get('telefone', None), 
+                        data.get('dias_para_recebimento', None), data.get('horario_para_recebimento', None),
+                        data.get('valor_total', None), data.get('acao_interna', None), 
+                        data.get('fonte_recursos', None), data.get('natureza_despesa', None),  
+                        data.get('unidade_orcamentaria', None), data.get('ptres', None),
                     ))
             conn.commit()
         self.dataUpdated.emit()
+
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):
@@ -312,7 +368,7 @@ class UIManager:
         self.configure_table_model()
         self.table_view.verticalHeader().setVisible(False)
         self.adjust_columns()
-        self.apply_custom_style()
+        apply_table_custom_style(self.table_view)
 
         center_delegate = CenterAlignDelegate(self.table_view)
         for column in range(self.model.columnCount()):
@@ -381,29 +437,11 @@ class UIManager:
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)
 
-        header.resizeSection(4, 140)        
+        header.resizeSection(4, 150)        
         header.resizeSection(0, 130)
-        header.resizeSection(5, 160)
+        header.resizeSection(5, 170)
         header.resizeSection(17, 100)
         header.resizeSection(10, 170)
-
-    def apply_custom_style(self):
-        # Aplica um estilo CSS personalizado ao tableView
-        self.table_view.setStyleSheet("""
-            QTableView {
-                font-size: 14px;
-                background-color: #13141F;
-            }
-            QTableView::section {
-                font-size: 14px;
-            }
-            QHeaderView::section:horizontal {
-                font-size: 14px;
-            }
-            QHeaderView::section:vertical {
-                font-size: 14px;
-            }
-        """)
 
     def linhaSelecionada(self, selected, deselected):
         if selected.indexes():

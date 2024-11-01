@@ -28,11 +28,12 @@ class TabelaResumidaManager:
         self.columns = [self.model.headerData(i, Qt.Orientation.Horizontal) for i in range(self.model.columnCount())]
         
         # Obter os dados do model
+        self.data = []  # Reinicia self.data para evitar acúmulo em chamadas subsequentes
         for row in range(self.model.rowCount()):
             row_data = []
             for column in range(self.model.columnCount()):
                 index = self.model.index(row, column)
-                value = self.model.data(index)  # Usar o método data() para obter o valor da célula
+                value = self.model.data(index)
                 row_data.append(value if value is not None else "")
             self.data.append(row_data)
         
@@ -45,24 +46,25 @@ class TabelaResumidaManager:
         # Atualizar os nomes das colunas
         self.df_resumido.columns = ['Status', 'ID', 'NUP', 'Objeto', 'OM']
 
-        # Limpar espaços em branco e capitalizar Status
-        self.df_resumido['Status'] = self.df_resumido['Status'].str.strip().str.capitalize()
+        # Dicionário de ordenação para status
+        status_ordem = {
+            'Arquivado': 1,
+            'Concluído': 2,
+            'Empenhado': 3,
+            'Homologado': 4,
+            'Sessão Pública': 5,
+            'Aprovado': 6,
+            'Planejamento': 7
+        }
 
-        # Ordenar os dados pela coluna 'Status' em ordem decrescente (do maior para o menor)
-        self.df_resumido = self.df_resumido.sort_values(by='Status', ascending=False, key=lambda x: x.map(self.status_sort_key))
+        # Mapear valores de 'Status' para 'Status_Value' e ordenar pelo valor
+        self.df_resumido['Status_Value'] = self.df_resumido['Status'].map(status_ordem).fillna(0)
+        self.df_resumido = self.df_resumido.sort_values(by='Status_Value', ascending=False).drop(columns=['Status_Value'])
 
         # Adicionar uma coluna de ordenação simples (1, 2, 3...)
         self.df_resumido.insert(0, 'Nº', range(1, len(self.df_resumido) + 1))
-    
-    @staticmethod
-    def status_sort_key(status):
-        """Define a chave de ordenação personalizada para a coluna Status."""
-        ordem = ['Arquivado', 'Concluído', 'Empenhado', 'Homologado', 'Sessão Pública', 'Aprovado', 'Planejamento']
-        try:
-            return ordem.index(status)
-        except ValueError:
-            return len(ordem)
-    
+
+
     def exportar_para_excel(self, output_path):
         """
         Exporta o DataFrame resumido para um arquivo Excel.

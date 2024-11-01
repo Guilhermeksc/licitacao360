@@ -598,7 +598,7 @@ class PDFAddDialog(QDialog):
     #         # Atualiza o contador de páginas
     #         self.page_label.setText(f"{page_number + 1} de {self.document.page_count}")
 
-    # def next_page(self):
+    def next_page(self):
         if self.document and self.current_page < self.document.page_count - 1:
             self.current_page += 1
             self.show_page(self.current_page)
