@@ -23,6 +23,7 @@ from functools import partial
 
 CONTROLE_ATAS_DADOS = CONTROLE_ATAS_DIR / "controle_atas.db"
 DADOS_PREGAO_ATA = CONTROLE_ATAS_DIR / "controle_dados_pregao_ata.db"
+
 class AtasWidget(QMainWindow):
     dataUpdated = pyqtSignal()
 
@@ -237,16 +238,11 @@ class AtasWidget(QMainWindow):
 
     def abrir_gerar_atas_dialog(self):
         if self.gerar_atas_dialog is None or not self.gerar_atas_dialog.dialog.isVisible():
-            self.gerar_atas_dialog = GerarAtas(self, self.icons_dir)
-            # Conecta ao sinal destroyed do diálogo para redefinir a referência
-            self.gerar_atas_dialog.dialog.destroyed.connect(self.on_gerar_atas_dialog_closed)
+            self.gerar_atas_dialog = GerarAtas(icons_dir=self.icons_dir)  # Não passa o parent
         else:
             # Traz o diálogo existente para a frente
             self.gerar_atas_dialog.dialog.raise_()
             self.gerar_atas_dialog.dialog.activateWindow()
-
-    def on_gerar_atas_dialog_closed(self):
-        self.gerar_atas_dialog = None
 
 class UIManager(QObject):
     def __init__(self, parent, icons, config_manager, model):
@@ -637,7 +633,6 @@ class UIManager(QObject):
             else:
                 logging.warning("Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
                 QMessageBox.warning(self.parent, "Erro", "Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.")
-
 
     def update_column_headers(self):
         titles = {

@@ -1,93 +1,88 @@
+
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtGui import *
 from PyQt6.QtCore import *
-import pandas as pd
-import sys
-import os
-import subprocess
+
 from pathlib import Path
 from diretorios import *
 import pdfplumber
+from modules.atas.gerar_atas.utils import *
 
-class PDFProcessingThread(QThread):
-    progress_updated = pyqtSignal(int, int, str)
-    processing_complete = pyqtSignal(list)
+class ProcessamentoThread(QThread):
+    progresso_atualizado = pyqtSignal(int)
+    processamento_concluido = pyqtSignal()
 
-    def __init__(self, pdf_dir, txt_dir, parent=None):
-        super().__init__(parent)
-        self.pdf_dir = pdf_dir
-        self.txt_dir = txt_dir
+    def __init__(self, gerar_atas_instance):
+        super().__init__()
+        self.gerar_atas_instance = gerar_atas_instance
 
     def run(self):
-        pdf_files = list(self.pdf_dir.glob("*.pdf"))
+        pdf_files = self.gerar_atas_instance.verificar_e_listar_pdfs()
+        if not pdf_files:
+            self.processamento_concluido.emit()
+            return
+
         total_files = len(pdf_files)
-        all_data = []
+        for i, pdf_file in enumerate(pdf_files):
+            try:
+                # Processamento do PDF
+                with pdfplumber.open(pdf_file) as pdf:
+                    text = "".join(page.extract_text() or "" for page in pdf.pages)
+                
+                output_txt_file = self.gerar_atas_instance.txt_dir / f"{pdf_file.stem}.txt"
+                with open(output_txt_file, "w", encoding="utf-8") as txt_file:
+                    txt_file.write(text)
+                
+            except Exception as e:
+                print(f"Erro ao processar {pdf_file.name}: {str(e)}")
+                continue
+            
+            # Atualiza o progresso
+            progresso = int((i + 1) / total_files * 100)
+            self.progresso_atualizado.emit(progresso)
 
-        for index, pdf_file in enumerate(pdf_files):
-            data = self.process_single_pdf(pdf_file)
-            all_data.extend(data)
-            self.progress_updated.emit(index + 1, total_files, pdf_file.name)
-
-        self.processing_complete.emit(all_data)
-
-    def process_single_pdf(self, pdf_file):
-        text_content = self.extract_text_from_pdf(pdf_file)
-        self.save_text_to_file(pdf_file, text_content)
-        return [{'item_num': pdf_file.stem, 'text': text_content}]
-
-    def extract_text_from_pdf(self, pdf_file):
-        with pdfplumber.open(pdf_file) as pdf:
-            texts = [page.extract_text() for page in pdf.pages if page.extract_text() is not None]
-            all_text = ' '.join(texts).replace('\n', ' ').replace('\x0c', ' ')
-        return all_text
-
-    def save_text_to_file(self, pdf_file, text_content):
-        txt_file = self.txt_dir / f"{pdf_file.stem}.txt"
-        with open(txt_file, 'w', encoding='utf-8') as f:
-            f.write(text_content)
-
-
+        self.processamento_concluido.emit()
 
 class ProgressDialog(QDialog):
-    def __init__(self, total_files, pdf_dir, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processando PDFs")
-        self.total_files = total_files
-        self.pdf_dir = pdf_dir
+        self.setFixedSize(300, 100)
+        self.setup_ui()
 
-        # Configura a barra de progresso
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        self.label = QLabel("Processando arquivos...")
         self.progress_bar = QProgressBar(self)
-        self.progress_bar.setMaximum(total_files)
+        self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
 
-        # Configura o layout
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel(f"Processando arquivos na pasta: {pdf_dir}"))
+        self.cancel_button = QPushButton("Cancelar")
+        self.cancel_button.clicked.connect(self.close)
+
+        layout.addWidget(self.label)
         layout.addWidget(self.progress_bar)
-        self.setLayout(layout)
-        self.resize(400, 100)
+        layout.addWidget(self.cancel_button)
 
-    def update_progress(self, current, total, filename):
-        self.progress_bar.setValue(current)
-        self.setWindowTitle(f"Processando {current}/{total}: {filename}")
-
-
-class GerarAtas:
-    def __init__(self, parent=None, icons_dir=None):
-        self.dialog = QDialog(parent)
-        self.dialog.setWindowTitle("Gerar Atas")
+    def atualizar_progresso(self, valor):
+        self.progress_bar.setValue(valor)
+        
+class GerarAtas(QWidget):
+    def __init__(self, icons_dir=None):
+        super().__init__()
+        self.setWindowTitle("Gerar Atas")
         self.icons_dir = icons_dir
-        self.parent = parent
         self.pdf_dir = Path(PDF_DIR)
-        self.txt_dir = Path(TXT_DIR) 
+        self.txt_dir = Path(TXT_DIR)
         self.tr_variavel_df_carregado = None
         self.model = QStandardItemModel()
         self.setup_ui()
-        self.dialog.show()
+        self.show()  # Exibe o widget
 
     def setup_ui(self):
-        self.dialog.setLayout(self.create_main_layout())
-        self.dialog.resize(1200, 600)
+        self.setLayout(self.create_main_layout())
+        self.resize(1200, 600)
 
     def create_main_layout(self):
         main_layout = QHBoxLayout()
@@ -163,7 +158,7 @@ class GerarAtas:
         # Cria o layout horizontal para os botões
         button_layout = QHBoxLayout()
         carregar_button = self.create_button("Carregar Tabela", self.import_tr)
-        tabela_nova_button = self.create_button("Tabela Nova", lambda: criar_tabela_vazia("tabela_vazia.xlsx", self.dialog))
+        tabela_nova_button = self.create_button("Tabela Nova", lambda: criar_tabela_vazia("tabela_vazia.xlsx", self))
 
         # Adiciona os botões ao layout horizontal
         button_layout.addWidget(carregar_button)
@@ -185,111 +180,88 @@ class GerarAtas:
         # Cria o layout horizontal para os botões
         button_layout = QHBoxLayout()
         abrir_pastas_button = self.create_button("Abrir Pastas", self.abrir_pastas)
-        analisar_termos_button = self.create_button("Analisar Termos de Homologação", self.processar_homologacao)
+        iniciar_processamento_button = self.create_button("Iniciar Processamento", self.iniciar_processamento_thread)
         
         # Adiciona os botões ao layout horizontal
         button_layout.addWidget(abrir_pastas_button)
-        button_layout.addWidget(analisar_termos_button)
+        button_layout.addWidget(iniciar_processamento_button)
         
         # Adiciona o layout dos botões ao layout principal
         layout.addLayout(button_layout)
         
-        print("create_homologacao_view foi chamado e o layout foi configurado.")  # Depuração
-        
         return homologacao_view_widget
 
-    def processar_homologacao(self):
+    def iniciar_processamento_thread(self):
+        # Cria o diálogo de progresso
+        self.progress_dialog = ProgressDialog(self)
+        self.progress_dialog.show()
+
+        # Cria a thread de processamento
+        self.thread = ProcessamentoThread(self)
+        self.thread.progresso_atualizado.connect(self.progress_dialog.atualizar_progresso)
+        self.thread.processamento_concluido.connect(self.progress_dialog.close)
+        self.thread.processamento_concluido.connect(self.processamento_concluido)
+
+        # Inicia a thread
+        self.thread.start()
+
+    def processamento_concluido(self):
+        QMessageBox.information(self, "Processamento Concluído", "O processamento foi concluído com sucesso.")
+
+    def verificar_e_listar_pdfs(self):
+        """Verifica a existência da pasta de PDFs e retorna a lista de arquivos PDF."""
+        if not self.pdf_dir or not self.pdf_dir.exists():
+            QMessageBox.warning(self, "Erro", "Pasta de PDFs não encontrada.")
+            return None
+
+        # Lista todos os arquivos PDF na pasta
+        pdf_files = list(self.pdf_dir.glob("*.pdf"))
+        if not pdf_files:
+            QMessageBox.information(self, "Nenhum Arquivo", "Nenhum arquivo PDF encontrado na pasta.")
+            return None
+
+        print(f"Total de arquivos PDF encontrados: {len(pdf_files)}")  # Depuração
+        return pdf_files
+
+    def iniciar_processamento(self):
         try:
-            print("processar_homologacao foi chamado.")  # Depuração
-
-            # Verifica se a pasta de PDFs existe
-            if not self.pdf_dir or not self.pdf_dir.exists():
-                QMessageBox.warning(self.dialog, "Erro", "Pasta de PDFs não encontrada.")
+            pdf_files = self.verificar_e_listar_pdfs()
+            if pdf_files is None:
                 return
 
-            # Lista todos os arquivos PDF na pasta
-            pdf_files = list(self.pdf_dir.glob("*.pdf"))
-            total_files = len(pdf_files)
-            if not pdf_files:
-                QMessageBox.information(self.dialog, "Nenhum Arquivo", "Nenhum arquivo PDF encontrado na pasta.")
-                return
-
-            all_data = []
+            # Verifica se a pasta para salvar os arquivos de texto existe
+            if not self.txt_dir.exists():
+                self.txt_dir.mkdir(parents=True, exist_ok=True)
 
             # Processa cada arquivo PDF
-            for index, pdf_file in enumerate(pdf_files):
-                # Converte o PDF para texto e salva no diretório especificado
-                data = self.convert_pdf_to_text_and_save(pdf_file)
-                all_data.extend(data)
-                print(f"Processado {index + 1}/{total_files}: {pdf_file.name}")
+            for pdf_file in pdf_files:
+                try:
+                    print(f"Iniciando o processamento do arquivo: {pdf_file}")  # Depuração
+                    # Abre o PDF com pdfplumber
+                    with pdfplumber.open(pdf_file) as pdf:
+                        text = ""
+                        # Concatena o texto de todas as páginas do PDF
+                        for page in pdf.pages:
+                            text += page.extract_text() or ""
+                    
+                    # Nome do arquivo de saída .txt
+                    output_txt_file = self.txt_dir / f"{pdf_file.stem}.txt"
+                    # Salva o texto extraído no arquivo .txt
+                    with open(output_txt_file, "w", encoding="utf-8") as txt_file:
+                        txt_file.write(text)
+                    
+                    print(f"Processamento concluído para o arquivo: {pdf_file}")  # Depuração
 
-            # Conclui o processamento
-            self.on_conversion_finished(all_data)
+                except Exception as e:
+                    print(f"Erro ao processar {pdf_file.name}: {str(e)}")  # Depuração
+                    QMessageBox.warning(self, "Erro", f"Falha ao processar {pdf_file.name}: {str(e)}")
+                    continue
+
+            QMessageBox.information(self, "Processamento Concluído", "Todos os arquivos PDF foram convertidos para .txt com sucesso.")
 
         except Exception as e:
-            # Captura qualquer erro e mostra uma mensagem de erro
-            print(f"Erro ao processar homologação: {e}")
-            QMessageBox.critical(self.dialog, "Erro", f"Ocorreu um erro durante o processamento: {str(e)}")
-
-
-    def convert_pdf_to_text_and_save(self, pdf_file):
-        """
-        Converte o conteúdo de um PDF em texto e salva em um arquivo .txt no diretório txt_dir.
-
-        Args:
-            pdf_file (Path): O caminho do arquivo PDF a ser processado.
-
-        Returns:
-            list: Lista contendo o dicionário com 'item_num' e 'text' extraído.
-        """
-        # Extrai o texto do PDF
-        text_content = self.extract_text_from_pdf(pdf_file)
-        # Salva o texto extraído em um arquivo .txt no diretório especificado
-        self.save_text_to_file(pdf_file, text_content)
-        # Retorna os dados extraídos em forma de lista de dicionários
-        return [{'item_num': pdf_file.stem, 'text': text_content}]
-
-    def extract_text_from_pdf(self, pdf_file):
-        """
-        Extrai o texto de um arquivo PDF.
-
-        Args:
-            pdf_file (Path): O caminho do arquivo PDF a ser processado.
-
-        Returns:
-            str: O conteúdo de texto extraído do PDF.
-        """
-        with pdfplumber.open(pdf_file) as pdf:
-            texts = [page.extract_text() for page in pdf.pages if page.extract_text() is not None]
-            all_text = ' '.join(texts).replace('\n', ' ').replace('\x0c', ' ')
-        return all_text
-
-    def save_text_to_file(self, pdf_file, text_content):
-        """
-        Salva o conteúdo de texto extraído em um arquivo .txt.
-
-        Args:
-            pdf_file (Path): O caminho do arquivo PDF original.
-            text_content (str): O conteúdo de texto a ser salvo.
-        """
-        txt_file = self.txt_dir / f"{pdf_file.stem}.txt"
-        with open(txt_file, 'w', encoding='utf-8') as f:
-            f.write(text_content)
-
-    def on_conversion_finished(self, extracted_data):
-        """
-        Método chamado quando o processamento de todos os PDFs for concluído.
-        """
-        print("on_conversion_finished foi chamado.")  # Depuração
-        
-        # Verifica se a interface ainda está aberta antes de exibir a mensagem
-        if hasattr(self, 'dialog') and self.dialog is not None:
-            QMessageBox.information(self.dialog, "Concluído", "O processamento dos PDFs foi concluído.")
-        else:
-            QMessageBox.information(None, "Concluído", "O processamento dos PDFs foi concluído.")
-        
-        # Faça algo com os dados extraídos, se necessário
-
+            print(f"Erro durante o processamento: {str(e)}")  # Depuração
+            QMessageBox.critical(self, "Erro", f"Ocorreu um erro ao iniciar o processamento: {str(e)}")
 
     def create_sicaf_view(self):
         sicaf_view_widget = QWidget()
@@ -371,17 +343,18 @@ class GerarAtas:
         ]
 
     def import_tr(self):
-        file_path = select_file(self.dialog, "Importar Termo de Referência")
+        file_path = select_file(self, "Importar Termo de Referência") 
         if not file_path:
             return
 
         df = load_file(file_path)
         if df is None or (erros := formatar_e_validar_dados(df)):
-            QMessageBox.warning(self.dialog, "Erro", "\n".join(erros) if erros else "Formato não suportado.")
+            QMessageBox.warning(self, "Erro", "\n".join(erros) if erros else "Formato não suportado.")  
             return
 
         self.tr_variavel_df_carregado = df
         atualizar_modelo_com_dados(self.model, self.treeView, df)
+
 
     def abrir_pastas(self):
         if self.pdf_dir and os.path.isdir(self.pdf_dir):
@@ -403,81 +376,3 @@ class GerarAtas:
 
     def indicadores_normceim(self):
         pass
-
-# Funções auxiliares
-def create_button(texto, funcao):
-    botao = QPushButton(texto)
-    botao.clicked.connect(funcao)
-    return botao
-
-def create_fixed_width_frame(width, layout):
-    frame = QFrame()
-    frame.setFixedWidth(width)
-    frame.setLayout(layout)
-    return frame
-
-def add_or_remove_widget(layout, widget, add):
-    if add and widget.parent() is None:
-        layout.addWidget(widget)
-    elif not add and widget.parent() is not None:
-        layout.removeWidget(widget)
-        widget.setParent(None)
-
-def create_button_layout(buttons):
-    layout = QVBoxLayout()
-    layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    for texto, funcao, _ in buttons:
-        layout.addWidget(create_button(texto, funcao))
-    return layout
-
-def create_dynamic_view(view_name):
-    widget = QWidget()
-    layout = QVBoxLayout(widget)
-    layout.addWidget(QLabel(f"Layout dinâmico para {view_name}"))
-    return widget
-
-def select_file(parent, title):
-    file_path, _ = QFileDialog.getOpenFileName(parent, title, "", "Arquivos Excel (*.xlsx);;Arquivos LibreOffice (*.ods)")
-    return file_path
-
-def load_file(file_path):
-    ext = Path(file_path).suffix.lower()
-    return pd.read_excel(file_path, engine='odf' if ext == '.ods' else None) if ext in ['.xlsx', '.ods'] else None
-
-def atualizar_modelo_com_dados(model, tree_view, df):
-    model.clear()
-    model.setHorizontalHeaderLabels(['Item', 'Catálogo', 'Descrição', 'Descrição Detalhada'])
-    for _, row in df.iterrows():
-        model.appendRow([create_item(value) for value in [row['item_num'], row['catalogo'], row['descricao_tr'], row['descricao_detalhada']]])
-    tree_view.resizeColumnsToContents()
-    tree_view.setColumnWidth(2, 150)
-
-def create_item(value):
-    item = QStandardItem(str(value))
-    item.setEditable(False)
-    return item
-
-def formatar_e_validar_dados(df):
-    required_columns = ['item_num', 'catalogo', 'descricao_tr', 'descricao_detalhada']
-    return [f"Coluna {col} ausente" for col in required_columns if col not in df.columns]
-
-def criar_tabela_vazia(arquivo_xlsx, dialog):
-    df_vazio = pd.DataFrame({
-        "item_num": range(1, 11),
-        "catalogo": [""] * 10,
-        "descricao_tr": [""] * 10,
-        "descricao_detalhada": [""] * 10
-    })
-    try:
-        df_vazio.to_excel(arquivo_xlsx, index=False)
-        os.startfile(arquivo_xlsx)
-    except PermissionError:
-        QMessageBox.warning(dialog, "Arquivo Aberto", "A tabela 'tabela_vazia.xlsx' está aberta. Feche o arquivo antes de tentar salvá-la novamente.")
-
-def open_folder(path):
-    if sys.platform == 'win32':  # Para Windows
-        os.startfile(path)
-    elif sys.platform == 'darwin':  # Para macOS
-        subprocess.Popen(['open', path])
-    else:  # Para Linux e outros sistemas Unix-like
-        subprocess.Popen(['xdg-open', path])

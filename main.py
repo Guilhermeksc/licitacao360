@@ -19,6 +19,7 @@ from config.menu_superior.config.config_om import OrganizacoesDialog
 from config.menu_superior.config.config_template import TemplatesDialog
 from pathlib import Path
 import time
+
 class InicioWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

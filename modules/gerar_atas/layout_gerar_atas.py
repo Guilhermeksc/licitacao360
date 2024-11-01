@@ -365,10 +365,6 @@ class GerarAtasWidget(QWidget):
         # Atualizar o DataFrame carregado
         self.tr_variavel_df_carregado = df
 
-        # Verifique se o treeView já foi inicializado, se não, inicialize-o
-        if not hasattr(self, 'treeView'):
-            self.setup_treeview()
-
         # Atualizar a visualização da tabela com os dados importados
         self.atualizar_modelo_com_dados(df)
 
