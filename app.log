@@ -1,0 +1,202 @@
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 19, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 19, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 22, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 22, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=5': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 22, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=5': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=2': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 22, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=2': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 23, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=3': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 23, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT * FROM controle_dispensas WHERE id=4': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.
+root - ERROR - Erro ao carregar dados do banco de dados: Execution failed on sql 'SELECT id_processo FROM controle_dispensas WHERE id=3;': no such column: id
+Traceback (most recent call last):
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2674, in execute
+    cur.execute(sql, *args)
+sqlite3.OperationalError: no such column: id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\Guilherme\360\licitacao360\modules\dispensa_eletronica\views.py", line 23, in carregar_dados_dispensa
+    df_registro_selecionado = pd.read_sql_query(query, connection)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 526, in read_sql_query
+    return pandas_sql.read_query(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2738, in read_query
+    cursor = self.execute(sql, params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Guilherme\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\sql.py", line 2686, in execute
+    raise ex from exc
+pandas.errors.DatabaseError: Execution failed on sql 'SELECT id_processo FROM controle_dispensas WHERE id=3;': no such column: id
+root - WARNING - Nenhum registro foi encontrado ou ocorreu um erro ao carregar os dados.

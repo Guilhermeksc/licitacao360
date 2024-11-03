@@ -532,7 +532,7 @@ def carregar_dados_pregao(index, caminho_banco_dados):
         return df_registro_selecionado
     except Exception as e:
         logging.error(f"Erro ao carregar dados do banco de dados: {e}", exc_info=True)
-        return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
+        return pd.DataFrame() 
 
 # def carregar_dados_licitacao(id_processo, caminho_banco_dados):
 #     try:

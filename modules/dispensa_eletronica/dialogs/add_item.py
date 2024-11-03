@@ -7,10 +7,20 @@ from datetime import datetime
 import sqlite3
 import pandas as pd
 
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
+from modules.planejamento.utilidades_planejamento import DatabaseManager
+from pathlib import Path
+from datetime import datetime
+import sqlite3
+import pandas as pd
+
 class AddItemDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, database_path, parent=None):
         super().__init__(parent)
-        self.database_path = Path(CONTROLE_DADOS)
+        self.database_path = database_path
+        self.om_details = {}  # Inicializa como dicionário vazio para evitar erros
         self.setWindowTitle("Adicionar Item")
         icon_confirm = QIcon(str(ICONS_DIR / "plus.png"))
         self.setWindowIcon(icon_confirm)
@@ -21,7 +31,8 @@ class AddItemDialog(QDialog):
         self.setStyleSheet("QWidget { font-size: 14px; }")
 
         self.setup_ui()
-        self.load_sigla_om()
+        self.load_sigla_om()  # Preenche self.om_details com dados do banco
+        self.load_next_numero()
 
     def setup_ui(self):
         self.tipo_cb, self.numero_le, self.ano_le = self.setup_first_line()
@@ -94,21 +105,20 @@ class AddItemDialog(QDialog):
         self.layout.addWidget(btn)
 
     def on_save(self):
-        if self.check_id_exists():
+        data = self.get_data()
+        if self.check_id_exists(data['id_processo']):
             res = QMessageBox.question(self, "Confirmação", "ID do processo já existe. Deseja sobrescrever?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             if res == QMessageBox.StandardButton.Yes:
                 self.accept()  # Substitui o diálogo aceitar com a sobreposição
         else:
             self.accept()  # Aceita normalmente se o ID do processo não existir
 
-    def check_id_exists(self):
-        id_processo = f"{self.tipo_cb.currentText()} {self.numero_le.text()}/{self.ano_le.text()}"
-        query = f"SELECT COUNT(*) FROM controle_dispensas WHERE id_processo = ?"
-        conn = sqlite3.connect(self.database_path)
-        cursor = conn.cursor()
-        cursor.execute(query, (id_processo,))
-        exists = cursor.fetchone()[0] > 0
-        conn.close()
+    def check_id_exists(self, id_processo):
+        query = "SELECT COUNT(*) FROM controle_dispensas WHERE id_processo = ?"
+        with sqlite3.connect(self.database_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (id_processo,))
+            exists = cursor.fetchone()[0] > 0
         return exists
 
     def load_next_numero(self):
@@ -123,56 +133,52 @@ class AddItemDialog(QDialog):
             print(f"Erro ao carregar o próximo número: {e}")
 
     def get_data(self):
-        sigla_selected = self.sigla_om_cb.currentText()
+        # Define o valor de 'sigla_om' como "CeIMBra" se a seleção atual estiver vazia
+        sigla_selected = self.sigla_om_cb.currentText() or "CeIMBra"
+
+        # Define valores padrão para 'orgao_responsavel' e 'uasg' caso 'sigla_selected' não esteja em 'self.om_details'
+        orgao_responsavel = self.om_details.get(sigla_selected, {}).get('orgao_responsavel', "Orgão Padrão")
+        uasg = self.om_details.get(sigla_selected, {}).get('uasg', "000000")
+
         material_servico = "Material" if self.material_radio.isChecked() else "Serviço"
         tipo_de_processo = self.tipo_cb.currentText()
-        
+
         data = {
-            'tipo': tipo_de_processo,  # Este é o texto visível no ComboBox
+            'tipo': tipo_de_processo,
             'numero': self.numero_le.text(),
             'ano': self.ano_le.text(),
             'nup': self.nup_le.text(),
             'objeto': self.objeto_le.text(),
             'sigla_om': sigla_selected,
-            'orgao_responsavel': self.om_details[sigla_selected]['orgao_responsavel'],
-            'uasg': self.om_details[sigla_selected]['uasg'],
+            'orgao_responsavel': orgao_responsavel,
+            'uasg': uasg,
             'material_servico': material_servico
         }
 
-        # Utilize um único mapa que combina os dois propósitos, se possível
-        # Isso mapeia o tipo visível para seu código abreviado e nome no banco de dados
+        # Mapeamento do tipo de processo para o nome interno
         tipo_map = {
             "Dispensa Eletrônica (DE)": ("DE", "Dispensa Eletrônica"),
         }
-
-        # Se o tipo de processo está no mapa, use a abreviação e o nome interno; caso contrário, use valores padrão
+        
         if tipo_de_processo in tipo_map:
             abreviatura, nome_interno = tipo_map[tipo_de_processo]
             data['tipo'] = nome_interno
             data['id_processo'] = f"{abreviatura} {data['numero']}/{data['ano']}"
         else:
-            data['tipo'] = "Tipo Desconhecido"  # ou algum valor padrão
+            data['tipo'] = "Tipo Desconhecido"
             data['id_processo'] = f"Desconhecido {data['numero']}/{data['ano']}"
 
         return data
-
-    def import_uasg_to_db(self, filepath):
-        # Ler os dados do arquivo Excel
-        df = pd.read_excel(filepath, usecols=['uasg', 'orgao_responsavel', 'sigla_om'])
-        
-        # Conectar ao banco de dados e criar a tabela se não existir
-        with sqlite3.connect(self.database_path) as conn:
-            df.to_sql('controle_om', conn, if_exists='replace', index=False)  # Use 'replace' para substituir ou 'append' para adicionar
-
+    
     def load_sigla_om(self):
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT DISTINCT sigla_om, orgao_responsavel, uasg FROM controle_om ORDER BY sigla_om")
-                self.om_details = {}
+                self.om_details = {"CeIMBra": {"orgao_responsavel": "Centro de Intendência da Marinha em Brasília", "uasg": "787010"}}
                 self.sigla_om_cb.clear()
-                ceimbra_found = False  # Variável para verificar se CeIMBra está presente
-                default_index = 0  # Índice padrão se CeIMBra não for encontrado
+                ceimbra_found = False
+                default_index = 0
 
                 for index, row in enumerate(cursor.fetchall()):
                     sigla, orgao, uasg = row
@@ -180,9 +186,16 @@ class AddItemDialog(QDialog):
                     self.om_details[sigla] = {"orgao_responsavel": orgao, "uasg": uasg}
                     if sigla == "CeIMBra":
                         ceimbra_found = True
-                        default_index = index  # Atualiza o índice para CeIMBra se encontrado
+                        default_index = index
 
                 if ceimbra_found:
-                    self.sigla_om_cb.setCurrentIndex(default_index)  # Define CeIMBra como valor padrão
+                    self.sigla_om_cb.setCurrentIndex(default_index)
+                else:
+                    self.sigla_om_cb.setCurrentText("CeIMBra")
+
         except Exception as e:
             print(f"Erro ao carregar siglas de OM: {e}")
+            # Garantindo a existência de "CeIMBra" em caso de erro de carregamento
+            self.om_details = {"CeIMBra": {"orgao_responsavel": "Centro de Intendência da Marinha em Brasília", "uasg": "787010"}}
+            self.sigla_om_cb.addItem("CeIMBra")
+            self.sigla_om_cb.setCurrentText("CeIMBra")

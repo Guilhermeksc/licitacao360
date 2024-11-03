@@ -8,10 +8,10 @@ from database.utils.treeview_utils import load_images, create_button
 from modules.planejamento.utilidades_planejamento import DatabaseManager, carregar_dados_pregao, carregar_dados_dispensa
 from modules.dispensa_eletronica.utilidades_dispensa_eletronica import ExportThread
 from modules.dispensa_eletronica.sql_model import SqlModel, CustomTableView
-from modules.dispensa_eletronica.menu.add_item import AddItemDialog
-from modules.dispensa_eletronica.menu.salvar_tabela import SaveTableDialog
-from modules.dispensa_eletronica.menu.graficos import GraficTableDialog
-from modules.dispensa_eletronica.menu.gerar_tabela import TabelaResumidaManager
+from modules.dispensa_eletronica.dialogs.add_item import AddItemDialog
+from modules.dispensa_eletronica.dialogs.salvar_tabela import SaveTableDialog
+from modules.dispensa_eletronica.dialogs.graficos import GraficTableDialog
+from modules.dispensa_eletronica.dialogs.gerar_tabela import TabelaResumidaManager
 import pandas as pd
 import os
 import subprocess
@@ -297,7 +297,6 @@ class DispensaEletronicaWidget(QMainWindow):
                     ))
             conn.commit()
         self.dataUpdated.emit()
-
 
 class UIManager:
     def __init__(self, parent, icons, config_manager, model):

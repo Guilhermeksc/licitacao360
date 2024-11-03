@@ -18,10 +18,10 @@ class EditDataDialog(QDialog):
     title_updated = pyqtSignal(str)
     status_atualizado = pyqtSignal(str, str)
 
-    def __init__(self, df_registro_selecionado, icons_dir, parent=None):
+    def __init__(self, df_registro_selecionado, icons, parent=None):
         super().__init__(parent)
         self.df_registro_selecionado = df_registro_selecionado
-        self.ICONS_DIR = Path(icons_dir)
+        self.icons = icons
 
         # Inicializações
         self.navigation_buttons = []
@@ -1056,7 +1056,6 @@ class EditDataDialog(QDialog):
         self.carregarAgentesResponsaveis()
 
         return frame_agentes
-
 
     def carregarAgentesResponsaveis(self):
         try:

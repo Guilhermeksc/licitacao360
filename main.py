@@ -3,10 +3,11 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 import qdarktheme
-from config.paths import ICONS_DIR, IMAGES_DIR
+from config.paths import ICONS_DIR, IMAGES_DIR, DATA_DISPENSA_ELETRONICA_PATH
 from config.styles.styless import get_menu_button_style, get_menu_button_activated_style
 from modules.widgets import *
 from config.dialogs import * 
+
 
 class MainWindow(QMainWindow):
     def __init__(self, app):
@@ -251,7 +252,20 @@ class MainWindow(QMainWindow):
 
     def setup_dispensa_eletronica(self):
         self.clear_content_area()
-        self.dispensa_eletronica_widget = DispensaEletronicaWidget(str(ICONS_DIR), self)
+        
+        # Instancia o modelo de Dispensa Eletrônica com o caminho do banco de dados
+        self.dispensa_eletronica_model = DispensaEletronicaModel(DATA_DISPENSA_ELETRONICA_PATH)
+        
+        # Configura o modelo SQL
+        sql_model = self.dispensa_eletronica_model.setup_model("controle_dispensas", editable=True)
+        
+        # Cria o widget de Dispensa Eletrônica e passa o modelo SQL e o caminho do banco de dados
+        self.dispensa_eletronica_widget = DispensaEletronicaWidget(self.icons, sql_model, self.dispensa_eletronica_model.database_manager.db_path)
+
+        # Cria o controlador e passa o widget e o modelo
+        self.controller = DispensaEletronicaController(self.dispensa_eletronica_widget, self.dispensa_eletronica_model)
+
+        # Adiciona o widget de Dispensa Eletrônica na área de conteúdo
         self.content_layout.addWidget(self.dispensa_eletronica_widget)
 
     def clear_content_area(self, keep_image_label=False):

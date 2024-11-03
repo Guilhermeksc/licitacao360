@@ -10,6 +10,10 @@ TEMPLATE_DIR = RESOURCES_DIR / "templates"
 ICONS_DIR = RESOURCES_DIR / "icons"
 IMAGES_DIR = RESOURCES_DIR / "images"
 
+# Modules
+MODULES_DIR = BASE_DIR / "modules"
+DISPENSA_ELETRONICA_DIR = MODULES_DIR / "dispensa_eletronica"
+DATA_DISPENSA_ELETRONICA_PATH = DISPENSA_ELETRONICA_DIR / "controle_contratacao_direta.db"
 
 CONTROLE_CONTRATOS_DADOS = DATABASE_DIR / "controle_contrato.db"
 CONTROLE_ASS_CONTRATOS_DADOS = DATABASE_DIR / "controle_assinatura.db"
